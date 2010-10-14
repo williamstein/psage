@@ -1,0 +1,15 @@
+psage.egg-info
+~
+pyc
+build
+dist
+#
+ascent.egg-info
+MANIFEST
+.aux
+.dvi
+.log
+.toc
+auto
+docs/ascent.pdf
+docs/notebook.out

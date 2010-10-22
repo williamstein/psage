@@ -1,1 +1,1 @@
-# 
+import rational

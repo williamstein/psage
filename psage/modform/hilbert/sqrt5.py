@@ -17,7 +17,7 @@ def modp_splitting(B, p):
         sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1); B
         Quaternion Algebra (-1, -1) with base ring Number Field in a with defining polynomial x^2 - 5
         sage: c = F.factor(31)[0][0]
-        sage: from psage.modform.hilbert.dembele1 import modp_splitting
+        sage: from psage.modform.hilbert.sqrt5 import modp_splitting
         sage: modp_splitting(B, c)
         (
         [ 0 30]  [18  4]
@@ -87,9 +87,10 @@ def icosian_gens(B):
     AUTHOR: William Stein
 
     EXAMPLES::
+    
         sage: F.<a> = QuadraticField(5)
         sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1)
-        sage: from psage.modform.hilbert.dembele1 import icosian_gens
+        sage: from psage.modform.hilbert.sqrt5 import icosian_gens
         sage: icosian_gens(B)
         [i, j, k, -1/2 + 1/2*i + 1/2*j + 1/2*k, 1/2*i + (-1/4*a + 1/4)*j + (1/4*a + 1/4)*k]
         sage: [a.reduced_norm() for a in icosian_gens(B)]
@@ -159,8 +160,35 @@ def totally_pos_gen(p):
     Given a prime ideal p of a narrow class number 1 real quadratic
     field, return a totally positive generator.
 
+    INPUT:
+        - p -- prime ideal of narrow class number 1 real
+          quadratic field
+
+    OUTPUT:
+        - generator of p that is totally positive
+
+    AUTHOR: William Stein
+
     EXAMPLES::
     
+        sage: F.<a> = QuadraticField(5)
+        sage: from psage.modform.hilbert.sqrt5 import totally_pos_gen
+        sage: g = totally_pos_gen(F.factor(19)[0][0]); g
+        -1/2*a + 9/2
+        sage: g.complex_embeddings()
+        [5.61803398874989, 3.38196601125011]        
+
+        sage: for p in primes(14):
+        ...       for P, e in F.factor(p):
+        ...           g = totally_pos_gen(P)
+        ...           print P, g, g.complex_embeddings()
+        Fractional ideal (2) 2 [2.00000000000000, 2.00000000000000]
+        Fractional ideal (3) 3 [3.00000000000000, 3.00000000000000]
+        Fractional ideal (a) -1/2*a + 5/2 [3.61803398874989, 1.38196601125011]
+        Fractional ideal (7) 7 [7.00000000000000, 7.00000000000000]
+        Fractional ideal (-3/2*a + 1/2) -a + 4 [6.23606797749979, 1.76393202250021]
+        Fractional ideal (-3/2*a - 1/2) -1/2*a + 7/2 [4.61803398874989, 2.38196601125011]
+        Fractional ideal (13) 13 [13.0000000000000, 13.0000000000000]
     """
     F = p.number_field()
     assert F.degree() == 2 and F.discriminant() > 0
@@ -168,37 +196,41 @@ def totally_pos_gen(p):
     if len(G) != 1:
         raise ValueError, "ideal not principal"
     g = G[0]
+
+    from sage.all import RR
     sigma = F.embeddings(RR)
+    
     e = [s(g) for s in sigma]
     u = F.unit_group().gen(1)
     ue = [s(u) for s in sigma]
     if ue[0] > 0 and ue[1] < 0:
-        ue *= -1
+        u *= -1
     if e[0] < 0 and e[1] < 0:
         return -g
     elif e[0] < 0 and e[1] > 0:
         if ue[0] < 0 and ue[1] > 0:
-            return ue*g
+            return u*g
         else:
             raise ValueError, "no totally positive generator"
     elif e[0] > 0 and e[1] > 0:
         return g
     elif e[0] > 0 and e[1] < 0:
         if ue[0] < 0 and ue[1] > 0:
-            return -ue*g
+            return -u*g
         else:
             raise ValueError, "no totally positive generator"
     assert False, "bug"
 
 def Theta(B, p):
-    """
-    Return representative elements of the maximal order of R of norm
-    pi_p up to the units of R (the icosians).  Here pi_p is a totally
-    positive generator of p.
+    r"""
+    Return representative elements of the maximal order of `R` of norm
+    `\pi_p` up to the units of `R` (the icosians).  Here `\pi_p` is a
+    totally positive generator of `p`.
 
     INPUT:
-       - B -- quaternion algebra
-       - p -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
+       - `B` -- quaternion algebra
+       - `p` -- a prime of `\mathcal{O}_F`, where `F` is the totally
+         real field `\QQ(\sqrt{5})`.
 
     AUTHOR: William Stein
 

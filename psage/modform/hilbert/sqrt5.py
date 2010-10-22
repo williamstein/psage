@@ -152,7 +152,43 @@ def P1_orbits(B, p):
                     cur = c.tuple()
                     break
     # done
-    return orbits, act    
+    return orbits, act
+
+def totally_pos_gen(p):
+    """
+    Given a prime ideal p of a narrow class number 1 real quadratic
+    field, return a totally positive generator.
+
+    EXAMPLES::
+    
+    """
+    F = p.number_field()
+    assert F.degree() == 2 and F.discriminant() > 0
+    G = p.gens_reduced()
+    if len(G) != 1:
+        raise ValueError, "ideal not principal"
+    g = G[0]
+    sigma = F.embeddings(RR)
+    e = [s(g) for s in sigma]
+    u = F.unit_group().gen(1)
+    ue = [s(u) for s in sigma]
+    if ue[0] > 0 and ue[1] < 0:
+        ue *= -1
+    if e[0] < 0 and e[1] < 0:
+        return -g
+    elif e[0] < 0 and e[1] > 0:
+        if ue[0] < 0 and ue[1] > 0:
+            return ue*g
+        else:
+            raise ValueError, "no totally positive generator"
+    elif e[0] > 0 and e[1] > 0:
+        return g
+    elif e[0] > 0 and e[1] < 0:
+        if ue[0] < 0 and ue[1] > 0:
+            return -ue*g
+        else:
+            raise ValueError, "no totally positive generator"
+    assert False, "bug"
 
 def Theta(B, p):
     """
@@ -168,4 +204,7 @@ def Theta(B, p):
 
     EXAMPLES::
     """
-    
+    raise NotImplementedError
+
+def hecke_operator(B, P1, Theta_p):
+    raise NotImplementedError

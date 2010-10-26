@@ -1,0 +1,4 @@
+recursive-include psage *.c *.h *.py *.pyx *.pxd *.pxi *.cpp *.txt *.tex *.rst 
+recursive-include .hg *.i *.d 00*
+include .hgignore .hgtags MANIFEST.in build_ext setup.py build_system.py
+exclude *~ *.pyc *.so *.dylib

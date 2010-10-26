@@ -1,39 +1,29 @@
 import os, sys
 
-from setuptools import setup, Extension
+import build_system
 
 SAGE_ROOT = os.environ['SAGE_ROOT']
+
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
             ['local/include/csage', 'local/include', 'local/include/python2.6/',
              'devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl']]
 
-def cython(f, m):
-    """
-    Given a pair p = (f, m), with a .pyx file f which is a part the
-    module m, call Cython on f
+if '-ba' in sys.argv:
+    print "Rebuilding all Cython extensions."
+    FORCE = True
+else:
+    FORCE = False
 
-    INPUT:
-         p -- a 2-tuple f, m
+def Extension(*args, **kwds):
+    if not kwds.has_key('include_dirs'):
+        kwds['include_dirs'] = INCLUDES
+    if not kwds.has_key('force'):
+        kwds['force'] = FORCE
+    return build_system.Extension(*args, **kwds)
 
-    copy the file to SITE_PACKAGES, and return a string
-    which will call Cython on it.
-    """
-    assert f.endswith('.pyx')
-    # output filename
-    dir, f = os.path.split(f)
-    ext = 'cpp' if m.language == 'c++' else 'c'
-    outfile = os.path.splitext(f)[0] + '.' + ext
-    includes = ''.join(["-I '%s' "%x for x in INCLUDES])
-
-    # call cython
-    cmd = "cd %s && python `which cython` --embed-positions --directive cdivision=True %s -o %s %s"%(
-        dir, includes, outfile, f)
-                       
-    print cmd
-    return os.system(cmd)
-
-E = Extension("psage.ellff.ellff",
-              ["psage/ellff/ellff.cpp",
+ext_modules = [
+    Extension("psage.ellff.ellff",
+              ["psage/ellff/ellff.pyx",
                "psage/ellff/ell.cpp",
                "psage/ellff/ell_surface.cpp",
                "psage/ellff/euler.cpp",
@@ -41,19 +31,17 @@ E = Extension("psage.ellff.ellff",
                "psage/ellff/jacobi.cpp",
                "psage/ellff/lzz_pEExtra.cpp",
                "psage/ellff/lzz_pEratX.cpp"],
-              language='c++',
-              include_dirs = INCLUDES
-              )
+              language = 'c++'),
+    
+    Extension("psage.function_fields.function_field_element",
+              ["psage/function_fields/function_field_element.pyx"]),
+    
 
-cython('psage/ellff/ellff.pyx', E)
-
-ext_modules = [
-    E
 ]
 
+build_system.cythonize(ext_modules)
 
-
-setup(
+build_system.setup(
     name = 'psage',
     version = "10.10.26",
     description = "PSAGE: Software for Arithmetic Geometry",

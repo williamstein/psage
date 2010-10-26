@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# Run this script in order to rebuild all the modified Cython code of
+# psage in place.
+
+# NOTES: Currently, there is no dependency checking.  The main issue
+# could be if you change stuff in the Sage library which psage code
+# depends on.  In that case, you should force a rebuild of everything.
+
+# Do "./build_ext -ba" to force a rebuild of all cython code.
+
+psage setup.py build_ext --inplace $* 2>&1

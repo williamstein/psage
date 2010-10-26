@@ -44,8 +44,13 @@ from sage.rings.integer cimport Integer
 from sage.rings.polynomial.polynomial_element import is_Polynomial
 from sage.schemes.elliptic_curves.ell_generic import is_EllipticCurve, EllipticCurve
 from sage.structure.sage_object import SageObject
-from sage.rings.function_field.function_field import is_FunctionField, FunctionField, RationalFunctionField
-from sage.rings.function_field.function_field_element import FunctionFieldElement_rational
+
+####################
+# PSAGE imports
+from psage.function_fields import is_FunctionField, FunctionField
+from psage.function_fields.function_field import RationalFunctionField
+from psage.function_fields.function_field_element import FunctionFieldElement_rational
+####################
  
 ####################
 
@@ -433,16 +438,15 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         $a_1$, $a_2$, $a_3$, $a_4$, and $a_6$.
 
         INPUT:
-            field   --  ground field
-            ainvs   --  a list of 5 integers
+            - field --  ground field
+            - ainvs --  a list of 5 integers
                        
         EXAMPLES::
 
-            sage: import psage.ellff.ellff as ellff
-            sage: K.<t> = FunctionField(GF(5))
-            sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
-            <class 'ellff.ellff_EllipticCurve'>
-
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(5))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
+            <class 'psage.ellff.ellff.ellff_EllipticCurve'>
         """
 
         _ellff_EllipticCurve_c.__init__(self)

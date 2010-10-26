@@ -1,4 +1,4 @@
-include "../../ext/stdsage.pxi"
+include "stdsage.pxi"
 
 from sage.structure.element cimport FieldElement, RingElement, ModuleElement, Element
 

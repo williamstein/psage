@@ -4,8 +4,8 @@ from setuptools import setup, Extension
 
 SAGE_ROOT = os.environ['SAGE_ROOT']
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-            ['local/include/csage', 'local/include', 'local/include/python2.6/',  'devel/sage/sage/ext',
-             'devel/sage', 'devel/sage/sage/gsl']]
+            ['local/include/csage', 'local/include', 'local/include/python2.6/',
+             'devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl']]
 
 def cython(f, m):
     """
@@ -33,7 +33,14 @@ def cython(f, m):
     return os.system(cmd)
 
 E = Extension("psage.ellff.ellff",
-              ["psage/ellff/ellff.cpp"],
+              ["psage/ellff/ellff.cpp",
+               "psage/ellff/ell.cpp",
+               "psage/ellff/ell_surface.cpp",
+               "psage/ellff/euler.cpp",
+               "psage/ellff/helper.cpp",
+               "psage/ellff/jacobi.cpp",
+               "psage/ellff/lzz_pEExtra.cpp",
+               "psage/ellff/lzz_pEratX.cpp"],
               language='c++',
               include_dirs = INCLUDES
               )

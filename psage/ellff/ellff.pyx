@@ -84,7 +84,7 @@ cdef extern from "NTL/lzz_pEX.h":
 
 ####################
 
-cdef extern from "ellff/lzz_pEratX.h":
+cdef extern from "lzz_pEratX.h":
     ctypedef struct zz_pEratX_c "zz_pEratX":
         pass
 
@@ -93,7 +93,7 @@ cdef extern from "ellff/lzz_pEratX.h":
 
 ####################
 
-cdef extern from "ellff/euler.h":
+cdef extern from "euler.h":
     void __euler_table "euler_table"(long *table, long min_tau, long max_tau, int euler_deg) except+
     void __twist_table "twist_table"(zz_pEX_c f, long *untwisted_table, long *twisted_table, long min_tau, long max_tau)
     void __pullback_table "pullback_table"(zz_pEX_c finite_disc, zz_pEX_c infinite_disc, zz_pEratX_c f, long *base_table, long *pullback_table, long min_tau, long max_tau)
@@ -103,12 +103,12 @@ cdef extern from "ellff/euler.h":
 
 ####################
 
-cdef extern from "ellff/jacobi.h":
+cdef extern from "jacobi.h":
     void __jacobi_sum "jacobi_sum"(ZZ_c ***sum, long d, long *chi_of_16)
 
 ####################
 
-cdef extern from "ellff/ell_surface.h":
+cdef extern from "ell_surface.h":
     ctypedef struct ell_surfaceInfoT_c "ell_surfaceInfoT":
         int     sign
         int     deg_L
@@ -129,7 +129,7 @@ cdef extern from "ellff/ell_surface.h":
 
 ####################
 
-cdef extern from "ellff/helper.h":
+cdef extern from "helper.h":
     cdef void __get_modulus "get_modulus"(zz_pX_c pi_1, zz_pX_c pi_2, zz_pX_c a, int p, int d1, int d2)
     cdef void init_NTL_ff(int p, int d, int precompute_inverses, int precompute_square_roots, int precompute_legendre_char, int precompute_pth_frobenius_map)
 
@@ -438,7 +438,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
                        
         EXAMPLES::
 
-            sage: import sage.libs.ellff as ellff
+            sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
@@ -619,7 +619,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
                        
         EXAMPLES::
 
-            sage: import sage.libs.ellff as ellff
+            sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
@@ -692,7 +692,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
                        
         EXAMPLES::
         
-            sage: import sage.libs.ellff as ellff
+            sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
@@ -763,7 +763,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
                        
         EXAMPLES::
         
-            sage: import sage.libs.ellff as ellff
+            sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
@@ -830,7 +830,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
                        
         EXAMPLES::
         
-            sage: import sage.libs.ellff as ellff
+            sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
@@ -912,7 +912,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             n -- which degree
 
         EXAMPLES::
-            sage: import sage.libs.ellff as ellff
+            sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>

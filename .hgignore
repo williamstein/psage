@@ -13,3 +13,5 @@ MANIFEST
 auto
 docs/ascent.pdf
 docs/notebook.out
+.so
+psage/ellff/ellff.cpp

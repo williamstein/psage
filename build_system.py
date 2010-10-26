@@ -17,14 +17,10 @@ def cython(f, language, include_dirs, force):
     ext = 'cpp' if language == 'c++' else 'c'
     outfile = os.path.splitext(f)[0] + '.' + ext
     full_outfile = dir + '/' + outfile
-    print "force = ", force
     if not force:
-        print "checking"
-        if time_stamp(f) <= time_stamp(outfile):
+        if os.path.exists(full_outfile) and time_stamp(f) <= time_stamp(outfile):
             # Already compiled
             return full_outfile, []
-    print "building.."
-    
     includes = ''.join(["-I '%s' "%x for x in include_dirs])
     # call cython
     cmd = "cd %s && python `which cython` --embed-positions --directive cdivision=True %s -o %s %s"%(

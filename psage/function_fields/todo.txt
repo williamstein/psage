@@ -1,0 +1,52 @@
+TODO:
+
+[ ] copyright headers
+[ ] Docstring headers for each file with description of content of file
+[ ] picling elements
+
+[ ] RR space algorithm
+
+[ ] implement denominator in general, which is a guaranteed multiple of the denominator
+    only when not pid...
+[ ] reduction of divisors: algorithm
+[ ] polynomial factoring of any univariate poly over a non-rational function field
+[ ] checking irreducibility in FunctionField_polymod constructor
+[ ] pickle doctests
+[ ] TestSuite(s).run() doctests
+[ ] method function_field() on algebraic curves, that give back a corresponding function field object.
+[ ] compute maximal separable subfield (requested by Voloch)
+[ ] factoring polynomials in n variables over rational function field
+[ ] x.valuation(...)  [bradshaw will do this]
+[ ] optimization: new implementation of the function field API, but
+    using multivariate poly rings in some cases; for *speed*, but with
+    less base rings supported...?
+
+DONE:
+[x] phi = morphism; phi(order); phi(ideal) --- won't do, since image of order or ideal often isn't one
+    for general morphisms
+[x] a command FunctionField to make a new function field from anything.
+[x] constant_base_field versus constant_field
+[x] fix when asking for equation order if defining polynomial not *integral*
+[x] non-monic defining polynomials
+[x] do not require defining polynomial to be monic
+[x] issue with *underscores* and singular:
+K.<t_ba> = FunctionField(QQ)
+R.<u_ba> = K[]
+L.<u_ba> = K.extension(u_ba^2 - t_ba)
+L.equation_order()
+BOOM!
+
+[x] isomorphisms between function fields:
+     K.hom([top gen, next one down, etc.])
+    make sure you include easy way to gens all the way down.
+[x] inverses of fractional ideals
+[x] factor for elements of the rational function field
+[x] ideals
+[x] polynomial factoring of any univariate poly over a rational function field: reduce to bivariate over constant field?
+[x] conversion back and forth between a free module over base
+[x] random element
+[x] numerator, denominator
+[x] 100% coverage
+[x] matrix of element
+[x] norm
+[x] trace

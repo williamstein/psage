@@ -3,8 +3,8 @@
 #
 # Coyright 2009, Salman Baig and Chris Hall
 
-include "../../ext/stdsage.pxi"
-include "../../ext/cdefs.pxi"
+include "stdsage.pxi"
+include "cdefs.pxi"
 
 from sage.libs.ntl.ntl_ZZ_decl cimport *
 from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ

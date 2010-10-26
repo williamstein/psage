@@ -643,6 +643,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         $L$-function.
 
         EXAMPLES::
+
             sage: import psage
             sage: K.<t> = psage.FunctionField(GF(11))
             sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
@@ -973,22 +974,15 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             n -- which degree
 
         EXAMPLES::
+        
             sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
             sage: E._euler_table(1)
-            ---------------------------------------------------------------------------
-            RuntimeError                              Traceback (most recent call last)
-            
-            /Applications/sage-4.4.2/devel/sage-ellff/<ipython console> in <module>()
-            
-            /Applications/sage-4.4.2/local/lib/python2.6/site-packages/sage/libs/ellff.so in ellff.ellff_EllipticCurve._euler_table (sage/libs/ellff/ellff.cpp:11453)()
-            
-            /Applications/sage-4.4.2/local/lib/python2.6/site-packages/sage/libs/ellff.so in ellff._ellff_EllipticCurve_c.__euler_table (sage/libs/ellff/ellff.cpp:5792)()
-            
+            Traceback (most recent call last):
+                ...
             RuntimeError: table is empty
-
             sage: E_pullback = E.pullback(t^3, tables=True, verbose=True); E_pullback
             rebuilding own Euler table  (n =  1 )
             pulling back old table      (n =  1 )
@@ -997,7 +991,6 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             [0, 2, 3, -2, 2, 0]
             sage: E_pullback._euler_table(1)
             [0, 2, 1, -1, 2, 0]
-
             sage: E_twist = E.quadratic_twist(t^2+1, tables=True, force=True, verbose=True); E_twist
             twisting old table into new (n =  1 )
             twisting old table into new (n =  2 )
@@ -1036,19 +1029,13 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             - force -- a boolean that forces overwriting of existing euler table
 
         EXAMPLES::
+
             sage: import psage
             sage: K.<t> = psage.FunctionField(GF(11))
             sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
             sage: E._euler_table(1)
-            ---------------------------------------------------------------------------
-            RuntimeError                              Traceback (most recent call last)
-            
-            /Users/salmanhb/<ipython console> in <module>()
-            
-            /Applications/salmanhb-ellff/psage/ellff/ellff.so in psage.ellff.ellff.ellff_EllipticCurve._euler_table (psage/ellff/ellff.cpp:11543)()
-            
-            /Applications/salmanhb-ellff/psage/ellff/ellff.so in psage.ellff.ellff._ellff_EllipticCurve_c.__euler_table (psage/ellff/ellff.cpp:5798)()
-            
+            Traceback (most recent call last):
+                ...
             RuntimeError: table is empty
             sage: E.L_function()
             14641*T^4 + 1
@@ -1056,15 +1043,8 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             [-4, -2, 1, -4, 3, -6, 3, 5, 4, 0, 0, 0]
             sage: et = E._euler_table(1)
             sage: E._set_euler_table(1,et)
-            ---------------------------------------------------------------------------
-            RuntimeError                              Traceback (most recent call last)
-            
-            /Users/salmanhb/<ipython console> in <module>()
-            
-            /Applications/salmanhb-ellff/psage/ellff/ellff.so in psage.ellff.ellff.ellff_EllipticCurve._set_euler_table (psage/ellff/ellff.cpp:11672)()
-            
-            /Applications/salmanhb-ellff/psage/ellff/ellff.so in psage.ellff.ellff._ellff_EllipticCurve_c.__set_euler_table (psage/ellff/ellff.cpp:6083)()
-            
+            Traceback (most recent call last):
+                ...
             RuntimeError: run with force=True to force an overwrite
             sage: E._set_euler_table(1,table=et,force=True)
             
@@ -1148,6 +1128,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
               reduction at infinity, and 0 otherwise.
                        
         EXAMPLES::
+
             sage: import psage
             sage: K.<t> = psage.FunctionField(GF(11))
             sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
@@ -1181,6 +1162,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
               reduction at infinity, and 0 otherwise.
                        
         EXAMPLES::
+
             sage: import psage
             sage: K.<t> = psage.FunctionField(GF(11))
             sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])

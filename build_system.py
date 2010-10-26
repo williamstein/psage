@@ -29,18 +29,19 @@ import setuptools
 def time_stamp(filename):
     try:
         return os.path.getmtime(filename)
-    except OSError:
+    except OSError, msg:
+        print msg
         return 0
 
-def cython(f, language, include_dirs, force):
-    assert f.endswith('.pyx')
+def cython(f_pyx, language, include_dirs, force):
+    assert f_pyx.endswith('.pyx')
     # output filename
-    dir, f = os.path.split(f)
+    dir, f = os.path.split(f_pyx)
     ext = 'cpp' if language == 'c++' else 'c'
     outfile = os.path.splitext(f)[0] + '.' + ext
     full_outfile = dir + '/' + outfile
     if not force:
-        if os.path.exists(full_outfile) and time_stamp(f) <= time_stamp(outfile):
+        if os.path.exists(full_outfile) and time_stamp(f_pyx) <= time_stamp(full_outfile):
             # Already compiled
             return full_outfile, []
     includes = ''.join(["-I '%s' "%x for x in include_dirs])

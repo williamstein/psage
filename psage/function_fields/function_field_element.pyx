@@ -57,6 +57,9 @@ cdef class FunctionFieldElement(FieldElement):
         cdef FunctionFieldElement x = <FunctionFieldElement>PY_NEW_SAME_TYPE(self)
         x._parent = self._parent
         return x
+
+    def __call__(self, x):
+        return self.numerator()(x) / self.denominator()(x)
     
     def _latex_(self):
         """

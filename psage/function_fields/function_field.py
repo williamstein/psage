@@ -66,7 +66,7 @@ from sage.rings.integer_ring import ZZ
 from sage.structure.parent_gens import ParentWithGens
 import function_field_element
 
-from sage.categories.function_fields import FunctionFields
+from category import FunctionFields
 CAT = FunctionFields()
 
 import maps

@@ -41,7 +41,9 @@ def Extension(*args, **kwds):
         kwds['include_dirs'] = INCLUDES
     if not kwds.has_key('force'):
         kwds['force'] = FORCE
-    return build_system.Extension(*args, **kwds)
+    E = build_system.Extension(*args, **kwds)
+    E.libraries = ['csage'] + E.libraries
+    return E
 
 ext_modules = [
     Extension("psage.ellff.ellff",
@@ -80,6 +82,6 @@ build_system.setup(
                 'psage.modform.rational'],
     platforms = ['any'],
     download_url = 'NA',
-    ext_modules = ext_modules,
+    ext_modules = ext_modules
 )
 

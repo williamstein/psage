@@ -70,7 +70,7 @@ build_system.cythonize(ext_modules)
 
 build_system.setup(
     name = 'psage',
-    version = "10.10.26",
+    version = "10.10.28",
     description = "PSAGE: Software for Arithmetic Geometry",
     author = 'William Stein',
     author_email = 'wstein@gmail.com',

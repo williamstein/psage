@@ -60,6 +60,9 @@ ext_modules = [
     Extension("psage.function_fields.function_field_element",
               ["psage/function_fields/function_field_element.pyx"]),
     
+    Extension("psage.siegel.fastmult",
+              ["psage/siegel/fastmult.pyx"]),
+    
 
 ]
 

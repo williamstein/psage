@@ -3,6 +3,7 @@ import modform
 
 # Import Cython code
 try:
+    from siegel import SiegelModularForm, SiegelModularFormsAlgebra
     from function_fields import FunctionField
     from ellff import ellff_EllipticCurve
 except ImportError, msg:

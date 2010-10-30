@@ -13,14 +13,11 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-#include "interrupt.pxi"  # ctrl-c interrupt block support
-#include "stdsage.pxi"  # ctrl-c interrupt block support
 
 ### Cython includes 
-#include "cdefs.pxi"
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
+include 'stdsage.pxi'
+include 'cdefs.pxi'
+include 'interrupt.pxi'
 import sage.structure.element
 cimport sage.structure.element
 from sage.structure.element cimport Element, ModuleElement, RingElement
@@ -48,10 +45,8 @@ from sage.libs.mpfr cimport *
 
 from sage.functions.all import ceil as pceil
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
-#from lpkbessel import besselk_dp
-from sage.modular.maass.all import MySubgroup,besselk_dp
-#from mysubgroup import all
-#from mysubgroup import MySubgroup
+from mysubgroup import MySubgroup
+from lpkbessel import besselk_dp
 
 mpftype=sage.libs.mpmath.ext_main.mpf
 mp0=mpmath.mpf(0)

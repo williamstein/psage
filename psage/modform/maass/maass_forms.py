@@ -80,7 +80,8 @@ class MaassWaveForms (Parent):
             Constructed from G=Modular Group SL(2,Z)
 
         """
-        if(not isinstance(G,sage.modular.maass.mysubgroup.MySubgroup)):
+        from mysubgroup import MySubgroup
+        if(not isinstance(G, MySubgroup)):
             if(isinstance(G,int) or isinstance(G,sage.rings.integer.Integer)):
                 self._G=MySubgroup(Gamma0(G))
             else:

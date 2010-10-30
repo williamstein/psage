@@ -39,6 +39,8 @@ else:
 def Extension(*args, **kwds):
     if not kwds.has_key('include_dirs'):
         kwds['include_dirs'] = INCLUDES
+    else:
+        kwds['include_dirs'] += INCLUDES
     if not kwds.has_key('force'):
         kwds['force'] = FORCE
     E = build_system.Extension(*args, **kwds)
@@ -47,7 +49,7 @@ def Extension(*args, **kwds):
 
 
 numpy_include_dirs = [os.path.join(SAGE_ROOT,
-                                   '/local/lib/python/site-packages/numpy/core/include')]
+                                   'local/lib/python/site-packages/numpy/core/include')]
 
 ext_modules = [
     Extension("psage.ellff.ellff",

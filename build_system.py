@@ -51,15 +51,16 @@ def cython(f_pyx, language, include_dirs, force):
     return full_outfile, [cmd]
 
 class Extension(setuptools.Extension):
-    def __init__(self, module, files, include_dirs, language="c", force=False, **kwds):
+    def __init__(self, module, sources, include_dirs,
+                 language="c", force=False, **kwds):
         self.cython_cmds = []
-        for i in range(len(files)):
-            f = files[i]
+        for i in range(len(sources)):
+            f = sources[i]
             if f.endswith('.pyx'):
-                files[i], cmds = cython(f, language, include_dirs, force)
+                sources[i], cmds = cython(f, language, include_dirs, force)
                 for c in cmds:
                     self.cython_cmds.append(c)
-        setuptools.Extension.__init__(self, module, files, language=language,
+        setuptools.Extension.__init__(self, module, sources, language=language,
                                       include_dirs=include_dirs, **kwds)
 
 def apply_pair(p):

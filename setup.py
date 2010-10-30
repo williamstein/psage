@@ -45,6 +45,10 @@ def Extension(*args, **kwds):
     E.libraries = ['csage'] + E.libraries
     return E
 
+
+numpy_include_dirs = [os.path.join(SAGE_ROOT,
+                                   '/local/lib/python/site-packages/numpy/core/include')]
+
 ext_modules = [
     Extension("psage.ellff.ellff",
               ["psage/ellff/ellff.pyx",
@@ -62,6 +66,18 @@ ext_modules = [
     
     Extension("psage.modform.siegel.fastmult",
               ["psage/modform/siegel/fastmult.pyx"]),
+
+    Extension('psage.modform.maass.mysubgroups_alg',
+              ['psage/modform/maass/mysubgroups_alg.pyx']),
+
+    Extension('psage.modform.maass.maass_forms_alg',
+              ['psage/modform/maass/maass_forms_alg.pyx'],
+              include_dirs = numpy_include_dirs),
+
+    Extension('psage.modform.maass.lpkbessel',
+              ['psage/modform/maass/lpkbessel.pyx']),
+
+    
     
 
 ]

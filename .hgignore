@@ -19,3 +19,6 @@ docs/notebook.out
 psage/ellff/ellff.cpp   # cython autogen 
 psage/function_fields/function_field_element.c  # cython autogen
 psage/modform/siegel/fastmult.c   # cython
+psage/modform/maass/maass_forms_alg.c   # cython
+psage/modform/maass/mysubgroups_alg.c   # cython
+psage/modform/maass/lpkbessel.c   # cython

@@ -706,3 +706,145 @@ def hecke_ops2(B, c, X):
     ans.sort()
     return ans
 
+class AlphaZ:
+    def __init__(self, B, P):
+        """
+        Computing elements with norm pi, where P=(pi).
+
+        INPUT:
+            - B - quaternion algebra
+            - P - a prime of O_F
+
+        OUTPUT:
+            - element alpha in B with norm pi
+              whose image via the mod-p splitting map
+              has column echelon form with first column z
+        """
+        self.B = B
+        self.R_Z = icosian_ring_gens_over_ZZ(B)
+        self.P = P
+        self.p = P.smallest_integer()
+        self.pi = totally_pos_gen(P)
+        self.deg = P.residue_class_degree()
+        f = modp_splitting_map(self.B, self.P)
+        self.n = [f(g) for g in self.R_Z]
+
+    def local_map(self):
+        n = self.n
+        if self.deg == 1:
+            k = n[0].parent().base_ring()
+            W = k**4
+            V = k**8
+            return V.hom([W(x.list()) for x in n])
+        else:
+            # P is an inert prime
+            from sage.all import GF
+            k = GF(self.p)
+            W = k**8
+            V = k**8
+            return V.hom([W(sum([y._vector_().list() for y in x.list()],[])) for x in n])
+
+    def ideal_mod_p(self, z):
+        """
+        INPUT:
+            - z - an element of P^1(O_F/p).
+        """
+        A = self.local_map()
+        phi = self.local_map()
+        V = phi.codomain()
+        if self.deg == 1:
+            g0 = V([z[0],0,z[1],0])
+            g1 = V([0,z[0],0,z[1]])
+            W = V.span([g0,g1])
+        else:
+            n = self.n
+            M2 = n[0].parent()
+            a = M2.base_ring().gen()
+            g0 = M2([z[0],0,z[1],0])
+            g1 = a*g0
+            g2 = M2([0,z[0],0,z[1]])
+            g3 = a*g2
+            z = [g0,g1,g2,g3]
+            W = V.span([V(sum([y._vector_().list() for y in x.list()],[])) for x in z])
+        return phi.inverse_image(W)
+
+    def ideal(self, z):
+        Imod = self.ideal_mod_p(z)
+        A = Imod.basis_matrix().lift()
+        from sage.all import ZZ, identity_matrix
+        p = self.p
+        B = A.stack(p*identity_matrix(ZZ,8))
+        V = B.row_module()
+        return V
+
+    def ideal_basis(self, z):
+        J = self.ideal(z)
+        R = self.R_Z
+        return [sum(g[i]*R[i] for i in range(8)) for g in J.gens()]
+
+    def ideal_gram(self, W):
+        G = [[(W[i]*W[j].conjugate()).reduced_trace().trace()
+              for i in range(8)] for j in range(8)]
+        from sage.all import matrix, ZZ
+        return matrix(ZZ, G)
+
+    def alpha(self, z):
+        """
+        INPUT:
+            - z - an element of P^1(O_F/P).
+        """
+        W = self.ideal_basis(z)
+        G = self.ideal_gram(W)
+        from sage.all import pari
+        qf = pari(G)
+        t = self.pi.trace()
+        c = qf.qfminim(2*t, 2**32)
+        #print "number of vectors", c[0]
+        for r in c[2].sage().transpose():
+            a = sum([W[i]*r[i] for i in range(8)])
+            if a.reduced_norm() == self.pi:
+                return a
+        raise ValueError, "bug"
+
+    def all_alpha(self):
+        return [self.alpha(z) for z in P1ModList(self.P)]
+
+
+class HMF:
+    def __init__(self, N):
+        from sage.all import QuadraticField, QuaternionAlgebra
+        self._N = N
+        self._F = QuadraticField(5,'a')
+        self._B = QuaternionAlgebra(self._F,-1,-1,'i,j,k')
+        red, reps, P1 = P1_orbits(self._B, N)
+        self._reduce = red
+        self._reps = reps
+        self._P1 = P1
+        self._theta_N = modp_splitting_map(self._B, N)
+
+    def __repr__(self):
+        return "Space of Hilbert modular forms over Q(sqrt(5)) of level %s (norm=%s) and dimension %s"%(
+            self._N, self._N.norm(), self.dimension())
+
+    def dimension(self):
+        return len(self._reps)
+
+    def hecke_matrix(self, P):
+        mat = []
+        alpha = AlphaZ(self._B, P)
+        theta = self._theta_N
+        Z = [theta(x)**(-1) for x in alpha.all_alpha()]
+        P1 = self._P1
+        red = self._reduce
+        for x in self._reps:
+            row = [0]*len(self._reps)
+            for w in Z:
+                y_red = red[P1(w*x)]
+                row[self._reps.index(y_red)] += 1
+            mat.append(row)
+        from sage.all import ZZ, matrix
+        return matrix(ZZ, mat)
+
+    Tp = hecke_matrix
+
+    

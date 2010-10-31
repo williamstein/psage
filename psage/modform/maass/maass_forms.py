@@ -171,11 +171,11 @@ class MaassWaveForms (Parent):
         EXAMPLES::
 
 
-            sage: M=MaassWaweForms(MySubgroup(Gamma0(1))
-            sage: M._Weyl_law_consts  
+            sage: M=MaassWaveForms(MySubgroup(Gamma0(1)))
+            sage: M._Weyl_law_consts()
             (0, 2/pi, (log(pi) - log(2) + 2)/pi, 0, -2)
         """
-        import mpmath.fp
+        import mpmath
         pi=mpmath.fp.pi
         ix=Integer(self._G.index())
         nc=Integer(len(self._G.cusps()))
@@ -464,7 +464,7 @@ def my_mpmath_kbes(r,x,mp_ctx=None):
     
 
     """
-    import mpmath.mp,mpmath.fp
+    import mpmath
     if(mp_ctx==None):
         mp_ctx=mpmath.mp
     if(mp_ctx==mpmath.mp):
@@ -503,7 +503,7 @@ def my_mpmath_kbes_diff_r(r,x,mp_ctx=None):
 
 
     """
-    import mpmath.mp,mpmath.fp
+    import mpmath
     if(mp_ctx==None):
         mp_ctx=mpmath.mp
     if(mp_ctx==mpmath.mp):
@@ -580,7 +580,7 @@ class MaassWaveformElement (Parent):
         - ``C`` -- Fourier coefficients (default None)
         - ``nd``-- Number of desired digits (default 15)
         """
-        import mpmath.mp,mpmath.fp
+        import mpmath
         self._space= MaassWaveForms (G)
         self._group=self._space._G
         self._R=R
@@ -1437,7 +1437,7 @@ def solve_system_for_Maass_waveforms(W,N,deb=False):
 
         
     """
-    import mpmath.mp,mpmath.fp
+    import mpmath
     V=W['V']
     Ms=W['Ms']
     Mf=W['Mf']

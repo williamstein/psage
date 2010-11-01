@@ -99,11 +99,17 @@ This relies on having TH from above (say from the level 31 block above)::
     [Fractional ideal (9*a + 4), Fractional ideal (-9*a + 4)]
 """
 
-def modp_splitting(B, p):
+
+from sage.all import NumberField, polygen, QQ, ZZ, QuaternionAlgebra
+
+x = polygen(QQ,'x')
+F = NumberField(x**2 - x -1, 'a')
+B = QuaternionAlgebra(F,-1,-1,'i,j,k')
+
+def modp_splitting(p):
     """
     INPUT:
         
-        - B -- quaternion algebra of the form K<i,j> where i^2=a, j^2=b.
         - p -- ideal of the number field K = B.base() with ring O of integers.
         
     OUTPUT:
@@ -142,18 +148,25 @@ def modp_splitting(B, p):
 
     AUTHOR: William Stein
     """
+    global B, F
+    
     # Inspired by the code in the function
     # modp_splitting_data in algebras/quatalg/quaternion_algebra.py
     if p.number_field() != B.base():
         raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
     if not p.is_prime():
         raise ValueError, "p must be prime"
-    F = p.residue_field()
+    
+    if F is not p.number_field():
+        raise ValueError, "p must be a prime of %s"%F
+    
+    k = p.residue_field()
+
     from sage.all import MatrixSpace
-    M = MatrixSpace(F, 2)
+    M = MatrixSpace(k, 2)
     i2, j2 = B.invariants()
-    i2 = F(i2); j2 = F(j2)    
-    if F.characteristic() == 2:
+    i2 = k(i2); j2 = k(j2)    
+    if k.characteristic() == 2:
         if i2 == 0 or j2 == 0:
             raise NotImplementedError
         return M([0,1,1,0]), M([1,1,0,1])
@@ -163,7 +176,7 @@ def modp_splitting(B, p):
     # and seeing what the parameters have to satisfy
     i2inv = 1/i2
     a = None
-    for b in list(F):
+    for b in list(k):
         if not b: continue
         c = j2 + i2inv * b*b
         if c.is_square():
@@ -181,7 +194,7 @@ def modp_splitting(B, p):
     assert K == -J*I, "bug in that I,J don't skew commute"    
     return I, J
 
-def modp_splitting_map(B, p):
+def modp_splitting_map(p):
     """
     Return a map from subset of B to 2x2 matrix space isomorphic
     to R tensor OF/p.
@@ -219,13 +232,13 @@ def modp_splitting_map(B, p):
         [0 0]
         [0 0]    
     """
-    I, J = modp_splitting(B,p)
-    F = I.parent().base_ring()
+    I, J = modp_splitting(p)
+    F = p.residue_field()
     def f(x):
         return F(x[0]) + I*F(x[1]) + J*F(x[2]) + I*J*F(x[3])
     return f
 
-def icosian_gens(B):
+def icosian_gens():
     """
     Return generators of the icosian group, as elements of the 
     Hamilton quaternion algebra B over Q(sqrt(5)).
@@ -242,61 +255,58 @@ def icosian_gens(B):
         sage: [a.reduced_norm() for a in icosian_gens(B)]
         [1, 1, 1, 1, 1]
     """
-    F = B.base()
-    sqrt5 = F.gen(); assert sqrt5*sqrt5==5
-    sigma = (1-sqrt5)/2
-    tau = (1+sqrt5)/2
+    global B, F
+    
+    omega = F.gen()  # (1+sqrt(5))/2
+    omega_bar = 1 - F.gen() # (1-sqrt(5))/2 = 1 - (1+sqrt(5))/2
     return [B(v)/2 for v in [(0,2,0,0), (0,0,2,0), 
-                 (0,0,0,2), (-1,1,1,1), (0,1,tau,sigma)]]
-    # NOTE: In a previous version of this code (0,1,tau,sigma) was
-    # accidentally replaced by (0,1,sigma,tau), which is wrong (odd
-    # permutation!), and led to much work to fix.
+                 (0,0,0,2), (-1,1,1,1), (0,1,omega,omega_bar)]]
 
-def icosian_ring_gens(B):
+def icosian_ring_gens():
     """
     Return generators for the icosian ring (a maximal order) in the
     quaternion algebra ramified only at infinity over F=Q(sqrt(5)).
     These are generators over the ring of integers of F.
     """
+    global B, F
     # See page 6 of Dembele.
-    sqrt5 = B.base().gen(); assert sqrt5*sqrt5==5
-    omega = (1+sqrt5)/2
-    omega_bar = (1-sqrt5)/2
+    omega = F.gen()
+    omega_bar = 1 - F.gen()
     return [B(v)/2 for v in [(1,-omega_bar,omega,0),
                              (0,-omega_bar,1,omega),
                              (0,omega,-omega_bar,1),
                              (0,1,omega,-omega_bar)]]
 
-def icosian_ring_gens_over_ZZ(B):
+def icosian_ring_gens_over_ZZ():
     """
     Return basis over ZZ for the icosian ring, which has ZZ-rank 8.
     """
-    I = icosian_ring_gens(B)
-    sqrt5 = B.base().gen(); assert sqrt5*sqrt5==5    
-    omega = (1+sqrt5)/2
+    global B, F
+    I = icosian_ring_gens()
+    omega = F.gen()
     return I + [omega*x for x in I]
 
-def tensor_over_QQ_with_RR(B, prec=53):
+def tensor_over_QQ_with_RR(prec=53):
     """
     Return map from the quaternion algebra B to the tensor product of
     B over QQ with RR, viewed as an 8-dimensional real vector space.
     """
+    global B, F
     from sage.all import RealField
     RR = RealField(prec=prec)
     V = RR**8
-    F = B.base()
     S = F.embeddings(RR)
     def f(x):
         return V(sum([[sigma(a) for a in x] for sigma in S],[]))
     return f
 
-def modp_icosians(B, p):
+def modp_icosians(p):
     """
     Return matrices of images of all 120 icosians mod p.
     """
-    I, J = modp_splitting(B, p); K = I*J
+    I, J = modp_splitting(p); K = I*J
     k = p.residue_field()
-    G = [k(g[0]) + k(g[1])*I + k(g[2])*J + k(g[3])*K for g in icosian_gens(B)]
+    G = [k(g[0]) + k(g[1])*I + k(g[2])*J + k(g[3])*K for g in icosian_gens()]
     from sage.all import MatrixGroup
     return [g.matrix() for g in MatrixGroup(G)]
 
@@ -307,7 +317,6 @@ class P1ModList(object):
            - c -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
         """
         self._c = c
-
         F = c.residue_field()
         V = F**2
         self._V = V
@@ -343,11 +352,10 @@ class P1ModList(object):
         return 'Projective line over %s'%self._F
     
 
-def P1_orbits(B, p):
+def P1_orbits(p):
     """
     INPUT:
 
-       - B -- quaternion algebra
        - p -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
 
     AUTHOR: William Stein
@@ -355,8 +363,10 @@ def P1_orbits(B, p):
     EXAMPLES::
 
     """
+    global B
+    
     P1 = P1ModList(p)
-    ICO = modp_icosians(B, p)
+    ICO = modp_icosians(p)
     
     def act(u, t):
         return P1(u*t)
@@ -381,11 +391,10 @@ def P1_orbits(B, p):
     # done
     return orbits, reps, P1
 
-def P1_orbits2(B, p):
+def P1_orbits2(p):
     """
     INPUT:
 
-       - B -- quaternion algebra
        - p -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
 
     AUTHOR: William Stein
@@ -393,8 +402,10 @@ def P1_orbits2(B, p):
     EXAMPLES::
 
     """
+    global B
+    
     P1 = P1ModList(p)
-    ICO = modp_icosians(B, p)
+    ICO = modp_icosians(p)
     
     orbits = []
     while sum(len(x) for x in orbits) < len(P1):
@@ -407,11 +418,8 @@ def P1_orbits2(B, p):
         if skip: continue
         O = set([P1(g*v) for g in ICO])
         orbits.append(O)
-
     # Now make a dictionary
     return orbits
-    
-    return orbits, reps, P1
 
 def totally_pos_gen(p):
     """
@@ -485,10 +493,10 @@ def gram_matrix_of_maximal_order(R):
     """
     G = [[(R[i]*R[j].conjugate()).reduced_trace().trace()
           for i in range(8)] for j in range(8)]
-    from sage.all import matrix, ZZ
+    from sage.all import matrix
     return matrix(ZZ, G)
 
-def bounded_elements(B, N):
+def bounded_elements(N):
     """
     Return elements in maximal order of B that have reduced norm
     whose trace is at most N.
@@ -516,7 +524,7 @@ def bounded_elements(B, N):
         set([1, 4, 5])    
     """
     # Get our maximal order
-    R = icosian_ring_gens_over_ZZ(B)
+    R = icosian_ring_gens_over_ZZ()
     
     # Compute Gram matrix of R
     G = gram_matrix_of_maximal_order(R)
@@ -571,7 +579,7 @@ def primes_of_bounded_norm(F, N):
             X.append(fac[0][0])
     return X
 
-def THETA(B, N):
+def THETA(N):
     r"""
     Return representative elements of the maximal order of `R` of norm
     `\pi_p` up to `N` modulo the left action of the units of `R` (the
@@ -579,7 +587,6 @@ def THETA(B, N):
     of the prime ideals with norm up to `N`.
 
     INPUT:
-       - `B` -- quaternion algebra
        - `N` -- a positive integer
 
     AUTHOR: William Stein
@@ -602,9 +609,9 @@ def THETA(B, N):
     #     Store v:z if there isn't already something for v.
     #     Also, of course, store this stuff separately for each p.
     ####################################################################
+    global B, F
 
     # Get primes of norm up to N.
-    F = B.base_ring()
     S = primes_of_bounded_norm(F, N)
 
     # Find totally positive generators pi_p
@@ -614,18 +621,16 @@ def THETA(B, N):
     # Compute traces of the generators, since that's what
     # the bounded_elements command computes up to.
     tr = [abs(x.trace()) for x in pi]
-    print "tr =", tr
     N = max(tr)
-    print "N =", N
 
     # A list that at least includes all elements (up to -1) whose
     # reduced norm has trace at most N.
-    X = bounded_elements(B, N)
+    X = bounded_elements(N)
     
     # Compute mod-p local splitting maps
     theta_map = {}
     for i, p in enumerate(S):
-        theta_map[pi[i]] = modp_splitting_map(B, p)
+        theta_map[pi[i]] = modp_splitting_map(p)
 
     # Sort through the elements of X.
     pi_set = set(pi)
@@ -662,9 +667,9 @@ def THETA(B, N):
                 
     return Theta
 
-def hecke_ops(B, c, X):
-    orbits, reps, P1 = P1_orbits(B, c)
-    theta_c = modp_splitting_map(B, c)    
+def hecke_ops(c, X):
+    orbits, reps, P1 = P1_orbits(c)
+    theta_c = modp_splitting_map(c)    
     def Tp(pi):
         z = X[pi]
         mat = []
@@ -676,16 +681,16 @@ def hecke_ops(B, c, X):
                 y_red = orbits[P1.normalize(y)]
                 row[reps.index(y_red)] += 1
             mat.append(row)
-        from sage.all import ZZ, matrix
+        from sage.all import matrix
         return matrix(ZZ, mat)
     ans = [(pi.norm(), pi, Tp(pi)) for pi in X.keys()]
     ans.sort()
     return ans
 
 
-def hecke_ops2(B, c, X):
-    reduce, reps, P1 = P1_orbits(B, c)
-    theta_c = modp_splitting_map(B, c)    
+def hecke_ops2(c, X):
+    reduce, reps, P1 = P1_orbits(c)
+    theta_c = modp_splitting_map(c)    
     def Tp(pi):
         z = X[pi]
         mat = []
@@ -700,19 +705,18 @@ def hecke_ops2(B, c, X):
                 row[reps.index(y_red)] += 1
                 print "y_red =", y_red
             mat.append(row)
-        from sage.all import ZZ, matrix
+        from sage.all import matrix
         return matrix(ZZ, mat)
     ans = [(pi.norm(), pi, Tp(pi)) for pi in X.keys()]
     ans.sort()
     return ans
 
 class AlphaZ:
-    def __init__(self, B, P):
+    def __init__(self, P):
         """
         Computing elements with norm pi, where P=(pi).
 
         INPUT:
-            - B - quaternion algebra
             - P - a prime of O_F
 
         OUTPUT:
@@ -720,13 +724,12 @@ class AlphaZ:
               whose image via the mod-p splitting map
               has column echelon form with first column z
         """
-        self.B = B
-        self.R_Z = icosian_ring_gens_over_ZZ(B)
+        self.R_Z = icosian_ring_gens_over_ZZ()
         self.P = P
         self.p = P.smallest_integer()
         self.pi = totally_pos_gen(P)
         self.deg = P.residue_class_degree()
-        f = modp_splitting_map(self.B, self.P)
+        f = modp_splitting_map(self.P)
         self.n = [f(g) for g in self.R_Z]
 
     def local_map(self):
@@ -771,7 +774,7 @@ class AlphaZ:
     def ideal(self, z):
         Imod = self.ideal_mod_p(z)
         A = Imod.basis_matrix().lift()
-        from sage.all import ZZ, identity_matrix
+        from sage.all import identity_matrix
         p = self.p
         B = A.stack(p*identity_matrix(ZZ,8))
         V = B.row_module()
@@ -785,7 +788,7 @@ class AlphaZ:
     def ideal_gram(self, W):
         G = [[(W[i]*W[j].conjugate()).reduced_trace().trace()
               for i in range(8)] for j in range(8)]
-        from sage.all import matrix, ZZ
+        from sage.all import matrix
         return matrix(ZZ, G)
 
     def alpha(self, z):
@@ -814,13 +817,11 @@ class HMF:
     def __init__(self, N):
         from sage.all import QuadraticField, QuaternionAlgebra
         self._N = N
-        self._F = QuadraticField(5,'a')
-        self._B = QuaternionAlgebra(self._F,-1,-1,'i,j,k')
-        red, reps, P1 = P1_orbits(self._B, N)
+        red, reps, P1 = P1_orbits(N)
         self._reduce = red
         self._reps = reps
         self._P1 = P1
-        self._theta_N = modp_splitting_map(self._B, N)
+        self._theta_N = modp_splitting_map(N)
 
     def __repr__(self):
         return "Space of Hilbert modular forms over Q(sqrt(5)) of level %s (norm=%s) and dimension %s"%(
@@ -831,7 +832,7 @@ class HMF:
 
     def hecke_matrix(self, P):
         mat = []
-        alpha = AlphaZ(self._B, P)
+        alpha = AlphaZ(P)
         theta = self._theta_N
         Z = [theta(x)**(-1) for x in alpha.all_alpha()]
         P1 = self._P1
@@ -842,9 +843,234 @@ class HMF:
                 y_red = red[P1(w*x)]
                 row[self._reps.index(y_red)] += 1
             mat.append(row)
-        from sage.all import ZZ, matrix
+        from sage.all import matrix
         return matrix(ZZ, mat)
 
     Tp = hecke_matrix
 
     
+
+
+########################################
+# Generalizing to arbitrary level
+########################################
+
+def residue_ring(N):
+    fac = N.factor()
+    if len(fac) != 1:
+        raise NotImplementedError, "P must be a prime power"
+    from sage.rings.all import kronecker_symbol
+
+    P, e = fac[0]
+    p = P.smallest_integer()
+    s = kronecker_symbol(p, 5)
+    if e == 1:
+        return P.residue_field()
+    if s == 1:
+        return ResidueRing_split(N, P, p, e)
+    elif s == -1:
+        return ResidueRing_inert(N, P, p, e)
+    else:
+        if e % 2 == 0:
+            # easy case
+            return ResidueRing_ramified_even(N, P, p, e)
+        else:
+            # hardest case
+            return ResidueRing_ramified_odd(N, P, p, e)
+
+class ResidueRing_base:
+    def __call__(self, x):
+        if x.parent() is not self._F:
+            x = self._F(x)
+        return self._to_ring(x)
+    
+    def _to_ring(self, x):
+        return self._ring(x[0]) + self._im_gen*self._ring(x[1])
+
+    def __repr__(self):
+        return "Residue class ring of ZZ[(1+sqrt(5))/2] modulo %s of characteristic %s"%(
+            self._N, self._p)
+                                                                                         
+    
+class ResidueRing_split(ResidueRing_base):
+    """
+    Quotient of ring of integers of F by a prime power N.
+    """
+    def __init__(self, N, P, p, e):
+        self._N = N
+        self._F = P.number_field()
+        self._p = p
+        # Figure out the map to Z/p^e.
+        fac = self._F.defining_polynomial().factor_padic(p, prec=e+1)
+        assert len(fac) == 2
+        roots = [-a[0][0].lift() for a in fac]
+        gen = self._F.gen()
+        if gen - roots[0] in N:
+            im_gen = roots[0]
+        elif gen - roots[1] in N:
+            im_gen = roots[1]
+        else:
+            raise RuntimError, 'bug'
+        self._ring = ZZ.quotient(p**e)
+        self._im_gen = self._ring(im_gen)
+
+    def lift(self, x):
+        return self._F(x.lift())
+    
+class ResidueRing_inert(ResidueRing_base):
+    def __init__(self, N, P, p, e):
+        self._N = N
+        self._F = P.number_field()
+        self._p = p
+        from sage.rings.all import Integers
+        R = Integers(p**e)
+        modulus = self._F.defining_polynomial().change_ring(R)
+        S = R['x']
+        self._ring = S.quotient_by_principal_ideal(modulus)
+        self._im_gen = self._ring.gen()
+
+    def lift(self, x):
+        f = x.lift().change_ring(ZZ)
+        # f is a linear poly in generator of field
+        return self._F(f)
+
+
+class ResidueRing_ramified_even(ResidueRing_base):
+    def __init__(self, N, P, p, e):
+        self._N = N
+        self._F = P.number_field()
+        self._p = p
+        from sage.rings.all import Integers
+        assert e%2 == 0
+        R = Integers(p**(e//2))
+        modulus = self._F.defining_polynomial().change_ring(R)
+        S = R['x']
+        self._ring = S.quotient_by_principal_ideal(modulus)
+        self._im_gen = self._ring.gen()
+
+    def lift(self, x):
+        f = x.lift().change_ring(ZZ)
+        return self._F(f)
+        
+class ResidueRing_ramified_odd(ResidueRing_base):
+    """
+    Residue class ring R = O_F / P^(2f-1), where e=2f-1
+    is odd, and P=sqrt(5)O_F is the ramified prime. 
+
+    Computing with this ring is trickier than all the rest,
+    since it's not a quotient of Z[x] of the form Z[x]/(m,g),
+    where m is an integer and g is a polynomial.
+    The ring R is the quotient of
+        O_F/P^(2f) = O_F/5^f = (Z/5^fZ)[x]/(x^2-x-1),
+    by the ideal x^e.  We have
+        O_F/P^(2f-2) subset R subset O_F/P^(2f)
+    and each successive quotient has order 5 = #(O_F/P).
+    Thus R has cardinality 5^(2f-1) and characteristic 5^f.
+    The ring R can't be a quotient of Z[x] of the
+    form Z[x]/(m,g), since such a quotient has
+    cardinality m^deg(g) and characteristic m, and
+    5^(2f-1) is not a power of 5^f.
+
+    We thus view R as
+
+        R = (Z/5^fZ)[x] / (x^2 - 5,  5^(f-1)*x).
+
+    The elements of R are pairs (a,b) in (Z/5^fZ) x (Z/5^(f-1)Z),
+    which correspond to the class of a + b*x.  The arithmetic laws
+    are thus:
+
+       (a,b) + (c,d) = (a+c mod 5^f, b+d mod 5^(f-1))
+
+    and
+
+       (a,b) * (c,d) = (a*c+b*d*5 mod 5^f, a*d+b*c mod 5^(f-1))
+
+    The element omega = F.gen(), which is (1+sqrt(5))/2 maps to
+    (1+x)/2 = (1/2, 1/2), which is the generator of this ring.
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5 import *
+        sage: P = F.primes_above(5)[0]; P
+        Fractional ideal (2*a - 1)
+        sage: R = residue_ring(P^5)
+        sage: a = R(F.gen()); a
+        [0 + 1*sqrt(5)]
+        sage: a*a
+        [5 + 0*sqrt(5)]
+        sage: a*a*a
+        [0 + 5*sqrt(5)]
+        sage: a*a*a*a
+        [0 + 0*sqrt(5)]
+    """
+    def __init__(self, N, P, p, e):
+        self._N = N
+        self._F = P.number_field()
+        self._p = p
+        from sage.rings.all import Integers
+        f = e//2 + 1
+        assert f*2 - 1 == e
+        R0 = Integers(p**f)
+        R1 = Integers(p**(f-1))
+        self._ring = RamifiedProductRing(R0, R1)
+        self._im_gen = self._ring.gen()
+        self._sqrt5 = (self._F.gen()*2-1)**2
+
+    def lift(self, x):
+        return x[0].lift() + self._sqrt5 * x[1].lift()
+
+class RamifiedProductRingElement:
+    def __init__(self, parent, x, check=True):
+        self._parent = parent
+        if isinstance(x, RamifiedProductRingElement) and x._parent is parent:
+            self._x = x
+        else:
+            if check:
+                if isinstance(x, (list, tuple, RamifiedProductRingElement)):
+                    self._x = (parent._R0(x[0]), parent._R1(x[1]))
+                else:
+                    self._x = (parent._R0(x), parent._R1(0))
+            else:
+                self._x = (x[0], x[1])
+
+    def __getitem__(self, i):
+        return self._x[i]
+                
+    def __repr__(self):
+        return '[%s + %s*sqrt(5)]'%self._x
+
+    def __add__(left, right):
+        a, b = left._x
+        c, d = right._x
+        return RamifiedProductRingElement(left._parent, [a+b, c+d], check=False)
+
+    def __sub__(left, right):
+        a, b = left._x
+        c, d = right._x
+        return RamifiedProductRingElement(left._parent, [a-b, c-d], check=False)
+
+    def __mul__(left, right):
+        a, b = left._x
+        c, d = right._x
+        return RamifiedProductRingElement(left._parent, [a*c+b*d*5, a*d+b*c], check=False)
+
+class RamifiedProductRing:
+    def __init__(self, R0, R1):
+        self._R0 = R0
+        self._R1 = R1
+        self._gen = self([ZZ(1)/2, ZZ(1)/2])
+
+    def __call__(self, x):
+        return RamifiedProductRingElement(self, x)
+
+    def gen(self):
+        return self._gen
+
+        
+        
+def mod_pe_splitting_map(B, p, e):
+    if p.number_field() != B.base():
+        raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
+    if not p.is_prime():
+        raise ValueError, "p must be prime"
+    raise NotImplementedError

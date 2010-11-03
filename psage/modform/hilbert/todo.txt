@@ -1,0 +1,15 @@
+Implement very fast residue class rings mod P for *any* prime power P, 
+with #(O/P) < (bit size of computer)/2:
+
+     * inert
+     * split
+     * ramified
+
+For each ring, need:
+
+     * very, very fast basic arithmetic
+     * coercion
+     * lifting
+     * is_square
+     * sqrt
+

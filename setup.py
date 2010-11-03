@@ -43,6 +43,14 @@ def Extension(*args, **kwds):
         kwds['include_dirs'] += INCLUDES
     if not kwds.has_key('force'):
         kwds['force'] = FORCE
+
+    # Disable warnings when running GCC step -- cython has already parsed the code and
+    # generated any warnings; the GCC ones are noise.
+    if not kwds.has_key('extra_compile_args'):
+        kwds['extra_compile_args'] = ['-w']
+    else:
+        kwds['extra_compile_args'].append('-w')
+        
     E = build_system.Extension(*args, **kwds)
     E.libraries = ['csage'] + E.libraries
     return E
@@ -79,6 +87,8 @@ ext_modules = [
     Extension('psage.modform.maass.lpkbessel',
               ['psage/modform/maass/lpkbessel.pyx']),
 
+    Extension("psage.modform.hilbert.sqrt5_fast",
+              ["psage/modform/hilbert/sqrt5_fast.pyx"]),
     
     
 

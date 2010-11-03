@@ -883,9 +883,15 @@ class ResidueRing_base:
         if x.parent() is not self._F:
             x = self._F(x)
         return self._to_ring(x)
+
+    def list(self):
+        return self._ring.list()
     
     def _to_ring(self, x):
         return self._ring(x[0]) + self._im_gen*self._ring(x[1])
+
+    def ring(self):
+        return self._ring
 
     def __repr__(self):
         return "Residue class ring of ZZ[(1+sqrt(5))/2] modulo %s of characteristic %s"%(
@@ -903,7 +909,7 @@ class ResidueRing_split(ResidueRing_base):
         # Figure out the map to Z/p^e.
         fac = self._F.defining_polynomial().factor_padic(p, prec=e+1)
         assert len(fac) == 2
-        roots = [-a[0][0].lift() for a in fac]
+        roots = [(-a[0][0]).lift() for a in fac]
         gen = self._F.gen()
         if gen - roots[0] in N:
             im_gen = roots[0]
@@ -926,6 +932,7 @@ class ResidueRing_inert(ResidueRing_base):
         R = Integers(p**e)
         modulus = self._F.defining_polynomial().change_ring(R)
         S = R['x']
+        self._base = R
         self._ring = S.quotient_by_principal_ideal(modulus)
         self._im_gen = self._ring.gen()
 
@@ -934,6 +941,11 @@ class ResidueRing_inert(ResidueRing_base):
         # f is a linear poly in generator of field
         return self._F(f)
 
+    def list(self):
+        R = self._ring
+        x = R.gen()
+        return [R(a + b*x) for a in self._base for b in self._base]
+    
 
 class ResidueRing_ramified_even(ResidueRing_base):
     def __init__(self, N, P, p, e):
@@ -1067,10 +1079,80 @@ class RamifiedProductRing:
         return self._gen
 
         
-        
-def mod_pe_splitting_map(B, p, e):
-    if p.number_field() != B.base():
-        raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
-    if not p.is_prime():
-        raise ValueError, "p must be prime"
-    raise NotImplementedError
+class Mod_P_reduction_map:
+    def __init__(self, P):
+        FAC = P.factor()
+        assert len(FAC) == 1
+        self._p, self._e = FAC[0]
+        self._I, self._J, self._residue_ring = self._compute_IJ(self._p, self._e)
+        self._IJ = self._I*self._J
+
+    def __repr__(self):
+        return "(Partial) homomorphism from %s onto 2x2 matrices modulo %s^%s"%(
+            B, self._p._repr_short(), self._e)
+
+    def domain(self):
+        return B
+
+    def codomain(self):
+        return self._I.parent()
+
+    def __call__(self, x):
+        R = self._residue_ring
+        if x.parent() is not B:
+            x = B(x)
+        return R(x[0]) + self._I*R(x[1]) + self._J*R(x[2]) + self._IJ*R(x[3])
+
+    def _compute_IJ(self, p, e):
+        global B, F
+        if p.number_field() != B.base():
+            raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
+        if not p.is_prime():
+            raise ValueError, "p must be prime"
+
+        if p.number_field() != B.base():
+            raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
+        if not p.is_prime():
+            raise ValueError, "p must be prime"
+        if F is not p.number_field():
+            raise ValueError, "p must be a prime of %s"%F
+
+        R = residue_ring(p**e)
+        if isinstance(R, ResidueRing_base):
+            k = R.ring()
+        else:
+            k = R
+
+        from sage.all import MatrixSpace
+        M = MatrixSpace(k, 2)
+
+        i2, j2 = B.invariants()
+        i2 = R(i2); j2 = R(j2)
+
+        if k.characteristic() == 2:
+            raise NotImplementedError
+
+        # Find I -- just write it down
+        I = M([0,i2,1,0])
+        # Find J -- I figured this out by just writing out the general case
+        # and seeing what the parameters have to satisfy
+        i2inv = k(1)/i2
+        a = None
+        for b in R.list():
+            if not b: continue
+            c = j2 + i2inv * b*b
+            if c.is_square():
+                a = -c.sqrt()
+                break        
+        if a is None:
+            # do a fallback search; needed in char 3 sometimes.
+            for J in M:
+                K = I*J
+                if J*J == j2 and K == -J*I:
+                    return I, J, K
+
+        J = M([a,b,(j2-a*a)/b, -a])
+        K = I*J
+        assert K == -J*I, "bug in that I,J don't skew commute"    
+        return I, J, R
+    

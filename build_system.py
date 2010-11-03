@@ -20,7 +20,9 @@
 #################################################################################
 
 
-# A setuptools-based build system
+# A setuptools-based build system.  See the comment before the line
+# "build_system.cythonize(ext_modules)" in setup.py about how this
+# code can probably be replaced by code in Cython soon. 
 
 import os, sys
 from setuptools import setup

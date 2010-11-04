@@ -20,12 +20,32 @@ def roots_mod_pn(f, p, n):
 from sage.rings.ring cimport CommutativeRing
 from sage.rings.all import Integers
 
-cdef class ResidueRing(CommutativeRing):
+# Residue element
+ctypedef int residue_element[2]
+
+#from sqrt5_fast_python import ResidueRing
+
+cpdef int ideal_characteristic(I):
+    return I.number_field()._pari_().idealtwoelt(I._pari_())[0]
+
+def ResidueRing(P, e):
+    cdef int p = ideal_characteristic(P)
+    if p == 5:   # ramified
+        if e % 2 == 0:
+            return ResidueRing_nonsplit(P, p, e)
+        else:
+            return ResidueRing_ramified_odd(P, p, e)
+    elif p%5 in [2,3]:  # nonsplit
+        return ResidueRing_nonsplit(P, p, e)
+    else: # split
+        return ResidueRing_split(P, p, e)
+
+cdef class ResidueRing_abstract(CommutativeRing):
     cdef object P, e, F
     cdef public object element_class
-    cdef int n0, n1, p, two_inv
+    cdef int n0, n1, p
     cdef int im_gen0
-    def __init__(self, P, e):
+    def __init__(self, P, p, e):
         """
         INPUT:
         
@@ -34,37 +54,9 @@ cdef class ResidueRing(CommutativeRing):
         """
         self.P = P
         self.e = e
-        p = P.smallest_integer()
         self.p = p
         self.F = P.number_field()
-        if p == 5:   # ramified
-            if e % 2 == 0:
-                self.element_class = ResidueRingElement_nonsplit
-                self.n0 = p**(e//2)
-            else:
-                # This is assumed in the code for the element_class so it better be true!
-                assert self.F.defining_polynomial().list() == [-1,-1,1]
-                self.n0 = p**(e//2+1)
-                self.n1 = p**(e//2)
-                self.two_inv = (Integers(self.n0)(2)**(-1)).lift()
-                self.element_class = ResidueRingElement_ramified_odd
-                
-        elif p%5 in [2,3]:  # inert
-            self.element_class = ResidueRingElement_nonsplit
-            self.n0 = p**e
-            self.n1 = p**e
-            
-        else: # split
-            self.element_class = ResidueRingElement_split
-            self.n0 = p**e
-            self.n1 = 1
-            # Compute the mapping by finding roots mod p^e.
-            alpha = P.number_field().gen()
-            for z in roots_mod_pn(self.F.defining_polynomial(), p, e):
-                if z - alpha in P:
-                    self.im_gen0 = z
-            assert self.im_gen0 is not None
-            
+    
     def __call__(self, x):
         if hasattr(x, 'parent'):
             P = x.parent()
@@ -81,52 +73,134 @@ cdef class ResidueRing(CommutativeRing):
     def __repr__(self):
         return "Residue class ring of %s^%s of characteristic %s"%(
             self.P._repr_short(), self.e, self.p)
+
+    cdef add(self, residue_element rop, residue_element op0, residue_element op1):
+        raise NotImplementedError
+    cdef sub(self, residue_element rop, residue_element op0, residue_element op1):
+        raise NotImplementedError        
+    cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
+        raise NotImplementedError
+    
+cdef class ResidueRing_split(ResidueRing_abstract):
+    def __init__(self, P, p, e):
+        ResidueRing_abstract.__init__(self, P, p, e)
+        self.element_class = ResidueRingElement_split
+        self.n0 = p**e
+        self.n1 = 1
+        # Compute the mapping by finding roots mod p^e.
+        alpha = P.number_field().gen()
+        for z in roots_mod_pn(self.F.defining_polynomial(), p, e):
+            if z - alpha in P:
+                self.im_gen0 = z
+        assert self.im_gen0 is not None
+
+    cdef add(self, residue_element rop, residue_element op0, residue_element op1):
+        rop[0] = (op0[0] + op1[0])%self.n0
         
+    cdef sub(self, residue_element rop, residue_element op0, residue_element op1):
+        rop[0] = (op0[0] - op1[0])%self.n0
+        
+    cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
+        rop[0] = (op0[0] * op1[0])%self.n0
 
+        
+cdef class ResidueRing_nonsplit(ResidueRing_abstract):
+    def __init__(self, P, p, e):
+        ResidueRing_abstract.__init__(self, P, p, e)
+        self.element_class = ResidueRingElement_nonsplit
+        self.n0 = p**e
+        self.n1 = p**e
 
-cdef class ResidueRingElement_split:
-    cdef int x
-    cdef ResidueRing _parent
-    def __init__(self, ResidueRing parent, x):
+    cdef add(self, residue_element rop, residue_element op0, residue_element op1):
+        rop[0] = (op0[0] + op1[0])%self.n0
+        rop[1] = (op0[1] + op1[1])%self.n1
+        
+    cdef sub(self, residue_element rop, residue_element op0, residue_element op1):
+        # cython uses python mod normalization convention, so no need to do that manually
+        rop[0] = (op0[0] - op1[0])%self.n0
+        rop[1] = (op0[1] - op1[1])%self.n1
+
+    cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
+        # it is significantly faster doing these arrays accesses only once in the line below!
+        cdef int a = op0[0], b = op0[1], c = op1[0], d = op1[1]
+        rop[0] = (a*c + b*d)%self.n0
+        rop[1] = (a*d + b*d + b*c)%self.n1
+
+cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
+    cdef int two_inv
+    def __init__(self, P, p, e):
+        ResidueRing_abstract.__init__(self, P, p, e)        
+        # This is assumed in the code for the element_class so it better be true!
+        assert self.F.defining_polynomial().list() == [-1,-1,1]
+        self.n0 = p**(e//2+1)
+        self.n1 = p**(e//2)
+        self.two_inv = (Integers(self.n0)(2)**(-1)).lift()
+        self.element_class = ResidueRingElement_ramified_odd
+
+    cdef add(self, residue_element rop, residue_element op0, residue_element op1):
+        rop[0] = (op0[0] + op1[0])%self.n0
+        rop[1] = (op0[1] + op1[1])%self.n1
+        
+    cdef sub(self, residue_element rop, residue_element op0, residue_element op1):
+        rop[0] = (op0[0] - op1[0])%self.n0
+        rop[1] = (op0[1] - op1[1])%self.n1
+        
+    cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
+        cdef int a = op0[0], b = op0[1], c = op1[0], d = op1[1]
+        rop[0] = (a*c + 5*b*d)%self.n0
+        rop[1] = (a*d + b*c)%self.n1
+    
+
+cdef class ResidueRingElement:
+    cdef residue_element x
+    cdef ResidueRing_abstract _parent
+    cpdef parent(self):
+        return self._parent
+    cdef new(self):
+        raise NotImplementedError
+    
+    def __add__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new()
+        left._parent.add(z.x, left.x, right.x)
+        return z
+    def __sub__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new()
+        left._parent.sub(z.x, left.x, right.x)
+        return z
+    def __mul__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new()
+        left._parent.mul(z.x, left.x, right.x)
+        return z
+
+cdef class ResidueRingElement_split(ResidueRingElement):
+    def __init__(self, ResidueRing_split parent, x):
         self._parent = parent
         assert x.parent() is parent.F
         v = x._coefficients()
         if len(v) == 0:
-            self.x = 0
+            self.x[0] = 0
             return
         elif len(v) == 1:
-            self.x = v[0]
-        self.x = v[0] + parent.im_gen0*v[1]
-        self.x %= self._parent.n0
-        if self.x < 0:
-            self.x += self._parent.n0
+            self.x[0] = v[0]
+        self.x[0] = v[0] + parent.im_gen0*v[1]
+        self.x[0] %= self._parent.n0
+        self.x[1] = 0
 
-    cdef new(self, int x):
+    cdef new(self):
         cdef ResidueRingElement_split z = PY_NEW(ResidueRingElement_split)
         z._parent = self._parent
-        z.x = x
         return z
 
-    cpdef parent(self):
-        return self._parent
-
     def __repr__(self):
-        return str(self.x)
+        return str(self.x[0])
 
+    def lift(self):
+        """
+        Return lift of element to number field F.
+        """
+        return self._parent.F(self.x[0])
 
-    def __mul__(ResidueRingElement_split left, ResidueRingElement_split right):
-        return left.new((left.x * right.x) % left._parent.n0)
-
-    def __add__(ResidueRingElement_split left, ResidueRingElement_split right):
-        return left.new((left.x + right.x) % left._parent.n0)
-
-    def __sub__(ResidueRingElement_split left, ResidueRingElement_split right):
-        cdef int x = (left.x - right.x) % left._parent.n0
-        if x < 0:
-            x += left._parent.n0
-        return left.new(x)
-
-cdef class ResidueRingElement_nonsplit:  # inert or ramified (even power)
+cdef class ResidueRingElement_nonsplit(ResidueRingElement):
     """
     EXAMPLES::
 
@@ -163,55 +237,42 @@ cdef class ResidueRingElement_nonsplit:  # inert or ramified (even power)
         sage: t*t*t
         0 + 0*gamma_bar
     """
-    cdef int x0, x1
-    cdef ResidueRing _parent
-    def __init__(self, ResidueRing parent, x):
+    def __init__(self, ResidueRing_nonsplit parent, x):
         self._parent = parent
         assert x.parent() is parent.F
         v = x._coefficients()
         if len(v) == 0:
-            self.x0 = 0; self.x1 = 0
+            self.x[0] = 0; self.x1 = 0
             return
         elif len(v) == 1:
-            self.x0 = v[0]
+            self.x[0] = v[0]
             self.x1 = 0
         else:
-            self.x0 = v[0]
-            self.x1 = v[1]
-        self.x0 %= self._parent.n0
-        if self.x0 < 0:
-            self.x0 += self._parent.n0
-        self.x1 %= self._parent.n0
-        if self.x1 < 0:
-            self.x1 += self._parent.n0
+            self.x[0] = v[0]
+            self.x[1] = v[1]
+        self.x[0] %= self._parent.n0
+        if self.x[0] < 0:
+            self.x[0] += self._parent.n0
+        self.x[1] %= self._parent.n0
+        if self.x[1] < 0:
+            self.x[1] += self._parent.n0
 
-    cdef new(self, int x0, int x1):
+    cdef new(self):
         cdef ResidueRingElement_nonsplit z = PY_NEW(ResidueRingElement_nonsplit)
         z._parent = self._parent
-        z.x0 = x0
-        z.x1 = x1
         return z
 
     def __repr__(self):
-        return '%s + %s*gamma_bar'%(self.x0, self.x1)
+        return '%s + %s*gamma_bar'%(self.x[0], self.x[1])
 
-    def __add__(ResidueRingElement_nonsplit left, ResidueRingElement_nonsplit right):
-        return left.new((left.x0 + right.x0)%left._parent.n0,
-                        (left.x1 + right.x1)%left._parent.n0)
+    def lift(self):
+        """
+        Return lift of element to number field F.
+        """
+        # TODO: test...
+        return self._parent.F([self.x0, self.x1])
 
-    def __sub__(ResidueRingElement_nonsplit left, ResidueRingElement_nonsplit right):
-        cdef int x0 = (left.x0 - right.x0)%left._parent.n0
-        cdef int x1 = (left.x1 - right.x1)%left._parent.n0
-        if x0 < 0: x0 += left._parent.n0
-        if x1 < 0: x1 += left._parent.n0
-        return left.new(x0, x1)
-        
-    def __mul__(ResidueRingElement_nonsplit left, ResidueRingElement_nonsplit right):
-        cdef int a = left.x0, b = left.x1, c = right.x0, d = right.x1
-        return left.new((a*c + b*d)%left._parent.n0, (a*d + b*d + b*c)%left._parent.n0)
-    
-
-cdef class ResidueRingElement_ramified_odd:
+cdef class ResidueRingElement_ramified_odd(ResidueRingElement):
     """
     Element of residue class ring R = O_F / P^(2f-1), where e=2f-1 is
     odd, and P=sqrt(5)O_F is the ramified prime.
@@ -247,9 +308,7 @@ cdef class ResidueRingElement_ramified_odd:
     The element omega = F.gen(), which is (1+sqrt(5))/2 maps to
     (1+x)/2 = (1/2, 1/2), which is the generator of this ring.
     """    
-    cdef int x0, x1
-    cdef ResidueRing _parent
-    def __init__(self, ResidueRing parent, x):
+    def __init__(self, ResidueRing_ramified_odd parent, x):
         self._parent = parent
         assert x.parent() is parent.F
         # We can assume that the defining poly of F is x^2-x-1 (this is asserted
@@ -260,44 +319,73 @@ cdef class ResidueRingElement_ramified_odd:
         cdef int a, b
         v = x._coefficients()
         if len(v) == 0:
-            self.x0 = 0; self.x1 = 0
+            self.x[0] = 0; self.x[1] = 0
             return
         if len(v) == 1:
-            self.x0 = a
-            self.x1 = 0
+            self.x[0] = a
+            self.x[1] = 0
         else:
             a = v[0]; b = v[1]
-            self.x0 = a + b*parent.two_inv
-            self.x1 = b*parent.two_inv
-        self.x0 %= self._parent.n0
-        if self.x0 < 0:
-            self.x0 += self._parent.n0
-        self.x1 %= self._parent.n1
-        if self.x1 < 0:
-            self.x1 += self._parent.n1
+            self.x[0] = a + b*parent.two_inv
+            self.x[1] = b*parent.two_inv
+        self.x[0] %= self._parent.n0
+        if self.x[0] < 0:
+            self.x[0] += self._parent.n0
+        self.x[1] %= self._parent.n1
+        if self.x[1] < 0:
+            self.x[1] += self._parent.n1
 
-    cdef new(self, int x0, int x1):
+    cdef new(self):
         cdef ResidueRingElement_ramified_odd z = PY_NEW(ResidueRingElement_ramified_odd)
         z._parent = self._parent
-        z.x0 = x0; z.x1 = x1
         return z
 
     def __repr__(self):
-        return '%s + %s*sqrt5'%(self.x0, self.x1)
+        return '%s + %s*sqrt5'%(self.x[0], self.x[1])
 
-    def __add__(ResidueRingElement_ramified_odd left, ResidueRingElement_ramified_odd right):
-        return left.new((left.x0 + right.x0)%left._parent.n0,
-                        (left.x1 + right.x1)%left._parent.n1)
 
-    def __sub__(ResidueRingElement_ramified_odd left, ResidueRingElement_ramified_odd right):
-        cdef int x0 = (left.x0 - right.x0)%left._parent.n0
-        cdef int x1 = (left.x1 - right.x1)%left._parent.n1
-        if x0 < 0: x0 += left._parent.n0
-        if x1 < 0: x1 += left._parent.n1
-        return left.new(x0, x1)
-        
-    def __mul__(ResidueRingElement_ramified_odd left, ResidueRingElement_ramified_odd right):
-        cdef int a = left.x0, b = left.x1, c = right.x0, d = right.x1
-        return left.new((a*c + 5*b*d)%left._parent.n0, (a*d + b*c)%left._parent.n1)
-    
+
+
+####################################################################
+# fragments/test code below
+####################################################################
+
+## def test1():
+##     cdef int x[6]
+##     x[2] = 1
+##     x[3] = 2
+##     x[4] = 1
+##     x[5] = 2
+##     from sqrt5 import F     
+##     Pinert = F.primes_above(7)[0]
+##     cdef ResidueRing_nonsplit Rinert = ResidueRing(Pinert, 2)
+##     print (x+2)[0], (x+2)[1]
+##     Rinert.add(x, x+2, x+4)
+##     return x[0], x[1], x[2], x[3]
+
+## def bench1(int n):
+##     from sqrt5 import F
+##     Pinert = F.primes_above(3)[0]
+##     Rinert = ResidueRing(Pinert, 2)
+##     s_inert = Rinert(F.gen(0)+3)
+##     t = s_inert
+##     cdef int i
+##     for i in range(n):
+##         t = t * s_inert
+##     return t
+
+## def bench2(int n):
+##     from sqrt5 import F     
+##     Pinert = F.primes_above(3)[0]
+##     cdef ResidueRing_nonsplit Rinert = ResidueRing(Pinert, 2)
+##     cdef ResidueRingElement_nonsplit2 s_inert = Rinert(F.gen(0)+3)
+##     cdef residue_element t, s
+##     s[0] = s_inert.x[0]
+##     s[1] = s_inert.x[1]
+##     t[0] = s[0]
+##     t[1] = s[1]
+##     cdef int i
+##     for i in range(n):
+##         Rinert.mul(t, t, s)
+##     return t[0], t[1]
 

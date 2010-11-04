@@ -1,15 +1,16 @@
-Implement very fast residue class rings mod P for *any* prime power P, 
-with #(O/P) < (bit size of computer)/2:
+Plan to finish a first complete HMF over Q(sqrt(5)) of weight (2,2)
+implementation that works and is very fast.  Goal is to finish this in
+less than 24 from now!  
 
-     * inert
-     * split
-     * ramified
+   [ ] P^1(O_F/N) using fast residue rings
+   [ ] is_square
+   [ ] sqrt
+   [ ] local splitting for O_F/P^n
+   [ ] Mat2x2(O_F/N) -- matrix object with optimal action on P^1(O_F/N) elts.
+   [ ] 120 icosians
+   [ ] Dividing P^1 into orbits for action of R^*.
+   [ ] write fast version of code for hecke operator T_P for odd P
+   [ ] code for hecke operator T_2 (hardcode norm 2 elts); easy once have splittings at all primes
 
-For each ring, need:
 
-     * very, very fast basic arithmetic
-     * coercion
-     * lifting
-     * is_square
-     * sqrt
 

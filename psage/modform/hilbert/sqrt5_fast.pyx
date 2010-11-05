@@ -99,6 +99,8 @@ cdef class ResidueRing_abstract(CommutativeRing):
         raise NotImplementedError
     cdef int inv(self, residue_element rop, residue_element op) except -1:
         raise NotImplementedError
+    cdef bint is_unit(self, residue_element op):
+        raise NotImplementedError
     cdef void neg(self, residue_element rop, residue_element op):
         raise NotImplementedError
 
@@ -171,9 +173,18 @@ cdef class ResidueRing_abstract(CommutativeRing):
         # Raises ValueError if there is no next element.
         # op is assumed valid. 
         raise NotImplementedError
+
+    cdef bint is_last_element(self, residue_element op):
+        raise NotImplementedError
     
     cdef long index_of_element(self, residue_element op) except -1:
         # Return the index of the given residue element.
+        raise NotImplementedError
+
+    cdef long index_of_element_in_P(self, residue_element op) except -1:
+        # Return the index of the given residue element, which is
+        # assumed to be in the maximal ideal P.  This is the index, as
+        # an element of P.
         raise NotImplementedError
         
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
@@ -183,6 +194,9 @@ cdef class ResidueRing_abstract(CommutativeRing):
         # op is assumed valid (i.e., is in P, etc.). 
         raise NotImplementedError
     
+    cdef bint is_last_element_in_P(self, residue_element op):
+        raise NotImplementedError
+
     cdef element_to_str(self, residue_element op):
         cdef ResidueRingElement z = PY_NEW(self.element_class)
         z._parent = self
@@ -229,6 +243,9 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         rop[1] = 0        
         return 0
 
+    cdef bint is_unit(self, residue_element op):
+        return gcd_long(op[0], self.n0) == 1
+    
     cdef void neg(self, residue_element rop, residue_element op):
         rop[0] = self.n0 - op[0]
         rop[1] = 0        
@@ -254,16 +271,26 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         if rop[0] >= self.n0:
             raise ValueError, "no next element"
 
+    cdef bint is_last_element(self, residue_element op):
+        return op[0] == self.n0 - 1
+
     cdef long index_of_element(self, residue_element op) except -1:
         # Return the index of the given residue element.
         return op[0]
-        
+
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
         rop[0] = op[0] + self.p
         rop[1] = 0
         if rop[0] >= self.n0:
             raise ValueError, "no next element in P"
         return 0
+        
+    cdef bint is_last_element_in_P(self, residue_element op):
+        return op[0] == self.n0 - self.p
+
+    cdef long index_of_element_in_P(self, residue_element op) except -1:
+        return op[0]/self.p
+
         
         
 cdef class ResidueRing_nonsplit(ResidueRing_abstract):
@@ -295,6 +322,10 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         rop[0] = (w*(a+b)) % self.n0
         rop[1] = (-b*w) % self.n0
         return 0
+
+    cdef bint is_unit(self, residue_element op):
+        cdef long a = op[0], b = op[1], w
+        return gcd_long(a*a + a*b - b*b, self.n0) == 1
 
     cdef void neg(self, residue_element rop, residue_element op):
         rop[0] = self.n0 - op[0]
@@ -368,6 +399,9 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
             if rop[1] >= self.n1:
                 raise ValueError, "no next element"
 
+    cdef bint is_last_element(self, residue_element op):
+        return op[0] == self.n0 - 1 and op[1] == self.n1 - 1
+
     cdef long index_of_element(self, residue_element op) except -1:
         # Return the index of the given residue element.
         return op[0] + op[1]*self.n0
@@ -382,6 +416,11 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
                 raise ValueError, "no next element in P"
         return 0
         
+    cdef bint is_last_element_in_P(self, residue_element op):
+        return op[0] == self.n0 - self.p and op[1] == self.n1 - self.p
+
+    cdef long index_of_element_in_P(self, residue_element op) except -1:
+        return op[0]/self.p + op[1]/self.p * (self.n0/self.p)
         
 cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
     cdef long two_inv
@@ -416,6 +455,9 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         # TODO: implement inverse in ramified case
         raise NotImplementedError
 
+    cdef bint is_unit(self, residue_element op):
+        raise NotImplementedError        
+
     cdef bint is_square(self, residue_element op):
         raise NotImplementedError
 
@@ -437,13 +479,22 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
             if rop[1] >= self.n1:
                 raise ValueError, "no next element"
 
+    cdef bint is_last_element(self, residue_element op):
+        return op[0] == self.n0 - 1 and op[1] == self.n1 - 1
+
     cdef long index_of_element(self, residue_element op) except -1:
         # Return the index of the given residue element.
         return op[0] + op[1]*self.n0
 
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
         # TODO!
-        raise NotImplementedError, "TODO: implement iteration in odd ramified case"
+        raise NotImplementedError, "TODO: implement iteration over P in odd ramified case"
+
+    cdef bint is_last_element_in_P(self, residue_element op):
+        raise NotImplementedError, "TODO: implement iteration over P in odd ramified case"
+
+    cdef long index_of_element_in_P(self, residue_element op) except -1:
+        raise NotImplementedError, "TODO: implement iteration over P in odd ramified case"        
     
 
 ###########################################################################
@@ -751,8 +802,15 @@ cdef long powmod_long(long x, long e, long m):
 # This is kind of ugly...
 from sage.rings.fast_arith cimport arith_llong
 cdef arith_llong Arith_llong = arith_llong()
-cdef long invmod_long(long x, long m):
-    return Arith_llong.c_inverse_mod_longlong(x, m)
+cdef long invmod_long(long x, long m) except -1:
+    cdef long long g, s, t
+    g = Arith_llong.c_xgcd_longlong(x, m, &s, &t)
+    if g != 1:
+        raise ZeroDivisionError
+    return s%m
+
+cdef long gcd_long(long a, long b):
+    return Arith_llong.c_gcd_longlong(a, b)
     
 cdef long divmod_long(long x, long y, long m):
     #return quotient x/y mod m, assuming x, y < SQRT_MAX_LONG
@@ -876,12 +934,16 @@ cdef class ProjectiveLineModN:
     cdef ResidueRingModN S
     cdef int r
     cdef long _cardinality
+    cdef long cards[MAX_PRIME_DIVISORS]  # cardinality of factors
     def __init__(self, N):
         self.S = ResidueRingModN(N)
         self.r = self.S.r  # number of prime divisors
         self._cardinality = 1
-        for R in self.S.residue_rings:
-            self._cardinality *= R.cardinality()
+        cdef int i
+        for i in range(self.r):
+            R = self.S.residue_rings[i]
+            self.cards[i] = (R.cardinality() + R.cardinality()/R.residue_field().cardinality()) 
+            self._cardinality *= self.cards[i]
 
     cpdef long cardinality(self):
         return self._cardinality
@@ -890,8 +952,19 @@ cdef class ProjectiveLineModN:
         return "Projective line modulo the ideal %s of norm %s"%(
             self.S.N._repr_short(), self.S.N.norm())
 
+##     cdef element_to_str(self, p1_element op):
+##         return '(%s : %s)'%(self.S.element_to_str(op[0]), self.S.element_to_str(op[1]))
+
     cdef element_to_str(self, p1_element op):
-        return '(%s : %s)'%(self.S.element_to_str(op[0]), self.S.element_to_str(op[1]))
+        cdef ResidueRing_abstract R
+        v = [ ]
+        for i in range(self.r):
+            R = self.S.residue_rings[i]
+            v.append('(%s, %s)'%(R.element_to_str(op[0][i]), R.element_to_str(op[1][i])))
+        s = ', '.join(v)
+        if self.r > 1:
+            s = '(' + s + ')'
+        return s
     
     cdef int matrix_action(self, p1_element rop, modn_matrix op0, p1_element op1) except -1:
         # op0  = [a,b; c,d];    op1=[u;v]
@@ -909,40 +982,130 @@ cdef class ProjectiveLineModN:
         self.S.set_element(rop[1], op[1])        
 
     ######################################################################
-    # Indexing and reducing elements
+    # Reducing elements to canonical form, so can compute index
     ######################################################################
 
-    cdef int reduce_element(self, p1_element rop, p1_element op) except -1:
+    cdef void reduce_element(self, p1_element rop, p1_element op):
         # set rop to the result of reducing op to canonical form
-        raise NotImplementedError
+        cdef int i
+        for i in range(self.r):
+            self.ith_reduce_element(rop, op, i)
+
+    cdef void ith_reduce_element(self, p1_element rop, p1_element op, int i):
+        # If the ith factor is (a,b), then, as explained in the next_element
+        # docstring, the normalized form of this element is either:
+        #      (u,1) or (1,v) with v in P.
+        cdef residue_element inv
+        cdef ResidueRing_abstract R = self.S.residue_rings[i]
+        if R.is_unit(op[1][i]):
+            # in first case
+            R.inv(inv, op[1][i])
+            R.mul(rop[0][i], op[0][i], inv)
+            R.elt_set_to_1(rop[1][i])
+        else:
+            # can't invert b, so must be in second case
+            R.elt_set_to_1(rop[0][i])
+            R.inv(inv, op[0][i])
+            R.mul(rop[1][i], inv, op[1][i])
+
+    def test_reduce(self):
+        cdef p1_element x, y, z
+        self.first_element(x)
+        v = []
+        cdef ResidueRing_abstract R 
+        while True:
+            # get y from x by multiplying through each entry by 3
+            for i in range(self.r):
+                R = self.S.residue_rings[i]
+                y[0][i][0] = (3*x[0][i][0])%R.n0
+                y[0][i][1] = (3*x[0][i][1])%R.n1
+                y[1][i][0] = (3*x[1][i][0])%R.n0
+                y[1][i][1] = (3*x[1][i][1])%R.n1
+            self.reduce_element(z, y)
+            v.append((self.element_to_str(x), self.element_to_str(y), self.element_to_str(z)))
+            try:
+                self.next_element(x, x)
+            except ValueError:
+                return v
+        
+    def test_reduce2(self, int m, int n):
+        cdef int i
+        cdef p1_element x, y, z
+        self.first_element(x)
+        for i in range(m):
+            self.next_element(x, x)
+        print self.element_to_str(x)
+        cdef ResidueRing_abstract R 
+        for i in range(self.r):
+            R = self.S.residue_rings[i]
+            y[0][i][0] = (3*x[0][i][0])%R.n0
+            y[0][i][1] = (3*x[0][i][1])%R.n1
+            y[1][i][0] = (3*x[1][i][0])%R.n0
+            y[1][i][1] = (3*x[1][i][1])%R.n1
+        print self.element_to_str(y)
+        from sage.all import cputime
+        t = cputime()
+        for i in range(n):
+            self.reduce_element(z, y)
+        return cputime(t)
+            
+
+    ######################################################################
+    # Standard index of elements
+    ######################################################################
 
     cdef long standard_index(self, p1_element z) except -1:
         # return the standard index of the assumed reduced element z of P^1
-        raise NotImplementedError
+        # The global index of z is got from the local indexes at each factor.
+        # If we let C_i denote the cardinality of the i-th factor, then the
+        # global index I is:
+        #         ind(z) = ind(z_0) + ind(z_1)*C_0 + ind(z_2)*C_0*C_1 + ...
+        cdef int i
+        cdef long C=1, ind = self.ith_standard_index(z, 0)
+        for i in range(1, self.r):
+            C *= self.cards[i-1]
+            ind += C * self.ith_standard_index(z, i)
+        return ind
+
+    cdef long ith_standard_index(self, p1_element z, int i) except -1:
+        cdef ResidueRing_abstract R = self.S.residue_rings[i]
+        # Find standard index of normalized element 
+        #        (z[0][i], z[1][i])
+        # of R x R.  The index is defined by the ordering on
+        # normalized elements given by the next_element method (see
+        # docs below).
+        
+        if R.element_is_1(z[1][i]):
+            # then the index is the index of the first entry
+            return R.index_of_element(z[0][i])
+        
+        # The index is the cardinality of R plus the index of z[1][i]
+        # in the list of multiples of P in R.
+        return R._cardinality + R.index_of_element_in_P(z[1][i])
 
     ######################################################################
     # Enumeration of elements
     ######################################################################
     
-##     def test_enum(self):
-##         cdef p1_element x
-##         self.first_element(x)
-##         v = []
-##         while True:
-##             v.append(self.element_to_str(x))
-##             try:
-##                 self.next_element(x, x)
-##             except ValueError:
-##                 return v
+    def test_enum(self):
+        cdef p1_element x
+        self.first_element(x)
+        v = []
+        while True:
+            v.append((self.element_to_str(x), self.standard_index(x)))
+            try:
+                self.next_element(x, x)
+            except ValueError:
+                return v
 
-##     def test_enum2(self):
-##         cdef p1_element x
-##         self.first_element(x)
-##         while True:
-##             try:
-##                 self.next_element(x, x)
-##             except ValueError:
-##                 return
+    def test_enum2(self):
+        cdef p1_element x
+        self.first_element(x)
+        while True:
+            try:
+                self.next_element(x, x)
+            except ValueError:
+                return
 
     cdef int first_element(self, p1_element rop) except -1:
         # set rop to the first standard element, which is 1 in every factor
@@ -968,6 +1131,11 @@ cdef class ProjectiveLineModN:
         cdef int i=0
         while i < self.r and self.next_element_factor(rop, i):
             # it rolled over
+            # Reset i-th one to starting P^1 elt, and increment the (i+1)th
+            rop[0][i][0] = 0
+            rop[0][i][1] = 0
+            rop[1][i][0] = 1
+            rop[1][i][1] = 0
             i += 1
         if i == self.r: # we're done
             raise ValueError
@@ -983,24 +1151,69 @@ cdef class ProjectiveLineModN:
         #    [(a,1) for a in k] U [(1,b) for b in P*k]
         if k.element_is_1(op[1][i]):   # b == 1
             # iterate a
-            try:
-                k.next_element(op[0][i], op[0][i])
-            except ValueError:
+            if k.is_last_element(op[0][i]):
                 # Then next elt is (1,b) where b is the first element of P*k.
                 # So set b to first element in P, which is 0.
                 k.elt_set_to_0(op[1][i])
                 # set a to 1
                 k.elt_set_to_1(op[0][i])
+            else:
+                k.next_element(op[0][i], op[0][i])
             return 0 # definitely didn't loop around whole P^1
         else:
             # case when b != 1
-            try:
-                k.next_element_in_P(op[1][i], op[1][i])
-            except ValueError:
+            if k.is_last_element_in_P(op[1][i]):
                 # Next element is (1,0) and we return 1 to indicate total loop around
                 k.elt_set_to_0(op[1][i])
                 return 1 # looped around
+            else:
+                k.next_element_in_P(op[1][i], op[1][i])
             return 0
+
+# Version using exception handling -- it's about 20% percent slower...
+##     cdef bint next_element_factor(self, p1_element op, int i):
+##         # modify op in place by replacing the element in the i-th P^1 factor by
+##         # the next element.  If this involves rolling around, return True; otherwise,
+##         # return False.
+##         cdef ResidueRing_abstract k = self.S.residue_rings[i]
+##         # The P^1 local factor is (a,b) where a = op[0][i] and b = op[1][i].
+##         # Our "abstract" enumeration of the local P^1 with residue ring k is:
+##         #    [(a,1) for a in k] U [(1,b) for b in P*k]
+##         if k.element_is_1(op[1][i]):   # b == 1
+##             # iterate a
+##             try:
+##                 k.next_element(op[0][i], op[0][i])
+##             except ValueError:
+##                 # Then next elt is (1,b) where b is the first element of P*k.
+##                 # So set b to first element in P, which is 0.
+##                 k.elt_set_to_0(op[1][i])
+##                 # set a to 1
+##                 k.elt_set_to_1(op[0][i])
+##             return 0 # definitely didn't loop around whole P^1
+##         else:
+##             # case when b != 1
+##             try:
+##                 k.next_element_in_P(op[1][i], op[1][i])
+##             except ValueError:
+##                 # Next element is (1,0) and we return 1 to indicate total loop around
+##                 k.elt_set_to_0(op[1][i])
+##                 return 1 # looped around
+##             return 0
+
+
+####################################################################
+# R^* \ P1(O_F/N)
+####################################################################
+
+ctypedef modn_matrix icosian_matrices[120]
+
+cdef class IcosiansMod_ProjectiveLineModN:
+    cdef icosian_matrices G
+    def __init__(self, N):
+        # initialize the group G of the 120 mod-N icosian matrices
+        self.G
+        
+
 
 ####################################################################
 # fragments/test code below

@@ -83,7 +83,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
                 # TODO: This denominator is very slow.
                 d = x.denominator()
                 if d != 1:
-                    return self(d*x) * self(d.inverse_mod(self.p**self.e))
+                    return self(d*x) * self(self.F(d.inverse_mod(self.p**self.e)))
                 return self.element_class(self, x)
         raise TypeError
 
@@ -340,6 +340,13 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
     
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
         k = self.residue_field()
+        if k.degree() == 1:
+            if self.e == 1:
+                # happens in ramified case with odd exponent
+                rop[0] = sqrtmod_long(op[0], self.p, 1)
+                rop[1] = 0
+                return 0
+            raise NotImplementedError, 'sqrt not implemented in ramified case...'
 
         # TODO: the stupid overhead in this step alone is vastly more than
         # the time to actually compute the sqrt in Givaro or Pari (say)...
@@ -583,11 +590,13 @@ cdef class ResidueRingElement_split(ResidueRingElement):
         self._parent = parent
         assert x.parent() is parent.F
         v = x._coefficients()
+        self.x[1] = 0
         if len(v) == 0:
             self.x[0] = 0
             return
         elif len(v) == 1:
             self.x[0] = v[0]
+            return 
         self.x[0] = v[0] + parent.im_gen0*v[1]
         self.x[0] %= self._parent.n0
         self.x[1] = 0
@@ -865,6 +874,10 @@ cdef enum:
 
 ctypedef residue_element modn_element[MAX_PRIME_DIVISORS]
 
+# 2 x 2 matrices over O_F/N
+ctypedef modn_element modn_matrix[4]
+
+
 cdef class ResidueRingModN:
     cdef list residue_rings
     cdef object N
@@ -878,6 +891,9 @@ cdef class ResidueRingModN:
     def __repr__(self):
         return "Residue class ring modulo the ideal %s of norm %s"%(
             self.N._repr_short(), self.N.norm())
+
+    cdef int set(self, modn_element rop, x) except -1:
+        self.coerce_from_nf(rop, self.N.number_field()(x))
 
     cdef int coerce_from_nf(self, modn_element rop,  op) except -1:
         # Given an element op in the field F, try to reduce it modulo
@@ -909,21 +925,81 @@ cdef class ResidueRingModN:
             R = self.residue_rings[i]
             R.mul(rop[i], op0[i], op1[i])
         
+    cdef void inv(self, modn_element rop, modn_element op):
+        cdef int i
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            R.inv(rop[i], op[i])
+        
     cdef void add(self, modn_element rop, modn_element op0, modn_element op1):
         cdef int i
         cdef ResidueRing_abstract R
         for i in range(self.r):
             R = self.residue_rings[i]
             R.add(rop[i], op0[i], op1[i])
+
+    cdef bint is_last_element(self, modn_element x):
+        cdef int i
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            if not R.is_last_element(x[i]):
+                return False
+        return True
+
+    cdef int next_element(self, modn_element rop, modn_element op) except -1:
+        cdef int i, done = 0
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            if done:
+                R.elt_set(rop[i], op[i])
+            else:
+                if R.is_last_element(op[i]):
+                    R.elt_set_to_0(rop[i])
+                else:
+                    R.next_element(rop[i], op[i])
+                    done = True
+                    
+    cdef bint is_square(self, modn_element op):
+        cdef int i
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            if not R.is_square(op[i]):
+                return False
+        return True
         
+    cdef int sqrt(self, modn_element rop, modn_element op) except -1:
+        cdef int i
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            R.sqrt(rop[i], op[i])
+        return 0
 
-###########################################################################
-# 2 x 2 matrices over O_F/N
-###########################################################################
+    #######################################
+    # modn_matrices over R
+    #######################################    
+    cdef matrix_to_str(self, modn_matrix A):
+        return '[%s,%s; %s,%s]'%tuple([self.element_to_str(A[i]) for i in range(4)])
 
-ctypedef modn_element modn_matrix[4]
-
-
+    cdef matrix_mul(self, modn_matrix rop, modn_matrix x, modn_matrix y):
+        cdef modn_element t, t2
+        self.mul(t, x[0], y[0])
+        self.mul(t2, x[1], y[2])
+        self.add(rop[0], t, t2)
+        self.mul(t, x[0], y[1])
+        self.mul(t2, x[1], y[3])
+        self.add(rop[1], t, t2)
+        self.mul(t, x[2], y[0])
+        self.mul(t2, x[3], y[2])
+        self.add(rop[2], t, t2)
+        self.mul(t, x[2], y[1])
+        self.mul(t2, x[3], y[3])
+        self.add(rop[3], t, t2)        
+        
 
 ###########################################################################
 # The projective line P^1(O_F/N)
@@ -1202,16 +1278,209 @@ cdef class ProjectiveLineModN:
 
 
 ####################################################################
+# Reduction from Quaternion Algebra mod N.
+####################################################################
+cdef class ModN_Reduction:
+    cdef ResidueRingModN S
+    cdef modn_matrix[4] G
+    def __init__(self, N):
+        cdef ResidueRingModN S = ResidueRingModN(N)
+        self.S = S
+        if N.norm() % 2 == 0:
+            # TODO: finish this
+            raise NotImplementedError, "need to implement mod-N reduction for even ideals!"
+
+        # I = [0,i2, 1, 0] works.
+        F = N.number_field()
+        S.coerce_from_nf(self.G[1][0], F(0))
+        S.coerce_from_nf(self.G[1][1], F(-1))
+        S.coerce_from_nf(self.G[1][2], F(1))
+        S.coerce_from_nf(self.G[1][3], F(0))
+
+        # Now find J.
+        cdef modn_element a, b, c, d, t, t2, minus_one
+        found_it = False
+        S.set(b, 1)
+        S.set(minus_one, -1)
+        while not S.is_last_element(b):
+            # Let c = -1 - b*b
+            S.mul(t, b, b)
+            S.mul(t, t, minus_one)
+            S.add(c, minus_one, t)
+            if S.is_square(c):
+                # Next set a = -sqrt(c).
+                S.sqrt(a, c)  
+                found_it = True
+                break
+            S.next_element(b, b)
+
+        if not found_it:  # sometimes needed
+            raise NotImplementedError
+
+        # Set the matrix self.G[2] to [a,b,(j2-a*a)/b,-a]
+        S.set_element(self.G[2][0], a)
+        S.set_element(self.G[2][1], b)
+        # Set t to (-1-a*a)/b
+        S.mul(t, a, a)
+        S.mul(t, t, minus_one)
+        S.add(t, t, minus_one)
+        S.inv(t2, b)
+        S.mul(self.G[2][2], t, t2)
+        S.mul(self.G[2][3], a, minus_one)
+
+        S.matrix_mul(self.G[3], self.G[1], self.G[2])
+
+        # Finally, set the identity matrix
+        S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
+
+    def __repr__(self):
+        return 'Reduction modulo %s of norm %s defined by sending I to %s and J to %s'%(
+            self.S.N._repr_short(), self.S.N.norm(),
+            self.S.matrix_to_str(self.G[1]), self.S.matrix_to_str(self.G[2]))
+
+    cdef int quatalg_to_modn_matrix(self, modn_matrix M, alpha) except -1:
+        # Given an element alpha in the quaternion algebra, find its image M as a modn_matrix.
+        cdef modn_element t
+        cdef modn_element[4] X
+        cdef int i, j
+        cdef ResidueRingModN S = self.S
+        for i in range(4):
+            S.coerce_from_nf(X[i], alpha[i])
+        for i in range(4):
+            S.mul(M[i], self.G[0][i], X[0])
+            for j in range(1, 4):
+                S.mul(t, self.G[j][i], X[j])
+                S.add(M[i], M[i], t)
+                
+
+####################################################################
 # R^* \ P1(O_F/N)
 ####################################################################
 
 ctypedef modn_matrix icosian_matrices[120]
 
-cdef class IcosiansMod_ProjectiveLineModN:
+cdef class IcosiansModP1ModN:
     cdef icosian_matrices G
+    cdef ModN_Reduction f
+    cdef ProjectiveLineModN P1
+    cdef long *std_to_rep_table
+    cdef long *orbit_reps
+    cdef long _cardinality
+    cdef p1_element* orbit_reps_p1elt
     def __init__(self, N):
+        # compute choice of splitting
+        self.f = ModN_Reduction(N)
+        self.P1 = ProjectiveLineModN(N)
+        self.orbit_reps = <long*>0
+        self.std_to_rep_table = <long*> sage_malloc(sizeof(long) * self.P1.cardinality())
+        
+        # This is very wasteful, by a factor of about 120 on average.  REDO.
+        self.orbit_reps_p1elt = <p1_element*>sage_malloc(sizeof(p1_element) * self.P1.cardinality())
+        
         # initialize the group G of the 120 mod-N icosian matrices
-        self.G
+        from sqrt5 import all_icosians
+        X = all_icosians()
+        cdef int i
+        for i in range(len(X)):
+            self.f.quatalg_to_modn_matrix(self.G[i], X[i])
+
+        self.compute_std_to_rep_table()
+
+    def __dealloc__(self):
+        sage_free(self.std_to_rep_table)
+        sage_free(self.orbit_reps_p1elt)
+        if self.orbit_reps:
+            sage_free(self.orbit_reps)
+
+    def __repr__(self):
+        return "The %s orbits for the action of the Icosian group on %s"%(self._cardinality, self.P1)
+
+    cpdef compute_std_to_rep_table(self):
+        # Algorithm is pretty obvious.  Just take first element of P1,
+        # hit by all icosians, making a list of those that are
+        # equivalent to it.  Then find next element of P1 not in the
+        # first list, etc.
+
+        cdef p1_element x, Gx
+        self.P1.first_element(x)
+        cdef long ind=0, j, i=0
+        for j in range(self.P1._cardinality):
+            self.std_to_rep_table[j] = -1
+        self.std_to_rep_table[0] = 0
+        reps = []
+        while ind < self.P1._cardinality:
+            reps.append(ind)
+            self.P1.set_element(self.orbit_reps_p1elt[i], x)
+            for j in range(120):
+                self.P1.matrix_action(Gx, self.G[j], x)
+                self.P1.reduce_element(Gx, Gx)
+                self.std_to_rep_table[self.P1.standard_index(Gx)] = i
+            while self.std_to_rep_table[ind] != -1 and ind < self.P1._cardinality:
+                ind += 1
+                if ind < self.P1._cardinality:
+                    self.P1.next_element(x, x)
+            i += 1
+        self._cardinality = len(reps)
+        self.orbit_reps = <long*> sage_malloc(sizeof(long)*self._cardinality)
+        for j in range(self._cardinality):
+            self.orbit_reps[j] = reps[j]
+
+    def compute_std_to_rep_table_debug(self):
+        # Algorithm is pretty obvious.  Just take first element of P1,
+        # hit by all icosians, making a list of those that are
+        # equivalent to it.  Then find next element of P1 not in the
+        # first list, etc.
+
+        cdef p1_element x, Gx
+        self.P1.first_element(x)
+        cdef long ind=0, j, i=0
+        for j in range(self.P1._cardinality):
+            self.std_to_rep_table[j] = -1
+        self.std_to_rep_table[0] = 0
+        reps = []
+        while ind < self.P1._cardinality:
+            reps.append(ind)
+            self.P1.set_element(self.orbit_reps_p1elt[i], x)
+            for j in range(120):
+                self.P1.matrix_action(Gx, self.G[j], x)
+                self.P1.reduce_element(Gx, Gx)
+                self.std_to_rep_table[self.P1.standard_index(Gx)] = i
+            while self.std_to_rep_table[ind] != -1 and ind < self.P1._cardinality:
+                ind += 1
+                if ind < self.P1._cardinality:
+                    self.P1.next_element(x, x)
+            i += 1
+        self._cardinality = len(reps)
+        self.orbit_reps = <long*> sage_malloc(sizeof(long)*self._cardinality)
+        for j in range(self._cardinality):
+            self.orbit_reps[j] = reps[j]
+
+    cpdef long cardinality(self):
+        return self._cardinality
+
+    def hecke_matrix(self, P):
+        """
+        Return matrix of Hecke action.
+        """
+        # TODO: deal with when P divides the level...
+        
+        cdef modn_matrix M
+        cdef p1_element Mx
+        from sqrt5 import hecke_elements
+        from sage.all import zero_matrix, ZZ
+        T = zero_matrix(ZZ, self._cardinality)
+        cdef long i, j
+        
+        for alpha in hecke_elements(P):
+            # TODO: probably better to invert after???  not at all?
+            self.f.quatalg_to_modn_matrix(M, alpha)
+            for i in range(self._cardinality):
+                self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
+                self.P1.reduce_element(Mx, Mx)
+                j = self.std_to_rep_table[self.P1.standard_index(Mx)]
+                T[i,j] = T[i,j] + 1
+
+        return T
         
 
 

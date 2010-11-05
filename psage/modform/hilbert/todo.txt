@@ -2,15 +2,116 @@ Plan to finish a first complete HMF over Q(sqrt(5)) of weight (2,2)
 implementation that works and is very fast.  Goal is to finish this in
 less than 24 from now!  
 
-   [ ] P^1(O_F/N) using fast residue rings
-   [ ] is_square
-   [ ] sqrt
-   [ ] local splitting for O_F/P^n
-   [ ] Mat2x2(O_F/N) -- matrix object with optimal action on P^1(O_F/N) elts.
-   [ ] 120 icosians
-   [ ] Dividing P^1 into orbits for action of R^*.
-   [ ] write fast version of code for hecke operator T_P for odd P
+   [x] P^1(O_F/N) using fast residue rings
+   [x] is_square
+   [x] sqrt
+   [x] local splitting for O_F/P^n
+   [x] Mat2x2(O_F/N) -- matrix object with optimal action on P^1(O_F/N) elts.
+   [x] 120 icosians
+   [x] Dividing P^1 into orbits for action of R^*.
+   [x] write fast version of code for hecke operator T_P for odd P
    [ ] code for hecke operator T_2 (hardcode norm 2 elts); easy once have splittings at all primes
+   [ ] make computation of the alpha's for computing Hecke operators fast, so we can compute T_p for p < 10000 (say).
+
+[ ] BUG:
+sage: P = IcosiansModP1ModN(F.ideal(27))
+sage: P.cardinality()  # it should be 14
+17
+sage: time T = P.hecke_matrix(F.primes_above(5)[0])
+CPU times: user 0.01 s, sys: 0.00 s, total: 0.01 s
+Wall time: 0.01 s
+sage: T.fcp()
+(x - 6) * x^6 * (x^10 - 34*x^8 + 2*x^7 + 366*x^6 - 56*x^5 - 1302*x^4 + 323*x^3 + 239*x^2 + 6*x - 12)
+
+sage: t5 = P.hecke_matrix(F.primes_above(5)[0])
+sage: t57 = P.hecke_matrix(F.primes_above(7)[0])
+sage: t7 = P.hecke_matrix(F.primes_above(7)[0])
+sage: t5*t7 == t7*t5
+False
 
 
 
+
+3 0
+7 1
+9 1
+11 3
+13 3
+17 5
+19 7
+21 9
+23 9
+27 16
+29 15
+31 19
+33 23
+37 23
+39 29
+41 31
+43 31
+47 37
+49 44
+51 49
+53 47
+57 67
+59 59
+61 214
+63 83
+67 75
+69 89
+71 87
+73 89
+77 119
+79 107
+81 159
+83 115
+87 436
+89 135
+91 143
+93 629
+97 157
+99 287
+
+compared to:
+
+> for N in [2..100] do  if GCD(N,10) eq 1 then print N, Dimension(HilbertCuspForms(F, Integers(F)*N)); end if; end for;
+3 0
+
+7 1
+9 1
+11 3
+13 3
+17 5
+19 7
+21 9
+23 9
+27 13
+29 15
+31 19
+33 23
+37 23
+39 29
+41 31
+43 31
+47 37
+49 41
+51 49
+53 47
+57 67
+59 59
+61 67
+63 75
+67 75
+69 89
+71 87
+73 89
+77 119
+79 107
+81 121
+83 115
+87 151
+89 135
+91 143
+93 171
+97 157
+99 215

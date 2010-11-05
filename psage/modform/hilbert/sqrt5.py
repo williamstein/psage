@@ -100,7 +100,7 @@ This relies on having TH from above (say from the level 31 block above)::
 """
 
 
-from sage.all import NumberField, polygen, QQ, ZZ, QuaternionAlgebra
+from sage.all import NumberField, polygen, QQ, ZZ, QuaternionAlgebra, cached_function, disk_cached_function
 
 x = polygen(QQ,'x')
 F = NumberField(x**2 - x -1, 'a')
@@ -261,6 +261,33 @@ def icosian_gens():
     omega_bar = 1 - F.gen() # (1-sqrt(5))/2 = 1 - (1+sqrt(5))/2
     return [B(v)/2 for v in [(0,2,0,0), (0,0,2,0), 
                  (0,0,0,2), (-1,1,1,1), (0,1,omega,omega_bar)]]
+
+
+
+def compute_all_icosians():
+    Icos = []
+    ig = icosian_gens()
+    per = permutations(range(5))
+    exp = cartesian_product_iterator([range(1,i) for i in [5,5,5,4,5]])
+    for f in exp:
+        for p in per:
+            e0 = ig[p[0]]**f[0]
+            e1 = ig[p[1]]**f[1]
+            e2 = ig[p[2]]**f[2]
+            e3 = ig[p[3]]**f[3]
+            e4 = ig[p[4]]**f[4]
+            elt = e0*e1*e2*e3*e4
+            if elt not in Icos:
+                Icos.append(elt)
+        if len(Icos) == 120:
+            return Icos
+
+@cached_function
+def all_icosians():
+    s = '[1+a*i+(-a+1)*k,1+(-a+1)*i+a*j,-a+i+(a-1)*j,1+(-a)*i+(-a+1)*k,-a-j+(-a+1)*k,1+(a-1)*i+(-a)*j,-1+(-a)*i+(a-1)*k,-1+(a-1)*i+(-a)*j,-a+1+(-a)*j-k,-1+a*i+(-a+1)*k,-a+1+i+(-a)*k,-1+(-a+1)*i+(-a)*j,(-a+1)*i+j+(-a)*k,a-1+(-a)*j+k,(a-1)*i-j+a*k,a+i+(-a+1)*j,1+a*i+(a-1)*k,-1+(-a)*i+(-a+1)*k,a*i+(-a+1)*j-k,a-1+i+a*k,(-a)*i+(a-1)*j+k,a+j+(-a+1)*k,1+(-a+1)*i+(-a)*j,-1+(a-1)*i+a*j,a-i+(-a+1)*j,-1+a*i+(a-1)*k,a+j+(a-1)*k,-1+(-a+1)*i+a*j,(-a+1)*i+j+a*k,a-1+a*j+k,-a+i+(-a+1)*j,1+(-a)*i+(a-1)*k,a*i+(-a+1)*j+k,a-1-i+a*k,-a+j+(a-1)*k,1+(a-1)*i+a*j,(a-1)*i+j+a*k,-a+1+a*j+k,(-a)*i+(-a+1)*j+k,-a+1+i+a*k,-a-i+(-a+1)*j,-a+1+(-a)*j+k,(-a+1)*i-j+a*k,(a-1)*i+j+(-a)*k,a+i+(a-1)*j,a-1+a*j-k,-a+j+(-a+1)*k,-a+1-i+a*k,a*i+(a-1)*j+k,(-a)*i+(-a+1)*j-k,a-j+(a-1)*k,a-1+i+(-a)*k,-1+i+j+k,-1-i-j+k,1-i-j-k,1+i-j+k,a-j+(-a+1)*k,-1+i-j-k,1-i+j+k,(a-1)*i-j+(-a)*k,-a-j+(a-1)*k,1+i+j-k,a*i+(a-1)*j-k,-1-i+j-k,a-1+(-a)*j-k,-a+1+a*j-k,(-a)*i+(a-1)*j-k,-a+1-i+(-a)*k,-a-i+(a-1)*j,a-1-i+(-a)*k,(-a+1)*i-j+(-a)*k,a-i+(a-1)*j,-i+(-a)*j+(a-1)*k,i+a*j+(a-1)*k,i+a*j+(-a+1)*k,-i+a*j+(a-1)*k,-i+a*j+(-a+1)*k,i+(-a)*j+(a-1)*k,-i+(-a)*j+(-a+1)*k,i+(-a)*j+(-a+1)*k,-1-i-j-k,1+i+j+k,2,-a+1+a*i-j,-2,-a+(-a+1)*i-k,a-1+a*i+j,a+(-a+1)*i+k,a-1+(-a)*i+j,1+(-a+1)*j+(-a)*k,-a+1+a*i+j,-1+(-a+1)*j+a*k,a+(a-1)*i+k,-1+(a-1)*j+a*k,-a+(-a+1)*i+k,1+(-a+1)*j+a*k,-a+1+(-a)*i+j,-a+(a-1)*i+k,a-1+a*i-j,1+(a-1)*j+a*k,a+(-a+1)*i-k,-1+(-a+1)*j+(-a)*k,-a+1+(-a)*i-j,-a+(a-1)*i-k,a-1+(-a)*i-j,1+(a-1)*j+(-a)*k,a+(a-1)*i-k,-1+(a-1)*j+(-a)*k,-1+i+j-k,1-i+j-k,1-i-j+k,-1-i+j+k,-1+i-j+k,1+i-j-k,2*k,(-2)*j,(-2)*k,2*i,2*j,(-2)*i]'
+    v = eval(s, {'a':F.gen(), 'i':B.gen(0), 'j':B.gen(1), 'k':B.gen(0)*B.gen(1)})
+    return [B(x)/B(2) for x in v]
+
 
 def icosian_ring_gens():
     """
@@ -812,6 +839,15 @@ class AlphaZ:
     def all_alpha(self):
         return [self.alpha(z) for z in P1ModList(self.P)]
 
+#@cached_function
+
+import os
+path = '/tmp/hmf-%s'%os.environ['USER']
+if not os.path.exists(path):
+    os.makedirs(path)
+@disk_cached_function(path, memory_cache=True)
+def hecke_elements(P):    
+    return [~a for a in AlphaZ(P).all_alpha()]
 
 class HMF:
     def __init__(self, N):
@@ -1156,3 +1192,37 @@ class Mod_P_reduction_map:
         assert K == -J*I, "bug in that I,J don't skew commute"    
         return I, J, R
     
+
+#NOTE: I don't think I like this at all.  The results are too big!
+# It would make way more sense to find an algorithm to find a representative
+# in the ideal that minimizes a^2 + 5*b^2, i.e., the sum of the
+# squares of the images under the two real embeddings. 
+def canonical_representative_mod_units(I):
+    """
+    Given an ideal I or element of F, returns our agreed upon canocial
+    element, which generators the same fractional ideal.
+    """
+    phi = F.real_embeddings()[1]
+    from sage.all import log, floor, ceil
+    from sage.rings.all import is_Ideal
+
+    if is_Ideal(I):
+        alpha = I.gens_reduced()[0]
+    else:
+        alpha = F(I)
+    s = phi(alpha) 
+    if s < 0:
+        alpha *= -1
+        s = phi(alpha)
+
+    gamma = F.gen()
+    if s < phi(gamma):
+        # multiply by some power of gamma so bigger than gamma
+        n = ceil(1 - log(s)/log(gamma))
+        alpha *= gamma**n
+    # Now make it the first number smaller than gamma
+    n = floor(log(s)/log(phi(gamma)))
+    alpha = alpha/gamma**n
+    if alpha == gamma:
+        alpha = F(1)
+    return alpha

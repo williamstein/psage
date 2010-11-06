@@ -5,6 +5,8 @@ All the code in this file is meant to be highly optimized.
 """
 
 include 'stdsage.pxi'
+include 'cdefs.pxi'
+
 
 from sage.rings.ring cimport CommutativeRing
 from sage.rings.all import Integers
@@ -1041,7 +1043,7 @@ cdef class ProjectiveLineModN:
         if self.r > 1:
             s = '(' + s + ')'
         return s
-    
+     
     cdef int matrix_action(self, p1_element rop, modn_matrix op0, p1_element op1) except -1:
         # op0  = [a,b; c,d];    op1=[u;v]
         # product is  [a*u+b*v; c*u+d*v]
@@ -1426,25 +1428,28 @@ cdef class IcosiansModP1ModN:
             self.orbit_reps[j] = reps[j]
 
     def compute_std_to_rep_table_debug(self):
-        # Algorithm is pretty obvious.  Just take first element of P1,
-        # hit by all icosians, making a list of those that are
-        # equivalent to it.  Then find next element of P1 not in the
-        # first list, etc.
-
         cdef p1_element x, Gx
         self.P1.first_element(x)
-        cdef long ind=0, j, i=0
+        cdef long ind=0, j, i=0, k
         for j in range(self.P1._cardinality):
             self.std_to_rep_table[j] = -1
         self.std_to_rep_table[0] = 0
         reps = []
+        orbits = []
         while ind < self.P1._cardinality:
             reps.append(ind)
+            print "Found representative number %s: %s"%(i, self.P1.element_to_str(x))
             self.P1.set_element(self.orbit_reps_p1elt[i], x)
+            orbit = [ind]
             for j in range(120):
                 self.P1.matrix_action(Gx, self.G[j], x)
                 self.P1.reduce_element(Gx, Gx)
-                self.std_to_rep_table[self.P1.standard_index(Gx)] = i
+                k = self.P1.standard_index(Gx)
+                orbit.append(k)
+                self.std_to_rep_table[k] = i
+            orbit = list(sorted(set(orbit)))
+            orbits.append(orbit)
+            print "It has an orbit of size %s"%len(orbit)
             while self.std_to_rep_table[ind] != -1 and ind < self.P1._cardinality:
                 ind += 1
                 if ind < self.P1._cardinality:
@@ -1454,6 +1459,7 @@ cdef class IcosiansModP1ModN:
         self.orbit_reps = <long*> sage_malloc(sizeof(long)*self._cardinality)
         for j in range(self._cardinality):
             self.orbit_reps[j] = reps[j]
+        return orbits
 
     cpdef long cardinality(self):
         return self._cardinality

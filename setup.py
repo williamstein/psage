@@ -88,7 +88,8 @@ ext_modules = [
               ['psage/modform/maass/lpkbessel.pyx']),
 
     Extension("psage.modform.hilbert.sqrt5_fast",
-              ["psage/modform/hilbert/sqrt5_fast.pyx"]),
+              ["psage/modform/hilbert/sqrt5_fast.pyx"],
+              libraries = ['gmp']),
     
     
 

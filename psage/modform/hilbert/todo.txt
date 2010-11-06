@@ -13,7 +13,41 @@ less than 24 from now!
    [ ] code for hecke operator T_2 (hardcode norm 2 elts); easy once have splittings at all primes
    [ ] make computation of the alpha's for computing Hecke operators fast, so we can compute T_p for p < 10000 (say).
 
+[ ] Build issue:
+
+This works:
+
+sage: attach sqrt5_fast.pyx
+Compiling sqrt5_fast.pyx...
+sage: attach sqrt5.py
+sage: time P = IcosiansModP1ModN(F.primes_above(97)[0])
+CPU times: user 0.19 s, sys: 0.01 s, total: 0.20 s
+Wall time: 0.20 s
+sage: P
+The 158 orbits for the action of the Icosian group on Projective line modulo the ideal (97) of norm 9409
+sage: 
+
+But trying to directly use the code from the library does not yet!
+sage: from psage.modform.hilbert.sqrt5 import *
+sage: from psage.modform.hilbert.sqrt5_fast import *
+sage: time P = IcosiansModP1ModN(F.primes_above(97)[0])
+SystemError: NULL result without error in PyObject_Call
+
+
 [ ] BUG:
+Good example:
+
+sage: P = IcosiansModP1ModN(F.ideal(9))
+sage: o = P.compute_std_to_rep_table_debug(); o
+Found representative number 0: (0, 1)
+It has an orbit of size 61
+Found representative number 1: (1 + g, 1)
+It has an orbit of size 35
+
+which violates orbit stabilizer theorem; plus orbits aren't disjoint!
+
+
+
 sage: P = IcosiansModP1ModN(F.ideal(27))
 sage: P.cardinality()  # it should be 14
 17

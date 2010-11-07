@@ -11,16 +11,13 @@ less than 24 from now!
    [x] Dividing P^1 into orbits for action of R^*.
    [x] write fast version of code for hecke operator T_P for odd P
 
-[ ] See this for ModN_Reduction.  # TODO: This algorithm only makes sense when trying to compute splitting at one prime, but we're applying it to a product of primes!
-Example:
-P = IcosiansModP1ModN(F.primes_above(5) * F.ideal(3))
-
-
-
+   [x] See this for ModN_Reduction.  # TODO: This algorithm only makes sense when trying to compute splitting at one prime, but we're applying it to a product of primes!
+      Example: P = IcosiansModP1ModN(F.primes_above(5) * F.ideal(3))
 
 
    [ ] code for hecke operator T_2 (hardcode norm 2 elts); easy once have splittings at all primes
    [ ] make computation of the alpha's for computing Hecke operators fast, so we can compute T_p for p < 10000 (say).
+   [ ] refactor sqrt5_fast.pyx -- it's too big. 
 
 [ ] BUG:
 Good example:

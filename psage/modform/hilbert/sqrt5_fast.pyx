@@ -11,7 +11,7 @@ include 'cdefs.pxi'
 from sage.rings.ring cimport CommutativeRing
 from sage.rings.all import Integers
 
-cdef long SQRT_MAX_LONG = 2**(4*sizeof(long))
+cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
 
 # Residue element
 ctypedef long residue_element[2]
@@ -25,19 +25,34 @@ cpdef long ideal_characteristic(I):
 # Rings
 ###########################################################################
 
-def ResidueRing(P, e):
+def ResidueRing(P, unsigned int e):
+    """
+    Create the residue class ring O_F/P^e, where P is a prime ideal of the ring
+    O_F of integers of Q(sqrt(5)).
+
+    INPUT:
+        - P -- prime ideal
+        - e -- positive integer
+
+    OUTPUT:
+        - a fast residue class ring
+
+    """
+    if e <= 0:
+        raise ValueError, "exponent e must be positive"
     cdef long p = ideal_characteristic(P)
     if p**e >= SQRT_MAX_LONG:
-        raise ValueError, "Residue field must have size less than %s"%SQRT_MAX_LONG
+        raise ValueError, "residue field must have size less than %s"%SQRT_MAX_LONG
     if p == 5:   # ramified
         if e % 2 == 0:
-            return ResidueRing_nonsplit(P, p, e)
+            R = ResidueRing_nonsplit(P, p, e)
         else:
-            return ResidueRing_ramified_odd(P, p, e)
+            R = ResidueRing_ramified_odd(P, p, e)
     elif p%5 in [2,3]:  # nonsplit
-        return ResidueRing_nonsplit(P, p, e)
+        R = ResidueRing_nonsplit(P, p, e)
     else: # split
-        return ResidueRing_split(P, p, e)
+        R = ResidueRing_split(P, p, e)
+    return R
 
 class ResidueRingIterator:
     def __init__(self, R):
@@ -76,18 +91,24 @@ cdef class ResidueRing_abstract(CommutativeRing):
             self._residue_field = self.P.residue_field()
         return self._residue_field
 
+    def _moduli(self):
+        # useful for testing purposes
+        return self.n0, self.n1
+
     def __call__(self, x):
         if hasattr(x, 'parent'):
             P = x.parent()
-            if P is self:
-                return x
-            elif P is self.F:
-                # TODO: This denominator is very slow.
-                d = x.denominator()
-                if d != 1:
-                    return self(d*x) * self(self.F(d.inverse_mod(self.p**self.e)))
-                return self.element_class(self, x)
-        raise TypeError
+        else:
+            P = None
+        if P is self:
+            return x
+        elif P is not self.F:
+            x = self.F(x)
+        # TODO: This denominator is very slow.
+        d = x.denominator()
+        if d != 1:
+            return self(d*x) * self(self.F(d.inverse_mod(self.p**self.e)))
+        return self.element_class(self, x)
 
     def __repr__(self):
         return "Residue class ring of %s^%s of characteristic %s"%(
@@ -159,6 +180,9 @@ cdef class ResidueRing_abstract(CommutativeRing):
 
     def __iter__(self):
         return ResidueRingIterator(self)
+
+    def is_finite(self):
+        return True
 
     cdef int ith_element(self, residue_element rop, long i) except -1:
         if i < 0 or i >= self.cardinality(): raise IndexError
@@ -348,7 +372,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
                 rop[0] = sqrtmod_long(op[0], self.p, 1)
                 rop[1] = 0
                 return 0
-            raise NotImplementedError, 'sqrt not implemented in ramified case...'
+            raise NotImplementedError, 'sqrt not implemented in non-prime nonsplit case...'
 
         # TODO: the stupid overhead in this step alone is vastly more than
         # the time to actually compute the sqrt in Givaro or Pari (say)...
@@ -461,17 +485,81 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         rop[1] = self.n1 - op[1]
 
     cdef int inv(self, residue_element rop, residue_element op) except -1:
-        # TODO: implement inverse in ramified case
-        raise NotImplementedError
+        """
+        We derive by algebra the inverse of an element of the quotient ring.
+        We represent the ring as:
+          Z[x]/(x^2-5, x^e) = {a+b*x with 0<=a<p^((e/2)+1), 0<=b<p^(e/2)}
+        Assume a+b*x is a unit, so a!=0(mod 5).  Let c+d*x be inverse of a+b*x.
+        We have (a+b*x)*(c+d*x)=1, so ac+5db + (ad+bc)*x = 1.  Thus
+           ac+5bd=1 (mod p^((e/2)+1)) and ad+bc=0 (mod p^(e/2)).
+        Doing algebra (multiply both sides by a^(-1) of first, and subtract
+        second equation), we arrive at
+           d = (a^(-1)*b)*(5*a^(-1)*b^2 - a)^(-1) (mod p^(e/2))
+           c = a^(-1)*(1-5*b*d) (mod p^(e/2+1)).
+        Notice that the first equation determines d only modulo p^(e/2), and
+        the second only requires d modulo p^(e/2)!
+        """
+        cdef long a = op[0], b = op[1], ainv = invmod_long(a, self.n0), n0=self.n0, n1=self.n1
+        # Set rop[1] to "ainv*b*(5*ainv*b*b - a)".  We have to use ugly notation to avoid overflow
+        rop[1] = divmod_long(mulmod_long(ainv,b,n1), submod_long(mulmod_long(mulmod_long(mulmod_long(self.p,ainv,n1),b,n1),b,n1), a, n1), n1)
+        # Set rop[0] to "ainv*(1-5*b*d)
+        rop[0] = mulmod_long(ainv, submod_long(1,mulmod_long(5,mulmod_long(b,rop[1],n0),n0),n0),n0)
+        return 0
 
     cdef bint is_unit(self, residue_element op):
-        raise NotImplementedError        
+        """
+        Return True if the element op=(a,b) is a unit.
+        We represent the ring as
+            Z[x]/(x^2-5, x^e) = {a+b*x with 0<=a<p^((e/2)+1), 0<=b<p^(e/2)}
+        An element is in the maximal ideal (x) if and only if it is of the form:
+             (a+b*x)*x = a*x+b*x*x = a*x + 5*b.
+        Since a is arbitrary, this means the maximal ideal is the set of
+        elements op=(a,b) with a%5==0, so the units are the elements
+        with a%5!=0.
+        """
+        return op[0]%self.p != 0
 
-    cdef bint is_square(self, residue_element op):
-        raise NotImplementedError
+    cdef bint is_square(self, residue_element op) except False:
+        cdef residue_element rop
+        try:
+            self.sqrt(rop, op)
+        except:  # ick
+            return False
+        return True
 
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
-        raise NotImplementedError
+        """
+        Algorithm: Given c+dx in Z[x]/(x^2-5,x^e), we seek a+bx with
+                  (a+bx)^2=a^2+5b^2 + 2abx = c+dx,
+        so a^2+5b^2 = c (mod p^n0)
+           2ab = d (mod p^n1)
+        Multiply first equation through by A=a^2, to get quadratic in A:
+              A^2 - c*A + 5d^2/4 = 0 (mod n0).
+        Solve for A = (c +/- sqrt(c^2-5d^2))/2. 
+
+        Thus the algorithm is:
+              1. Extract sqrt s of c^2-5d^2 modulo n0.  If no sqrt, then not square
+              2. Extract sqrt a of (c+s)/2 or (c-s)/2.  Both are squares.
+              3. Let b=d/(2*a) for each choice of a.  Square each and see which works.
+        """
+        cdef long c=op[0], d=op[1], p=self.p, n0=self.n0, n1=self.n1, s, two_inv
+        s = sqrtmod_long((c*c - p*d*d)%n0, p, self.e//2 + 1)
+        two_inv = invmod_long(2, n0)
+        cdef residue_element t
+        try:
+            rop[0] = sqrtmod_long(((c+s)*two_inv)%n0, p, self.e//2 + 1)
+            rop[1] = (divmod_long(d,rop[0],n1) * two_inv)%n1
+            self.mul(t, rop, rop)
+            if t[0] == op[0] and t[1] == op[1]: 
+                return 0
+        except ValueError:
+            pass
+        rop[0] = sqrtmod_long(((c-s)*two_inv)%n0, p, self.e//2 + 1)
+        rop[1] = (divmod_long(d,rop[0],n1) * two_inv)%n1
+        self.mul(t, rop, rop)
+        assert t[0] == op[0] and t[1] == op[1]
+        return 0
+            
 
     cdef void unsafe_ith_element(self, residue_element rop, long i):
         # Definition: If the element is rop = [a,b], then
@@ -496,14 +584,18 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         return op[0] + op[1]*self.n0
 
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
-        # TODO!
-        raise NotImplementedError, "TODO: implement iteration over P in odd ramified case"
+        rop[0] = op[0] + self.p
+        if rop[0] == self.n0:
+            rop[0] = 0
+            rop[1] += 1
+            if rop[1] >= self.n1:
+                raise ValueError, "no next element"
 
     cdef bint is_last_element_in_P(self, residue_element op):
-        raise NotImplementedError, "TODO: implement iteration over P in odd ramified case"
-
+        return op[0] == self.n0 - self.p and op[1] == self.n1 - 1
+    
     cdef long index_of_element_in_P(self, residue_element op) except -1:
-        raise NotImplementedError, "TODO: implement iteration over P in odd ramified case"        
+        return op[0]/self.p + op[1] * (self.n0/self.p)
     
 
 ###########################################################################
@@ -580,8 +672,12 @@ cdef class ResidueRingElement:
     def __hash__(self):
         return self.x[0] + self._parent.n0*self.x[1]
         
+    cpdef bint is_unit(self):
+        return self._parent.is_unit(self.x)
+    
     cpdef bint is_square(self):
         return self._parent.is_square(self.x)
+    
     cpdef sqrt(self):
         cdef ResidueRingElement z = self.new()
         self._parent.sqrt(z.x, self.x)
@@ -597,10 +693,10 @@ cdef class ResidueRingElement_split(ResidueRingElement):
             self.x[0] = 0
             return
         elif len(v) == 1:
-            self.x[0] = v[0]
+            self.x[0] = v[0] % self._parent.n0
             return 
         self.x[0] = v[0] + parent.im_gen0*v[1]
-        self.x[0] %= self._parent.n0
+        self.x[0] = self.x[0] % self._parent.n0
         self.x[1] = 0
 
     cdef new(self):
@@ -667,12 +763,8 @@ cdef class ResidueRingElement_nonsplit(ResidueRingElement):
         else:
             self.x[0] = v[0]
             self.x[1] = v[1]
-        self.x[0] %= self._parent.n0
-        if self.x[0] < 0:
-            self.x[0] += self._parent.n0
-        self.x[1] %= self._parent.n0
-        if self.x[1] < 0:
-            self.x[1] += self._parent.n0
+        self.x[0] = self.x[0] % self._parent.n0
+        self.x[1] = self.x[1] % self._parent.n1
 
     cdef new(self):
         cdef ResidueRingElement_nonsplit z = PY_NEW(ResidueRingElement_nonsplit)
@@ -752,18 +844,14 @@ cdef class ResidueRingElement_ramified_odd(ResidueRingElement):
             self.x[0] = 0; self.x[1] = 0
             return
         if len(v) == 1:
-            self.x[0] = a
+            self.x[0] = v[0]
             self.x[1] = 0
         else:
             a = v[0]; b = v[1]
             self.x[0] = a + b*parent.two_inv
             self.x[1] = b*parent.two_inv
-        self.x[0] %= self._parent.n0
-        if self.x[0] < 0:
-            self.x[0] += self._parent.n0
-        self.x[1] %= self._parent.n1
-        if self.x[1] < 0:
-            self.x[1] += self._parent.n1
+        self.x[0] = self.x[0] % self._parent.n0
+        self.x[1] = self.x[1] % self._parent.n1
 
     cdef new(self):
         cdef ResidueRingElement_ramified_odd z = PY_NEW(ResidueRingElement_ramified_odd)
@@ -797,6 +885,15 @@ cdef long kronecker_symbol_long(long a, long b):
     mpz_set_si(mpz_temp, b)
     return mpz_si_kronecker(a, mpz_temp)
 
+cdef inline long mulmod_long(long x, long y, long m):
+    return (x*y)%m
+
+cdef inline long submod_long(long x, long y, long m):
+    return (x-y)%m
+
+cdef inline long addmod_long(long x, long y, long m):
+    return (x+y)%m
+
 #cdef long kronecker_symbol_long2(long a, long p):
 #    return powmod_long(a, (p-1)/2, p)
 
@@ -820,39 +917,62 @@ cdef long invmod_long(long x, long m) except -1:
         raise ZeroDivisionError
     return s%m
 
-cdef long gcd_long(long a, long b):
+cdef long gcd_long(long a, long b) except -1:
     return Arith_llong.c_gcd_longlong(a, b)
     
-cdef long divmod_long(long x, long y, long m):
+cdef long divmod_long(long x, long y, long m) except -1:
     #return quotient x/y mod m, assuming x, y < SQRT_MAX_LONG
     return (x * invmod_long(y, m)) % m
     
 cpdef long sqrtmod_long(long x, long p, int n) except -1:
+    cdef long a, r, y, z
+
+    if x == 0:
+        return 0
+    
+    if x%p == 0:
+        a = x/p
+        y = 1
+        r = 1
+        while r < n and a%p == 0:
+            a /= p
+            r += 1
+            if r%2 == 0:
+                y *= p
+        if r % 2 != 0:
+            raise ValueError, "not a square"
+        return y * sqrtmod_long(a, p, n - r//2)
+    
     # Compute square root of x modulo p^n using Hensel lifting, where
     # p id odd.
 
     # Step 1. Find a square root modulo p. (See section 4.5 of my Elementary Number Theory book.)
-    cdef long y
     if p % 4 == 3:
         # Easy case when p is 3 mod 4.
         y = powmod_long(x, (p+1)/4, p)
+    elif p == 5: # hardcode useful special case
+        z = x % p
+        if z == 0 or z == 1:
+            y = x
+        elif z == 2 or z == 3:
+            raise ValueError
+        elif z == 4:
+            y = 2
+        else:
+            assert False, 'bug'
     else:
         # Harder case -- no known poly time deterministic algorithm.
         # TODO: There is a fast algorithm we could implement here, but
         # I'll just use pari for now and come back to this later. This
         # is on page 88 of my book, esp. since this is not critical
-        # to the speed of the whole algorithm. 
+        # to the speed of the whole algorithm.
+        # Another reason to redo -- stupid PariError is hard to trap...
         from sage.all import pari
         y = pari(x).Mod(p).sqrt().lift()
 
     if n == 1: # done
         return y
 
-    if y == 0:
-        # TODO: finish this
-        print "TODO: Finish sqrtmod_long in case when y==0."
-        raise NotImplementedError
-    
     # Step 2. Hensel lift to mod p^n.
     cdef int m
     cdef long t, pm, ppm
@@ -927,12 +1047,13 @@ cdef class ResidueRingModN:
             R = self.residue_rings[i]
             R.mul(rop[i], op0[i], op1[i])
         
-    cdef void inv(self, modn_element rop, modn_element op):
+    cdef int inv(self, modn_element rop, modn_element op) except -1:
         cdef int i
         cdef ResidueRing_abstract R
         for i in range(self.r):
             R = self.residue_rings[i]
             R.inv(rop[i], op[i])
+        return 0
         
     cdef void add(self, modn_element rop, modn_element op0, modn_element op1):
         cdef int i
@@ -1286,6 +1407,9 @@ cdef class ModN_Reduction:
     cdef ResidueRingModN S
     cdef modn_matrix[4] G
     def __init__(self, N):
+
+        # TODO: This algorithm only makes sense when trying to compute splitting at one prime, but we're applying it to a product of primes!
+        
         cdef ResidueRingModN S = ResidueRingModN(N)
         self.S = S
         if N.norm() % 2 == 0:
@@ -1326,6 +1450,7 @@ cdef class ModN_Reduction:
         S.mul(t, a, a)
         S.mul(t, t, minus_one)
         S.add(t, t, minus_one)
+        print "inverting b = ", S.element_to_str(b)
         S.inv(t2, b)
         S.mul(self.G[2][2], t, t2)
         S.mul(self.G[2][3], a, minus_one)

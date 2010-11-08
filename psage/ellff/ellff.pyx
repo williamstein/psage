@@ -119,12 +119,14 @@ cdef extern from "ell_surface.h":
     ctypedef struct ell_surfaceInfoT_c "ell_surfaceInfoT":
         int     sign
         int     deg_L
+        int     constant_f
 
     void ell_surface_init "ell_surface::init"(zz_pEratX_c a1, zz_pEratX_c a2, zz_pEratX_c a3, zz_pEratX_c a4, zz_pEratX_c a6)
 
     ctypedef struct ell_surface_c "ell_surface":
         int     sign
         int     deg_L
+        int     constant_f
 
     void ell_surface_init "ell_surface::init"(zz_pEratX_c a1, zz_pEratX_c a2, zz_pEratX_c a3, zz_pEratX_c a4, zz_pEratX_c a6)
     ell_surfaceInfoT_c* ell_surface_getSurfaceInfo "ell_surface::getSurfaceInfo"()
@@ -479,11 +481,12 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         if not isinstance(ainvs, list) and len(ainvs) == 5:
             raise TypeError, "ainvs must be a list of length 5."
 
-        cdef int sign, deg_L
-        sign, deg_L, phi = self._surface_init(1)
+        cdef int sign, deg_L, constant_f
+        sign, deg_L, constant_f, phi = self._surface_init(1)
 
         self.sign    = sign
         self.deg_L   = deg_L
+        self.constant_f = constant_f
         self.phi     = phi
         self.__calc_optimal_deg()
         self.euler_deg = 0
@@ -587,6 +590,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
 
             - info.sign -- the sign of the functional equation
             - info.deg_L -- the degree of the L-function
+            - info.constant_f -- True (1) if curve is constant
             - phi -- an embedding of Sage's F_q to ELLFF's F_q
 
         EXAMPLES::
@@ -595,7 +599,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             sage: K.<t> = psage.FunctionField(GF(11))
             sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
             sage: E._surface_init(2)
-            [1, 4, Ring morphism:
+            [1, 4, 0, Ring morphism:
               From: Finite Field of size 11
               To:   Finite Field in c of size 11^2
               Defn: 1 |--> 1]
@@ -635,7 +639,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         if n == 1:
             self._retrieve_invariants()
 
-        return [info.sign, info.deg_L, phi]
+        return [info.sign, info.deg_L, info.constant_f, phi]
 
     def __calc_optimal_deg(self):
         r"""
@@ -917,6 +921,9 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
 
         if self.L_function_calculated == True:
             return self._L_function
+
+        if self.constant_f == True:
+            raise ValueError, "Elliptic curve must be non-constant or have at least one place of bad reduction"
 
         # retrieve useful constants
         p = self.p

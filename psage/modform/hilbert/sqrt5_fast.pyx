@@ -10,6 +10,7 @@ include 'cdefs.pxi'
 
 from sage.rings.ring cimport CommutativeRing
 from sage.rings.all import Integers, is_Ideal, ZZ
+from sage.matrix.all import MatrixSpace, zero_matrix
 
 cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
 
@@ -95,6 +96,9 @@ cdef class ResidueRing_abstract(CommutativeRing):
             self._residue_field = self.P.residue_field()
         return self._residue_field
 
+    cdef object element_to_residue_field(self, residue_element x):
+        raise NotImplementedError
+
     def _moduli(self):
         # useful for testing purposes
         return self.n0, self.n1
@@ -117,6 +121,11 @@ cdef class ResidueRing_abstract(CommutativeRing):
     def __repr__(self):
         return "Residue class ring of %s^%s of characteristic %s"%(
             self.P._repr_short(), self.e, self.p)
+
+    def lift(self, x): # for consistency with residue fields
+        if x.parent() is self:
+            return x.lift()
+        raise TypeError
 
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         raise NotImplementedError
@@ -155,6 +164,22 @@ cdef class ResidueRing_abstract(CommutativeRing):
     cdef void set_element(self, residue_element rop, residue_element op):
         rop[0] = op[0]
         rop[1] = op[1]
+
+    cdef int set_element_from_tuple(self, residue_element rop, x) except -1:
+        rop[0] = x[0]%self.n0; rop[1] = x[1]%self.n1
+        return 0
+
+    cdef int cmp_element(self, residue_element left, residue_element right):
+        if left[0] < right[0]:
+            return -1
+        elif left[0] > right[0]:
+            return 1
+        elif left[1] < right[1]:
+            return -1
+        elif left[1] > right[1]:
+            return 1
+        else:
+            return 0
 
     cdef int pow(self, residue_element rop, residue_element op, long e) except -1:
         cdef residue_element op2
@@ -256,6 +281,9 @@ cdef class ResidueRing_split(ResidueRing_abstract):
             else:
                 raise RuntimeError, "bug -- maybe F is misdefined to have wrong gen"
 
+    cdef object element_to_residue_field(self, residue_element x):    
+        return self.residue_field()(x[0])
+
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] + op1[0])%self.n0
         rop[1] = 0
@@ -277,7 +305,7 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         return gcd_long(op[0], self.n0) == 1
     
     cdef void neg(self, residue_element rop, residue_element op):
-        rop[0] = self.n0 - op[0]
+        rop[0] = self.n0 - op[0] if op[0] else 0
         rop[1] = 0        
 
     cdef bint is_square(self, residue_element op):
@@ -341,6 +369,16 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         self.n1 = p**e
         self._cardinality = self.n0 * self.n1
         
+    cdef object element_to_residue_field(self, residue_element x):    
+        k = self.residue_field()
+        if self.p != 5:
+            return k([x[0], x[1]])
+        
+        # OK, now p == 5 and power of prime sqrt(5) is even...
+        # We have that self is Z[x]/(5^n, x^2-x-1) --> F_5, where the map sends x to 3, since x^2-x-1=(x+2)^2 (mod 5).
+        # Thus a+b*x |--> a+3*b.
+        return k(x[0] + 3*x[1])
+
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] + op1[0])%self.n0
         rop[1] = (op0[1] + op1[1])%self.n1
@@ -368,8 +406,8 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         return gcd_long(a*a + a*b - b*b, self.n0) == 1
 
     cdef void neg(self, residue_element rop, residue_element op):
-        rop[0] = self.n0 - op[0]
-        rop[1] = self.n1 - op[1]
+        rop[0] = self.n0 - op[0] if op[0] else 0
+        rop[1] = self.n1 - op[1] if op[1] else 0
 
     cdef bint is_square(self, residue_element op) except False:
         """
@@ -613,7 +651,35 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         return op[0] + op[1]*self.n0
 
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
-        if self.p == 5: raise NotImplementedError  # TODO -- since maximal ideal not gen by p
+        """
+        
+        For p = 5, we use the following enumeration, for R=O_F/P^(2e).  First, note that we
+        represent R as
+            R = (Z/5^e)[x]/(x^2-x-1)
+        The maximal ideal is the kernel of the natural map to Z/5Z sending x to 3, i.e., it
+        has kernel the principal ideal (x+2).
+        By considering (a+bx)(x+2) = 2a+b + (a+3b)x, we see that the maximal ideal is
+           { a + (3a+5b)x  :  a in Z/5^eZ, b in Z/5^(e-1)Z }.
+        We enumerate this by    
+        """
+        if self.p == 5:
+            # a = op[0]
+            rop[0] = (op[0] + 1)%self.n0
+            rop[1] = (op[1] + 3)%self.n1
+            if rop[0] == 0: # a wraps around
+                # done, i.e., element with a=5^e-1 and b=5^(e-1)-1 last values?
+                # We get the formula below from this calculation:
+                #    a+b*x = 5^e-1 + (3*a+5*b)*x.  Only the coeff of x matters, which is
+                #   3a+5b = 3*5^e - 3 + 5^e - 5 = 4*5^e - 8.
+                # And of course self.n0 = 5^e, so we use that below.
+                if rop[1] == 4*self.n0 - 8:
+                    raise ValueError, "no next element in P"
+                # not done, so wrap around and increase b by 1
+                rop[0] = 0
+                rop[1] = (rop[1] + 5)%self.n1
+            return 0
+            
+        # General case (p!=5):
         rop[0] = op[0] + self.p
         rop[1] = op[1]
         if rop[0] >= self.n0:
@@ -624,11 +690,20 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         return 0
         
     cdef bint is_last_element_in_P(self, residue_element op):
-        if self.p == 5: raise NotImplementedError         # TODO
+        if self.p == 5:
+            # see the comment above in "next_element_in_P".
+            return op[0] == self.n0 - 1 and op[1] == 4*self.n0 - 8
+        # General case (p!=5):        
         return op[0] == self.n0 - self.p and op[1] == self.n1 - self.p
 
     cdef long index_of_element_in_P(self, residue_element op) except -1:
-        if self.p == 5: raise NotImplementedError         # TODO
+        if self.p == 5: 
+            # see the comment above in "next_element_in_P".
+            # The index is a + 5^e*b, so we have to recover a and b in op=a+(3a+5b)x.
+            # We have a = op[0], which is easy.  Then b=(op[1]-3a)/5
+            return op[0] + ((op[1] - 3*op[0])/5 % (self.n1/self.p)) * self.n0
+            
+        # General case (p!=5):
         return op[0]/self.p + op[1]/self.p * (self.n0/self.p)
         
 cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
@@ -642,6 +717,13 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         self._cardinality = self.n0 * self.n1        
         self.two_inv = (Integers(self.n0)(2)**(-1)).lift()
         self.element_class = ResidueRingElement_ramified_odd
+
+    cdef object element_to_residue_field(self, residue_element x):    
+        k = self.residue_field()
+        # For odd ramified case, we use a different basis, which is:
+        # x[0]+sqrt(5)*x[1], so mapping to residue field mod (sqrt(5))
+        # is easy:
+        return k(x[0])
 
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] + op1[0])%self.n0
@@ -657,8 +739,8 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         rop[1] = (a*d + b*c)%self.n1
 
     cdef void neg(self, residue_element rop, residue_element op):
-        rop[0] = self.n0 - op[0]
-        rop[1] = self.n1 - op[1]
+        rop[0] = self.n0 - op[0] if op[0] else 0
+        rop[1] = self.n1 - op[1] if op[1] else 0
 
     cdef int inv(self, residue_element rop, residue_element op) except -1:
         """
@@ -1235,15 +1317,19 @@ cdef class ResidueRingModN:
             self.N._repr_short(), self.N.norm())
 
     cdef int set(self, modn_element rop, x) except -1:
-        self.coerce_from_nf(rop, self.N.number_field()(x))
+        self.coerce_from_nf(rop, self.N.number_field()(x), 0)
 
-    cdef int coerce_from_nf(self, modn_element rop,  op) except -1:
+    cdef int coerce_from_nf(self, modn_element rop, op, int odd_only) except -1:
         # Given an element op in the field F, try to reduce it modulo
         # N and create the corresponding modn element.
+        # If the odd_only flag is set to 1, leave the result locally
+        # at the primes over 2 undefined.
         cdef int i
         cdef ResidueRing_abstract R
         for i in range(self.r):
             R = self.residue_rings[i]
+            if odd_only and R.p == 2:
+                continue
             R.coerce_from_nf(rop[i], op)
         return 0 # success
 
@@ -1326,7 +1412,7 @@ cdef class ResidueRingModN:
     # modn_matrices over R
     #######################################    
     cdef matrix_to_str(self, modn_matrix A):
-        return '[%s,%s; %s,%s]'%tuple([self.element_to_str(A[i]) for i in range(4)])
+        return '[%s, %s; %s, %s]'%tuple([self.element_to_str(A[i]) for i in range(4)])
 
     cdef matrix_mul(self, modn_matrix rop, modn_matrix x, modn_matrix y):
         cdef modn_element t, t2
@@ -1559,10 +1645,9 @@ cdef class ProjectiveLineModN:
         if i == self.r: # we're done
             raise ValueError
 
-    cdef bint next_element_factor(self, p1_element op, int i):
+    cdef bint next_element_factor(self, p1_element op, int i) except True:
         # modify op in place by replacing the element in the i-th P^1 factor by
-        # the next element.  If this involves rolling around, return True; otherwise,
-        # return False.
+        # the next element.  If this involves rolling around, return True; otherwise, False.
 
         cdef ResidueRing_abstract k = self.S.residue_rings[i]
         # The P^1 local factor is (a,b) where a = op[0][i] and b = op[1][i].
@@ -1626,74 +1711,58 @@ cdef class ProjectiveLineModN:
 cdef class ModN_Reduction:
     cdef ResidueRingModN S
     cdef modn_matrix[4] G
+    cdef bint is_odd
     def __init__(self, N):
         if not is_ideal_in_F(N):
             raise TypeError, "N must be an ideal of F"
 
         cdef ResidueRingModN S = ResidueRingModN(N)
         self.S = S
+        self.is_odd =  (N.norm() % 2 != 0)
+
+        # Set the identity matrix (this will get overwritten when N is even.)
+        S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
 
         for i in range(S.r):
             self.compute_ith_local_splitting(i)
-
-        # compute K = I*J
-        S.matrix_mul(self.G[3], self.G[1], self.G[2])
-        # Set the identity matrix
-        S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
-
-##         # I = [0,i2, 1, 0] works.
-##         F = N.number_field()
-##         S.coerce_from_nf(self.G[1][0], F(0))
-##         S.coerce_from_nf(self.G[1][1], F(-1))
-##         S.coerce_from_nf(self.G[1][2], F(1))
-##         S.coerce_from_nf(self.G[1][3], F(0))
-
-##         # Now find J.
-##         cdef modn_element a, b, c, d, t, t2, minus_one
-##         found_it = False
-##         S.set(b, 1)
-##         S.set(minus_one, -1)
-##         while not S.is_last_element(b):
-##             # Let c = -1 - b*b
-##             S.mul(t, b, b)
-##             S.mul(t, t, minus_one)
-##             S.add(c, minus_one, t)
-##             if S.is_square(c):
-##                 # Next set a = -sqrt(c).
-##                 S.sqrt(a, c)  
-##                 found_it = True
-##                 break
-##             S.next_element(b, b)
-
-##         if not found_it:  # sometimes needed
-##             raise NotImplementedError
-
-##         # Set the matrix self.G[2] to [a,b,(j2-a*a)/b,-a]
-##         S.set_element(self.G[2][0], a)
-##         S.set_element(self.G[2][1], b)
-##         # Set t to (-1-a*a)/b
-##         S.mul(t, a, a)
-##         S.mul(t, t, minus_one)
-##         S.add(t, t, minus_one)
-##         S.inv(t2, b)
-##         S.mul(self.G[2][2], t, t2)
-##         S.mul(self.G[2][3], a, minus_one)
-
-##         S.matrix_mul(self.G[3], self.G[1], self.G[2])
-
-##         # Finally, set the identity matrix
-##         S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
+            
 
     cdef compute_ith_local_splitting(self, int i):
+        cdef ResidueRingElement z
+        cdef long m, n
         cdef ResidueRing_abstract R = self.S.residue_rings[i]
         F = self.S.N.number_field()
 
-        # I = [0,i2, 1, 0] works.
-        R.coerce_from_nf(self.G[1][0][i], R(0))
-        R.coerce_from_nf(self.G[1][1][i], R(-1))
-        R.coerce_from_nf(self.G[1][2][i], R(1))
-        R.coerce_from_nf(self.G[1][3][i], R(0))
+        if R.p != 2:
+            # I = [0,-1, 1, 0] works.
+            R.set_element_to_0(self.G[1][0][i])
+            R.set_element_to_1(self.G[1][1][i]); R.neg(self.G[1][1][i], self.G[1][1][i])
+            R.set_element_to_1(self.G[1][2][i])
+            R.set_element_to_0(self.G[1][3][i])
+        else:
+            from sqrt5_fast_python import find_mod2pow_splitting
+            w = find_mod2pow_splitting(R.e)
+            for n in range(4):
+                v = w[n].list()
+                for m in range(4):
+                    z = v[m]
+                    self.G[n][m][i][0] = z.x[0]
+                    self.G[n][m][i][1] = z.x[1]
+            return
 
+        # TODO: *IMPORTANT* -- this must get redone in a way that is
+        # much faster when the power of the prime is large.  Right now
+        # it does a big enumeration, which is very slow.  There is a
+        # Hensel lift style approach that is dramatically massively
+        # faster.  See the code for find_mod2pow_splitting above,
+        # which uses an iterative lifting algorithm.
+        # Must implement this... once everything else is done. This is also slow since my sqrt
+        # method is ridiculously stupid.  A good test is
+        # sage: time ModN_Reduction(F.primes_above(7)[0]^5)
+        # CPU times: user 0.65 s, sys: 0.00 s, total: 0.65 s
+        # which should be instant.  And don't try exponent 6, which takes minutes (at least)!
+
+        #######################################################################
         # Now find J.
         cdef residue_element a, b, c, d, t, t2, minus_one
         found_it = False
@@ -1707,23 +1776,41 @@ cdef class ModN_Reduction:
             if R.is_square(c):
                 # Next set a = -sqrt(c).
                 R.sqrt(a, c)  
-                found_it = True
-                break
+                # Set the matrix self.G[2] to [a,b,(j2-a*a)/b,-a]
+                R.set_element(self.G[2][0][i], a)
+                R.set_element(self.G[2][1][i], b)
+                # Set t to (-1-a*a)/b
+                R.mul(t, a, a)
+                R.mul(t, t, minus_one)
+                R.add(t, t, minus_one)
+                R.inv(t2, b)
+                R.mul(self.G[2][2][i], t, t2)
+                R.mul(self.G[2][3][i], a, minus_one)
+
+                # Check that indeed we found an independent matrices, over the residue field
+                good, K = self._matrices_are_independent_mod_ith_prime(i)
+                if good:
+                    # Set the K = I*J one.
+                    k = K[0].parent()
+                    for m in range(4):
+                        # TODO: this probably slow -- need fast multiply ith factor of matrix command?
+                        R.coerce_from_nf(self.G[3][m][i], k.lift(K[m]))
+                    return
             R.next_element(b, b)
 
-        if not found_it:  # sometimes needed
-            raise NotImplementedError
+        raise NotImplementedError
 
-        # Set the matrix self.G[2] to [a,b,(j2-a*a)/b,-a]
-        R.set_element(self.G[2][0][i], a)
-        R.set_element(self.G[2][1][i], b)
-        # Set t to (-1-a*a)/b
-        R.mul(t, a, a)
-        R.mul(t, t, minus_one)
-        R.add(t, t, minus_one)
-        R.inv(t2, b)
-        R.mul(self.G[2][2][i], t, t2)
-        R.mul(self.G[2][3][i], a, minus_one)
+    def _matrices_are_independent_mod_ith_prime(self, int i):
+        cdef ResidueRing_abstract R = self.S.residue_rings[i]
+        k = R.residue_field()
+        M = MatrixSpace(k, 2)
+        J = M([R.element_to_residue_field(self.G[2][n][i]) for n in range(4)])
+        I = M([R.element_to_residue_field(self.G[1][n][i]) for n in range(4)])
+        K = I * J
+        B = [M.identity_matrix(), I, J, I*J]
+        V = k**4
+        W = V.span([x.list() for x in B])
+        return W.dimension() == 4, K.list()
 
     def __repr__(self):
         return 'Reduction modulo %s of norm %s defined by sending I to %s and J to %s'%(
@@ -1733,16 +1820,53 @@ cdef class ModN_Reduction:
     cdef int quatalg_to_modn_matrix(self, modn_matrix M, alpha) except -1:
         # Given an element alpha in the quaternion algebra, find its image M as a modn_matrix.
         cdef modn_element t
-        cdef modn_element[4] X
+        cdef modn_element X[4]
         cdef int i, j
         cdef ResidueRingModN S = self.S
+        cdef ResidueRing_abstract R
+        cdef residue_element z[4]
+        cdef residue_element t2
+
         for i in range(4):
-            S.coerce_from_nf(X[i], alpha[i])
+            S.coerce_from_nf(X[i], alpha[i], 1)
         for i in range(4):
             S.mul(M[i], self.G[0][i], X[0])
             for j in range(1, 4):
                 S.mul(t, self.G[j][i], X[j])
                 S.add(M[i], M[i], t)
+
+        if not self.is_odd:
+            # The first prime is 2, so we have to fix that the above was
+            # totally wrong. 
+            # TODO: I'm writing this code slowly to work rather
+            # than quickly, since I'm running out of time.
+            # Will redo this to be fast later.  The algorithm is:
+            # 1. Write alpha in terms of Icosian ring basis.
+            # 2. Take the coefficients from *that* linear combination
+            #    and apply the map, just as above, but of course only
+            #    to the first factor of M.
+            from sqrt5_fast_python import quaternion_in_terms_of_icosian_basis2
+            v = quaternion_in_terms_of_icosian_basis2(alpha)
+            # Now v is a list of 4 elements of O_F (unless alpha wasn't in R).
+            R = self.S.residue_rings[0]
+            assert R.p == 2, 'order of factors wrong?'
+            for i in range(4):
+                R.coerce_from_nf(z[i], v[i])
+            for i in range(4):
+                R.mul(M[i][0], self.G[0][i][0], z[0])
+                for j in range(1,4):
+                    R.mul(t2, self.G[j][i][0], z[j])
+                    R.add(M[i][0], M[i][0], t2)
+            
+
+    def __call__(self, alpha):
+        """
+        A sort of joke for now.  Reduce alpha using this map, then return
+        string representation...
+        """
+        cdef modn_matrix M
+        self.quatalg_to_modn_matrix(M, alpha)
+        return self.S.matrix_to_str(M)
                 
 
 ####################################################################
@@ -1863,7 +1987,6 @@ cdef class IcosiansModP1ModN:
         cdef modn_matrix M
         cdef p1_element Mx
         from sqrt5 import hecke_elements
-        from sage.all import zero_matrix, ZZ
         T = zero_matrix(ZZ, self._cardinality, sparse=sparse)
         cdef long i, j
         

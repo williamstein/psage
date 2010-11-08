@@ -297,6 +297,8 @@ def icosian_ring_gens():
     """
     global B, F
     # See page 6 of Dembele.
+    # DO NOT CHANGE THESE!  You'll break, e.g., the optimized code for
+    # writing elements in terms of these...
     omega = F.gen()
     omega_bar = 1 - F.gen()
     return [B(v)/2 for v in [(1,-omega_bar,omega,0),
@@ -1226,3 +1228,5 @@ def canonical_representative_mod_units(I):
     if alpha == gamma:
         alpha = F(1)
     return alpha
+
+

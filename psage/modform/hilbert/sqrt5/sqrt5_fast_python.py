@@ -46,7 +46,9 @@ too slow).  I think the algorithm itself is solid.
 from sqrt5_fast import ResidueRing
 from sage.matrix.all import MatrixSpace, matrix
 from sqrt5 import F, B, icosian_ring_gens
+from sage.misc.all import cached_function
 
+@cached_function
 def find_mod2_splitting():
     P = F.primes_above(2)[0]
     k = P.residue_field()
@@ -73,6 +75,7 @@ def matrix_lift(A):
     R = A.base_ring() 
     return matrix(A.nrows(),A.ncols(),[R.lift(x) for x in A.list()])
 
+@cached_function
 def find_mod2pow_splitting(i):
     P = F.primes_above(2)[0]
     if i == 1:

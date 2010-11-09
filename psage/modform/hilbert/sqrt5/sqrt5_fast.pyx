@@ -119,6 +119,24 @@ cdef class ResidueRing_abstract(CommutativeRing):
         self.p = p
         self.F = P.number_field()
 
+    # Do not just change the definition of compare.
+    # It is used by the ResidueRing_ModN code to ensure that the prime
+    # over 2 appears first. If you totally changed the ordering, that
+    # would suddenly break.
+    def __richcmp__(ResidueRing_abstract left, right, int op):
+        if left is right:
+            # Make case of easy equality fast
+            return _rich_to_bool(op, 0)
+        if not isinstance(right, ResidueRing_abstract):
+            return _rich_to_bool(op, cmp(ResidueRing_abstract, type(right)))
+        cdef ResidueRing_abstract r = right
+        # slow
+        return _rich_to_bool(op,
+                   cmp((left.p,left.e,left.P), (r.p,r.e,r.P)))
+
+    def __hash__(self):
+        return hash((self.p,self.e,self.P))
+
     def residue_field(self):
         if self._residue_field is None:
             self._residue_field = self.P.residue_field()
@@ -700,7 +718,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
                 #    a+b*x = 5^e-1 + (3*a+5*b)*x.  Only the coeff of x matters, which is
                 #   3a+5b = 3*5^e - 3 + 5^e - 5 = 4*5^e - 8.
                 # And of course self.n0 = 5^e, so we use that below.
-                if rop[1] == 4*self.n0 - 8:
+                if (rop[1]+5) % self.n1 == 0:
                     raise ValueError, "no next element in P"
                 # not done, so wrap around and increase b by 1
                 rop[0] = 0
@@ -720,7 +738,13 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
     cdef bint is_last_element_in_P(self, residue_element op):
         if self.p == 5:
             # see the comment above in "next_element_in_P".
-            return op[0] == self.n0 - 1 and op[1] == 4*self.n0 - 8
+            if self.e == 1:
+                # next element got by incrementing a in enumeration
+                return op[0] == self.n0 - 1
+            else:
+                # next element got by incrementing both a and b by 1 in enumeration,
+                # and 3a+5b=8.
+                return op[0] == self.n0 - 1 and (op[1]+8)%self.n1 == 0
         # General case (p!=5):        
         return op[0] == self.n0 - self.p and op[1] == self.n1 - self.p
 
@@ -1337,7 +1361,13 @@ cdef class ResidueRingModN:
     
     def __init__(self, N):
         self.N = N
+
+        # A guarantee we make for other code is that if 2 divides N,
+        # then the first factor below will be 2.  Thus we sort the
+        # factors by their residue characteristic (then exponent) in
+        # order to ensure this.
         self.residue_rings = [ResidueRing(P, e) for P, e in N.factor()]
+        self.residue_rings.sort()
         self.r = len(self.residue_rings)
             
     def __repr__(self):
@@ -1508,7 +1538,7 @@ cdef class ProjectiveLineModN:
         v = [ ]
         for i in range(self.r):
             R = self.S.residue_rings[i]
-            v.append('(%s, %s)'%(R.element_to_str(op[0][i]), R.element_to_str(op[1][i])))
+            v.append('(%s : %s)'%(R.element_to_str(op[0][i]), R.element_to_str(op[1][i])))
         s = ', '.join(v)
         if self.r > 1:
             s = '(' + s + ')'
@@ -1653,7 +1683,9 @@ cdef class ProjectiveLineModN:
         self.first_element(x)
         v = []
         while True:
-            v.append((self.element_to_str(x), self.standard_index(x)))
+            c = (self.element_to_str(x), self.standard_index(x))
+            print c
+            v.append(c)
             try:
                 self.next_element(x, x)
             except ValueError:
@@ -1904,7 +1936,7 @@ cdef class ModN_Reduction:
             v = quaternion_in_terms_of_icosian_basis2(alpha)
             # Now v is a list of 4 elements of O_F (unless alpha wasn't in R).
             R = self.S.residue_rings[0]
-            assert R.p == 2, 'order of factors wrong?'
+            assert R.p == 2, '%s\nBUG: order of factors wrong? '%(self.S.residue_rings,)
             for i in range(4):
                 R.coerce_from_nf(z[i], v[i])
             for i in range(4):
@@ -1938,7 +1970,7 @@ cdef class IcosiansModP1ModN:
     cdef long *orbit_reps
     cdef long _cardinality
     cdef p1_element* orbit_reps_p1elt
-    def __init__(self, N):
+    def __init__(self, N, init=True):
         # compute choice of splitting
         self.f = ModN_Reduction(N)
         self.P1 = ProjectiveLineModN(N)
@@ -1956,7 +1988,8 @@ cdef class IcosiansModP1ModN:
             self.f.quatalg_to_modn_matrix(self.G[i], X[i])
             #print "%s --> %s"%(X[i], self.P1.S.matrix_to_str(self.G[i]))
 
-        self.compute_std_to_rep_table()
+        if init:
+            self.compute_std_to_rep_table()
 
     def __dealloc__(self):
         sage_free(self.std_to_rep_table)
@@ -2023,14 +2056,16 @@ cdef class IcosiansModP1ModN:
         global GLOBAL_VERBOSE
         while ind < self.P1._cardinality:
             reps.append(ind)
-            print "Found representative number %s: %s"%(i, self.P1.element_to_str(x))
+            print "Found representative number %s (which has standard index %s): %s"%(
+                i, ind, self.P1.element_to_str(x))
+            if i == 11: return
             self.P1.set_element(self.orbit_reps_p1elt[i], x)
             orbit = [ind]
             for j in range(120):
                 self.P1.matrix_action(Gx, self.G[j], x)
                 self.P1.reduce_element(Gx, Gx)
                 k = self.P1.standard_index(Gx)
-                if k == 0:
+                if i == 10:
                     GLOBAL_VERBOSE=True
                     print "k = %s"%k
                     print "matrix = %s"%self.P1.S.matrix_to_str(self.G[j])
@@ -2062,8 +2097,6 @@ cdef class IcosiansModP1ModN:
         """
         Return matrix of Hecke action.
         """
-        # TODO: deal with when P divides the level...
-        
         cdef modn_matrix M
         cdef p1_element Mx
         from sqrt5 import hecke_elements
@@ -2078,7 +2111,6 @@ cdef class IcosiansModP1ModN:
                 self.P1.reduce_element(Mx, Mx)
                 j = self.std_to_rep_table[self.P1.standard_index(Mx)]
                 T[i,j] = T[i,j] + 1
-
         return T
         
 

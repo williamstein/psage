@@ -848,8 +848,48 @@ path = '/tmp/hmf-%s'%os.environ['USER']
 if not os.path.exists(path):
     os.makedirs(path)
 @disk_cached_function(path, memory_cache=True)
-def hecke_elements(P):    
-    return [~a for a in AlphaZ(P).all_alpha()]
+def hecke_elements(P):
+    if P.norm() == 4:
+        # hardcode this special case.
+        return hecke_elements_2()
+    else:
+        return [~a for a in AlphaZ(P).all_alpha()]
+
+
+# Dumb code to get this special case.  The answer turns out to be:
+# The following elements, divided by 2, where coordinates are in terms of 1,i,j,k, and a=(1+sqrt(5))/2:
+#  [[-a-1,0,a-2,1], [-a-1,a-1,-a+1,a-1], [-a-1,-a+1,-a+1,a-1], [-a-1,-a+2,-1,0], [-a-1,a-2,-1,0]]
+def hecke_elements_2():
+    P = F.primes_above(2)[0]
+    from sqrt5_fast import ModN_Reduction
+    from sage.matrix.all import matrix
+        
+    f = ModN_Reduction(P)
+    G = icosian_ring_gens()
+    k = P.residue_field()
+    g = k.gen()
+    def pi(z):
+        # Note that f(...) returns a string right now, since it's all done at C level.
+        # This will prboably change, breaking this code. 
+        M = matrix(k,2,eval(f(z).replace(';',','), {'g':g})).transpose()
+        v = M.echelon_form()[0]
+        v.set_immutable()
+        return v
+        
+    # now just run through elements of icosian ring until we find enough...
+    ans = {}
+    a = F.gen()
+    B = 1
+    X = [i + a*j for i in range(-B,B+1) for j in range(-B,B+1)]
+    for v in cartesian_product_iterator([X]*4):
+        z = sum(v[i]*G[i] for i in range(4))
+        if z.reduced_norm() == 2:
+            t = pi(z)
+            if not ans.has_key(t):
+                ans[t] = z
+            if len(ans) == 5:
+                return [x for _, x in ans.iteritems()]
+    raise RuntimeError
 
 class HMF:
     def __init__(self, N):

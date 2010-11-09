@@ -95,6 +95,14 @@ ext_modules = [
 
 ]
 
+# I just had a long chat with Robert Bradshaw (a Cython dev), and he
+# told me the following functionality -- turning an Extension with
+# Cython code into one without -- along with proper dependency
+# checking, is now included in the latest development version of
+# Cython (Nov 2, 2010).  It's supposed to be a rewrite he did of the
+# code in the Sage library.  Hence once that gets released, we should
+# switch to using it here. 
+
 build_system.cythonize(ext_modules)
 
 build_system.setup(

@@ -87,8 +87,8 @@ ext_modules = [
     Extension('psage.modform.maass.lpkbessel',
               ['psage/modform/maass/lpkbessel.pyx']),
 
-    Extension("psage.modform.hilbert.sqrt5_fast",
-              ["psage/modform/hilbert/sqrt5_fast.pyx"],
+    Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
+              ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
               libraries = ['gmp']),
     
     
@@ -111,6 +111,7 @@ build_system.setup(
                 'psage.lmfdb',
                 'psage.modform',
                 'psage.modform.hilbert',
+                'psage.modform.hilbert.sqrt5',
                 'psage.modform.rational'],
     platforms = ['any'],
     download_url = 'NA',

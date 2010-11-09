@@ -1,3 +1,24 @@
+#################################################################################
+#
+# (c) Copyright 2010 William Stein
+#
+#  This file is part of PSAGE
+#
+#  PSAGE is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+# 
+#  PSAGE is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# 
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#################################################################################
+
 """
 Hilbert modular forms over F = Q(sqrt(5)).
 
@@ -25,6 +46,13 @@ def is_ideal_in_F(I):
 
 cpdef long ideal_characteristic(I):
     return I.number_field()._pari_().idealtwoelt(I._pari_())[0]
+
+###########################################################################
+# Logging
+###########################################################################
+GLOBAL_VERBOSE=False
+def global_verbose(s):
+    if GLOBAL_VERBOSE: print s
 
 ###########################################################################
 # Rings
@@ -409,7 +437,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         rop[0] = self.n0 - op[0] if op[0] else 0
         rop[1] = self.n1 - op[1] if op[1] else 0
 
-    cdef bint is_square(self, residue_element op) except False:
+    cdef bint is_square(self, residue_element op) except -2:
         """
         Return True only if op is a perfect square.
 
@@ -777,7 +805,7 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         """
         return op[0]%self.p != 0
 
-    cdef bint is_square(self, residue_element op) except False:
+    cdef bint is_square(self, residue_element op) except -2:
         cdef residue_element rop
         try:
             self.sqrt(rop, op)
@@ -1409,7 +1437,7 @@ cdef class ResidueRingModN:
         return 0
 
     #######################################
-    # modn_matrices over R
+    # modn_matrices 
     #######################################    
     cdef matrix_to_str(self, modn_matrix A):
         return '[%s, %s; %s, %s]'%tuple([self.element_to_str(A[i]) for i in range(4)])
@@ -1429,6 +1457,21 @@ cdef class ResidueRingModN:
         self.mul(t2, x[3], y[3])
         self.add(rop[3], t, t2)        
         
+    cdef matrix_mul_ith_factor(self, modn_matrix rop, modn_matrix x, modn_matrix y, int i):
+        cdef ResidueRing_abstract R = self.residue_rings[i]
+        cdef residue_element t, t2
+        R.mul(t, x[0][i], y[0][i])
+        R.mul(t2, x[1][i], y[2][i])
+        R.add(rop[0][i], t, t2)
+        R.mul(t, x[0][i], y[1][i])
+        R.mul(t2, x[1][i], y[3][i])
+        R.add(rop[1][i], t, t2)
+        R.mul(t, x[2][i], y[0][i])
+        R.mul(t2, x[3][i], y[2][i])
+        R.add(rop[2][i], t, t2)
+        R.mul(t, x[2][i], y[1][i])
+        R.mul(t2, x[3][i], y[3][i])
+        R.add(rop[3][i], t, t2)        
 
 ###########################################################################
 # The projective line P^1(O_F/N)
@@ -1490,48 +1533,61 @@ cdef class ProjectiveLineModN:
     # Reducing elements to canonical form, so can compute index
     ######################################################################
 
-    cdef void reduce_element(self, p1_element rop, p1_element op):
+    cdef int reduce_element(self, p1_element rop, p1_element op) except -1:
         # set rop to the result of reducing op to canonical form
         cdef int i
         for i in range(self.r):
             self.ith_reduce_element(rop, op, i)
 
-    cdef void ith_reduce_element(self, p1_element rop, p1_element op, int i):
+    cdef int ith_reduce_element(self, p1_element rop, p1_element op, int i) except -1:
         # If the ith factor is (a,b), then, as explained in the next_element
         # docstring, the normalized form of this element is either:
         #      (u,1) or (1,v) with v in P.
-        cdef residue_element inv
+        # The code below is careful to allow for the case when op and rop
+        # are actually the same object, since this is a standard use case.
+        cdef residue_element inv, r0, r1
         cdef ResidueRing_abstract R = self.S.residue_rings[i]
         if R.is_unit(op[1][i]):
             # in first case
             R.inv(inv, op[1][i])
-            R.mul(rop[0][i], op[0][i], inv)
-            R.set_element_to_1(rop[1][i])
+            R.mul(r0, op[0][i], inv)
+            R.set_element_to_1(r1)
         else:
             # can't invert b, so must be in second case
-            R.set_element_to_1(rop[0][i])
+            R.set_element_to_1(r0)
             R.inv(inv, op[0][i])
-            R.mul(rop[1][i], inv, op[1][i])
+            R.mul(r1, inv, op[1][i])
+        R.set_element(rop[0][i], r0)
+        R.set_element(rop[1][i], r1)
+        return 0
 
     def test_reduce(self):
+        """
+        The test passes if this returns the empty list.
+        Uses different random numbers each time, so seed the
+        generator if you want control.
+        """
         cdef p1_element x, y, z
+        cdef long a
         self.first_element(x)
         v = []
+        from random import randrange
         cdef ResidueRing_abstract R 
         while True:
             # get y from x by multiplying through each entry by 3
             for i in range(self.r):
                 R = self.S.residue_rings[i]
-                y[0][i][0] = (3*x[0][i][0])%R.n0
-                y[0][i][1] = (3*x[0][i][1])%R.n1
-                y[1][i][0] = (3*x[1][i][0])%R.n0
-                y[1][i][1] = (3*x[1][i][1])%R.n1
+                a = randrange(1, R.p)
+                y[0][i][0] = (a*x[0][i][0])%R.n0
+                y[0][i][1] = (a*x[0][i][1])%R.n1
+                y[1][i][0] = (a*x[1][i][0])%R.n0
+                y[1][i][1] = (a*x[1][i][1])%R.n1
             self.reduce_element(z, y)
             v.append((self.element_to_str(x), self.element_to_str(y), self.element_to_str(z)))
             try:
                 self.next_element(x, x)
             except ValueError:
-                return v
+                return [w for w in v if w[0] != w[2]]
         
     def test_reduce2(self, int m, int n):
         cdef int i
@@ -1629,7 +1685,7 @@ cdef class ProjectiveLineModN:
         # The enumeration is to start with the first ring, enumerate its P^1, and
         # if rolls over, go to the next ring, etc.
         # At the end, raise ValueError
-        
+
         if rop != z:  # not the same C-level pointer
             self.set_element(rop, z)
             
@@ -1645,7 +1701,9 @@ cdef class ProjectiveLineModN:
         if i == self.r: # we're done
             raise ValueError
 
-    cdef bint next_element_factor(self, p1_element op, int i) except True:
+        return 0
+
+    cdef bint next_element_factor(self, p1_element op, int i) except -2:
         # modify op in place by replacing the element in the i-th P^1 factor by
         # the next element.  If this involves rolling around, return True; otherwise, False.
 
@@ -1663,16 +1721,16 @@ cdef class ProjectiveLineModN:
                 k.set_element_to_1(op[0][i])
             else:
                 k.next_element(op[0][i], op[0][i])
-            return 0 # definitely didn't loop around whole P^1
+            return False # definitely didn't loop around whole P^1
         else:
             # case when b != 1
             if k.is_last_element_in_P(op[1][i]):
                 # Next element is (1,0) and we return 1 to indicate total loop around
                 k.set_element_to_0(op[1][i])
-                return 1 # looped around
+                return True # looped around
             else:
                 k.next_element_in_P(op[1][i], op[1][i])
-            return 0
+            return False
 
 # Version using exception handling -- it's about 20% percent slower...
 ##     cdef bint next_element_factor(self, p1_element op, int i):
@@ -1713,6 +1771,8 @@ cdef class ModN_Reduction:
     cdef modn_matrix[4] G
     cdef bint is_odd
     def __init__(self, N):
+        cdef int i
+
         if not is_ideal_in_F(N):
             raise TypeError, "N must be an ideal of F"
 
@@ -1720,12 +1780,11 @@ cdef class ModN_Reduction:
         self.S = S
         self.is_odd =  (N.norm() % 2 != 0)
 
-        # Set the identity matrix (this will get overwritten when N is even.)
+        # Set the identity matrix (2 part of this will get partly overwritten when N is even.)
         S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
 
         for i in range(S.r):
             self.compute_ith_local_splitting(i)
-            
 
     cdef compute_ith_local_splitting(self, int i):
         cdef ResidueRingElement z
@@ -1750,6 +1809,8 @@ cdef class ModN_Reduction:
                     self.G[n][m][i][1] = z.x[1]
             return
 
+        #######################################################################
+        # Now find J:
         # TODO: *IMPORTANT* -- this must get redone in a way that is
         # much faster when the power of the prime is large.  Right now
         # it does a big enumeration, which is very slow.  There is a
@@ -1761,9 +1822,7 @@ cdef class ModN_Reduction:
         # sage: time ModN_Reduction(F.primes_above(7)[0]^5)
         # CPU times: user 0.65 s, sys: 0.00 s, total: 0.65 s
         # which should be instant.  And don't try exponent 6, which takes minutes (at least)!
-
         #######################################################################
-        # Now find J.
         cdef residue_element a, b, c, d, t, t2, minus_one
         found_it = False
         R.set_element_to_1(b)
@@ -1790,11 +1849,7 @@ cdef class ModN_Reduction:
                 # Check that indeed we found an independent matrices, over the residue field
                 good, K = self._matrices_are_independent_mod_ith_prime(i)
                 if good:
-                    # Set the K = I*J one.
-                    k = K[0].parent()
-                    for m in range(4):
-                        # TODO: this probably slow -- need fast multiply ith factor of matrix command?
-                        R.coerce_from_nf(self.G[3][m][i], k.lift(K[m]))
+                    self.S.matrix_mul_ith_factor(self.G[3], self.G[1], self.G[2], i)
                     return
             R.next_element(b, b)
 
@@ -1837,7 +1892,7 @@ cdef class ModN_Reduction:
 
         if not self.is_odd:
             # The first prime is 2, so we have to fix that the above was
-            # totally wrong. 
+            # totally wrong at 2.
             # TODO: I'm writing this code slowly to work rather
             # than quickly, since I'm running out of time.
             # Will redo this to be fast later.  The algorithm is:
@@ -1899,6 +1954,7 @@ cdef class IcosiansModP1ModN:
         cdef int i
         for i in range(len(X)):
             self.f.quatalg_to_modn_matrix(self.G[i], X[i])
+            #print "%s --> %s"%(X[i], self.P1.S.matrix_to_str(self.G[i]))
 
         self.compute_std_to_rep_table()
 
@@ -1916,13 +1972,14 @@ cdef class IcosiansModP1ModN:
         # hit by all icosians, making a list of those that are
         # equivalent to it.  Then find next element of P1 not in the
         # first list, etc.
-
+        cdef long orbit_cnt
         cdef p1_element x, Gx
         self.P1.first_element(x)
-        cdef long ind=0, j, i=0
+        cdef long ind=0, j, i=0, k
         for j in range(self.P1._cardinality):
             self.std_to_rep_table[j] = -1
         self.std_to_rep_table[0] = 0
+        orbit_cnt = 1
         reps = []
         while ind < self.P1._cardinality:
             reps.append(ind)
@@ -1930,7 +1987,20 @@ cdef class IcosiansModP1ModN:
             for j in range(120):
                 self.P1.matrix_action(Gx, self.G[j], x)
                 self.P1.reduce_element(Gx, Gx)
-                self.std_to_rep_table[self.P1.standard_index(Gx)] = i
+                k = self.P1.standard_index(Gx)
+                if self.std_to_rep_table[k] == -1:
+                    self.std_to_rep_table[k] = i
+                    orbit_cnt += 1
+                else:
+                    # This is a very good test that we got things right.  If any
+                    # arithmetic or reduction is wrong, the orbits for the R^*
+                    # "action" are likely to fail to be disjoint. 
+                    assert self.std_to_rep_table[k] == i, "Bug: orbits not disjoint"
+            # This assertion below is also an extremely good test that we got the
+            # local splittings, etc., right.  If any of that goes wrong, then
+            # the "orbits" have all kinds of random orders. 
+            assert 120 % orbit_cnt == 0, "orbit size = %s must divide 120"%orbit_cnt
+            orbit_cnt = 0
             while self.std_to_rep_table[ind] != -1 and ind < self.P1._cardinality:
                 ind += 1
                 if ind < self.P1._cardinality:
@@ -1950,6 +2020,7 @@ cdef class IcosiansModP1ModN:
         self.std_to_rep_table[0] = 0
         reps = []
         orbits = []
+        global GLOBAL_VERBOSE
         while ind < self.P1._cardinality:
             reps.append(ind)
             print "Found representative number %s: %s"%(i, self.P1.element_to_str(x))
@@ -1959,6 +2030,15 @@ cdef class IcosiansModP1ModN:
                 self.P1.matrix_action(Gx, self.G[j], x)
                 self.P1.reduce_element(Gx, Gx)
                 k = self.P1.standard_index(Gx)
+                if k == 0:
+                    GLOBAL_VERBOSE=True
+                    print "k = %s"%k
+                    print "matrix = %s"%self.P1.S.matrix_to_str(self.G[j])
+                    self.P1.matrix_action(Gx, self.G[j], x)
+                    print "image of elt under action =", self.P1.element_to_str(Gx)
+                    self.P1.reduce_element(Gx, Gx)
+                    print "normalizes to=", self.P1.element_to_str(Gx)
+                    GLOBAL_VERBOSE=False                    
                 orbit.append(k)
                 self.std_to_rep_table[k] = i
             orbit = list(sorted(set(orbit)))

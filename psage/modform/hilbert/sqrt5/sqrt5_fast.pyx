@@ -2034,7 +2034,7 @@ cdef class IcosiansModP1ModN:
             # the "orbits" have all kinds of random orders. 
             assert 120 % orbit_cnt == 0, "orbit size = %s must divide 120"%orbit_cnt
             orbit_cnt = 0
-            while self.std_to_rep_table[ind] != -1 and ind < self.P1._cardinality:
+            while ind < self.P1._cardinality and self.std_to_rep_table[ind] != -1:
                 ind += 1
                 if ind < self.P1._cardinality:
                     self.P1.next_element(x, x)
@@ -2079,7 +2079,7 @@ cdef class IcosiansModP1ModN:
             orbit = list(sorted(set(orbit)))
             orbits.append(orbit)
             print "It has an orbit of size %s"%len(orbit)
-            while self.std_to_rep_table[ind] != -1 and ind < self.P1._cardinality:
+            while ind < self.P1._cardinality and self.std_to_rep_table[ind] != -1:            
                 ind += 1
                 if ind < self.P1._cardinality:
                     self.P1.next_element(x, x)

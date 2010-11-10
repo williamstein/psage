@@ -51,7 +51,9 @@ from psage.function_fields import is_FunctionField, FunctionField
 from psage.function_fields.function_field import RationalFunctionField
 from psage.function_fields.function_field_element import FunctionFieldElement_rational
 ####################
- 
+
+import psage.ellff.euler_database as edb
+
 ####################
 
 cdef extern from "ntl_wrap.h":
@@ -430,7 +432,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
     The \class{ellff_EllipticCurve} class represents an ELLFF
     elliptic curve.
     """
-
+    
     def __init__(self, field, ainvs):
         r"""
         Create the ellff elliptic curve with invariants
@@ -488,6 +490,23 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         self.rel_euler_deg = 0
 
     def _retrieve_invariants(self):
+        r"""
+        Convert the invariants associated to self (local reduction
+        information for the finite and infinite models, the
+        $a$ invariants (only $a_4$ and $a_6$ for now), the $j$-invariant, and
+        the finite and infinite discriminant) from elements of Sage's
+        constant field to elements of ELLFF's constant field via a
+        field embedding.
+
+        EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
+            sage: E._retrieve_invariants()
+
+        """
+        
         phi, F2 = _ellff_field_embedding(self.F, self.p, self.d, 1)
 
         # respective finite fields for sage and ellff
@@ -557,6 +576,32 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         ZZ_pEX_delete(infinite_disc)
 
     def _surface_init(self, n):
+        r"""
+        Initialize the elliptic surface associated to self over $F_{q^n}$.
+
+        INPUT:
+
+            - n -- an integer
+
+        OUTPUT:
+
+            - info.sign -- the sign of the functional equation
+            - info.deg_L -- the degree of the L-function
+            - phi -- an embedding of Sage's F_q to ELLFF's F_q
+
+        EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
+            sage: E._surface_init(2)
+            [1, 4, Ring morphism:
+              From: Finite Field of size 11
+              To:   Finite Field in c of size 11^2
+              Defn: 1 |--> 1]
+
+        """
+        
         p = self.p
         d = self.d
 
@@ -593,6 +638,21 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         return [info.sign, info.deg_L, phi]
 
     def __calc_optimal_deg(self):
+        r"""
+        Calculate and assign the optimal degree to compute the
+        $L$-function of self, i.e. what is the maximum degree of the
+        extension of $\mathbb{F}_q$ needed to determine the
+        $L$-function.
+
+        EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
+            sage: E.__calc_optimal_deg()
+
+        """
+        
         if self.deg_L % 2 == 1:
             self.optimal_deg = (self.deg_L-1)/2;
         elif self.sign == 1:
@@ -916,22 +976,15 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             n -- which degree
 
         EXAMPLES::
+        
             sage: import psage.ellff.ellff as ellff
             sage: K.<t> = FunctionField(GF(5))
             sage: E = ellff.ellff_EllipticCurve(K,[0,0,0,t^2,t+1]); E
             <class 'ellff.ellff_EllipticCurve'>
             sage: E._euler_table(1)
-            ---------------------------------------------------------------------------
-            RuntimeError                              Traceback (most recent call last)
-            
-            /Applications/sage-4.4.2/devel/sage-ellff/<ipython console> in <module>()
-            
-            /Applications/sage-4.4.2/local/lib/python2.6/site-packages/sage/libs/ellff.so in ellff.ellff_EllipticCurve._euler_table (sage/libs/ellff/ellff.cpp:11453)()
-            
-            /Applications/sage-4.4.2/local/lib/python2.6/site-packages/sage/libs/ellff.so in ellff._ellff_EllipticCurve_c.__euler_table (sage/libs/ellff/ellff.cpp:5792)()
-            
+            Traceback (most recent call last):
+                ...
             RuntimeError: table is empty
-
             sage: E_pullback = E.pullback(t^3, tables=True, verbose=True); E_pullback
             rebuilding own Euler table  (n =  1 )
             pulling back old table      (n =  1 )
@@ -940,7 +993,6 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             [0, 2, 3, -2, 2, 0]
             sage: E_pullback._euler_table(1)
             [0, 2, 1, -1, 2, 0]
-
             sage: E_twist = E.quadratic_twist(t^2+1, tables=True, force=True, verbose=True); E_twist
             twisting old table into new (n =  1 )
             twisting old table into new (n =  2 )
@@ -965,7 +1017,121 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         return self.__euler_table(n)
 
     def _set_euler_table(self, n, table, force=False):
+        r"""
+        Sets the euler table of self over $F_{q^n}$ to table if table
+        not already computed. If euler table has already been
+        computed, it can be overwritten with force. Will also compute
+        the corresponding exponential coefficients of the
+        $L$-function, $b_n$.
+
+        INPUT:
+
+            - n -- the degree of the extenstion of F_q
+            - table -- a table of euler factors
+            - force -- a boolean that forces overwriting of existing euler table
+
+        EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
+            sage: E._euler_table(1)
+            Traceback (most recent call last):
+                ...
+            RuntimeError: table is empty
+            sage: E.L_function()
+            14641*T^4 + 1
+            sage: E._euler_table(1)
+            [-4, -2, 1, -4, 3, -6, 3, 5, 4, 0, 0, 0]
+            sage: et = E._euler_table(1)
+            sage: E._set_euler_table(1,et)
+            Traceback (most recent call last):
+                ...
+            RuntimeError: run with force=True to force an overwrite
+            sage: E._set_euler_table(1,table=et,force=True)
+            
+        """
         return self.__set_euler_table(n, table, force)
+
+    def _save_euler_table(self, n, verbose=False):
+        r"""
+        Save the euler table for self over the degree n extension of
+        $\mathbb{F}_q$ to disk. This is currently implemented with
+        sage.database.db, which uses ZODB. If self is the versal
+        j-curve, it stores the table in the database
+    
+        SAGE_ROOT/data/jcurve_euler_tables .
+
+        Otherwise, the tables are stored in the `user` table
+        
+        SAGE_ROOT/data/local_euler_tables .
+
+        It currently doesn't check if the table already is stored; it
+        merely writes over it in that case. This should eventually be
+        implemented using MongoDB.
+
+        INPUT:
+        
+            - n -- the degree of the extension of F_q
+
+        EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,-27*t/(t-1728),54*t/(t-1728)])
+            sage: E._build_euler_table(1)
+            sage: E._euler_table(1)
+            [0, 0, 4, -6, 3, 5, 1, -2, 4, -2, 3, 1]
+            sage: E._build_euler_table(2)
+            sage: E._build_euler_table(3)
+            sage: E._euler_table(1)
+            [0, 0, 4, -6, 3, 5, 1, -2, 4, -2, 3, 1]
+            sage: E._save_euler_table(1)
+            sage: E._save_euler_table(2)
+            sage: E._save_euler_table(3)
+        
+    """
+        edb._save_euler_table(self, n, verbose)
+
+    def _load_euler_table(self, n, force=False, verbose=False):
+        r"""
+        Load the euler table for self over the degree n extension of
+        $\mathbb{F}_q$ to disk. If self is the versal j-curve, the
+        table is pulled from
+    
+        SAGE_ROOT/data/jcurve_euler_tables .
+    
+        Otherwise, the table is pulled from the `user` table
+
+        SAGE_ROOT/data/local_euler_tables .
+
+        This should eventually be implemented using MongoDB.
+
+        It currently doesn't check if the key exist. If the key
+        doesn't exist, a RuntimeError is raised by
+        sage.database.db. This RuntimeError should be sufficient, so
+        key checking may not be necessary.
+
+        INPUT:
+
+            - n -- the degree of the extension of F_q
+
+        EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,-27*t/(t-1728),54*t/(t-1728)])
+            sage: E._euler_table(1)
+            Traceback (most recent call last):
+                ...
+            RuntimeError: table is empty
+            sage: E._load_euler_table(1)
+            sage: E._euler_table(1)
+            [0, 0, 4, -6, 3, 5, 1, -2, 4, -2, 3, 1]
+            
+        """
+
+        edb._load_euler_table(self, n, force, verbose)
 
     def jacobi_sum(self, d, verbose=False):
         p = self.p
@@ -1044,6 +1210,13 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
               reduction at infinity, and 0 otherwise.
                        
         EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
+            sage: E.M()
+            (t^6 + 9*t^5 + 4*t^4 + 8*t^3 + 8*t^2 + 3*t + 1, 0)
+
         """
         if self._infinite_M(0) == 0:    return (self._finite_M, 1)
         else:                           return (self._finite_M, 0)
@@ -1071,6 +1244,13 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
               reduction at infinity, and 0 otherwise.
                        
         EXAMPLES::
+
+            sage: import psage
+            sage: K.<t> = psage.FunctionField(GF(11))
+            sage: E = psage.ellff_EllipticCurve(K,[0,0,0,(t+1)*(t+2),t^2+1])
+            sage: E.A()
+            (1, 1)
+
         """
         if self._infinite_A(0) == 0:    return (self._finite_A, 1)
         else:                           return (self._finite_A, 0)
@@ -1252,6 +1432,21 @@ cdef __from_ZZ_pEX(sage_F, ellff_F, ZZ_pEX_c f, R):
     return poly
         
 def _ellff_field_embedding(F, p, d, n):
+    r"""
+    Return an embedding of F, an arbitrary finite field in Sage, to
+    F2, a Sage finite field compatible with ELLFF. This embedding
+    respects how Sage and ELLFF both treat relative extensions.
+
+    INPUT:
+        - F -- a finite field in Sage
+        - p -- the characteristic of F
+        - d -- F_q = F_{p^d}
+        - n -- F2 = F_{q^n}
+
+    OUTPUT:
+        - phi -- the homomorphism F --> F2
+        - F2 -- the ELLFF finite field as a Sage object
+    """
     cdef ntl_zz_pX pi_1  = ntl_zz_pX(modulus=p)
     cdef ntl_zz_pX pi_2  = ntl_zz_pX(modulus=p)
     cdef ntl_zz_pX alpha = ntl_zz_pX(modulus=p)

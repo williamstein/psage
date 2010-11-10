@@ -27,16 +27,6 @@ def dimensions(v, filename=None):
     The format is:
 
         Norm   dimension  generator  time
-
-
-TODO -- there is a BUG:    (but not always -- have to repeat!)
-
-sage: dimensions([19220])
-19220 496 126*a-88 0.461444
-------------------------------------------------------------
-Unhandled SIGSEGV: A segmentation fault occurred in Sage.
-
-        
     """
     F = open(filename,'a') if filename else None
     for N in ideals_of_norm(v):

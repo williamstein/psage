@@ -2095,7 +2095,7 @@ cdef class IcosiansModP1ModN:
 
     def hecke_matrix(self, P, sparse=True):
         """
-        Return matrix of Hecke action.
+        Return matrix of Hecke action, acting from the right!
         """
         cdef modn_matrix M
         cdef p1_element Mx
@@ -2110,7 +2110,7 @@ cdef class IcosiansModP1ModN:
                 self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
                 self.P1.reduce_element(Mx, Mx)
                 j = self.std_to_rep_table[self.P1.standard_index(Mx)]
-                T[i,j] = T[i,j] + 1
+                T[j,i] = T[j,i] + 1
         return T
         
 

@@ -87,3 +87,20 @@ def one_charpoly(v, filename=None):
         if F:
             F.write(s+'\n')
             F.flush()
+
+
+def elliptic_curves(v, B=100, filename=None):
+    from hmf import HilbertModularForms
+    F = open(filename,'a') if filename else None
+    for N in ideals_of_norm(v):
+        H = HilbertModularForms(N)
+        for i, E in enumerate(H.elliptic_curve_factors()):
+            v = E.aplist(B)
+            s = '%s\t%s\t%s\t%s'%(N.norm(), no_space(canonical_gen(N)), i, ' '.join([no_space(x) for x in v]))
+            print s
+            if F:
+                F.write(s+'\n')
+                F.flush()
+                              
+        
+        

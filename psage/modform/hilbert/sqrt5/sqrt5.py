@@ -104,6 +104,7 @@ from sage.all import NumberField, polygen, QQ, ZZ, QuaternionAlgebra, cached_fun
 
 x = polygen(QQ,'x')
 F = NumberField(x**2 - x -1, 'a')
+O_F = F.ring_of_integers()
 B = QuaternionAlgebra(F,-1,-1,'i,j,k')
 
 def modp_splitting(p):
@@ -851,7 +852,7 @@ if not os.path.exists(path):
 def hecke_elements(P):
     if P.norm() == 4:
         # hardcode this special case.
-        return hecke_elements_2()
+        return [~a for a in hecke_elements_2()]
     else:
         return [~a for a in AlphaZ(P).all_alpha()]
 
@@ -881,6 +882,7 @@ def hecke_elements_2():
     a = F.gen()
     B = 1
     X = [i + a*j for i in range(-B,B+1) for j in range(-B,B+1)]
+    from sage.misc.all import cartesian_product_iterator
     for v in cartesian_product_iterator([X]*4):
         z = sum(v[i]*G[i] for i in range(4))
         if z.reduced_norm() == 2:

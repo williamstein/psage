@@ -20,7 +20,7 @@
 #################################################################################
 
 """
-Hilbert modular forms over F = Q(sqrt(5)).
+Fast Cython code needed to compute Hilbert modular forms over F = Q(sqrt(5)).
 
 All the code in this file is meant to be highly optimized. 
 """
@@ -30,7 +30,7 @@ include 'cdefs.pxi'
 
 
 from sage.rings.ring cimport CommutativeRing
-from sage.rings.all import Integers, is_Ideal, ZZ
+from sage.rings.all import Integers, is_Ideal, ZZ, QQ
 from sage.matrix.all import MatrixSpace, zero_matrix
 
 cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
@@ -103,9 +103,9 @@ class ResidueRingIterator:
             raise StopIteration
 
 cdef class ResidueRing_abstract(CommutativeRing):
-    cdef object P, e, F
+    cdef object P, F
     cdef public object element_class, _residue_field
-    cdef long n0, n1, p, _cardinality
+    cdef long n0, n1, p, e, _cardinality
     cdef long im_gen0
     def __init__(self, P, p, e):
         """
@@ -706,7 +706,8 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         has kernel the principal ideal (x+2).
         By considering (a+bx)(x+2) = 2a+b + (a+3b)x, we see that the maximal ideal is
            { a + (3a+5b)x  :  a in Z/5^eZ, b in Z/5^(e-1)Z }.
-        We enumerate this by    
+        We enumerate this by the standard dictionary ordered enumeration
+        on (Z/5^eZ) x (Z/5^(e-1)Z).
         """
         if self.p == 5:
             # a = op[0]
@@ -1345,8 +1346,9 @@ cpdef long sqrtmod_long(long x, long p, int n) except -1:
 # The quotient ring O_F/N
 ###########################################################################
 
+# The worse case is the inert prime 2 (of norm 4).  The maximum level possible is 2^32.
 cdef enum:
-    MAX_PRIME_DIVISORS = 10
+    MAX_PRIME_DIVISORS = 16
 
 ctypedef residue_element modn_element[MAX_PRIME_DIVISORS]
 
@@ -1364,10 +1366,12 @@ cdef class ResidueRingModN:
 
         # A guarantee we make for other code is that if 2 divides N,
         # then the first factor below will be 2.  Thus we sort the
-        # factors by their residue characteristic (then exponent) in
-        # order to ensure this.
-        self.residue_rings = [ResidueRing(P, e) for P, e in N.factor()]
-        self.residue_rings.sort()
+        # factors by their residue characteristic in
+        # order to ensure this.  It is also ** SUPER IMPORTANT ** that
+        # the order *not* depend on the exponent, so we next sort by gens_reduced, and finally by exponent.
+        v = [(P.smallest_integer(), P.gens_reduced()[0], e, ResidueRing(P, e)) for P, e in N.factor()]
+        v.sort()
+        self.residue_rings = [x[-1] for x in v]
         self.r = len(self.residue_rings)
             
     def __repr__(self):
@@ -1397,6 +1401,81 @@ cdef class ResidueRingModN:
             rop[i][0] = op[i][0]
             rop[i][1] = op[i][1]
 
+    cdef void set_element_omitting_ith_factor(self, modn_element rop, modn_element op, int i):
+        cdef int j
+        for j in range(i):
+            rop[j][0] = op[j][0]
+            rop[j][1] = op[j][1]
+        for j in range(i+1, self.r):
+            rop[j-1][0] = op[j][0]
+            rop[j-1][1] = op[j][1]
+
+    cdef int set_element_reducing_exponent_of_ith_factor(self, modn_element rop, modn_element op, int i) except -1:
+        cdef ResidueRing_abstract R
+        cdef int j, e
+        cdef long p, temp
+        R = self.residue_rings[i]
+        e = R.e
+        p = R.p
+        # No question what to do with everything before i-th factor:
+        for j in range(i):
+            rop[j][0] = op[j][0]
+            rop[j][1] = op[j][1]
+
+        if (e == 1 and p!=5) or (p == 5 and e == 1 and isinstance(R, ResidueRing_ramified_odd)):
+            # Easy: just delete the i-th factor completely.
+            # Now fill in the rest
+            for j in range(i+1, self.r):
+                rop[j-1][0] = op[j][0]
+                rop[j-1][1] = op[j][1]
+        elif p != 5:
+            # If p != 5 then the prime is unramified, so the representative
+            # a+b*x for op just works so long as we reduce it mod R.n0/p and R.n1/p.
+            rop[i][0] = op[i][0] % (R.n0//p)
+            if R.n1 > 1:  # otherwise this factor doesn't matter (and we're in the split case)
+                rop[i][1] = op[i][1] % (R.n1//p)
+            else:
+                rop[i][1] = 0
+
+            # And fill in the rest
+            for j in range(i+1, self.r):
+                rop[j][0] = op[j][0]
+                rop[j][1] = op[j][1]
+        else:
+            assert p == 5
+            # Now we're in the ramified case, which is the hardest, since we use
+            # completely different representations for O_F / (sqrt(5))^e, for e even
+            # and for e odd.  Also, note that the e above (i.e., R.e) in this case
+            # isn't even the power of P=(sqrt(5)) in the even case.
+            # Recall that we represent O_F / (sqrt(5))^e for e even as
+            #    (Z/5^(e/2)Z)[x]/(x^2-x-1)
+            # and for e odd as
+            #    {a + b*sqrt(5)  : a < p^(e//2 + 1),   b < p^(e//2)}
+
+            if isinstance(R, ResidueRing_ramified_odd):
+                # Case 1: odd power >= 3  of sqrt(5) :
+                # We have a+b*sqrt(5), and we need to write it as
+                # c+d*x, where x=(1+sqrt(5))/2, so 2*x-1 = sqrt(5).
+                # Thus  a+b*sqrt(5) = a+b*(2*x-1) = a-b + 2*b*x
+                #print "odd ramified case"
+                #print op[i][0],op[i][1],
+                rop[i][0] = op[i][0]-op[i][1]
+                rop[i][1] = 2*op[i][1]
+                #print " |--->", rop[i][0], rop[i][1]
+            else:
+                #print "even ramified case"
+                # Case 2: even power >= 2 of sqrt(5)
+                # We have a+b*x and have to write in terms of sqrt(5), so
+                #    a+b*x = a+b*(1+sqrt(5))/2 = a+b/2 + (b/2)*sqrt(5)
+                temp = divmod_long(op[i][1], 2, R.n1)
+                rop[i][0] = (op[i][0] + temp)%R.n1
+                rop[i][1] = temp
+            # Fill in the rest.
+            for j in range(i+1, self.r):
+                rop[j][0] = op[j][0]
+                rop[j][1] = op[j][1]
+        return 0
+            
     cdef element_to_str(self, modn_element op):
         s = ','.join([(<ResidueRing_abstract>self.residue_rings[i]).element_to_str(op[i]) for
                           i in range(self.r)])
@@ -1802,7 +1881,7 @@ cdef class ModN_Reduction:
     cdef ResidueRingModN S
     cdef modn_matrix[4] G
     cdef bint is_odd
-    def __init__(self, N):
+    def __init__(self, N, bint init=True):
         cdef int i
 
         if not is_ideal_in_F(N):
@@ -1812,12 +1891,32 @@ cdef class ModN_Reduction:
         self.S = S
         self.is_odd =  (N.norm() % 2 != 0)
 
-        # Set the identity matrix (2 part of this will get partly overwritten when N is even.)
-        S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
+        if init:
+            # Set the identity matrix (2 part of this will get partly overwritten when N is even.)
+            S.set(self.G[0][0], 1); S.set(self.G[0][1], 0); S.set(self.G[0][2], 0); S.set(self.G[0][3], 1)
 
-        for i in range(S.r):
-            self.compute_ith_local_splitting(i)
+            for i in range(S.r):
+                self.compute_ith_local_splitting(i)
 
+    def reduce_exponent_of_ith_factor(self, i):
+        """
+        Let P be the ith prime factor of the modulus N of self. This function
+        returns the splitting got by reducing self modulo N/P.  See
+        the documentation for the degeneracy_matrix of
+        IcosiansModP1ModN for why we wrote this function.
+        """
+        cdef ResidueRing_abstract R = self.S.residue_rings[i]
+        P = R.P
+        N2 = self.S.N / P
+        cdef ModN_Reduction f = ModN_Reduction(N2, init=False)
+        # We have to set the matrices f.G[i] for i=0,1,2,3, using the
+        # set_element_reducing_exponent_of_ith_factor method.
+        cdef int j, k
+        for j in range(4):
+            for k in range(4):
+                self.S.set_element_reducing_exponent_of_ith_factor(f.G[j][k], self.G[j][k], i)
+        return f
+                
     cdef compute_ith_local_splitting(self, int i):
         cdef ResidueRingElement z
         cdef long m, n
@@ -1954,7 +2053,7 @@ cdef class ModN_Reduction:
         cdef modn_matrix M
         self.quatalg_to_modn_matrix(M, alpha)
         return self.S.matrix_to_str(M)
-                
+
 
 ####################################################################
 # R^* \ P1(O_F/N)
@@ -1970,14 +2069,17 @@ cdef class IcosiansModP1ModN:
     cdef long *orbit_reps
     cdef long _cardinality
     cdef p1_element* orbit_reps_p1elt
-    def __init__(self, N, init=True):
-        # compute choice of splitting
-        self.f = ModN_Reduction(N)
+    def __init__(self, N, f=None, init=True):
+        # compute choice of splitting, unless one is provided
+        if f is not None:
+            self.f = f
+        else:
+            self.f = ModN_Reduction(N)
         self.P1 = ProjectiveLineModN(N)
         self.orbit_reps = <long*>0
         self.std_to_rep_table = <long*> sage_malloc(sizeof(long) * self.P1.cardinality())
         
-        # This is very wasteful, by a factor of about 120 on average.  REDO.
+        # TODO: This is very wasteful of memory, by a factor of about 120 on average?  
         self.orbit_reps_p1elt = <p1_element*>sage_malloc(sizeof(p1_element) * self.P1.cardinality())
         
         # initialize the group G of the 120 mod-N icosian matrices
@@ -1990,6 +2092,9 @@ cdef class IcosiansModP1ModN:
 
         if init:
             self.compute_std_to_rep_table()
+
+    def __reduce__(self):
+        return unpickle_IcosiansModP1ModN_v1, (self.P1.S.N.gens_reduced()[0], )
 
     def __dealloc__(self):
         sage_free(self.std_to_rep_table)
@@ -2045,41 +2150,43 @@ cdef class IcosiansModP1ModN:
             self.orbit_reps[j] = reps[j]
 
     def compute_std_to_rep_table_debug(self):
+        # Algorithm is pretty obvious.  Just take first element of P1,
+        # hit by all icosians, making a list of those that are
+        # equivalent to it.  Then find next element of P1 not in the
+        # first list, etc.
+        cdef long orbit_cnt
         cdef p1_element x, Gx
         self.P1.first_element(x)
         cdef long ind=0, j, i=0, k
         for j in range(self.P1._cardinality):
             self.std_to_rep_table[j] = -1
         self.std_to_rep_table[0] = 0
+        orbit_cnt = 1
         reps = []
-        orbits = []
-        global GLOBAL_VERBOSE
         while ind < self.P1._cardinality:
             reps.append(ind)
             print "Found representative number %s (which has standard index %s): %s"%(
                 i, ind, self.P1.element_to_str(x))
-            if i == 11: return
             self.P1.set_element(self.orbit_reps_p1elt[i], x)
-            orbit = [ind]
             for j in range(120):
                 self.P1.matrix_action(Gx, self.G[j], x)
                 self.P1.reduce_element(Gx, Gx)
                 k = self.P1.standard_index(Gx)
-                if i == 10:
-                    GLOBAL_VERBOSE=True
-                    print "k = %s"%k
-                    print "matrix = %s"%self.P1.S.matrix_to_str(self.G[j])
-                    self.P1.matrix_action(Gx, self.G[j], x)
-                    print "image of elt under action =", self.P1.element_to_str(Gx)
-                    self.P1.reduce_element(Gx, Gx)
-                    print "normalizes to=", self.P1.element_to_str(Gx)
-                    GLOBAL_VERBOSE=False                    
-                orbit.append(k)
-                self.std_to_rep_table[k] = i
-            orbit = list(sorted(set(orbit)))
-            orbits.append(orbit)
-            print "It has an orbit of size %s"%len(orbit)
-            while ind < self.P1._cardinality and self.std_to_rep_table[ind] != -1:            
+                if self.std_to_rep_table[k] == -1:
+                    self.std_to_rep_table[k] = i
+                    orbit_cnt += 1
+                else:
+                    # This is a very good test that we got things right.  If any
+                    # arithmetic or reduction is wrong, the orbits for the R^*
+                    # "action" are likely to fail to be disjoint. 
+                    assert self.std_to_rep_table[k] == i, "Bug: orbits not disjoint"
+            # This assertion below is also an extremely good test that we got the
+            # local splittings, etc., right.  If any of that goes wrong, then
+            # the "orbits" have all kinds of random orders. 
+            assert 120 % orbit_cnt == 0, "orbit size = %s must divide 120"%orbit_cnt
+            print "It has an orbit of size %s"%orbit_cnt
+            orbit_cnt = 0
+            while ind < self.P1._cardinality and self.std_to_rep_table[ind] != -1:
                 ind += 1
                 if ind < self.P1._cardinality:
                     self.P1.next_element(x, x)
@@ -2088,7 +2195,6 @@ cdef class IcosiansModP1ModN:
         self.orbit_reps = <long*> sage_malloc(sizeof(long)*self._cardinality)
         for j in range(self._cardinality):
             self.orbit_reps[j] = reps[j]
-        return orbits
 
     cpdef long cardinality(self):
         return self._cardinality
@@ -2100,20 +2206,83 @@ cdef class IcosiansModP1ModN:
         cdef modn_matrix M
         cdef p1_element Mx
         from sqrt5 import hecke_elements
-        T = zero_matrix(ZZ, self._cardinality, sparse=sparse)
+
+        T = zero_matrix(QQ, self._cardinality, sparse=sparse)
         cdef long i, j
-        
+
         for alpha in hecke_elements(P):
-            # TODO: probably better to invert after???  not at all?
             self.f.quatalg_to_modn_matrix(M, alpha)
             for i in range(self._cardinality):
                 self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
                 self.P1.reduce_element(Mx, Mx)
                 j = self.std_to_rep_table[self.P1.standard_index(Mx)]
-                T[j,i] = T[j,i] + 1
+                T[i,j] += 1
         return T
         
+    def degeneracy_matrix(self, P, sparse=True):
+        """
+        Return degeneracy matrix from level N of self to level N/P.
+        Here P must be a prime ideal divisor of the ideal N.
+        """
+        #################################################################################
+        # Important comment / thought regarding this function!
+        # For this to work, the local splitting maps must be chosen
+        # in a compatible way.  Let R be the icosian ring. 
+        # We compute somehow a map
+        #            R ---> M_2(O/P^n)
+        # and somehow else, we compute a map
+        #            R ---> M_2(O/P^(n+1)).
+        # If we are trying to compute the degeneracy map from level P^(n+1)
+        # to level P^n, and we choose incompatible maps, then our computation
+        # will simply be WRONG.
+        #   SO WATCH OUT!    (This took me like 3 hours of frustration to realize...)
+        ##################################################################################
+        
+        
+        N = self.P1.S.N
+        # Figure out the index of P as a prime divisor of N
+        cdef ResidueRing_abstract R
+        cdef int k, ind = -1, m = len(self.P1.S.residue_rings)
+        
+        for k, R in enumerate(self.P1.S.residue_rings):
+            if R.P == P:
+                # Got it
+                ind = k
+                break
+        if ind == -1:
+            raise ValueError, "P must be a prime divisor of the level"
 
+        # Compute basis of the P^1 for lower level.
+        N2 = N/P
+        
+        # CRITICAL: see above comment.  We have to compute the mod-N2
+        # local splitting map in terms of the fixed choice of map for
+        # self.  If we don't, we will get very subtle bugs.
+        g = self.f.reduce_exponent_of_ith_factor(ind)
+        cdef IcosiansModP1ModN I2 = IcosiansModP1ModN(N2, g)
+
+        D = zero_matrix(QQ, self._cardinality, I2._cardinality, sparse=sparse)
+        cdef Py_ssize_t i, j
+        cdef p1_element x, y
+        
+        for i in range(self._cardinality):
+            # Make the p1_element y from self.orbit_reps_p1elt[i]
+            # by reducing at the the "ind" position
+            #print "reducing", self.P1.element_to_str(self.orbit_reps_p1elt[i])
+            self.P1.S.set_element_reducing_exponent_of_ith_factor(
+                                     y[0], self.orbit_reps_p1elt[i][0], ind)
+            self.P1.S.set_element_reducing_exponent_of_ith_factor(
+                                     y[1], self.orbit_reps_p1elt[i][1], ind)
+            I2.P1.reduce_element(x, y)
+            #print "... to ", I2.P1.element_to_str(x)
+            j = I2.std_to_rep_table[I2.P1.standard_index(x)]
+            D[i,j] += 1
+            
+        return D
+
+def unpickle_IcosiansModP1ModN_v1(x):
+    import sqrt5
+    return IcosiansModP1ModN(sqrt5.F.ideal(x))
 
 ####################################################################
 # fragments/test code below

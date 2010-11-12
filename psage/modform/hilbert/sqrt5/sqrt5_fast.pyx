@@ -1879,7 +1879,7 @@ cdef class ProjectiveLineModN:
 ####################################################################
 cdef class ModN_Reduction:
     cdef ResidueRingModN S
-    cdef modn_matrix[4] G
+    cdef modn_matrix G[4]
     cdef bint is_odd
     def __init__(self, N, bint init=True):
         cdef int i

@@ -102,5 +102,31 @@ def elliptic_curves(v, B=100, filename=None):
                 F.write(s+'\n')
                 F.flush()
                               
-        
+def elliptic_curves_parallel(v, B, dir, ncpu=16):
+    from hmf import HilbertModularForms
+    from sage.all import parallel, set_random_seed
+    import os
+    @parallel(ncpu)
+    def f(N):
+        set_random_seed(0)  # to replicate any linear algebra issues?
+        level = no_space(canonical_gen(N)).replace('*','').replace('-','_')
+        F = open(os.path.join(dir,'%s.txt'%level),'w')
+        H = HilbertModularForms(N)
+        level = no_space(canonical_gen(N))
+        try:
+            D = H.elliptic_curve_factors()
+            F.write('count %s %s %s\n'%(N.norm(), level, len(D)))
+            F.flush()
+            for i, E in enumerate(D):
+                v = E.aplist(B)
+                s = '%s\t%s\t%s\t%s'%(N.norm(), level, i, ' '.join([no_space(x) for x in v]))
+                print s
+                F.write(s+'\n')
+                F.flush()
+        except Exception, msg:
+            F.write('exception %s %s "%s"\n'%(N.norm(), level, msg))
+        F.close()
+
+    for X in f(ideals_of_norm(v)):
+        print X
         

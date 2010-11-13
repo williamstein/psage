@@ -19,7 +19,7 @@ AUTHORS:
 """
 
 ######################################################################
-#       Copyright (C) 2007 William Stein <wstein@gmail.com>
+#       Copyright (C) 2010 William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
@@ -799,6 +799,16 @@ class pAdicLseries(SageObject):
     
 
 class pAdicLseriesOrdinary(pAdicLseries):
+    """
+    EXAMPLE:
+
+        sage: from psage.modform.rational.padic_lseries import *
+        sage: D = J0(188).decomposition()
+        sage: A = D[-2]
+        sage: L = pAdicLseriesOrdinary(A, 7)
+        sage: L.series()
+        O(7^20) + ((2*a + 4) + (6*a + 2)*7 + 6*7^2 + 4*a*7^3 + (4*a + 5)*7^4 + (4*a + 5)*7^5 + (6*a + 3)*7^6 + (2*a + 1)*7^7 + (5*a + 2)*7^8 + 5*7^9 + (2*a + 2)*7^10 + (5*a + 4)*7^11 + 3*a*7^12 + (5*a + 4)*7^13 + 5*a*7^14 + (3*a + 6)*7^15 + (5*a + 6)*7^16 + (6*a + 4)*7^17 + 5*a*7^18 + (3*a + 5)*7^19 + O(7^20))*T + ((5*a + 3) + (a + 6)*7 + (2*a + 1)*7^2 + (3*a + 2)*7^3 + (4*a + 2)*7^4 + 4*a*7^5 + (2*a + 6)*7^6 + 3*7^7 + (3*a + 5)*7^8 + (5*a + 2)*7^9 + (a + 3)*7^10 + 6*a*7^11 + (5*a + 5)*7^12 + (6*a + 6)*7^13 + (3*a + 4)*7^14 + (2*a + 4)*7^15 + (3*a + 6)*7^16 + (6*a + 1)*7^17 + 5*7^18 + (6*a + 5)*7^19 + O(7^20))*T^2 + ((3*a + 6) + (6*a + 6)*7 + 5*7^2 + 6*a*7^3 + (a + 4)*7^4 + (3*a + 2)*7^5 + 3*a*7^6 + (4*a + 6)*7^7 + (5*a + 2)*7^8 + 6*a*7^9 + (3*a + 1)*7^10 + (5*a + 3)*7^11 + (a + 1)*7^12 + (a + 4)*7^13 + (6*a + 2)*7^14 + (a + 2)*7^15 + (3*a + 1)*7^17 + (2*a + 5)*7^18 + (a + 3)*7^19 + O(7^20))*T^3 + ((3*a + 6) + (4*a + 3)*7 + (2*a + 3)*7^2 + (2*a + 2)*7^3 + 5*a*7^4 + 3*a*7^5 + (2*a + 5)*7^6 + (6*a + 1)*7^7 + (a + 2)*7^8 + (a + 1)*7^9 + (4*a + 5)*7^10 + 5*a*7^11 + (3*a + 4)*7^12 + (5*a + 6)*7^13 + (a + 5)*7^14 + 5*7^15 + 4*a*7^16 + (a + 3)*7^17 + (6*a + 2)*7^18 + (2*a + 3)*7^19 + O(7^20))*T^4 + O(T^5)
+    """
     def series(self, n=2, quadratic_twist=+1, prec=5):
         r"""
         Returns the `n`-th approximation to the `p`-adic L-series as

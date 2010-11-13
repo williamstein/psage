@@ -37,6 +37,10 @@ class ell_surfaceInfoT {
 	// divisors for multiplicative reduction
 	zz_pEX	M_sp, M_ns;
 
+        // true if and only if curve is constant
+        //  - false if isotrivial but not constant
+        bool    constant_f;
+
       private:
 	void init();
 
@@ -70,6 +74,10 @@ class ell_surfaceInfoT {
   public:
     long    ref_count;	// for garbage collection
     long    q;
+
+    // true if and only if curve is constant
+    //  - false if isotrivial but not constant
+    bool    constant_f;
 
     ell_surfaceInfoT(const zz_pEratX& a4, const zz_pEratX& a6);
 

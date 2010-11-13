@@ -9,4 +9,4 @@
 
 # Do "./build_ext -ba" to force a rebuild of all cython code.
 
-psage setup.py build_ext --inplace $* 2>&1
+sage setup.py build_ext --inplace $* 2>&1

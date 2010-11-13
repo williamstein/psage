@@ -62,7 +62,7 @@ static long gcd(long a, long b)
 // - by choosing dth roots of unity z1,z2, we get an actual
 //   Jacobi sum
 
-void jacobi_sum(ZZ ***sum, long d, long *chi_of_16)
+void jacobi_sum(ZZ ***sum, long d)
 {
     long    q, e;
     q = to_long(zz_pE::cardinality());
@@ -153,10 +153,6 @@ void jacobi_sum(ZZ ***sum, long d, long *chi_of_16)
         l2 = log[u2];
         sum[l1][l2][0]++;
     } while (inc(x) == NO_CARRY);
-
-    // calculate chi(16)
-    x = 16;
-    *chi_of_16 = log[to_ulong(x)];
 }
 
 #ifdef MAIN

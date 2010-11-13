@@ -39,6 +39,8 @@ from sage.libs.ntl.ntl_lzz_pContext cimport *
 from sage.libs.ntl.ntl_lzz_pContext import ntl_zz_pContext
 from sage.rings.all import PolynomialRing, GF, ZZ
 from sage.rings.ring import is_Field
+from sage.rings.integer import is_Integer
+from sage.rings.arith import is_prime
 from sage.rings.integer cimport Integer
 #from sage.rings.fraction_field_element import FractionFieldElement, is_FractionFieldElement
 from sage.rings.polynomial.polynomial_element import is_Polynomial
@@ -111,7 +113,7 @@ cdef extern from "euler.h":
 ####################
 
 cdef extern from "jacobi.h":
-    void __jacobi_sum "jacobi_sum"(ZZ_c ***sum, long d, long *chi_of_16)
+    void __jacobi_sum "jacobi_sum"(ZZ_c ***sum, long d)
 
 ####################
 
@@ -521,12 +523,24 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         for i in range(9):
             divisors[i] = ZZ_pEX_new()
 
+        # get information about bad reduction away from infinity
         ell_get_reduction(divisors, 1)
         self._finite_reduction = []
         for i in range(9):
             self._finite_reduction.append(
                 self.R(__from_ZZ_pEX(sage_F, ellff_F, divisors[i][0], self.R)))
 
+        #  self._finite_reduction[0] = M_sp
+        #  self._finite_reduction[1] = M_ns
+        #  self._finite_reduction[2] = I^*
+        #  self._finite_reduction[3] = II
+        #  self._finite_reduction[4] = II^*
+        #  self._finite_reduction[5] = III
+        #  self._finite_reduction[6] = III^*
+        #  self._finite_reduction[7] = IV
+        #  self._finite_reduction[8] = IV^*
+
+        # convert into course information about reduction
         self._finite_M = 1
         self._finite_A = 1
         for i in range(0,2):
@@ -534,12 +548,24 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         for i in range(2,9):
             self._finite_A *= self._finite_reduction[i]
 
+        # get information about reduction for minimal about infinity
         ell_get_reduction(divisors, 0)
         self._infinite_reduction = []
         for i in range(9):
             self._infinite_reduction.append(
                 self.R(__from_ZZ_pEX(sage_F, ellff_F, divisors[i][0], self.R)))
 
+        #  self._infinite_reduction[0] = M_sp
+        #  self._infinite_reduction[1] = M_ns
+        #  self._infinite_reduction[2] = I^*
+        #  self._infinite_reduction[3] = II
+        #  self._infinite_reduction[4] = II^*
+        #  self._infinite_reduction[5] = III
+        #  self._infinite_reduction[6] = III^*
+        #  self._infinite_reduction[7] = IV
+        #  self._infinite_reduction[8] = IV^*
+
+        # convert into course information about reduction
         self._infinite_M = 1
         self._infinite_A = 1
         for i in range(0,2):
@@ -590,7 +616,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
 
             - info.sign -- the sign of the functional equation
             - info.deg_L -- the degree of the L-function
-            - info.constant_f -- True (1) if curve is constant
+            - info.constant_f -- True (1) if curve is constant and has no places of bad reduction
             - phi -- an embedding of Sage's F_q to ELLFF's F_q
 
         EXAMPLES::
@@ -1140,81 +1166,27 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
 
         edb._load_euler_table(self, n, force, verbose)
 
-    def jacobi_sum(self, d, verbose=False):
-        p = self.p
-        if d % p == 0:
-            raise RuntimeError("d must be relatively prime to p")
-
-        # calculate order of p mod d
-        x = p % d
-        f = 1
-        while x != 1:
-            x = (x*p) % d
-            f = f+1
-        if verbose:
-            print "p = ", p, ", f = ", f
-
-        # allocate memory for Jacobi sum
-        cdef ZZ_c   ***sum
-        sum = <ZZ_c***>sage_malloc(sizeof(ZZ_c**)*d)
-        for i in range(d):
-            sum[i] = <ZZ_c**>sage_malloc(sizeof(ZZ_c*)*d)
-            for j in range(d):
-                sum[i][j] = ZZ_new()
-
-        if verbose:
-            print "setting up finite field"
-        init_NTL_ff(p, f, 0, 0, 0, 0)
-
-        cdef long chi_of_16
-        if verbose:
-            print "calling library's jacobi_sum()"
-        __jacobi_sum(sum, d, &chi_of_16)
-
-        # extract sum
-        if verbose:
-            print "extracting sum"
-        cdef Integer tmp
-        v = []
-        for i in range(d):
-            w = []
-            for j in range(d):
-                tmp = PY_NEW(Integer)
-                ZZ_to_mpz(&tmp.value, sum[i][j])
-                w.append(tmp)
-            v.append(w)
-
-        # free memory we borrowed
-        for i in range(d):
-            for j in range(d):
-                ZZ_delete(sum[i][j])
-            sage_free(sum[i])
-        sage_free(sum)
-
-        return [v, chi_of_16]
-
-
-    def M(self):
+    def M(self,fine=False):
         r"""
-        Returns the divisor multiplicative reduction as a polynomial,
-        for the finite part, and an integer.
+        Returns the divisor of multiplicative reduction.
 
         INPUT:
-            euler_deg -- if positive, a bound on the degree of the
-                Euler factors to compute.  if zero, becomes the optimal
-                Euler degree for computing the L-function.
+            fine -- if True, returns pair of following outputs,
+                one for split-multiplicative reduction and the
+                other for non-split multiplicative reduction.
 
-                (default: 0)
+                (default: False)
 
         OUTPUT:
             ( finite, infinite_degree )
 
             finite -- polynomial in function field variable.
                the zeros are simple and precisely the places of
-               multiplicative reduction away from infinity.
+               (split or non-split) multiplicative reduction away
+               from infinity.
 
-            infinite_degree -- 1 if there is multiplicative
-              reduction at infinity, and 0 otherwise.
+            infinite_degree -- 1 if there is (split or non-split)
+              multiplicative reduction at infinity, and 0 otherwise.
                        
         EXAMPLES::
 
@@ -1225,29 +1197,42 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             (t^6 + 9*t^5 + 4*t^4 + 8*t^3 + 8*t^2 + 3*t + 1, 0)
 
         """
-        if self._infinite_M(0) == 0:    return (self._finite_M, 1)
-        else:                           return (self._finite_M, 0)
+        if fine == False:
+            if self._infinite_M(0) == 0:    return (self._finite_M, 1)
+            else:                           return (self._finite_M, 0)
 
-    def A(self):
+        if self._infinite_reduction[0](0) == 0:
+            p1 = (self._finite_reduction[0], 1)
+        else:
+            p1 = (self._finite_reduction[0], 0)
+
+        if self._infinite_reduction[1](0) == 0:
+            p2 = (self._finite_reduction[1], 1)
+        else:
+            p2 = (self._finite_reduction[1], 0)
+
+        return (p1,p2)
+
+    def A(self,fine=False):
         r"""
         Returns the divisor additive reduction as a polynomial,
         for the finite part, and an integer.
 
         INPUT:
-            euler_deg -- if positive, a bound on the degree of the
-                Euler factors to compute.  if zero, becomes the optimal
-                Euler degree for computing the L-function.
+            fine -- if True, returns tuple of following outputs,
+                one for each type of bad reduction:
+                    I_n^*, II, II^*, III, III^*, IV, IV^*
 
-                (default: 0)
+                (default: False)
 
         OUTPUT:
             ( finite, infinite_degree )
 
             finite -- polynomial in function field variable.
                the zeros are simple and precisely the places of
-               additive reduction away from infinity.
+               (special) additive reduction away from infinity.
 
-            infinite_degree -- 1 if there is additive
+            infinite_degree -- 1 if there is (special) additive
               reduction at infinity, and 0 otherwise.
                        
         EXAMPLES::
@@ -1259,8 +1244,46 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             (1, 1)
 
         """
-        if self._infinite_A(0) == 0:    return (self._finite_A, 1)
-        else:                           return (self._finite_A, 0)
+        if fine == False:
+            if self._infinite_A(0) == 0:    return (self._finite_A, 1)
+            else:                           return (self._finite_A, 0)
+
+        if self._infinite_reduction[2](0) == 0:
+            p1 = (self._finite_reduction[2], 1)
+        else:
+            p1 = (self._finite_reduction[2], 0)
+
+        if self._infinite_reduction[3](0) == 0:
+            p2 = (self._finite_reduction[3], 1)
+        else:
+            p2 = (self._finite_reduction[3], 0)
+
+        if self._infinite_reduction[4](0) == 0:
+            p3 = (self._finite_reduction[4], 1)
+        else:
+            p3 = (self._finite_reduction[4], 0)
+
+        if self._infinite_reduction[5](0) == 0:
+            p4 = (self._finite_reduction[5], 1)
+        else:
+            p4 = (self._finite_reduction[5], 0)
+
+        if self._infinite_reduction[6](0) == 0:
+            p5 = (self._finite_reduction[6], 1)
+        else:
+            p5 = (self._finite_reduction[6], 0)
+
+        if self._infinite_reduction[7](0) == 0:
+            p6 = (self._finite_reduction[7], 1)
+        else:
+            p6 = (self._finite_reduction[7], 0)
+
+        if self._infinite_reduction[8](0) == 0:
+            p7 = (self._finite_reduction[8], 1)
+        else:
+            p7 = (self._finite_reduction[8], 0)
+
+        return (p1,p2,p3,p4,p5,p6,p7)
 
     r"""
     def __repr__(self):
@@ -1453,6 +1476,16 @@ def _ellff_field_embedding(F, p, d, n):
     OUTPUT:
         - phi -- the homomorphism F --> F2
         - F2 -- the ELLFF finite field as a Sage object
+
+    EXAMPLES::
+
+        sage: import psage
+        sage: psage.ellff.ellff._ellff_field_embedding(GF(11), 11, 2, 3)
+        [Ring morphism:
+          From: Finite Field of size 11
+          To:   Finite Field in c of size 11^6
+          Defn: 1 |--> 1, Finite Field in c of size 11^6]
+        
     """
     cdef ntl_zz_pX pi_1  = ntl_zz_pX(modulus=p)
     cdef ntl_zz_pX pi_2  = ntl_zz_pX(modulus=p)
@@ -1474,4 +1507,130 @@ def _ellff_field_embedding(F, p, d, n):
         phi = phi1.post_compose(phi2)
 
     return [phi, F2]
+
+def jacobi_sum(p, n, d, verbose=False):
+    r"""
+    Returns a polynomial which represents an abstract Jacobi sum
+    over the field F_q=F_{p^n}.
+
+    Suppose d|q-1 and let chi : F_q^* --> Z/d be the composition
+    of x|-->x^{(q-1)/d} and a chosen isomorphism
+    F_q^*/F_q^{*d} --> Z/d.  let z1,z2 be independent generic
+    elements satisfying z1^d=z2^d=1.  The routine calculates the
+    'abstract' Jacobi sum
+
+        J(d,q) = sum_{x!=0,1} z1^{chi(x)}*z2^{chi(1-x)}
+
+    and returns result as array A=(a_ij) where
+    
+        a_ij = coefficient of z1^i*z2^j in J(d,q)
+
+    INPUT:
+
+        - d -- the abstract order of the characters; must divide q-1
+
+    OUTPUT:
+
+        A
+
+    EXAMPLES::
+
+        sage: import psage
+        sage: psage.ellff.ellff.jacobi_sum(11,3,4)
+        Traceback (most recent call last):
+            ...
+        RuntimeError: d must divide q-1
+        sage: psage.ellff.ellff.jacobi_sum(11,1,2)
+        [[2, 2], [2, 3]]
+        sage: psage.ellff.ellff.jacobi_sum(11,2,2)
+        [[29, 30], [30, 30]]
+        sage: psage.ellff.ellff.jacobi_sum(11,3,2)
+        [[332, 332], [332, 333]]
+
+    """
+
+    if (not is_Integer(p)) or (not is_prime(p)):
+        raise RuntimeError("p must be prime")
+
+    if (not is_Integer(n)) or (n <= 0):
+        raise RuntimeError("n must be a positive integer")
+
+    q = p ** n
+    if (q-1) % d != 0:
+        raise RuntimeError("d must divide q-1")
+
+    # calculate order of q mod d
+    x = q % d
+    f = 1
+    while x != 1:
+        x = (x*q) % d
+        f = f+1
+    if verbose:
+        print "q = ", q, ", f = ", f
+
+    # allocate memory for Jacobi sum
+    cdef ZZ_c   ***sum
+    sum = <ZZ_c***>sage_malloc(sizeof(ZZ_c**)*d)
+    for i in range(d):
+        sum[i] = <ZZ_c**>sage_malloc(sizeof(ZZ_c*)*d)
+        for j in range(d):
+            sum[i][j] = ZZ_new()
+
+    if verbose:
+        print "setting up finite field"
+    init_NTL_ff(p, n, 0, 0, 0, 0)
+
+    if verbose:
+        print "calling library's jacobi_sum()"
+    __jacobi_sum(sum, d)
+
+    # extract sum
+    if verbose:
+        print "extracting sum"
+    cdef Integer tmp
+    A = []
+    for i in range(d):
+        w = []
+        for j in range(d):
+            tmp = PY_NEW(Integer)
+            ZZ_to_mpz(&tmp.value, sum[i][j])
+            w.append(tmp)
+        A.append(w)
+
+    # free memory we borrowed
+    for i in range(d):
+        for j in range(d):
+            ZZ_delete(sum[i][j])
+        sage_free(sum[i])
+    sage_free(sum)
+
+    return A
+
+def j_curve(K):
+    r"""
+    Returns the following elliptic curve over K:
+
+        y^2 = x^3 - 108*t/(t-1728)*x + 432*j/(j-1728).
+
+    INPUT:
+
+        - K -- function field F_q(t)
+
+    OUTPUT:
+
+        ellff_EllipticCurve
+
+    EXAMPLES::
+
+        sage: import psage
+        sage: K.<t> = psage.FunctionField(GF(11))
+        sage: E = psage.ellff.ellff.j_curve(K); E
+        <class 'psage.ellff.ellff.ellff_EllipticCurve'>
+        sage: E.a4, E.a6
+        (2*t^4 + 5*t^3 + 6*t^2 + 9*t, 3*t^6 + 7*t^5 + 8*t^4 + 3*t^3 + 4*t^2 + 8*t)
+
+    """
+
+    t = K.gens()[0]
+    return ellff_EllipticCurve(K, [0,0,0,-108*t/(t-1728),432*t/(t-1728)])
 

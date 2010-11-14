@@ -83,7 +83,11 @@ class pAdicLseries(SageObject):
         self._normalize = normalize
         if not self._p.is_prime():
             raise ValueError, "p (=%s) must be a prime"%p
-
+        A = self._J.modular_symbols(sign=1)
+        self._modular_symbols_subspace = A   
+        v = A.dual_eigenvector()
+        self._dual_eigenvector = v
+        self._hecke_eigenvalue_field = v[0].parent()
         
     def __cmp__(self,other):
         r"""
@@ -109,41 +113,19 @@ class pAdicLseries(SageObject):
     def modular_symbols_subspace(self):
         """
 	"""
-        M = ModularSymbols(self._level,2,sign=1)
-        self._modular_symbols_space = M
-        S = M.cuspidal_submodule()
-        N = S.new_subspace()
-        D = N.decomposition()
-        e = M([0,infinity])
-        if len(D) == 1:
-            A = D[0]
-        else:
-            for x in D:
-                if x.rational_period_mapping()(e) == 0:
-                    A = x
-        self._modular_symbols_subspace = A            
-        return A
+        return self._modular_symbols_subspace
     
-    def real_quadratic_field(self):
+    def hecke_eigenvalue_field(self):
         """
 	The field of definition of the dual eigenform.
 	"""
-        try:
-            A = self._modular_symbols_subspace
-        except AttributeError:
-            A = self._modular_symbols_subspace = self.modular_symbols_subspace()
-        v = self._dual_eigenvector = A.dual_eigenvector()
-        K_f = self._real_quadratic_field = v[0].parent()
-        return K_f
+        return self._hecke_eigenvalue_field
 
     def psi(self):
     	"""
         The embedding $\Q(\alpha) \into \Q_p(a)$ sending $\alpha \mapsto a$.
 	"""
-        try:
-            K_f = self._real_quadratic_field
-        except AttributeError:
-            K_f = self._real_quadratic_field = self.real_quadratic_field()
+        K_f = self._hecke_eigenvalue_field
         p = self._p
 #        kbar = K_f.residue_field(p)
         Q = Qp(p)
@@ -159,7 +141,7 @@ class pAdicLseries(SageObject):
         else:
             F = Q.extension(K_f.defining_polynomial(),names='a')
             a = F.gen()
-            psi = self._psi = [K_f.hom([a])]
+            psi = self._psis = [K_f.hom([a])]
             return psi
 	
     def modular_symbol(self,r):
@@ -169,14 +151,18 @@ class pAdicLseries(SageObject):
         v = self._dual_eigenvector
 
         try:
-            psis = self._psi
+            psis = self._psis
         except AttributeError:
             psis = self._psis = self.psi()
                                         
-
+        # TODO: rewrite this function to be a separate Cython class
+        # that just does reducing [r,infinity] to a rational using
+        # exactly the data that ones needs to do this (not going
+        # through modular symbols), and it'll make this massively
+        # faster.
         if len(psis) == 1:
             psi = psis[0]
-            M = self._modular_symbols_space
+            M = self.modular_symbols_subspace().ambient()
             s = M([r,infinity])
             return psi(v.dot_product(s.element()))
         else:
@@ -206,7 +192,10 @@ class pAdicLseries(SageObject):
         """
         """
         list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
-        lev = self.abelian_variety().level()
+        A = self.abelian_variety()
+        if A.dimension() != 2:
+            raise NotImplementedError
+        lev = self._level
         if lev not in list:
             raise NotImplementedError
         elif lev == 23:
@@ -246,7 +235,10 @@ class pAdicLseries(SageObject):
         """
         """
         list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
-        lev = self.abelian_variety().level()
+        A = self.abelian_variety()
+        if A.dimension() != 2:
+            raise NotImplementedError
+        lev = self._level
         if lev not in list:
             raise NotImplementedError
         elif lev == 23:
@@ -286,7 +278,10 @@ class pAdicLseries(SageObject):
     	"""
 	"""
         list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
-        lev = self.abelian_variety().level()
+        A = self.abelian_variety()
+        if A.dimension() != 2:
+            raise NotImplementedError
+        lev = self._level
         if lev not in list:
             raise NotImplementedError
         elif lev == 23:
@@ -404,7 +399,6 @@ class pAdicLseries(SageObject):
 	    (29, -3)
 
 	"""
-
         try:
             A = self._modular_symbols_subspace
         except AttributeError:
@@ -417,9 +411,9 @@ class pAdicLseries(SageObject):
 	Check if $p$ is an ordinary prime.
 	"""
         try:
-    	    K_f = self._real_quadratic_field
+    	    K_f = self._hecke_eigenvalue_field
         except AttributeError:
-            K_f = self._real_quadratic_field = self.real_quadratic_field()
+            K_f = self._hecke_eigenvalue_field = self.hecke_eigenvalue_field()
         try:
             a_p = self._ap
         except AttributeError:
@@ -603,11 +597,11 @@ class pAdicLseries(SageObject):
             a_p = self._ap = self.ap() 
 
         try:
-            psis = self._psi
+            psis = self._psis
         except AttributeError:
             psis = self._psis = self.psi()
 
-        K_f = self._real_quadratic_field
+        K_f = self.hecke_eigenvalue_field()
         if len(psis) == 1:
    	    F = Q.extension(K_f.defining_polynomial(),names='a')
             a = F.gen()

@@ -65,7 +65,7 @@ class pAdicLseries(SageObject):
     EXAMPLES:
     An ordinary example::
     
-
+    
     """
     def __init__(self, J, p, normalize='L_ratio'):
         r"""
@@ -166,7 +166,19 @@ class pAdicLseries(SageObject):
             s = M([r,infinity])
             return psi(v.dot_product(s.element()))
         else:
-	    raise NotImplementedError
+            if self._emb == 1:
+                psi = psis[0]
+            elif self._emb == 2:
+                psi = psis[1]
+#        elif (self._current_alpha == self.alpha()[0]):
+#            psi = psis[0]
+#        else:
+#            psi = psis[1]
+    
+        M = self.modular_symbols_subspace().ambient()
+        s = M([r,infinity])
+        return psi(v.dot_product(s.element()))
+        
 
 #############stuff for p-adic BSD, should be moved######
 
@@ -425,8 +437,9 @@ class pAdicLseries(SageObject):
         else: 
             return True
         
-    def measure(self,a,n,prec,quadratic_twist=+1,alpha=[]):
+    def measure(self,a,n,prec,quadratic_twist=+1,user_alpha=[],outside_call=False):
         """
+        outside_call: if using this from outside the series computation
 	"""
         if quadratic_twist > 0:
             s = +1
@@ -438,14 +451,25 @@ class pAdicLseries(SageObject):
             if not hasattr(self, '__measure_data'):
                 self.__measure_data = {}
             p = self._p
+            alpha = user_alpha
             z = 1/(alpha**n)
             w = p**(n-1)
             f = self.modular_symbol
-
             self.__measure_data[(n,prec,s)] = (p,alpha,z,w,f)
-
+        if outside_call:
+            if (user_alpha == self.alpha()[0]):
+                self._emb = 1
+            else:
+                self._emb = 2
+        if alpha != user_alpha:
+            alpha = user_alpha
+            z = 1/(alpha**n)
+            f = self.modular_symbol
+            self.__measure_data[(n,prec,s)] = (p,alpha,z,w,f)
+            
         if quadratic_twist == 1:
             return z * f(a/(p*w)) - (z/alpha) * f(a/w)
+
         else:
             D = quadratic_twist
             chip = kronecker_symbol(D,p)
@@ -455,119 +479,6 @@ class pAdicLseries(SageObject):
                 mu = chip**n * sum([kronecker_symbol(D,u) *(z * f(a/(p*w)+ZZ(u)/D) - chip *(z/alpha)* f(a/w+ZZ(u)/D)) for u in range(1,abs(D))])
             return s*mu
             
-
-#    def measure(self, a, n, prec, quadratic_twist=+1 ):
-#        r"""
-#        Return the measure on `\ZZ_p^{\times}` defined by
-#        
-#           `\mu_{J,\alpha}^+ ( a + p^n \ZZ_p  ) =
-#           \frac{1}{\alpha^n} \left [\frac{a}{p^n}\right]^{+} -
-#           \frac{1}{\alpha^{n+1}} \left[\frac{a}{p^{n-1}}\right]^{+}`
-#           
-#        where `[\cdot]^{+}` is the modular symbol. This is used to define
-#        this `p`-adic L-function (at least when the reduction is good).
-#
-#        The optional argument ``quadratic_twist`` replaces `J` by the twist in the above formula,
-#        but the twisted modular symbol is computed using a sum over modular symbols of `J`
-#        rather then finding the modular symbols for the twist.
-#        
-#        Note that the normalisation is not correct at this 
-#        stage: use  ``_quotient_of periods`` and ``_quotient_of periods_to_twist`` 
-#        to correct.
-#
-#        Note also that this function does not check if the condition
-#        on the ``quadratic_twist=D`` is satisfied. So the result will only
-#        be correct if for each prime `\ell` dividing `D`, we have
-#        `ord_{\ell}(N)<= ord_{\ell}(D)`, where `N` is the level
-#
-#        INPUT:
-#        
-#        -  ``a`` - an integer
-#        
-#        -  ``n`` - a non-negative integer
-#        
-#        -  ``prec`` - an integer
-#        
-#        -  ``quadratic_twist`` (default = 1) - a fundamental discriminant of a quadratic field,
-#           should be coprime to the level of `J`
-#
-#        EXAMPLES::
-#        
-#
-#        """
-#        
-#        if quadratic_twist > 0:
-#            s = +1
-#        else:
-#            s = -1
-#        try:
-#            p, alpha, z, w, f = self.__measure_data[(n,prec,s)]
-#        except (KeyError, AttributeError):
-#            if not hasattr(self, '__measure_data'):
-#                self.__measure_data = {}
-#            p = self._p
-#
-#            alpha = self.alpha(prec=prec)
-#            print alpha
-#        try:
-#            if len(alpha)==1:
-#                alpha = alpha[0]
-#                z = 1/(alpha**n)
-#                w = p**(n-1)
-#                f = self.modular_symbol
-  
-#                self.__measure_data[(n,prec,s)] = (p,alpha,z,w,f)
-         
-#                if quadratic_twist == 1:
-#                    return z * f(a/(p*w)) - (z/alpha) * f(a/w)
-#                else:
-#                    D = quadratic_twist
-#                    chip = kronecker_symbol(D,p)
-#                    if self._E.conductor() % p == 0:
-#                        mu = chip**n * z * sum([kronecker_symbol(D,u) * f(a/(p*w)+ZZ(u)/D) for u in range(1,abs(D))])
-#                    else:
-#                        mu = chip**n * sum([kronecker_symbol(D,u) *(z * f(a/(p*w)+ZZ(u)/D) - chip *(z/alpha)* f(a/w+ZZ(u)/D)) for u in range(1,abs(D))])
-#                    return s*mu
-#            else:
-#	        meas = []
-#                for a in alpha:
-#                    z = 1/(alpha**n)
-#                    w = p**(n-1)
-#                    f = self.modular_symbol
-# 
-#                    self.__measure_data[(n,prec,s)] = (p,alpha,z,w,f)
-# 
-#                    if quadratic_twist == 1:
-#                        return z * f(a/(p*w)) - (z/alpha) * f(a/w)
-#                    else:
-#                        D = quadratic_twist
-#                        chip = kronecker_symbol(D,p)
-#                        if self._E.conductor() % p == 0:
-#                            mu = chip**n * z * sum([kronecker_symbol(D,u) * f(a/(p*w)+ZZ(u)/D) for u in range(1,abs(D))])
-#                        else:
-#                            mu = chip**n * sum([kronecker_symbol(D,u) *(z * f(a/(p*w)+ZZ(u)/D) - chip *(z/alpha)* f(a/w+ZZ(u)/D)) for u in range(1,abs(D))])
-#                        meas = meas + [s*mu]
-#		    return meas
-
-#        except TypeError:
-#	    print "alpha = %s"%alpha
-#            z = 1/(alpha**n)
-#            w = p**(n-1)
-#            f = self.modular_symbol
-
-#            self.__measure_data[(n,prec,s)] = (p,alpha,z,w,f)
-
-#            if quadratic_twist == 1:
-#                return z * f(a/(p*w)) - (z/alpha) * f(a/w)
-#            else:
-#                D = quadratic_twist
-#                chip = kronecker_symbol(D,p)
-#                if self._E.conductor() % p == 0:
-#                    mu = chip**n * z * sum([kronecker_symbol(D,u) * f(a/(p*w)+ZZ(u)/D) for u in range(1,abs(D))])
-#                else:
-#                    mu = chip**n * sum([kronecker_symbol(D,u) *(z * f(a/(p*w)+ZZ(u)/D) - chip *(z/alpha)* f(a/w+ZZ(u)/D)) for u in range(1,abs(D))])
-#		return s*mu
-
         
     def alpha(self, prec=20):
         r"""
@@ -802,6 +713,12 @@ class pAdicLseriesOrdinary(pAdicLseries):
         sage: L = pAdicLseriesOrdinary(A, 7)
         sage: L.series()
         O(7^20) + ((2*a + 4) + (6*a + 2)*7 + 6*7^2 + 4*a*7^3 + (4*a + 5)*7^4 + (4*a + 5)*7^5 + (6*a + 3)*7^6 + (2*a + 1)*7^7 + (5*a + 2)*7^8 + 5*7^9 + (2*a + 2)*7^10 + (5*a + 4)*7^11 + 3*a*7^12 + (5*a + 4)*7^13 + 5*a*7^14 + (3*a + 6)*7^15 + (5*a + 6)*7^16 + (6*a + 4)*7^17 + 5*a*7^18 + (3*a + 5)*7^19 + O(7^20))*T + ((5*a + 3) + (a + 6)*7 + (2*a + 1)*7^2 + (3*a + 2)*7^3 + (4*a + 2)*7^4 + 4*a*7^5 + (2*a + 6)*7^6 + 3*7^7 + (3*a + 5)*7^8 + (5*a + 2)*7^9 + (a + 3)*7^10 + 6*a*7^11 + (5*a + 5)*7^12 + (6*a + 6)*7^13 + (3*a + 4)*7^14 + (2*a + 4)*7^15 + (3*a + 6)*7^16 + (6*a + 1)*7^17 + 5*7^18 + (6*a + 5)*7^19 + O(7^20))*T^2 + ((3*a + 6) + (6*a + 6)*7 + 5*7^2 + 6*a*7^3 + (a + 4)*7^4 + (3*a + 2)*7^5 + 3*a*7^6 + (4*a + 6)*7^7 + (5*a + 2)*7^8 + 6*a*7^9 + (3*a + 1)*7^10 + (5*a + 3)*7^11 + (a + 1)*7^12 + (a + 4)*7^13 + (6*a + 2)*7^14 + (a + 2)*7^15 + (3*a + 1)*7^17 + (2*a + 5)*7^18 + (a + 3)*7^19 + O(7^20))*T^3 + ((3*a + 6) + (4*a + 3)*7 + (2*a + 3)*7^2 + (2*a + 2)*7^3 + 5*a*7^4 + 3*a*7^5 + (2*a + 5)*7^6 + (6*a + 1)*7^7 + (a + 2)*7^8 + (a + 1)*7^9 + (4*a + 5)*7^10 + 5*a*7^11 + (3*a + 4)*7^12 + (5*a + 6)*7^13 + (a + 5)*7^14 + 5*7^15 + 4*a*7^16 + (a + 3)*7^17 + (6*a + 2)*7^18 + (2*a + 3)*7^19 + O(7^20))*T^4 + O(T^5)
+
+        sage: L = pAdicLseriesOrdinary(A,19)
+        sage: f = L.series(n=3)
+        sage: f[2]
+        8 + 13*19 + 11*19^2 + 12*19^3 + 16*19^4 + 16*19^5 + 4*19^6 + 19^7 + 3*19^8 + 6*19^9 + 3*19^10 + 15*19^11 + 9*19^12 + 15*19^13 + 5*19^14 + 8*19^15 + 16*19^16 + 6*19^17 + 11*19^18 + 6*19^19 + O(19^20)
+        
     """
     def series(self, n=2, quadratic_twist=+1, prec=5):
         r"""
@@ -887,34 +804,49 @@ class pAdicLseriesOrdinary(pAdicLseries):
         gamma = K(1 + p)
         R = PowerSeriesRing(K,'T',res_series_prec)
         T = R(R.gen(),res_series_prec )
-        L = R(0) 
+        #L = R(0) 
         one_plus_T_factor = R(1) 
         gamma_power = K(1)
         teich = self.teichmuller(padic_prec)
         p_power = p**(n-1)
+#        F = Qp(p,padic_prec)
 
         verbose("Now iterating over %s summands"%((p-1)*p_power))
         verbose_level = get_verbose()
         count_verb = 0
         alphas = self.alpha()
+        #print len(alphas)
         Lprod = []
+        self._emb = 0
+        if len(alphas) == 2:
+            split = True
+        else:
+            split = False
         for alpha in alphas:
+            L = R(0)
+            self._emb = self._emb + 1
             for j in range(p_power):
                 s = K(0)
                 if verbose_level >= 2 and j/p_power*100 > count_verb + 3:
                     verbose("%.2f percent done"%(float(j)/p_power*100))
                     count_verb += 3
                 for a in range(1,p):
-                    b = teich[a] * gamma_power
-                    s = s + self.measure(b, n, padic_prec,D,alpha)
+                    if split:
+#                        b = ((F.teichmuller(a)).lift() % ZZ(p**n))
+                        b = (teich[a]) % ZZ(p**n)
+                        b = b*gamma_power
+                    else:
+                        b = teich[a] * gamma_power
+                    s += self.measure(b, n, padic_prec,D,alpha)
                 L += s * one_plus_T_factor
                 one_plus_T_factor *= 1+T
                 gamma_power *= gamma
+            
             Lprod = Lprod + [L]
-            if len(Lprod)==1:
-                return Lprod[0]
-            else:
-                return Lprod[0]*Lprod[1]
+        if len(Lprod)==1:
+            return Lprod[0]
+        else:
+            return Lprod[0]*Lprod[1]
 
     power_series = series
 

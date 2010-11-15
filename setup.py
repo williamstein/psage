@@ -87,12 +87,13 @@ ext_modules = [
     Extension('psage.modform.maass.lpkbessel',
               ['psage/modform/maass/lpkbessel.pyx']),
 
+    Extension("psage.modform.rational.modular_symbol_map",
+              ["psage/modform/rational/modular_symbol_map.pyx"]),
+
     Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
               ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
               libraries = ['gmp']),
     
-    
-
 ]
 
 # I just had a long chat with Robert Bradshaw (a Cython dev), and he

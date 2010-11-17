@@ -219,7 +219,6 @@ void ell_surfaceInfoT::affine_model::init(const zz_pEratX& rat_a4, const zz_pEra
     // step 2: calculate j-invariant for current Weierstrass model
     disc = 4*a4*a4*a4 + 27*a6*a6;
     j.init(6912*a4*a4*a4, disc);
-    assert(!IsConstant(j));
 
     // step 3: divide a4,a6 by max'l degree polynomial d so d^4|a4 and d^6|a6
     //  - for each prime pi|a4, keep dividing a4,a6 by pi^4,pi^6 until
@@ -247,6 +246,7 @@ void ell_surfaceInfoT::affine_model::init(const zz_pEratX& rat_a4, const zz_pEra
 
     // recalculate discriminant for new model
     disc = 4*a4*a4*a4 + 27*a6*a6;
+    constant_f = (deg(a4) == 0 && deg(a6) == 0);
 }
 
 void ell_surfaceInfoT::affine_model::init(const zz_pEX& a4, const zz_pEX& a6)
@@ -294,6 +294,10 @@ ell_surfaceInfoT::ell_surfaceInfoT(const zz_pEratX& a4, const zz_pEratX& a6)
     pi = 1;
     pi <<= 1;
     infinite_model.kodaira(pi);
+
+    // check whether have constant curve
+    assert(finite_model.constant_f == infinite_model.constant_f);
+    constant_f = finite_model.constant_f;
 
     // compute invariants for L-function
     sign = finite_model.epsilon * infinite_model.epsilon;

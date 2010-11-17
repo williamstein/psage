@@ -28,6 +28,6 @@
 
 NTL_CLIENT
 
-void jacobi_sum(ZZ ***sum, long d, long *chi_of_16);
+void jacobi_sum(ZZ ***sum, long d);
 
 #endif	// JACOBI_H

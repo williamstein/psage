@@ -93,6 +93,10 @@ ext_modules = [
     Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
               ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
               libraries = ['gmp']),
+
+    Extension('psage.ellcurve.galrep.wrapper',
+              sources = ['psage/ellcurve/galrep/wrapper.pyx', 'psage/ellcurve/galrep/galrep.c'],
+              libraries = ['gmp']),
     
 ]
 

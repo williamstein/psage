@@ -112,12 +112,12 @@ build_system.cythonize(ext_modules)
 
 build_system.setup(
     name = 'psage',
-    version = "10.10.28",
+    version = "2010.11.16",
     description = "PSAGE: Software for Arithmetic Geometry",
     author = 'William Stein',
     author_email = 'wstein@gmail.com',
     url = 'http://purple.sagemath.org',
-    license = 'GPL v3+',
+    license = 'GPL v2+',
     packages = ['psage',
                 'psage.ellff',
                 'psage.function_fields',

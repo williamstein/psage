@@ -25,22 +25,33 @@ This module implements a simple key:value store using SQLite3 and
 cPickle, and other useful tools built on top of it.
 """
 
-import cPickle, sqlite3
+import cPickle, sqlite3, zlib
 
 # A key:value store
 
 class SQLiteKeyValueStore:
-    def __init__(self, file):
-        """Create or open the SQLite3-based key:value database stored in the given file."""
+    def __init__(self, file, compress=False):
+        """
+        Create or open the SQLite3-based key:value database stored in the given file.
+
+        INPUTS:
+            - file -- string; the name of a file.
+            - compress -- bool (default: False); if True, by default compress all
+              pickled values using zlib
+
+        You do not have to be consistent with the compress option.   The database will still
+        work if you switch back and forth between compress=True and compress=False.
+        """
         self._db = sqlite3.connect(file)
         self._cursor = self._db.cursor()
         self._file = file
+        self._compress = compress
         try:
             self._cursor.execute("select * from sqlite_master").next()
         except StopIteration:
             # This exception will occur if the database is brand new (has no tables yet)
             try: 
-                self._cursor.execute("CREATE TABLE cache (key BLOB, value BLOB, UNIQUE(key))")
+                self._cursor.execute("CREATE TABLE cache (key BLOB, value BLOB, compressed INTEGER, UNIQUE(key))")
                 self._cursor.execute("CREATE INDEX cache_idx ON cache(key)")
                 self._db.commit()
             except sqlite3.OperationalError: 
@@ -61,27 +72,34 @@ class SQLiteKeyValueStore:
             
     def __getitem__(self, key):
         """Return item in the database with given key, or raise KeyError."""        
-        s = self._cursor.execute( "SELECT value FROM cache WHERE key=?", (self._dumps(key),) )
+        s = self._cursor.execute( "SELECT value,compressed FROM cache WHERE key=?", (self._dumps(key),) )
         try:
-            return self._loads(str(s.next()[0]))
+            v = s.next()
+            return self._loads(str(v[0]), bool(v[1]))
         except StopIteration:
             raise KeyError, str(key)
         
     def __setitem__(self, key, value):
         """Sets an item in the database.  Call commit to make this permanent."""
-        self._cursor.execute("INSERT OR REPLACE INTO cache VALUES(?, ?)", (self._dumps(key), self._dumps(value)))
+        self._cursor.execute("INSERT OR REPLACE INTO cache VALUES(?, ?, ?)", (
+            self._dumps(key), self._dumps(value, self._compress), self._compress))
         
     def __delitem__(self, key):
         """Removes an item from the database.  Call commit to make this permanent."""
         self._cursor.execute("DELETE FROM cache WHERE key=?", (self._dumps(key),) )    
         
-    def _dumps(self, x):
+    def _dumps(self, x, compress=False):
         """Converts a Python object to a binary string that can be stored in the database."""
-        return sqlite3.Binary(cPickle.dumps(x,2))
+        s = cPickle.dumps(x,2)
+        if compress:
+            s = zlib.compress(s)
+        return sqlite3.Binary(s)
         
-    def _loads(self, x):
+    def _loads(self, x, compress=False):
         """Used internally to turn a pickled object in the database into a Python object."""
-        return cPickle.loads(x)  
+        if compress:
+            x = zlib.decompress(x)
+        return cPickle.loads(x)
     
     def keys(self):
         """Return list of keys in the database."""
@@ -97,27 +115,30 @@ def test_sqlite_keyval_1():
     import tempfile
     file = tempfile.mktemp()
     try:
-        db = SQLiteKeyValueStore(file)
+        for compress in [False, True]:
+            db = SQLiteKeyValueStore(file, compress)
 
-        db[2] = 3
-        db[10] = {1:5, '17a':[2,5]}
-        assert db.keys() == [2,10]
-        assert db[10] == {1:5, '17a':[2,5]}
-        assert db[2] == 3
-        db.commit()
-        db[5] = 18  # does not get committed
+            db[2] = 3
+            db[10] = {1:5, '17a':[2,5]}
+            assert db.keys() == [2,10]
+            assert db[10] == {1:5, '17a':[2,5]}
+            assert db[2] == 3
+            db.commit()
+            db[5] = 18  # does not get committed
 
-        db = SQLiteKeyValueStore(file)
-        assert db.keys() == [2,10]
-        assert db[10] == {1:5, '17a':[2,5]}
-        assert db[2] == 3
+            db = SQLiteKeyValueStore(file, not compress)
+            assert db.keys() == [2,10]
+            assert db[10] == {1:5, '17a':[2,5]}
+            assert db[2] == 3
 
-        assert db.has_key(2)
-        assert not db.has_key(3)
-        del db
+            assert db.has_key(2)
+            assert not db.has_key(3)
+            del db
+            import os; os.unlink(file)
 
     finally:
-        import os; os.unlink(file)
+        if os.path.exists(file):
+            import os; os.unlink(file)
 
 
 # A SQLite cached function decorator
@@ -126,7 +147,7 @@ class sqlite_cached_function:
     """
     Use this like so::
 
-         @sqlite_cached_function('/tmp/foo.sqlite')
+         @sqlite_cached_function('/tmp/foo.sqlite', compress=True)
          def f(n,k=5):
              return n+k
 
@@ -136,8 +157,8 @@ class sqlite_cached_function:
     SQLiteKeyValueStore and f.keys() is a list of all keys computed
     so far (normalized by ArgumentFixer). 
     """
-    def __init__(self, file):
-        self.db = SQLiteKeyValueStore(file)
+    def __init__(self, file, compress=False):
+        self.db = SQLiteKeyValueStore(file, compress=compress)
         
     def __call__(self, f):
         """Return decorated version of f."""
@@ -177,7 +198,7 @@ def test_sqlite_cached_function_2():
         import tempfile
         file = tempfile.mktemp()
 
-        @sqlite_cached_function(file)
+        @sqlite_cached_function(file, compress=True)
         def f(a, b=10):
             sleep(1)
             return a + b
@@ -190,7 +211,7 @@ def test_sqlite_cached_function_2():
         assert walltime() - t < 1, "should be fast!"
 
         # Make new cached function, which will now use the disk cache first.
-        @sqlite_cached_function(file)
+        @sqlite_cached_function(file, compress=True)
         def f(a, b=10):
             sleep(1)
 

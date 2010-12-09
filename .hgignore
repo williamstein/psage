@@ -33,3 +33,7 @@ psage/modform/maass/lpkbessel.c   # cython
 psage/modform/hilbert/sqrt5/sqrt5_fast.c   # cython
 psage/modform/rational/modular_symbol_map.c # cython
 psage/ellcurve/galrep/wrapper.c   # cython
+psage/libs/smalljac/wrapper.c     # cython
+psage/libs/smalljac/wrapper1.c    # cython
+psage/libs/smalljac/wrapper2.c    # cython
+psage/libs/smalljac/wrapper3.c    # cython

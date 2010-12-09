@@ -97,8 +97,16 @@ ext_modules = [
     Extension('psage.ellcurve.galrep.wrapper',
               sources = ['psage/ellcurve/galrep/wrapper.pyx', 'psage/ellcurve/galrep/galrep.c'],
               libraries = ['gmp']),
-    
+
 ]
+
+for g in [1, 2]:
+    e = Extension('psage.libs.smalljac.wrapper%s'%g,
+                  sources = ['psage/libs/smalljac/wrapper%s.pyx'%g,
+                             'psage/libs/smalljac/wrapper_g%s.c'%g],
+                  libraries = ['gmp', 'm'])
+    ext_modules.append(e)
+
 
 # I just had a long chat with Robert Bradshaw (a Cython dev), and he
 # told me the following functionality -- turning an Extension with

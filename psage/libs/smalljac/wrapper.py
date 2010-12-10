@@ -1,6 +1,9 @@
 def SmallJac(f):
-    x = f.variables()[0]
-    g = (f.degree(x)-1) // 2
+    try:
+        d = f.degree()
+    except TypeError:
+        d = f.degree(f.variables()[0])
+    g = (d - 1) // 2
     if g == 1:
         import wrapper1
         return wrapper1.SmallJac(f)

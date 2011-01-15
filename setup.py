@@ -98,6 +98,9 @@ ext_modules = [
               sources = ['psage/ellcurve/galrep/wrapper.pyx', 'psage/ellcurve/galrep/galrep.c'],
               libraries = ['gmp']),
 
+    Extension('psage.rh.mazur_stein.game',
+              sources = ['psage/rh/mazur_stein/game.pyx']),
+    
 ]
 
 for g in [1, 2]:

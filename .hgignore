@@ -37,3 +37,5 @@ psage/libs/smalljac/wrapper.c     # cython
 psage/libs/smalljac/wrapper1.c    # cython
 psage/libs/smalljac/wrapper2.c    # cython
 psage/libs/smalljac/wrapper3.c    # cython
+
+psage/rh/mazur_stein/game.c       # cython

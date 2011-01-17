@@ -100,6 +100,9 @@ ext_modules = [
 
     Extension('psage.rh.mazur_stein.game',
               sources = ['psage/rh/mazur_stein/game.pyx']),
+
+    Extension('psage.rh.mazur_stein.book_cython',
+              sources = ['psage/rh/mazur_stein/book_cython.pyx']),
     
 ]
 

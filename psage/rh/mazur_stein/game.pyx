@@ -97,6 +97,20 @@ cdef class J:
     cpdef double J2(self, double t, int N):
         return self.H2(t, N) / log(N)
 
-         
+
+def average_value_function(v):
+    """Given a list v = [...,(x,y),...] of points with the x's
+    increasing that defines a piecewise linear function y=f(x),
+    compute and return the average value function (1/z)*int_{v[0][0]}^z f(x)dx,
+    expressed again as a list with the same x's. 
+    """
            
 
+def plot_with_averages(v):
+    """Given a list v = [...,(x,y),...] of points with the x's increasing, plot the function
+    through these points, along with the graph in red of the average value of this function
+    """
+    from sage.all import line
+    a = average_value_function(v)
+    return line(v) + line(a, color='red')
+    

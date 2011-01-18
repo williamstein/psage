@@ -23,7 +23,7 @@
 We study low zeros.
 """
 
-from sage.all import is_fundamental_discriminant, ZZ
+from sage.all import is_fundamental_discriminant, ZZ, parallel
 
 from sage.libs.lcalc.lcalc_Lfunction import (
     Lfunction_from_character,
@@ -50,7 +50,12 @@ class LowZeros(object):
             @parallel
             def f(z):
                 return self.compute_low_zeros(z)
-        return [x[1] for x in f(self.params)]
+
+        # Get the answers back, and sort them in the same order
+        # as the input params.  This is *very* important to do, i.e.,
+        # to get the order right!
+        Z = dict([(x[0][0][0], x[1]) for x in f(self.params)])
+        return [Z[x] for x in self.params]
 
     def ith_zero_means(self, i=0):
         z = self.zeros
@@ -99,19 +104,34 @@ class QuadraticImaginary(LowZeros):
 
 class EllCurveZeros(LowZeros):
     def __init__(self, num_zeros, curves, **kwds):
-        params = list(curves)
+        # sort the curves into batches by conductor
+        d = {}
+        for E in curves:
+            N = E.conductor()
+            if d.has_key(N):
+                d[N].append(E)
+            else:
+                d[N] = [E]
+        params = list(sorted(d.keys()))
+        self.d = d
         super(EllCurveZeros, self).__init__(num_zeros, params, **kwds)
 
     def __repr__(self):
         return "Family of %s elliptic curve L functions"%len(self.params)
 
-    def compute_low_zeros(self, E):
-        L = Lfunction_from_elliptic_curve(E)
-        return L.find_zeros_via_N(self.num_zeros)
+    def compute_low_zeros(self, N):
+        a = []
+        for E in self.d[N]:
+            L = Lfunction_from_elliptic_curve(E)
+            a.append(L.find_zeros_via_N(self.num_zeros))
+        num_curves = len(a)
+        return [sum(a[i][j] for i in range(num_curves))/num_curves
+                for j in range(self.num_zeros)]
 
 class EllQuadraticTwists(LowZeros):
-    def __init__(self, num_zeros, curve, discs, **kwds):
+    def __init__(self, num_zeros, curve, discs, number_of_coeffs=10000, **kwds):
         self.curve = curve
+        self.number_of_coeffs = number_of_coeffs
         params = discs
         super(EllQuadraticTwists, self).__init__(num_zeros, params, **kwds)
 
@@ -119,7 +139,8 @@ class EllQuadraticTwists(LowZeros):
         return "Family of %s elliptic curve L functions"%len(self.params)
 
     def compute_low_zeros(self, D):
-        L = Lfunction_from_elliptic_curve(self.curve.quadratic_twist(D))
+        L = Lfunction_from_elliptic_curve(self.curve.quadratic_twist(D),
+                                          number_of_coeffs=self.number_of_coeffs)
         return L.find_zeros_via_N(self.num_zeros)
 
 
@@ -148,3 +169,34 @@ def quadratic_twist_zeros(D, n, algorithm='clib'):
         
         
         
+def fit_to_power_of_log(v):
+    """
+    INPUT:
+        - v -- a list of (x,y) values, with x increasing.
+    OUTPUT:
+        - number a such that data is "approximated" by b*log(x)^a.
+    """
+    # ALGORITHM: transform data to (log(log(x)), log(y)) and find the slope
+    # of the best line that fits this transformed data. 
+    # This is the right thing to do, since if y = log(x)^a, then log(y) = a*log(log(x)).
+    from math import log, exp
+    w = [(log(log(x)), log(y)) for x,y in v]
+    a, b = least_squares_fit(w)
+    return float(a), exp(float(b))
+
+
+def least_squares_fit(v):
+    """
+    INPUT:
+        - v -- a list of (x,y) values
+    OUTPUT:
+        - a and b such that the line y=a*x + b is the least squares fit for the data.
+    """
+    import numpy
+    x = numpy.array([a[0] for a in v])
+    y = numpy.array([a[1] for a in v])
+    A = numpy.vstack([x, numpy.ones(len(x))]).T
+    a, b = numpy.linalg.lstsq(A,y)[0]    
+    return a, b
+    
+    

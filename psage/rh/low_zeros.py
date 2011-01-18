@@ -24,7 +24,9 @@ We study low zeros.
 """
 
 from sage.all import is_fundamental_discriminant
-from sage.libs.lcalc.lcalc_Lfunction import Lfunction_from_character
+from sage.libs.lcalc.lcalc_Lfunction import (
+    Lfunction_from_character,
+    Lfunction_from_elliptic_curve)
 
 
 
@@ -85,6 +87,19 @@ class QuadraticImaginary(LowZeros):
 
     def compute_low_zeros(self, D):
         return quadratic_twist_zeros(D, self.num_zeros)
+
+
+class EllCurveZeros(LowZeros):
+    def __init__(self, num_zeros, curves, **kwds):
+        params = list(curves)
+        super(EllCurveZeros, self).__init__(num_zeros, params, **kwds)
+
+    def __repr__(self):
+        return "Family of %s elliptic curve L functions"%len(self.params)
+
+    def compute_low_zeros(self, E):
+        L = Lfunction_from_elliptic_curve(E)
+        return L.find_zeros_via_N(self.num_zeros)
 
 
 def quadratic_twist_zeros(D, n, algorithm='clib'):

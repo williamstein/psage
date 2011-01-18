@@ -25,13 +25,3 @@ class J_E:
         return ans
 
 
-def quadratic_twist_zeros(D, n):
-    """
-    Return imaginary parts of the first n zeros of all the Dirichlet
-    character corresponding to the quadratic field of discriminant D.
-    """
-    cmd = "lcalc -z %s --twist-quadratic --start %s --finish %s"%(n,D,D)
-    out = os.popen(cmd).read().split()
-    return [float(out[i]) for i in range(len(out)) if i%2!=0]
-    
-                

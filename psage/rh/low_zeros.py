@@ -23,7 +23,8 @@
 We study low zeros.
 """
 
-from sage.all import is_fundamental_discriminant
+from sage.all import is_fundamental_discriminant, ZZ
+
 from sage.libs.lcalc.lcalc_Lfunction import (
     Lfunction_from_character,
     Lfunction_from_elliptic_curve)
@@ -64,10 +65,17 @@ class LowZeros(object):
     def ith_zeros(self, i=0):
         return [(self.params[j], self.zeros[j][i]) for j in range(len(self.params))]
 
+def fundamental_discriminants(A, B):
+    """Return the fundamental discriminants between A and B (inclusive), as Sage integers,
+    ordered by absolute value, with negatives first when abs same."""
+    v = [ZZ(D) for D in range(A, B+1) if is_fundamental_discriminant(D)]
+    v.sort(lambda x,y: cmp((abs(x),sgn(x)),(abs(y),sgn(y))))
+    return v
+
 class RealQuadratic(LowZeros):
     def __init__(self, num_zeros, max_D, **kwds):
         self.max_D  = max_D
-        params = [D for D in range(2,max_D+1) if is_fundamental_discriminant(D)]
+        params = fundamental_discriminants(2,max_D)
         super(RealQuadratic, self).__init__(num_zeros, params, **kwds)
 
     def __repr__(self):
@@ -79,7 +87,7 @@ class RealQuadratic(LowZeros):
 class QuadraticImaginary(LowZeros):
     def __init__(self, num_zeros, min_D, **kwds):
         self.min_D  = min_D
-        params = list(reversed([D for D in range(min_D, 0) if is_fundamental_discriminant(D)]))
+        params = fundamental_discriminant(min_D, -1)
         super(QuadraticImaginary, self).__init__(num_zeros, params, **kwds)
 
     def __repr__(self):
@@ -99,6 +107,19 @@ class EllCurveZeros(LowZeros):
 
     def compute_low_zeros(self, E):
         L = Lfunction_from_elliptic_curve(E)
+        return L.find_zeros_via_N(self.num_zeros)
+
+class EllQuadraticTwists(LowZeros):
+    def __init__(self, num_zeros, curve, discs, **kwds):
+        self.curve = curve
+        params = discs
+        super(EllQuadraticTwists, self).__init__(num_zeros, params, **kwds)
+
+    def __repr__(self):
+        return "Family of %s elliptic curve L functions"%len(self.params)
+
+    def compute_low_zeros(self, D):
+        L = Lfunction_from_elliptic_curve(self.curve.quadratic_twist(D))
         return L.find_zeros_via_N(self.num_zeros)
 
 

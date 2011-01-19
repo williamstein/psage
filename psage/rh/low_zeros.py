@@ -23,7 +23,7 @@
 We study low zeros.
 """
 
-from sage.all import is_fundamental_discriminant, ZZ, parallel
+from sage.all import is_fundamental_discriminant, ZZ, parallel, var
 
 from sage.libs.lcalc.lcalc_Lfunction import (
     Lfunction_from_character,
@@ -200,3 +200,14 @@ def least_squares_fit(v):
     return a, b
     
     
+class XLogInv(object):
+    def __init__(self, a):
+        self.a = a
+        x = var('x')
+        self.f = (x * (log(x) - a))._fast_float_(x)
+
+    def __repr__(self):
+        return "The inverse of the function x*(log(x) - %s), for sufficiently large positive x"%self.a
+
+    def __call__(self, y):
+        return find_root(self.f - float(y), 1, 10e9)

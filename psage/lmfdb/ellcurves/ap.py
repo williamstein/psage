@@ -46,12 +46,9 @@ def populate_db(address, level_min, level_max, pmax=100,
         for v in C.find({'level':{'$gte':level_min, '$lt':level_max},
                          'number':1,
                          'ap':{'$exists':False}}):
-            print v
             E = pari('ellinit(%s,1)'%v['weq'])
             ap = dict([(str(p),int(E.ellap(p))) for p in P])
-            print ap
             C.update({'_id':v['_id']}, {'$set':{'ap':ap}})
-            
 
     for ans in f(blocks):
         print ans

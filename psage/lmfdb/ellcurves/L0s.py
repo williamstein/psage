@@ -66,14 +66,15 @@ v = e.find({'level':{'$lt':100r}, 'L0s':{'$exists':True}}, )
 v.count()
 7
 
-sage: v = e.find({'level':{'$lt':100r}, 'ap.2':-2r}, ['level', 'weq']) 
-sage: v.next()
-{u'weq': u'[0,-1,1,-10,-20]', u'_id': ObjectId('4c9258841e8b55611895b170'), u'level': 11}
-sage: v.next()
-{u'weq': u'[0,0,1,-1,0]', u'_id': ObjectId('4c9258841e8b55611895b1bc'), u'level': 37}
+This counts the number of optimal curves for which the 0-th zero (the
+first one) is >1 and the number for which it is < 1.
 
-sage: v = e.find({'level':{'$lt':100r}, 'ap.2':{'$mod':[int(2),int(0)]}}, ['level', 'weq', 'ap.2', 'ap.3']) 
-sage: v.next()
-{u'ap': {u'3': -1, u'2': -2}, u'weq': u'[0,-1,1,-10,-20]', u'_id': ObjectId('4c9258841e8b55611895b170'), u'level': 11}
+sage: v = e.find({'level':{'$lt':100r}, 'L0s.0':{'$gt':int(1)}}, )
+sage: v.count()
+75
+sage: v = e.find({'level':{'$lt':100r}, 'L0s.0':{'$lt':int(1)}}, )
+sage: v.count()
+17
+
 """
 

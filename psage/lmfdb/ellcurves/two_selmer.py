@@ -20,10 +20,59 @@
 #################################################################################
 
 
-def populate_db(db, levels, ncpus=None):
+from sage.all import mwrank_EllipticCurve
+
+def selmer2(a_invariants, max_time=None):
+    if max_time is None:
+        E = mwrank_EllipticCurve(a_invariants)
+        return int(E.selmer_rank())
+    else:
+        try:
+            from sage.all import fork  # not in official sage.
+        except ImportError:
+            raise ImportError, "You need to apply the patch from http://trac.sagemath.org/sage_trac/ticket/9631"
+        @fork(timeout=max_time)
+        def f():
+            E = mwrank_EllipticCurve(a_invariants)
+            return int(E.selmer_rank())
+        return f()
+
+import sage.parallel.ncpus
+
+def populate_db(address, level_min, level_max, 
+                ncpus=sage.parallel.ncpus.ncpus(),
+                max_time=None):
     """
     Compute and insert into the database the 2-selmer ranks of all the
     curves in a give range of levels, for which 2-selmer ranks aren't
     already known.
     """
+    import math, random
+    from sage.all import prime_range, parallel, pari
+
+    level_min = int(level_min); level_max = int(level_max)
+    s = int(math.ceil((level_max - level_min)/float(ncpus)))
+    blocks = [(level_min+i*s, min(level_max,level_min+(i+1)*s)) for i in range(ncpus)]
     
+    @parallel(ncpus)
+    def f(l_min, l_max):
+        from pymongo import Connection
+        C = Connection(address).research.ellcurves
+        for v in C.find({'level':{'$gte':level_min, '$lt':level_max},
+                         'sel2':{'$exists':False}}):
+            sel2 = selmer2(eval(v['weq']), max_time)
+            C.update({'_id':v['_id']}, {'$set':{'sel2':sel2}})
+
+    for ans in f(blocks):
+        print ans
+    
+"""
+EXAMPLE QUERIES:
+
+from pymongo import Connection
+db = Connection(port=int(29000)).research
+e = db.ellcurves
+v = e.find({'level':{'$lt':100r}, 'sel2':{'$exists':True}})
+sage: v.count()
+7
+"""

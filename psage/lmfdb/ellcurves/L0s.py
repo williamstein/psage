@@ -20,6 +20,7 @@
 #################################################################################
 
 import sage.parallel.ncpus
+from psage.lmfdb.auth import userpass
 
 def populate_db(address, level_min, level_max, num_zeros=100,
                 ncpus=sage.parallel.ncpus.ncpus()):
@@ -31,6 +32,8 @@ def populate_db(address, level_min, level_max, num_zeros=100,
     Only curves with L0s not yet set are affected by this function.
     The key on the database is "L0s".
     """
+    user, password = userpass()
+
     import math, random
     from sage.all import parallel, EllipticCurve
 
@@ -43,7 +46,9 @@ def populate_db(address, level_min, level_max, num_zeros=100,
     @parallel(ncpus)
     def f(l_min, l_max):
         from pymongo import Connection
-        C = Connection(address).research.ellcurves
+        C = Connection(address).research
+        C.authenticate(user, password)
+        C = C.ellcurves
         for v in C.find({'level':{'$gte':level_min, '$lt':level_max},
                          'number':1,
                          'L0s':{'$exists':False}}):

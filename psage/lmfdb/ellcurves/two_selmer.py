@@ -21,6 +21,7 @@
 
 
 from sage.all import mwrank_EllipticCurve
+from psage.lmfdb.auth import userpass
 
 def selmer2(a_invariants, max_time=None):
     if max_time is None:
@@ -47,6 +48,8 @@ def populate_db(address, level_min, level_max,
     curves in a give range of levels, for which 2-selmer ranks aren't
     already known.
     """
+    user, password = userpass()
+
     import math, random
     from sage.all import prime_range, parallel, pari
 
@@ -57,7 +60,9 @@ def populate_db(address, level_min, level_max,
     @parallel(ncpus)
     def f(l_min, l_max):
         from pymongo import Connection
-        C = Connection(address).research.ellcurves
+        C = Connection(address).research
+        C.authenticate(user, password)
+        C = C.ellcurves
         for v in C.find({'level':{'$gte':level_min, '$lt':level_max},
                          'sel2':{'$exists':False}}):
             sel2 = selmer2(eval(v['weq']), max_time)

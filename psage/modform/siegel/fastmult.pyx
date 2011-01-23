@@ -86,7 +86,7 @@ cpdef  mult_coeff_int(int a, int b, int c, coeffs_dict1, coeffs_dict2):
     mpz_init(mult_coeff)
     mpz_init(mpz_zero)
 
-    ## We assume that (a,b,c) is semipositive definite! (Havock otherwise.)
+    ## We assume that (a,b,c) is semipositive definite! (Havoc otherwise.)
     ## Reduce the form first so that our search space is smaller
     tmp_triple = _reduce_GL(a, b, c)
 
@@ -183,7 +183,7 @@ cpdef mult_coeff_generic(int a, int b, int c, coeffs_dict1, coeffs_dict2, Ring R
 
     mpz_init(tmp)
 
-    ## We assume that (a,b,c) is semipositive definite! (Havock otherwise.)
+    ## We assume that (a,b,c) is semipositive definite! (Havoc otherwise.)
     ## Reduce the form first so that our search space is smaller
     tmp_triple = _reduce_GL(a, b, c)
 

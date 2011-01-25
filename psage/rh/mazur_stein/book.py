@@ -43,7 +43,7 @@ from sage.all import (
     gcd,
     Graphics,
     graphics_array,
-    is_prime, is_prime_power,
+    is_prime, is_prime_power, is_pseudoprime,
     latex,
     Li,
     line,
@@ -90,9 +90,9 @@ def draw(fig=None, dir='illustrations/',ext='pdf', in_parallel=True):
         print "Drawing %s... "%fig,
         sys.stdout.flush()
         t = walltime()
-        eval('fig_%s(dir,ext)'%fig)
+        G = eval('fig_%s(dir,ext)'%fig)
         print " (time = %s seconds)"%walltime(t)
-        return
+        return G
     
     if fig is None:
         figs = ['_'.join(x.split('_')[1:]) for x in globals() if x.startswith('fig_')]
@@ -446,7 +446,29 @@ def similar_rates():
     a = graphics_array([[H,G]]) 
     return a
 
+def same_rates():
+    """
+    Draw figure fig:samerates illustrating same rates.
 
+    EXAMPLES::
+
+        sage: similar_rates()
+    """
+    X = var('X')
+    A = X**2 + 3*X - 5
+    B = X**2 - 2*X + 1
+    G = plot(A/B, (1,100))
+    G += text("$A(X)/B(X)$", (70,.58), rgbcolor='black', fontsize=14)
+    H = plot(A, (X,1,100), rgbcolor='red') + plot(B, (X,1,100))
+    H += text("$A(X)$", (70,8500), rgbcolor='black',fontsize=14)
+    H += text("$B(X)$", (90,5000), rgbcolor='black',fontsize=14)    
+    a = graphics_array([[H,G]]) 
+    return a
+
+def fig_same_rates(dir,ext):
+    # similar rates 
+    G = same_rates()
+    G.save(dir + "/same_rates.%s"%ext,figsize=[8,3])
 
 
 ##############################################################
@@ -552,6 +574,47 @@ def prime_gap_distribution(maxp):
 def fig_primegapdist(dir,ext):
     v = prime_gap_distribution(10**7)[:50]
     bar_chart(v).save(dir+"/primegapdist.%s"%ext, figsize=[9,3])
+
+
+def prime_gap_plots(maxp, gap_sizes):
+    """
+    Return a list of graphs of the functions Gap_k(X) for 0<=X<=maxp,
+    for each k in gap_sizes.  The graphs are lists of pairs (X,Y) of
+    integers.
+
+    INPUT:
+        - maxp -- positive integer
+        - gap_sizes -- list of integers 
+    """
+    P = prime_range(maxp+1)
+    v = [[(0,0)] for i in gap_sizes]
+    k = dict([(g,i) for i, g in enumerate(gap_sizes)])
+    for i in range(len(P)-1):
+        g = P[i+1] - P[i]
+        if g in k:
+            w = v[k[g]]
+            w.append( (P[i+1],w[-1][1]) )
+            w.append( (P[i+1],w[-1][1]+1) )
+    return v
+
+
+def fig_primegap_race(dir, ext):
+    """
+    Draw plots showing the race for gaps of size 2, 4, 6, and 8.
+    """
+    X = 7000
+    gap_sizes = [2,4,6,8]
+    #X = 100000
+    #gap_sizes = [i for i in range(2,50) if i%2==0]
+    v = prime_gap_plots(X, gap_sizes)
+
+    P = sum(line(x) for x in v)
+    P += sum( text( "Gap %s"%gap_sizes[i], (v[i][-1][0]*1.04, v[i][-1][1]), color='black', fontsize=8)
+              for i in range(len(v)))
+
+    P.save(dir + '/primegap_race.%s'%ext, figsize=[9,3], gridlines=True)
+    return P
+
 
 
 ##############################################################
@@ -675,6 +738,29 @@ def fig_logXoverX(dir, ext):
     G.save(file, figsize=[7,3])
 
 ##############################################################
+# The devil is in the details.
+##############################################################
+
+def committee_pi(X, error_prob=0.1):
+    num_primes = 0
+    for N in range(1, X+1):
+        N_is_prime = is_pseudoprime(N)
+        if random() < error_prob:
+            # make a mistake
+            if not N_is_prime:
+                # incorrectly count it
+                num_primes += 1
+        else:
+            # do not make a mistake
+            if N_is_prime:
+                num_primes += 1
+    return num_primes
+            
+            
+    
+
+
+##############################################################
 # Prime pi plots
 ##############################################################
 
@@ -684,7 +770,7 @@ def fig_prime_pi_aspect1(dir,ext):
                  plot_points=10000,rgbcolor='red',
                  fillcolor=(.9,.9,.9),fill=True)
         file = dir + '/prime_pi_%s_aspect1.%s'%(n,ext)
-        p.save(file, aspect_ratio=1)
+        p.save(file, aspect_ratio=1, gridlines=True)
         
 def fig_prime_pi(dir,ext):
     for n in [1000, 10000, 100000]:
@@ -891,7 +977,7 @@ def fig_psi(dir,ext):
         g.save(dir+'/psi_%s.%s'%(m,ext), aspect_ratio=1, gridlines=True,
                fontsize=20)
     g = plot(lambda x:x,1,1000,rgbcolor='red')+plot_psi(1000,alpha=0.8)
-    g.save(dir+'/psi_diag_%s.%s'%(1000,ext),aspect_ratio=1, fontsize=20)
+    g.save(dir+'/psi_diag_%s.%s'%(1000,ext),aspect_ratio=1, fontsize=20, gridlines=True)
 
 def plot_Psi(xmax, **kwds):
     v = psi_data(xmax)
@@ -968,10 +1054,10 @@ def fig_waves(dir,ext):
 
     c=5
     g = plot(sin(x), -2, c*pi) + plot(sin(x + 1.5), -2, c*pi, color='red')
-    g += text("Phase", (-2.5,.5), fontsize=14, rgbcolor='black')
+    g += text("Phase", (-3,.5), fontsize=14, rgbcolor='black')
     g += arrow((-2.5,.4), (-1.5,0), width=1, rgbcolor='black')
     g += arrow((-2,.4), (0,0), width=1, rgbcolor='black')
-    g.save(dir+'/sin-twofreq-phase.%s'%ext)
+    g.save(dir+'/sin-twofreq-phase.%s'%ext, xmin=-5)
 
     g = plot(sin(x) + sin(329.0/261*x + 0.4), 0, c*pi)
     g.save(dir+'/sin-twofreq-phase-sum.%s'%ext)
@@ -997,6 +1083,30 @@ def fig_waves(dir,ext):
     f = (0.7*sin(x) + sin(329.0/261*x + 0.4) +  0.5*sin(300.0/261*x + 0.7) + 0.3*sin(1.5*x + 0.2) + 1.1*sin(4*x+0.1)).function(x)
     g = plot(f, (0, 5*pi))
     g.save(dir + '/complicated-wave.%s'%ext)
+
+##############################################################
+# Pure Tone
+##############################################################
+def pure_tone(a=2, b=1, theta=1/2.0, tmin=-15, tmax=15):
+    t = var('t')
+    return plot(a*cos(b+theta*t), (t,tmin,tmax))
+
+def fig_pure_tone(dir,ext):
+    g = pure_tone()
+    g.save(dir + '/pure_tone.%s'%ext, figsize=[8,2])
+
+
+def mixed_tone3(a=[2,3,5], b=[1,4,-2], theta=[1/2.0,2,-1], tmin=-15, tmax=15):
+    t = var('t')
+    f = sum(a[i]*cos(b[i]+theta[i]*t) for i in range(3))
+    return plot(f, (t,tmin,tmax)), f
+
+def fig_mixed_tone3(dir,ext):
+    g, f = mixed_tone3()
+    g.save(dir + '/mixed_tone3.%s'%ext, figsize=[8,2])
+
+    
+
 
 ##############################################################
 # Sawtooth
@@ -1153,7 +1263,7 @@ def fig_jump(dir,ext):
     v.ymin(0)
     S = spline( [(3-e,1), (3-e + e/20.0, 1), (3,1.5), (3+e-e/20.0, 2), (3+e,2)] )
     v += plot(S, (3-e, 3+e), thickness=2)
-    v.save(dir + '/jump-smooth.%s'%ext)
+    v.save(dir + '/jump-smooth.%s'%ext, ymin=0)
 
     # derivatives of smooth jumps
     for e in ['7', '2', '05', '01']:
@@ -1474,8 +1584,9 @@ def fig_Rk(dir, ext):
 # Import fast cython versions of some functions, if available.
 
 try:
-    from book_cython import mult_parities
-except ImportError:
+    from psage.rh.mazur_stein.book_cython import mult_parities
+except ImportError, msg:
+    print msg
     print "Cython versions of some functions not available."
     mult_parieties = mult_parities_python
 

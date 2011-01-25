@@ -5,7 +5,7 @@ This file contains code that carries out interesting queries
 regarding the database of elliptic curves.
 """
 
-def create_counts_table(levels, address):
+def create_counts_table(levels, address, verbose=0):
     """
     QUESTION: What proportion of curves in the database have
     squarefree conductor, as a function of the conductor?
@@ -28,8 +28,9 @@ def create_counts_table(levels, address):
     db_counts = ellcurves.counts
     
     from sage.all import is_squarefree
+    i = 0
     
-    def counts(N):
+    for N in levels:
         N = int(N)
         c = ellcurves.find({'level':N, 'number':1}).count()
         doc = {'_id':N, 'c':c}
@@ -38,13 +39,15 @@ def create_counts_table(levels, address):
         try:
             db_counts.insert(doc, safe=True)
         except DuplicateKeyError:
-            print '[%s]'%N,
+            if verbose and i%verbose == 0:
+                print '[%s]'%N,
         else:
-            print N,
+            if verbose and i%verbose == 0:
+                print N,
+        i += 1
         import sys; sys.stdout.flush()
-        
-    for N in levels:
-        counts(N)
+
+
 
 
     

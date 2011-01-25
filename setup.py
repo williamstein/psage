@@ -136,6 +136,8 @@ build_system.setup(
                 'psage.ellff',
                 'psage.function_fields',
                 'psage.lmfdb',
+                'psage.lmfdb.ellcurves',
+                'psage.lmfdb.ellcurves.sqrt5',
                 'psage.modform',
                 'psage.modform.hilbert',
                 'psage.modform.hilbert.sqrt5',

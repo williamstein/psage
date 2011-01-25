@@ -585,14 +585,19 @@ def primes_of_bounded_norm(F, N):
 
     EXAMPLES::
 
-        sage: from psage.modform.hilbert.sqrt5 import *
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import *
         sage: F.<a> = QuadraticField(5)
         sage: primes_of_bounded_norm(F, 5)
         [Fractional ideal (2), Fractional ideal (a)]         
-        sage: primes_of_bounded_norm(F,25)
+        sage: P = primes_of_bounded_norm(F,25)
         [Fractional ideal (2), Fractional ideal (3), Fractional ideal (-a),
          Fractional ideal (-3/2*a + 1/2), Fractional ideal (-3/2*a - 1/2),
          Fractional ideal (-2*a - 1), Fractional ideal (-2*a + 1)]
+
+    The ideals are ordered not by norm, but by residue characteristic:
+    
+        sage: [I.norm() for I in P]
+        [4, 9, 5, 11, 11, 19, 19]
     """
     # The answer is the set of primes over primes p of ZZ
     # with p<=N with p split (or ramified) or p^2<=N with p inert.

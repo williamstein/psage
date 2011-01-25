@@ -188,9 +188,11 @@ def fit_to_power_of_log(v):
 def least_squares_fit(v):
     """
     INPUT:
-        - v -- a list of (x,y) values
+        - v -- a list of (x,y) values that are floats
     OUTPUT:
         - a and b such that the line y=a*x + b is the least squares fit for the data.
+
+    All computations are done using floats. 
     """
     import numpy
     x = numpy.array([a[0] for a in v])

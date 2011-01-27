@@ -527,6 +527,9 @@ def gram_matrix_of_maximal_order(R):
     return matrix(ZZ, G)
 
 def qfminim(qf, N):
+    """Call the PARI qfminim method on qf and 2*N, with smaller and
+    and smaller search range, until a MemoryError is *not* raised.
+    On a large-memory machine this will succeed the first time."""
     i = 32
     while i>10:
         try:

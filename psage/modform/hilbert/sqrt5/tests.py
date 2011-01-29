@@ -211,7 +211,7 @@ def test_sqrtmod_long_2(e_max=15):
 # Test Hecke operators commute
 ################################################################
 
-def test_hecke_commutes(Bmin=2, Bmax=200):
+def test_hecke_commutes(Bmin=2, Bmax=50):
     from tables import ideals_of_bounded_norm
     from hmf import HilbertModularForms, next_prime_of_characteristic_coprime_to
     for N in ideals_of_bounded_norm(Bmax):

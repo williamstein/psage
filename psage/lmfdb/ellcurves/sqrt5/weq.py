@@ -19,62 +19,50 @@
 #
 #################################################################################
 
-def str_to_apdict(s, primes):
-    return dict([(primes[a], int(b)) for a,b in enumerate(s.split()) if b != '?'])
 
-def labeled_primes_of_bounded_norm(F, B):
+def import_table(address, table_filename, max_level=None):
     """
-    Return a list [prime][letter code] of strings, corresponding to
-    the primes of F of bounded norm of F, ordered by residue
-    characteristic (not norm).
+    Import a text table of weq's, using upsert to avoid
+    replication of data.  Format is like this:
+
+    ::
+    
+      31      5*a-2       0   -3 2 -2 2 4 -4 4 -4 -2 -2 ? ? -6 -6 12 -4 6 -2 -8 0 0 16 10 -6              [1,a+1,a,a,0]
+      31      5*a-3       0   -3 2 -2 2 -4 4 -4 4 -2 -2 ? ? -6 -6 -4 12 -2 6 0 -8 16 0 -6 10              [1,-a-1,a,0,0]
+      36      6           0   ? ? -4 10 2 2 0 0 0 0 -8 -8 2 2 -10 -10 2 2 12 12 0 0 10 10                 [a,a-1,a,-1,-a+1]
     """
+    from psage.modform.hilbert.sqrt5.sqrt5 import F
     from sage.databases.cremona import cremona_letter_code
-    from psage.modform.hilbert.sqrt5.sqrt5 import primes_of_bounded_norm
-    labels = []
-    last_c = 1
-    number = 0
-    for p in primes_of_bounded_norm(F, B):
-        c = p.smallest_integer() # residue characteristic
-        if c != last_c:
-            last_c = c
-            number = 0
-        else:
-            number += 1
-        labels.append('%s%s'%(c,cremona_letter_code(number)))
-    return labels
+    from aplists import labeled_primes_of_bounded_norm, str_to_apdict
+    primes = labeled_primes_of_bounded_norm(F, 100)
 
-
-def import_table(address, aplists_txt_filename, max_level=None):
-    """
-    Import a text table of eigenvalues, using upsert to avoid
-    replication of data.
-    """
     from psage.lmfdb.auth import userpass
     user, password = userpass()
-
-    from sage.databases.cremona import cremona_letter_code
-    from psage.modform.hilbert.sqrt5.sqrt5 import F
-    primes = labeled_primes_of_bounded_norm(F, 100)
 
     from pymongo import Connection
     C = Connection(address).research
     if not C.authenticate(user, password):
         raise RuntimeError, "failed to authenticate"
     e = C.ellcurves_sqrt5
-    for X in open(aplists_txt_filename).read().splitlines():
+
+
+    for X in open(table_filename).read().splitlines():
         if X.startswith('#'):
             continue
-        Nlevel, level, iso_class, ap = X.split('\t')
-        ap = str_to_apdict(ap, primes)        
+        z = X.split()
+        Nlevel = z[0]; level = z[1]; iso_class = z[2]; weq = z[-1]
+        ap = ' '.join(z[3:-1])
+        ap = str_to_apdict(ap, primes)
         Nlevel = int(Nlevel)
         iso_class = cremona_letter_code(int(iso_class))
         v = {'level':level, 'iso_class':iso_class,
-             'number':1, 'Nlevel':Nlevel, 'ap':ap}
+             'number':1, 'Nlevel':Nlevel, 'ap':ap,
+             'weq':weq}
         if max_level and Nlevel > max_level: break
         print v
         spec = dict(v)
-        del spec['ap']
+        del spec['weq']
         e.update(spec, v, upsert=True, safe=True)
-    return e
+ 
         
 

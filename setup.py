@@ -22,6 +22,14 @@
 
 import os, sys
 
+
+if sys.maxint != 2**63 - 1:
+    print "*"*70
+    print "The PSAGE library only works on 64-bit computers.  Terminating build."
+    print "*"*70
+    sys.exit(1)
+    
+
 import build_system
 
 SAGE_ROOT = os.environ['SAGE_ROOT']

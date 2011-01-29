@@ -526,6 +526,18 @@ def gram_matrix_of_maximal_order(R):
     from sage.all import matrix
     return matrix(ZZ, G)
 
+def qfminim(qf, N):
+    """Call the PARI qfminim method on qf and 2*N, with smaller and
+    and smaller search range, until a MemoryError is *not* raised.
+    On a large-memory machine this will succeed the first time."""
+    i = 32
+    while i>10:
+        try:
+            return qf.qfminim(2*N, 2**i)
+        except MemoryError:
+            i -= 1
+       
+
 def bounded_elements(N):
     """
     Return elements in maximal order of B that have reduced norm
@@ -566,7 +578,7 @@ def bounded_elements(N):
     # Get the vectors of norm up to N.
     # The 2 is because we had to scale by 2 to get
     # rid of denominator in Gram matrix. 
-    Z = qf.qfminim(2*N, 2**32)  # TODO: not sure about 2^32...?
+    Z = qfminim(qf, N)
     Z2 = Z[2].sage().transpose()
 
     # For each vector, make the corresponding element of B.
@@ -836,7 +848,7 @@ class AlphaZ:
         from sage.all import pari
         qf = pari(G)
         t = self.pi.trace()
-        c = qf.qfminim(2*t, 2**32)
+        c = qfminim(qf, t)
         #print "number of vectors", c[0]
         for r in c[2].sage().transpose():
             a = sum([W[i]*r[i] for i in range(8)])

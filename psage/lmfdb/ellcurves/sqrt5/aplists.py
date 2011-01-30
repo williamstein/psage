@@ -19,8 +19,8 @@
 #
 #################################################################################
 
-def str_to_apdict(s, primes):
-    return dict([(primes[a], int(b)) for a,b in enumerate(s.split()) if b != '?'])
+def str_to_apdict(s, labels):
+    return dict([(labels[a], int(b)) for a,b in enumerate(s.split()) if b != '?'])
 
 def labeled_primes_of_bounded_norm(F, B):
     """
@@ -33,7 +33,8 @@ def labeled_primes_of_bounded_norm(F, B):
     labels = []
     last_c = 1
     number = 0
-    for p in primes_of_bounded_norm(F, B):
+    primes = primes_of_bounded_norm(F, B)
+    for p in primes:
         c = p.smallest_integer() # residue characteristic
         if c != last_c:
             last_c = c
@@ -41,7 +42,7 @@ def labeled_primes_of_bounded_norm(F, B):
         else:
             number += 1
         labels.append('%s%s'%(c,cremona_letter_code(number)))
-    return labels
+    return labels, primes
 
 
 def import_table(address, aplists_txt_filename, max_level=None):
@@ -54,7 +55,7 @@ def import_table(address, aplists_txt_filename, max_level=None):
 
     from sage.databases.cremona import cremona_letter_code
     from psage.modform.hilbert.sqrt5.sqrt5 import F
-    primes = labeled_primes_of_bounded_norm(F, 100)
+    labels, primes = labeled_primes_of_bounded_norm(F, 100)
 
     from pymongo import Connection
     C = Connection(address).research
@@ -65,7 +66,7 @@ def import_table(address, aplists_txt_filename, max_level=None):
         if X.startswith('#'):
             continue
         Nlevel, level, iso_class, ap = X.split('\t')
-        ap = str_to_apdict(ap, primes)        
+        ap = str_to_apdict(ap, labels)        
         Nlevel = int(Nlevel)
         iso_class = cremona_letter_code(int(iso_class))
         v = {'level':level, 'iso_class':iso_class,
@@ -77,4 +78,40 @@ def import_table(address, aplists_txt_filename, max_level=None):
         e.update(spec, v, upsert=True, safe=True)
     return e
         
+
+
+
+def aplist(E, B=100):
+    """
+    Compute aplist for an elliptic curve E over Q(sqrt(5)), as a
+    string->number dictionary.
+
+    INPUT:
+        - E -- an elliptic curve
+        - B -- a positive integer (default: 100)
+
+    OUTPUT:
+        - dictionary mapping strings (labeled primes) to Python ints,
+          with keys the primes of P with norm up to B such that the
+          norm of the conductor is coprime to the characteristic of P.
+    """
+    from psage.modform.hilbert.sqrt5.tables import canonical_gen    
+    v = {}
+    from psage.modform.hilbert.sqrt5.sqrt5 import F
+    labels, primes = labeled_primes_of_bounded_norm(F, B)
+
+    from sage.all import ZZ
+    N = E.conductor()
+    try:
+        N = ZZ(N.norm())
+    except:
+        N = ZZ(N)
+    
+    for i in range(len(primes)):
+        p = primes[i]
+        k = p.residue_field()
+        if N.gcd(k.cardinality()) == 1:
+            v[labels[i]] = int(k.cardinality() + 1 - E.change_ring(k).cardinality())
+    return v
+
 

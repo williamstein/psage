@@ -16,7 +16,11 @@ def ideals_of_norm(v):
     return sum([z[n] for n in v if n>1],[])
 
 def canonical_gen(I):
-    return I.gens_reduced()[0]
+    try:
+        return I.gens_reduced()[0]
+    except AttributeError:
+        # sometimes I is just a usuaul integer
+        return Integer(I)
 
 def no_space(s):
     return str(s).replace(' ', '')

@@ -34,7 +34,7 @@ def import_table(address, table_filename, max_level=None):
     from psage.modform.hilbert.sqrt5.sqrt5 import F
     from sage.databases.cremona import cremona_letter_code
     from aplists import labeled_primes_of_bounded_norm, str_to_apdict
-    primes = labeled_primes_of_bounded_norm(F, 100)
+    labels, primes = labeled_primes_of_bounded_norm(F, 100)
 
     from psage.lmfdb.auth import userpass
     user, password = userpass()
@@ -52,7 +52,7 @@ def import_table(address, table_filename, max_level=None):
         z = X.split()
         Nlevel = z[0]; level = z[1]; iso_class = z[2]; weq = z[-1]
         ap = ' '.join(z[3:-1])
-        ap = str_to_apdict(ap, primes)
+        ap = str_to_apdict(ap, labels)
         Nlevel = int(Nlevel)
         iso_class = cremona_letter_code(int(iso_class))
         v = {'level':level, 'iso_class':iso_class,

@@ -1254,14 +1254,13 @@ class Mod_P_reduction_map:
         return I, J, R
     
 
-#NOTE: I don't think I like this at all.  The results are too big!
-# It would make way more sense to find an algorithm to find a representative
-# in the ideal that minimizes a^2 + 5*b^2, i.e., the sum of the
-# squares of the images under the two real embeddings. 
 def canonical_representative_mod_units(I):
     """
-    Given an ideal I or element of F, returns our agreed upon canocial
+    Given an ideal I or element of F, returns our agreed upon canonical
     element, which generators the same fractional ideal.
+
+    See the tables.canonical_gen method, for something that is I think
+    much better than this in practice, regarding the look of the answer.
     """
     phi = F.real_embeddings()[1]
     from sage.all import log, floor, ceil

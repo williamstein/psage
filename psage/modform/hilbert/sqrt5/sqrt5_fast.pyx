@@ -29,14 +29,10 @@ include 'stdsage.pxi'
 include 'cdefs.pxi'
 
 
-from sage.rings.ring cimport CommutativeRing
 from sage.rings.all import Integers, is_Ideal, ZZ, QQ
 from sage.matrix.all import MatrixSpace, zero_matrix
 
 cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
-
-# Residue element
-ctypedef long residue_element[2]
 
 #from sqrt5_fast_python import ResidueRing
 
@@ -103,10 +99,6 @@ class ResidueRingIterator:
             raise StopIteration
 
 cdef class ResidueRing_abstract(CommutativeRing):
-    cdef object P, F
-    cdef public object element_class, _residue_field
-    cdef long n0, n1, p, e, _cardinality
-    cdef long im_gen0
     def __init__(self, P, p, e):
         """
         INPUT:
@@ -940,8 +932,6 @@ cdef inline bint _rich_to_bool(int op, int r):  # copied from sage.structure.ele
 
 
 cdef class ResidueRingElement:
-    cdef residue_element x
-    cdef ResidueRing_abstract _parent
     cpdef parent(self):
         return self._parent
     cdef new(self):
@@ -2284,6 +2274,7 @@ def unpickle_IcosiansModP1ModN_v1(x):
     import sqrt5
     return IcosiansModP1ModN(sqrt5.F.ideal(x))
 
+ 
 ####################################################################
 # fragments/test code below
 ####################################################################

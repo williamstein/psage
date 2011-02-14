@@ -106,6 +106,8 @@ from sage.all import prime_range, pari
 
 from psage.libs.smalljac.wrapper1 import elliptic_curve_ap
 
+import aplist
+
 include "stdsage.pxi"
 include "interrupt.pxi"
 
@@ -119,7 +121,7 @@ cdef class TracesOfFrobenius:
     cdef long* sqrt5
     cdef long* ap
     cdef mpz_t Ax, Ay, Bx, By
-    cdef object a1, a2, a3, a4, a6
+    cdef object E, j, c_quo
 
     ##########################################################
     # Allocate and de-allocate basic data structures
@@ -131,10 +133,10 @@ cdef class TracesOfFrobenius:
         self.ap = NULL
         mpz_init(self.Ax); mpz_init(self.Ay); mpz_init(self.Bx); mpz_init(self.By)
         
-    def __init__(self, a1, a2, a3, a4, a6, long bound):
+    def __init__(self, E, long bound):
         # Make table of primes up to the bound, and uninitialized
         # corresponding a_p (traces of Frobenius)
-        self._initialize_coefficients(a1,a2,a3,a4,a6)
+        self._initialize_coefficients(E)
         self._initialize_prime_ap_tables(bound)
         #self._compute_split_traces()
 
@@ -173,9 +175,10 @@ cdef class TracesOfFrobenius:
                 
         self.table_size = i
     
-    def _initialize_coefficients(self,a1,a2,a3,a4,a6):
+    def _initialize_coefficients(self,E):
         # Store all coefficients -- may be needed for trace of frob mod 2 and 3 and bad primes.
-        self.a1 = a1; self.a2 = a2; self.a3 = a3; self.a4 = a4; self.a6 = a6
+        self.E = E
+        a1, a2, a3, a4, a6 = E.a_invariants()
 
         # Compute short Weierstrass form directly (for speed purposes)
         if a1 or a2 or a3:
@@ -193,6 +196,9 @@ cdef class TracesOfFrobenius:
         # any worse at 2.
         A *= 16
         B *= 64
+
+        self.c_quo = (-48*A)/(-864*B)
+        self.j = (-110592*A*A*A)/(-64*A*A*A - 432*B*B)
 
         # Store the short Weierstrass form coefficients as a 4-tuple of GMP ints, 
         # where (Ax,Ay) <--> Ax + sqrt(5)*Ay.
@@ -264,19 +270,113 @@ cdef class TracesOfFrobenius:
                     self.ap[i] = pari('ellap(ellinit([0,0,0,%s,%s],1),%s)'%(a,b,p))   # the 1 in the elliptic curve constructor is super important!
                 else:
                     raise ValueError
-                
+
+    def _compute_inert_and_ramified_traces(self, T):  # T = InertTraceCalculator
+        cdef long i, p
+        for i in range(self.table_size):
+            if self.sqrt5[i] == 0:
+                p = self.primes[i]
+                if p >= 7:
+                    try:
+                        self.ap[i] = T.trace_of_frobenius(self.j, self.c_quo, p)
+                    except Exception, msg:
+                        print "skipping table computation for p=%s (%s)"%(p, msg)
+
+    def _compute_remaining_traces_naively(self):
+        """
+        Compute any traces not already computed using naive algorithm.
+        """
+        cdef long i
+        for i in range(self.table_size):
+            if self.ap[i] == UNKNOWN:
+                self._compute_naive_trace(i)
+
+    def _compute_naive_trace(self, i):
+        """
+        Compute trace at position i using naive algorithm.
+        """
+        print "naive i=%s, a_{%s}"%(i,self.primes[i])
+        self.ap[i] = aplist.ap(self.E, self._ith_number_field_prime(i))
+
+    def _ith_number_field_prime(self, long i):
+        # Non-optimized code that returns the ith prime of the quadratic number field.
+        from psage.modform.hilbert.sqrt5.sqrt5 import F  # F = Q(sqrt(5))
+        cdef long a, p = self.primes[i], s = self.sqrt5[i]
+        if p == 5: # ramified
+            return F.ideal(2*F.gen() - 1)
+
+        a = p % 5
+        if a==2 or a==3:  # inert
+            return F.ideal(p)
+        else: # split case
+            return F.ideal([p, 2*F.gen()-1 - s])
+        
+    def _compute_traces(self, inert_table, algorithm='smalljac'):
+        self._compute_split_traces()
+        self._compute_inert_and_ramified_traces(inert_table)
+        self._compute_remaining_traces_naively()
 
 ###############################################################
 # Specialized code for computing traces modulo the inert primes
 ###############################################################
 
+def inert_primes(N):
+    r"""
+    Return a list of the inert primes of `\QQ(\sqrt{5})` of norm less than `N`. 
+
+    INPUT:
+        - N -- positive integer
+    OUTPUT:
+        - list of Sage integers
+
+    EXAMPLES::
+
+        sage: import psage.ellcurve.lseries.sqrt5 as sqrt5
+        sage: sqrt5.inert_primes(10^4)
+        [2, 3, 7, 13, 17, 23, 37, 43, 47, 53, 67, 73, 83, 97]
+    """
+    from math import sqrt
+    s = set([Integer(2), Integer(3)])
+    return  [p for p in prime_range(int(sqrt(N))) if p%5 in s]
+
 from sage.stats.intlist cimport IntList
+
+def unpickle_InertTraceCalculator(tables):
+    C = InertTraceCalculator()
+    C.tables = tables
+    return C
 
 cdef class InertTraceCalculator:
     cdef public dict tables
     
     def __init__(self):
         self.tables = {}
+
+    def __repr__(self):
+        return "Inert trace calculator with precomputed tables for p in {%s}"%(sorted(self.tables.keys()))
+
+    def __reduce__(self):
+        return unpickle_InertTraceCalculator, (self.tables, )
+
+    cpdef long trace_of_frobenius(self, j0, c_quo0, long p) except 9223372036854775808:
+        T = self.tables[p]
+        cdef ResidueRing_abstract R = T['R']
+        cdef ResidueRingElement j = R(j0), c_quo = R(c_quo0)
+        if R.element_is_0(j.x) or j.x[0]==1728%p and j.x[1]==0:
+            raise NotImplementedError
+        
+        cdef int i = R.index_of_element(j.x)
+        
+        cdef IntList ap = T['ap'], c_quos = T['c_quo'], squares = T['squares']
+        cdef long a = ap[i]
+        cdef residue_element z
+        R.ith_element(z, c_quos[i])
+        R.mul(z, z, c_quo.x)
+        if not squares[R.index_of_element(z)]:  # not a square, so curves are not isomorphic, so there is a quadratic twist
+            return -a
+        else:
+            return a
+        
 
     def init_table(self, int p):
         assert p >= 7 and (p%5 == 2 or p%5 == 3)  # inert prime
@@ -289,16 +389,47 @@ cdef class InertTraceCalculator:
         cdef IntList ap, c_quo
         ap = IntList(R.cardinality())
         c_quo = IntList(R.cardinality())
-        self.tables[p] = [R, ap, c_quo]
+        squares = IntList(R.cardinality())
+        self.tables[p] = {'R':R, 'ap':ap, 'c_quo':c_quo, 'squares':squares}
+
+        self.init_squares_table(squares, R)
+
+        cdef IntList cubes = IntList(R.cardinality())
+        self.cube_table(cubes, R)
         
         cdef long i
         cdef residue_element j, a4, a6
+        _sig_on
         for i in range(R.cardinality()):
             R.unsafe_ith_element(j, i)
             self.elliptic_curve_from_j(a4, a6, j, R)
-            self.ap_via_enumeration(&ap._values[i], &c_quo._values[i], a4, a6, R)
+            self.ap_via_enumeration(&ap._values[i], &c_quo._values[i], a4, a6, R, squares, cubes)
+        _sig_off
 
-    cdef int elliptic_curve_from_j(self, residue_element a4, residue_element a6,
+    cdef int cube_table(self, IntList cubes, ResidueRing_abstract R) except -1:
+        cdef long i
+        cdef residue_element x, y
+        for i in range(R.cardinality()):
+            R.unsafe_ith_element(x, i)
+            R.mul(y, x, x)  # y = x^2
+            R.mul(y, y, x)  # y = x^3
+            cubes._values[R.index_of_element(y)] = 1
+        return 0
+
+    cdef int init_squares_table(self, IntList squares, 
+                                ResidueRing_abstract R) except -1:
+
+        cdef long i
+        cdef residue_element x, y
+        for i in range(R.cardinality()):
+            R.unsafe_ith_element(x, i)
+            R.mul(y, x, x)
+            squares._values[R.index_of_element(y)] = 1
+        return 0
+
+    cdef int elliptic_curve_from_j(self,
+                                   residue_element a4,
+                                   residue_element a6,
                                    residue_element j,
                                    ResidueRing_abstract R) except -1:
         cdef residue_element k, m_three, m_two
@@ -335,21 +466,24 @@ cdef class InertTraceCalculator:
 
     cdef int ap_via_enumeration(self, int* ap, int* c_quo,
                                 residue_element a4, residue_element a6,
-                                ResidueRing_abstract R) except -1:
+                                ResidueRing_abstract R,
+                                IntList squares,
+                                IntList cubes) except -1:
         assert R.p >= 7
-        cdef long i, cnt = 1  # start 1 because of point at infinity
+        cdef long i, j, cnt = 1  # start 1 because of point at infinity
         cdef residue_element x, z, w
         for i in range(R.cardinality()):
-            R.unsafe_ith_element(x, i)
-            R.mul(z, x, x)   # z = x*x
-            R.mul(z, z, x)   # z = x^3
+            R.unsafe_ith_element(x, i)            
+            R.unsafe_ith_element(z, cubes._values[i])  # z = x^3
             R.mul(w, a4, x)  # w = a4*x
             R.add(z, z, w)   # z = z + w = x^3 + a4*x
             R.add(z, z, a6)  # z = x^3 + a4*x + a6
             if R.element_is_0(z):
                 cnt += 1
-            elif R.is_square(z):
-                cnt += 2
+            else:
+                if squares._values[R.index_of_element(z)]:
+                    cnt += 2
+                    
         ap[0] = R.cardinality() + 1 - cnt
 
         # Now compute c4/c6 = a4/(18*a6)

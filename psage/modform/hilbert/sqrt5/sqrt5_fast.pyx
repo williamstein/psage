@@ -319,6 +319,9 @@ cdef class ResidueRing_split(ResidueRing_abstract):
             else:
                 raise RuntimeError, "bug -- maybe F is misdefined to have wrong gen"
 
+    def __reduce__(self):
+        return ResidueRing_split, (self.P, self.p, self.e)
+
     cdef object element_to_residue_field(self, residue_element x):    
         return self.residue_field()(x[0])
 
@@ -406,6 +409,9 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         self.n0 = p**e
         self.n1 = p**e
         self._cardinality = self.n0 * self.n1
+
+    def __reduce__(self):
+        return ResidueRing_nonsplit, (self.P, self.p, self.e)
         
     cdef object element_to_residue_field(self, residue_element x):    
         k = self.residue_field()
@@ -762,6 +768,9 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         self._cardinality = self.n0 * self.n1        
         self.two_inv = (Integers(self.n0)(2)**(-1)).lift()
         self.element_class = ResidueRingElement_ramified_odd
+
+    def __reduce__(self):
+        return ResidueRing_ramified_odd, (self.P, self.p, self.e)
 
     cdef object element_to_residue_field(self, residue_element x):    
         k = self.residue_field()

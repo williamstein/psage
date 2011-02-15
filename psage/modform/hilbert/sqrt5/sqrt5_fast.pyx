@@ -945,6 +945,13 @@ cdef class ResidueRingElement:
         return self._parent
     cdef new(self):
         raise NotImplementedError
+
+    cpdef long index(self):
+        """
+        Return the index of this element in the enumeration of
+        elements of the parent.
+        """
+        return self._parent.index_of_element(self.x)
     
     def __add__(ResidueRingElement left, ResidueRingElement right):
         cdef ResidueRingElement z = left.new()

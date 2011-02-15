@@ -102,7 +102,7 @@ cpdef unsigned long sqrt_mod(unsigned long a, unsigned long p):
 
 from sage.rings.integer cimport Integer
 
-from sage.all import prime_range, pari
+from sage.all import prime_range, pari, verbose, get_verbose
 
 from psage.libs.smalljac.wrapper1 import elliptic_curve_ap
 
@@ -111,9 +111,7 @@ import aplist
 include "stdsage.pxi"
 include "interrupt.pxi"
 
-# Since we assume computer is 64-bit, this is fine -- this is
-# definitely way bigger than any actual a_p we would ever see.
-cdef long UNKNOWN = 2**63  
+cdef long UNKNOWN = 2**31 - 1
 
 cdef class TracesOfFrobenius:
     cdef long bound, table_size
@@ -280,7 +278,8 @@ cdef class TracesOfFrobenius:
                     try:
                         self.ap[i] = T.trace_of_frobenius(self.j, self.c_quo, p)
                     except Exception, msg:
-                        print "skipping table computation for p=%s (%s)"%(p, msg)
+                        if get_verbose() > 0:
+                            verbose("skipping inert table computation for p=%s (%s)"%(p, msg))
 
     def _compute_remaining_traces_naively(self):
         """
@@ -295,10 +294,20 @@ cdef class TracesOfFrobenius:
         """
         Compute trace at position i using naive algorithm.
         """
-        print "naive i=%s, a_{%s}"%(i,self.primes[i])
-        self.ap[i] = aplist.ap(self.E, self._ith_number_field_prime(i))
+        if get_verbose() > 0:  # since forming verbose error message is expensive
+            verbose("naive i=%s, a_{%s}"%(i,self.primes[i]))
+        self.ap[i] = aplist.ap(self.E, self.prime(i))
 
-    def _ith_number_field_prime(self, long i):
+    def prime(self, long i):
+        """
+        Return the i-th prime as a fractional ideal of Q(sqrt(5)).
+
+        INPUT:
+            i -- positive integer
+        """
+        if i < 0 or i >= self.table_size:
+            raise IndexError, "i must be between 0 and %s"%(self.table_size-1)
+        
         # Non-optimized code that returns the ith prime of the quadratic number field.
         from psage.modform.hilbert.sqrt5.sqrt5 import F  # F = Q(sqrt(5))
         cdef long a, p = self.primes[i], s = self.sqrt5[i]
@@ -379,7 +388,7 @@ cdef class InertTraceCalculator:
         
 
     def init_table(self, int p):
-        assert p >= 7 and (p%5 == 2 or p%5 == 3)  # inert prime
+        assert p >= 7 and (p%5 == 2 or p%5 == 3)  # inert prime >= 7
         if self.tables.has_key(p):
             return
         # create the table for the given prime p.
@@ -413,7 +422,7 @@ cdef class InertTraceCalculator:
             R.unsafe_ith_element(x, i)
             R.mul(y, x, x)  # y = x^2
             R.mul(y, y, x)  # y = x^3
-            cubes._values[R.index_of_element(y)] = 1
+            cubes._values[i] = R.index_of_element(y)
         return 0
 
     cdef int init_squares_table(self, IntList squares, 
@@ -481,7 +490,7 @@ cdef class InertTraceCalculator:
             if R.element_is_0(z):
                 cnt += 1
             else:
-                if squares._values[R.index_of_element(z)]:
+                if squares._values[R.index_of_element(z)]:  # assumes p!=2.
                     cnt += 2
                     
         ap[0] = R.cardinality() + 1 - cnt

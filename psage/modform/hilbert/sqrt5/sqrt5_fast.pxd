@@ -41,6 +41,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
 cdef class ResidueRingElement:
     cdef residue_element x
     cdef ResidueRing_abstract _parent
+    cpdef long index(self)
     cpdef parent(self)
     cdef new(self)
     cpdef bint is_unit(self)

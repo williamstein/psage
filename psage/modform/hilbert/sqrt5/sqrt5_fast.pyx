@@ -29,14 +29,10 @@ include 'stdsage.pxi'
 include 'cdefs.pxi'
 
 
-from sage.rings.ring cimport CommutativeRing
 from sage.rings.all import Integers, is_Ideal, ZZ, QQ
 from sage.matrix.all import MatrixSpace, zero_matrix
 
 cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
-
-# Residue element
-ctypedef long residue_element[2]
 
 #from sqrt5_fast_python import ResidueRing
 
@@ -103,10 +99,6 @@ class ResidueRingIterator:
             raise StopIteration
 
 cdef class ResidueRing_abstract(CommutativeRing):
-    cdef object P, F
-    cdef public object element_class, _residue_field
-    cdef long n0, n1, p, e, _cardinality
-    cdef long im_gen0
     def __init__(self, P, p, e):
         """
         INPUT:
@@ -327,6 +319,9 @@ cdef class ResidueRing_split(ResidueRing_abstract):
             else:
                 raise RuntimeError, "bug -- maybe F is misdefined to have wrong gen"
 
+    def __reduce__(self):
+        return ResidueRing_split, (self.P, self.p, self.e)
+
     cdef object element_to_residue_field(self, residue_element x):    
         return self.residue_field()(x[0])
 
@@ -414,6 +409,9 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         self.n0 = p**e
         self.n1 = p**e
         self._cardinality = self.n0 * self.n1
+
+    def __reduce__(self):
+        return ResidueRing_nonsplit, (self.P, self.p, self.e)
         
     cdef object element_to_residue_field(self, residue_element x):    
         k = self.residue_field()
@@ -771,6 +769,9 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         self.two_inv = (Integers(self.n0)(2)**(-1)).lift()
         self.element_class = ResidueRingElement_ramified_odd
 
+    def __reduce__(self):
+        return ResidueRing_ramified_odd, (self.P, self.p, self.e)
+
     cdef object element_to_residue_field(self, residue_element x):    
         k = self.residue_field()
         # For odd ramified case, we use a different basis, which is:
@@ -940,12 +941,17 @@ cdef inline bint _rich_to_bool(int op, int r):  # copied from sage.structure.ele
 
 
 cdef class ResidueRingElement:
-    cdef residue_element x
-    cdef ResidueRing_abstract _parent
     cpdef parent(self):
         return self._parent
     cdef new(self):
         raise NotImplementedError
+
+    cpdef long index(self):
+        """
+        Return the index of this element in the enumeration of
+        elements of the parent.
+        """
+        return self._parent.index_of_element(self.x)
     
     def __add__(ResidueRingElement left, ResidueRingElement right):
         cdef ResidueRingElement z = left.new()
@@ -2284,6 +2290,7 @@ def unpickle_IcosiansModP1ModN_v1(x):
     import sqrt5
     return IcosiansModP1ModN(sqrt5.F.ideal(x))
 
+ 
 ####################################################################
 # fragments/test code below
 ####################################################################

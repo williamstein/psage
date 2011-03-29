@@ -39,6 +39,9 @@ psage/libs/smalljac/wrapper2.c    # cython
 psage/libs/smalljac/wrapper3.c    # cython
 
 psage/rh/mazur_stein/game.c       # cython
-psage/rh/mazur_stein/book_cython.c # cython
 
+psage/rh/mazur_stein/book_cython.c # cython
 psage/ellcurve/lseries/fast_twist.c # cython
+
+psage/ellcurve/lseries/sqrt5.c    # cython
+psage/ellcurve/lseries/helper.c   # cython

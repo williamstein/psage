@@ -4,6 +4,7 @@ quadratic imaginary field satisfying the Heegner hypothesis.
 """
 
 include "stdsage.pxi"
+include "interrupt.pxi"
 
 from sage.rings.all import ZZ
 

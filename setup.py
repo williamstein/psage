@@ -112,6 +112,8 @@ ext_modules = [
     Extension('psage.rh.mazur_stein.book_cython',
               sources = ['psage/rh/mazur_stein/book_cython.pyx']),
     
+    Extension("psage.ellcurve.lseries.fast_twist",
+              ["psage/ellcurve/lseries/fast_twist.pyx"]),
 ]
 
 for g in [1, 2]:

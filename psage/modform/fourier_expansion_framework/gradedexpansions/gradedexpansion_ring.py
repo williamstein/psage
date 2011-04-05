@@ -99,7 +99,6 @@ class GradedExpansionRing_class ( GradedExpansionAmbient_abstract, Algebra ) :
                          relations.groebner_basis() )
             P = PolynomialRing( relations.base_ring(),
                                 list(relations.ring().variable_names())[:len(base_ring_generators)] )
-            print gb, type(gb), P, type(P)
             base_relations = P.ideal(gb)
             R = GradedExpansionRing_class(None, base_ring_generators, base_relations,
                     grading.subgrading(xrange(len(base_ring_generators))), all_relations, reduce_before_evaluating)

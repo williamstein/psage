@@ -98,6 +98,9 @@ ext_modules = [
     Extension("psage.modform.rational.modular_symbol_map",
               ["psage/modform/rational/modular_symbol_map.pyx"]),
 
+    Extension("psage.modform.rational.padic_elliptic_lseries_fast",
+              ["psage/modform/rational/padic_elliptic_lseries_fast.pyx"]),
+
     Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
               ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
               libraries = ['gmp']),

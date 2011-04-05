@@ -23,13 +23,12 @@
 """
 Highly optimized computation of the modular symbols map associated to
 a simple new space of modular symbols.
+
+AUTHOR:
+    - William Stein
 """
 
 include 'stdsage.pxi'
-
-cdef enum:
-    MAX_CONTFRAC = 100
-    MAX_DEG = 10000
 
 def test_contfrac_q(a, b):
     cdef long qi[MAX_CONTFRAC]
@@ -38,11 +37,12 @@ def test_contfrac_q(a, b):
 
 cdef long contfrac_q(long qi[MAX_CONTFRAC], long a, long b) except -1:
     """
-    Given coprime integers a, b, compute the sequence q_i of
-    denominators in the continued fraction expansion of a/b, storing
-    the results in the array q.
+    Given coprime integers `a`, `b`, compute the sequence `q_i` of
+    denominators in the continued fraction expansion of `a/b`, storing
+    the results in the array `q`.
     
-    Returns the number of q_i.  The rest of the q array is garbage.
+    Returns the number of `q_i`.  The rest of the `q` array is
+    garbage.
     """
     cdef long c
 
@@ -65,13 +65,7 @@ cdef long contfrac_q(long qi[MAX_CONTFRAC], long a, long b) except -1:
 
     return i
 
-from sage.modular.modsym.p1list cimport P1List
-
 cdef class ModularSymbolMap:
-    cdef long d, denom, N
-    cdef long* X  # coefficients of linear map from P^1 to Q^d.
-    cdef P1List P1
-    
     def __cinit__(self):
         self.X = NULL
 
@@ -79,8 +73,10 @@ cdef class ModularSymbolMap:
         return "Modular symbols map for modular symbols factor of dimension %s and level %s"%(self.d, self.N)
         
     def __init__(self, A):
-        # Very slow generic setup code.  This is O(1) since we care
-        # about evaluation time being fast.
+
+        # Very slow generic setup code.  This is "O(1)" in that we
+        # care mainly about evaluation time being fast, at least in
+        # this code.
         from sage.matrix.all import matrix
         from sage.rings.all import ZZ
         self.N = A.level()

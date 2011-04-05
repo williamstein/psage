@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 r"""
-p-adic L-series of modular Jacobians with ordinary reduction at p
-
+p-adic L-series of modular Jacobians with ordinary reduction at p.
 
 REFERENCES:
         
@@ -9,12 +8,12 @@ REFERENCES:
   On `p`-adic analogues of the conjectures of Birch and 
   Swinnerton-Dyer, Inventiones mathematicae 84, (1986), 1-48.
    
-- [SW] William Stein and Christian Wuthrich, Computations About Tate-Shafarevich Groups
-  using Iwasawa theory, preprint 2009.
+- [SW] William Stein and Christian Wuthrich, Computations About
+  Tate-Shafarevich Groups using Iwasawa theory, preprint 2009.
       
 AUTHORS:
 
-- William Stein and Jennifer Balakrishnan (2010-07-01): first version
+  - William Stein and Jennifer Balakrishnan (2010-07-01): first version
 
 """
 
@@ -60,9 +59,10 @@ from sage.modular.modsym.modsym import ModularSymbols
 
 class pAdicLseries(SageObject):
     r"""
-    The `p`-adic L-series of a modular Jacobian
+    The `p`-adic L-series of a modular abelian variety.
 
     EXAMPLES:
+
     An ordinary example::
     
     
@@ -70,12 +70,11 @@ class pAdicLseries(SageObject):
     def __init__(self, J, p, normalize='L_ratio'):
         r"""
         INPUT:
-        
-        -  ``J`` - modular abelian variety
-        -  ``p`` - a prime of good reduction
-        -  ``normalize`` - ``'L_ratio'`` (default), ``'period'`` or ``'none'``;
-           this is describes the way the modular symbols
-           are normalized 
+            - ``J`` - modular abelian variety
+            - ``p`` - a prime of good reduction
+            - ``normalize`` - ``'L_ratio'`` (default), ``'period'`` or
+              ``'none'``; this is describes the way the modular
+              symbols are normalized
         """
         self._J = J
         self._level = J.level()
@@ -94,7 +93,8 @@ class pAdicLseries(SageObject):
         Compare self and other. 
         
         TESTS::
-        sage: lp1 = J0(23)[0].padic_lseries(5)
+
+            sage: lp1 = J0(23)[0].padic_lseries(5)
 	    sage: lp2 = J0(23)[0].padic_lseries(7)
 	    sage: lp3 = J0(29)[0].padic_lseries(5)
 	    sage: lp1 == lp1
@@ -103,7 +103,6 @@ class pAdicLseries(SageObject):
 	    False
 	    sage: lp1 == lp3
 	    False
-
         """
         c = cmp(type(self), type(other))
         if c: 
@@ -345,24 +344,19 @@ class pAdicLseries(SageObject):
 
         
 
-
-
-
-                
-
 #######################################################
 
     def abelian_variety(self):
         r"""
-        Return the abelian variety to which this `p`-adic L-series is associated.
+        Return the abelian variety to which this `p`-adic L-series is
+        associated.
         
         EXAMPLES::
         
 	    sage: L = J0(23)[0].padic_lseries(5)
             sage: L.abelian_variety()
 	    Simple abelian variety J0(23) of dimension 2
-
-            """
+        """
         return self._J
 
     def prime(self):
@@ -374,7 +368,6 @@ class pAdicLseries(SageObject):
 	    sage: L = J0(23)[0].padic_lseries(5)
 	    sage: L.prime()
 	    5
-
         """
         return self._p
 		
@@ -383,7 +376,6 @@ class pAdicLseries(SageObject):
         Return print representation.
 
         EXAMPLES::
-        
         """
         s = "%s-adic L-series of %s"%(self._p, self._J)
         if not self._normalize == 'L_ratio':
@@ -409,7 +401,6 @@ class pAdicLseries(SageObject):
 	    (19, -2)
 	    (23, 1)
 	    (29, -3)
-
 	"""
         try:
             A = self._modular_symbols_subspace
@@ -623,12 +614,10 @@ class pAdicLseries(SageObject):
         Return Teichmuller lifts to the given precision.
         
         INPUT:
-        
-        - ``prec`` - a positive integer.
+            - ``prec`` - a positive integer.
             
         OUTPUT:
-        
-        - a list of `p`-adic numbers, the cached Teichmuller lifts 
+            - a list of `p`-adic numbers, the cached Teichmuller lifts 
 
         EXAMPLES::
         
@@ -668,10 +657,12 @@ class pAdicLseries(SageObject):
 
     def _quotient_of_periods_to_twist(self,D):
         r"""
-        For a fundamental discriminant `D` of a quadratic number field this computes the constant `\eta` such that
-        `\sqrt{D}\cdot\Omega_{E_D}^{+} =\eta\cdot \Omega_E^{sign(D)}`. As in [MTT]_ page 40.
-        This is either 1 or 2 unless the condition on the twist is not satisfied, e.g. if we are 'twisting back'
-        to a semi-stable curve.
+        For a fundamental discriminant `D` of a quadratic number field
+        this computes the constant `\eta` such that
+        `\sqrt{D}\cdot\Omega_{E_D}^{+} =\eta\cdot
+        \Omega_E^{sign(D)}`. As in [MTT]_ page 40.  This is either 1
+        or 2 unless the condition on the twist is not satisfied,
+        e.g. if we are 'twisting back' to a semi-stable curve.
         
         REFERENCES:
         
@@ -757,26 +748,25 @@ class pAdicLseriesOrdinary(pAdicLseries):
 
     def series(self, n=2, quadratic_twist=+1, prec=5):
         r"""
-        Returns the `n`-th approximation to the `p`-adic L-series as
-        a power series in `T` (corresponding to `\gamma-1` with
-        `\gamma=1+p` as a generator of `1+p\ZZ_p`).  Each
-        coefficient is a `p`-adic number whose precision is provably
-        correct.
+        Returns the `n`-th approximation to the `p`-adic L-series as a
+        power series in `T` (corresponding to `\gamma-1` with
+        `\gamma=1+p` as a generator of `1+p\ZZ_p`).  Each coefficient
+        is a `p`-adic number whose precision is provably correct.
         
-        Here the normalization of the `p`-adic L-series is chosen
-        such that `L_p(J,1) = (1-1/\alpha)^2 L(J,1)/\Omega_J`
-        where `\alpha` is the unit root 
+        Here the normalization of the `p`-adic L-series is chosen such
+        that `L_p(J,1) = (1-1/\alpha)^2 L(J,1)/\Omega_J` where
+        `\alpha` is the unit root
 
         INPUT:
         
-        -  ``n`` - (default: 2) a positive integer
-        -  ``quadratic_twist`` - (default: +1) a fundamental discriminant
-           of a quadratic field, coprime to the 
-           conductor of the curve
-        -  ``prec`` - (default: 5) maximal number of terms of the series
-           to compute; to compute as many as possible just
-           give a very large number for ``prec``; the result will
-           still be correct.
+            - ``n`` - (default: 2) a positive integer
+            - ``quadratic_twist`` - (default: +1) a fundamental
+              discriminant of a quadratic field, coprime to the
+              conductor of the curve
+            - ``prec`` - (default: 5) maximal number of terms of the
+              series to compute; to compute as many as possible just
+              give a very large number for ``prec``; the result will
+              still be correct.
 
         ALIAS: power_series is identical to series.
 

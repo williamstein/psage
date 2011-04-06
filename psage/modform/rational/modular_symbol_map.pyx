@@ -83,11 +83,16 @@ cdef class ModularSymbolMap:
         self.P1 = P1List(self.N)
         if A.sign() == 0:
             raise ValueError, "A must have sign +1 or -1"
+        
+        # The key data we need from the modular symbols space is the
+        # map that assigns to an element of P1 the corresponding
+        # element of ZZ^n.  That's it.  We forget everything else.
         M = A.ambient_module()        
         W = matrix([M.manin_symbol(x).element() for x in self.P1])
         B = A.dual_free_module().basis_matrix().transpose()
         X, self.denom = (W * B)._clear_denom()
         self.d = A.dimension()
+        
         # Now store in a C data structure the entries of X (as long's), and d
         self.X = <long*>sage_malloc(sizeof(long*)*X.nrows()*X.ncols())
         cdef Py_ssize_t i, j, n
@@ -123,7 +128,7 @@ cdef class ModularSymbolMap:
             # change sign, so q[i] is multiplied by (-1)^(i-1)
             sign *= -1
 
-    def denominator(self):
+    def dimension(self):
         return self.d
         
     def _eval0(self, a, b):

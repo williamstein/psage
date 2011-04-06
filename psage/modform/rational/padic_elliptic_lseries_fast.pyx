@@ -19,10 +19,24 @@
 #
 #################################################################################
 
+"""
+TODO:
+
+  [ ] make ModularSymbolMap work with Cremona modular symbols too.
+  [ ] normalization
+  
+Can do both of these by changing to:
+   - use E.modular_symbol(use_eclib=True) instead of dual rational
+     space and multiply (but make both an option, since for abelian
+     varieties the current code is more flexible.
+   - just figure out the denominator once we know the values on P^1,
+   - actually take into account denominator in this file, which we don't do!
+"""
+
 include 'stdsage.pxi'
 include 'interrupt.pxi'
 
-from sage.rings.all import ZZ, Qp, Integers
+from sage.rings.all import ZZ, Zp, Qp, Integers, infinity, binomial
 
 from sage.rings.integer cimport Integer
 from modular_symbol_map cimport ModularSymbolMap
@@ -52,11 +66,11 @@ cdef class pAdicLseries:
         # prec = biggest n such that p^n <= 2^63, so n = log_p(2^63)
         self.prec = ZZ(2**63).exact_log(p)
         
-        assert Integer(p).is_pseudoprime()
-        assert E.is_ordinary(p)
+        assert Integer(p).is_pseudoprime(), "p (=%s) must be prime"%p
+        assert E.is_ordinary(p), "p (=%s) must be ordinary for E"%p
+        
         A = E.modular_symbol_space(sign=1)
         self.modsym = ModularSymbolMap(A)
-
 
         # Compute alpha:
         f = ZZ['x']([p, -E.ap(p), 1])
@@ -68,7 +82,7 @@ cdef class pAdicLseries:
                 Zp = alpha.parent()
                 self._alpha = alpha.lift()
                 break
-        assert Zp is not None
+        assert Zp is not None, "bug -- must have unit root (p=%s)"%p
 
         cdef int n
         K = Qp(self.p, self.prec//2)
@@ -112,8 +126,8 @@ cdef class pAdicLseries:
         # TODO: case when p divides level is different
         return (self.alpha_inv[n] * self.modular_symbol(a, self.p_pow[n])
                    - self.alpha_inv[n+1] * self.modular_symbol(a, self.p_pow[n-1]))
-    
-    def series0(self, int n=2, prec=5, ser_prec=10):
+
+    def _series(self, int n, prec, ser_prec=5, bint verb=0):
         """
         EXAMPLES::
         
@@ -129,7 +143,8 @@ cdef class pAdicLseries:
         """
         cdef long a, b, j, s, gamma_pow, gamma, pp
 
-        assert prec < self.prec // 2
+        assert prec >= n, "prec (=%s) must be as large as approximation n (=%s)"%(prec, n)
+        assert prec <= self.prec // 2, "requested precision (%s) too large (max: %s)"%(prec, self.prec//2)
 
         pp = self.p_pow[prec]
 
@@ -146,11 +161,42 @@ cdef class pAdicLseries:
         for j in range(self.p_pow[n-1]):
             s = 0
             for a in range(1, self.p):
-                b = (self.teich[a] * gamma_pow)%pp
+                b = self.teich[a] * gamma_pow
                 s += self.measure(b, n)
             L += (s * one_plus_T_factor).truncate(ser_prec)
             one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
             gamma_pow = (gamma_pow * gamma)%pp
+            #if verb: print j, s, one_plus_T_factor, gamma_pow
 
         _sig_off
         return L * self.normalization
+
+    def _prec_bounds(self, n, ser_prec):
+        pn  = Integer(self.p_pow[n-1])
+        enj = infinity
+        res = [enj]
+        for j in range(1, ser_prec):
+            bino = binomial(pn,j).valuation(self.p)
+            if bino < enj:
+                enj = bino
+            res.append(enj)
+        return res
+    
+    def series(self, int n=2, prec=None, ser_prec=5, int check=True):
+        if prec is None: prec = n+1
+        p = self.p
+        if check:
+            assert self.E.galois_representation().is_surjective(p), "p (=%s) must be surjective for E"%p
+        f = self._series(n, prec, ser_prec)
+        aj = f.list()
+        R = Zp(p, prec)
+        if len(aj) > 0:
+            bounds = self._prec_bounds(n, ser_prec)
+            aj = [R(aj[0], prec-2)] + [R(aj[j], bounds[j]) for j in range(1,len(aj))]
+        # make unknown coefficients show as 0 precision.
+        aj.extend([R(0,0) for _ in range(ser_prec-len(aj))])
+        return R[['T']](aj, ser_prec)
+        
+    def series_mod_p(self, ser_prec=5, int check=True):
+        L = self.series(n=2, ser_prec=ser_prec, check=check)
+        return L.change_ring(Integers(self.p))

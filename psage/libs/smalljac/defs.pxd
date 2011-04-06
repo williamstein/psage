@@ -12,3 +12,5 @@ cdef extern from "smalljac.h":
                           int (*callback)(smalljac_Qcurve_t c, unsigned long p,	int good,  long a[],  int n, void *arg),
                           void *arg)
     cdef int SMALLJAC_A1_ONLY
+
+    int smalljac_Lpoly (long a[], char *curve, unsigned long q, unsigned long flags)

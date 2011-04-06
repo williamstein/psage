@@ -732,6 +732,11 @@ class ExpansionModule_abstract :
                         
                 ## TODO: use linbox
                 try :
+                    ## TODO: We deactivate the magma interface as it is almost never used and
+                    ##       it is in bad shape
+                    if True or (A is not ZZ and A is not QQ) :
+                        raise TypeError
+                    
                     magma_fe_matrix = magma(fe_matrix.transpose())
                     
                     if not force_ambigous and \

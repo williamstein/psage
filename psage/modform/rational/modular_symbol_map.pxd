@@ -26,7 +26,9 @@ cdef enum:
 from sage.modular.modsym.p1list cimport P1List
 
 cdef class ModularSymbolMap:
-    cdef long d, denom, N
+    cdef long d, N
+    cdef public long denom
     cdef long* X  # coefficients of linear map from P^1 to Q^d.
+    cdef public object C
     cdef P1List P1
     cdef int evaluate(self, long v[MAX_DEG], long a, long b) except -1

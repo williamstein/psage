@@ -59,7 +59,57 @@ cdef class pAdicLseries:
         if self.teich:
             sage_free(self.teich)
     
-    def __init__(self, E, p):
+    def __init__(self, E, p, algorithm='eclib'):
+        """
+        INPUT:
+            - E -- an elliptic curve over QQ
+            - p -- a prime of good ordinary reduction with E[p] surjective
+            - algorithm -- str (default: 'eclib')
+               - 'eclib' -- use elliptic curve modular symbol computed using eclib
+               - 'sage' -- use elliptic curve modular symbol computed using sage
+               - 'modsym' -- use sage modular symbols directly (!! not correctly normalized !!)
+
+        EXAMPLES::
+
+            sage: from psage.modform.rational.padic_elliptic_lseries_fast import pAdicLseries
+            sage: E = EllipticCurve('389a'); L = pAdicLseries(E, 7)
+            sage: L.series()
+            O(7) + O(7)*T + (5 + O(7))*T^2 + (3 + O(7))*T^3 + (6 + O(7))*T^4 + O(T^5)
+            sage: L.series(n=3)
+            O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
+            sage: L.series(n=4)
+            O(7^3) + O(7^3)*T + (5 + 4*7 + 5*7^2 + O(7^3))*T^2 + (3 + 6*7 + 4*7^2 + O(7^3))*T^3 + (6 + 3*7 + 3*7^2 + O(7^3))*T^4 + O(T^5)
+
+        We can also get the series just mod 7::
+
+            sage: L.series_modp()
+            5*T^2 + 3*T^3 + 6*T^4 + O(T^5)
+            sage: L.series_modp().list()
+            [0, 0, 5, 3, 6]        
+
+        We use Sage modular symbols instead of eclib's::
+        
+            sage: L = pAdicLseries(E, 7, algorithm='sage')
+            sage: L.series(n=3)
+            O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
+
+        When we use algorithm='modsym', we see that the normalization
+        is not correct (as is documented above -- no attempt is made
+        to normalize!)::
+        
+            sage: L = pAdicLseries(E, 7, algorithm='modsym')
+            sage: L.series(n=3)
+            O(7^2) + O(7^2)*T + (6 + 5*7 + O(7^2))*T^2 + (5 + 6*7 + O(7^2))*T^3 + (3 + 5*7 + O(7^2))*T^4 + O(T^5)
+            sage: 2*L.series(n=3)
+            O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
+
+        These agree with the L-series computed directly using separate code in Sage::
+        
+            sage: L = E.padic_lseries(7)
+            sage: L.series(3)
+            O(7^5) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)            
+        
+        """
         self.E = E
         self.p = p
 
@@ -68,10 +118,22 @@ cdef class pAdicLseries:
         
         assert Integer(p).is_pseudoprime(), "p (=%s) must be prime"%p
         assert E.is_ordinary(p), "p (=%s) must be ordinary for E"%p
-        
-        A = E.modular_symbol_space(sign=1)
-        self.modsym = ModularSymbolMap(A)
 
+        if algorithm == 'eclib':
+            f = E.modular_symbol(sign=1, use_eclib=True)
+            self.modsym = ModularSymbolMap(f)
+        elif algorithm == 'sage':
+            f = E.modular_symbol(sign=1, use_eclib=False)
+            self.modsym = ModularSymbolMap(f)
+        elif algorithm == "modsym":
+            A = E.modular_symbol_space(sign=1)
+            self.modsym = ModularSymbolMap(A)
+        else:
+            raise ValueError, "unknown algorithm '%s'"%algorithm
+            
+        # the denom must be a unit, given our hypotheses (and assumptions in code!)
+        assert ZZ(self.modsym.denom)%self.p != 0, "internal modsym denominator must be a p(=%s)-unit, but it is %s"%(self.p, self.modsym.denom)
+            
         # Compute alpha:
         f = ZZ['x']([p, -E.ap(p), 1])
         G = f.factor_padic(p, self.prec)
@@ -132,13 +194,13 @@ cdef class pAdicLseries:
         EXAMPLES::
         
             sage: import psage.modform.rational.padic_elliptic_lseries_fast as p; L = p.pAdicLseries(EllipticCurve('389a'),5)
-            sage: f = L.series0(2, ser_prec=6); f.change_ring(Integers(5^3))
+            sage: f = L._series(2, 3, ser_prec=6); f.change_ring(Integers(5^3))
             73*T^4 + 42*T^3 + 89*T^2 + 120*T
-            sage: f = L.series0(3, ser_prec=6); f.change_ring(Integers(5^3))
+            sage: f = L._series(3, 4, ser_prec=6); f.change_ring(Integers(5^3))
             36*T^5 + 53*T^4 + 47*T^3 + 99*T^2
-            sage: f = L.series0(4, ser_prec=6); f.change_ring(Integers(5^3))
+            sage: f = L._series(4, 5, ser_prec=6); f.change_ring(Integers(5^3))
             61*T^5 + 53*T^4 + 22*T^3 + 49*T^2
-            sage: f = L.series0(5, ser_prec=6); f.change_ring(Integers(5^3))
+            sage: f = L._series(5, 6, ser_prec=6); f.change_ring(Integers(5^3))
             111*T^5 + 53*T^4 + 22*T^3 + 49*T^2
         """
         cdef long a, b, j, s, gamma_pow, gamma, pp
@@ -183,6 +245,24 @@ cdef class pAdicLseries:
         return res
     
     def series(self, int n=2, prec=None, ser_prec=5, int check=True):
+        """
+        EXAMPLES::
+
+            sage: from psage.modform.rational.padic_elliptic_lseries_fast import pAdicLseries
+            sage: E = EllipticCurve('389a'); L = pAdicLseries(E,5)
+            sage: L.series()
+            O(5) + O(5)*T + (4 + O(5))*T^2 + (2 + O(5))*T^3 + (3 + O(5))*T^4 + O(T^5)
+            sage: L.series(1)
+            O(T^0)
+            sage: L.series(3)
+            O(5^2) + O(5^2)*T + (4 + 4*5 + O(5^2))*T^2 + (2 + 4*5 + O(5^2))*T^3 + (3 + O(5^2))*T^4 + O(T^5)
+            sage: L.series(2, 8)
+            O(5^6) + O(5)*T + (4 + O(5))*T^2 + (2 + O(5))*T^3 + (3 + O(5))*T^4 + O(T^5)
+            sage: L.series(3, 8)
+            O(5^6) + O(5^2)*T + (4 + 4*5 + O(5^2))*T^2 + (2 + 4*5 + O(5^2))*T^3 + (3 + O(5^2))*T^4 + O(T^5)
+            sage: L.series(3, ser_prec=8)
+            O(5^2) + O(5^2)*T + (4 + 4*5 + O(5^2))*T^2 + (2 + 4*5 + O(5^2))*T^3 + (3 + O(5^2))*T^4 + (1 + O(5))*T^5 + O(5)*T^6 + (4 + O(5))*T^7 + O(T^8)
+        """
         if prec is None: prec = n+1
         p = self.p
         if check:
@@ -195,8 +275,23 @@ cdef class pAdicLseries:
             aj = [R(aj[0], prec-2)] + [R(aj[j], bounds[j]) for j in range(1,len(aj))]
         # make unknown coefficients show as 0 precision.
         aj.extend([R(0,0) for _ in range(ser_prec-len(aj))])
-        return R[['T']](aj, ser_prec)
+        ser_prec = min([ser_prec] + [i for i in range(len(aj)) if aj[i].precision_absolute() == 0])
+        L = R[['T']](aj, ser_prec)
+        return L / self.modsym.denom
         
-    def series_mod_p(self, ser_prec=5, int check=True):
-        L = self.series(n=2, ser_prec=ser_prec, check=check)
+    def series_modp(self, int n=2, ser_prec=5, int check=True):
+        """
+        EXAMPLES::
+
+            sage: from psage.modform.rational.padic_elliptic_lseries_fast import pAdicLseries
+            sage: E = EllipticCurve('389a')
+            sage: L = pAdicLseries(E,5)
+            sage: L.series_modp()
+            4*T^2 + 2*T^3 + 3*T^4 + O(T^5)
+            sage: L.series_modp(3, 8)
+            4*T^2 + 2*T^3 + 3*T^4 + T^5 + 4*T^7 + O(T^8)
+            sage: L.series_modp(2, 20)
+            4*T^2 + 2*T^3 + 3*T^4 + O(T^5)
+        """
+        L = self.series(n=n, ser_prec=ser_prec, check=check)
         return L.change_ring(Integers(self.p))

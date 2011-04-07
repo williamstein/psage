@@ -57,11 +57,12 @@ def modular_symbols_from_curve(C, N, num_factors=3):
         sage: f = x^7+4*x^6+5*x^5+x^4-3*x^3-2*x^2+1
         sage: C1 = HyperellipticCurve(f)
         sage: modular_symbols_from_curve(C1, 284)
+        [Modular Symbols subspace of dimension 3 of Modular Symbols space of dimension 39 for Gamma_0(284) of weight 2 with sign 1 over Rational Field]
         
         sage: f = x^7-7*x^5-11*x^4+5*x^3+18*x^2+4*x-11
         sage: C2 = HyperellipticCurve(f)
         sage: modular_symbols_from_curve(C2, 284)
-        ???
+        [Modular Symbols subspace of dimension 3 of Modular Symbols space of dimension 39 for Gamma_0(284) of weight 2 with sign 1 over Rational Field]
     """
     # We will use the Eichler-Shimura relation and David Harvey's
     # p-adic point counting hypellfrob.  Harvey's code has the
@@ -88,7 +89,7 @@ def modular_symbols_from_curve(C, N, num_factors=3):
     # polynomial of Frob_p, because T_p = Frob_p + p/Frob_p, according
     # to Eichler-Shimura.  Use this to narrow down the factors. 
 
-    from sage.all import ModularSymbols
+    from sage.all import ModularSymbols, Integers, get_verbose
     D = ModularSymbols(N,sign=1).cuspidal_subspace().new_subspace().decomposition()
     D = [A for A in D if A.dimension() == g]
 

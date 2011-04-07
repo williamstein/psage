@@ -36,6 +36,7 @@ def degrees(N, k, eps=None):
         
     EXAMPLES::
 
+        sage: import psage
         sage: psage.modform.rational.degrees(11,2)
         [1]
         sage: psage.modform.rational.degrees(37,2)
@@ -81,6 +82,7 @@ def eigenvalue_fields(N, k, eps=None):
         
     EXAMPLES::
     
+        sage: import psage
         sage: psage.modform.rational.eigenvalue_fields(11,2)
         [Rational Field]
         sage: psage.modform.rational.eigenvalue_fields(43,2)

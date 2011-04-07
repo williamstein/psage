@@ -28,6 +28,9 @@ AUTHOR:
     - William Stein
 """
 
+from sage.matrix.all import matrix
+from sage.rings.all import QQ, ZZ, Integer
+
 include 'stdsage.pxi'
 
 def test_contfrac_q(a, b):
@@ -73,33 +76,103 @@ cdef class ModularSymbolMap:
         return "Modular symbols map for modular symbols factor of dimension %s and level %s"%(self.d, self.N)
         
     def __init__(self, A):
+        """
+        EXAMPLES::
 
-        # Very slow generic setup code.  This is "O(1)" in that we
-        # care mainly about evaluation time being fast, at least in
-        # this code.
-        from sage.matrix.all import matrix
-        from sage.rings.all import ZZ
-        self.N = A.level()
-        self.P1 = P1List(self.N)
-        if A.sign() == 0:
-            raise ValueError, "A must have sign +1 or -1"
+        We illustrate a few ways to construct the modular symbol map for 389a.
         
-        # The key data we need from the modular symbols space is the
-        # map that assigns to an element of P1 the corresponding
-        # element of ZZ^n.  That's it.  We forget everything else.
-        M = A.ambient_module()        
-        W = matrix([M.manin_symbol(x).element() for x in self.P1])
-        B = A.dual_free_module().basis_matrix().transpose()
-        X, self.denom = (W * B)._clear_denom()
-        self.d = A.dimension()
+            sage: from psage.modform.rational.modular_symbol_map import ModularSymbolMap
+            sage: A = ModularSymbols(389,sign=1).cuspidal_subspace().new_subspace().decomposition()[0]
+            sage: f = ModularSymbolMap(A)
+            sage: f._eval1(-3,7)
+            [-2]
+            sage: f.denom
+            2
+
+            sage: E = EllipticCurve('389a'); g = E.modular_symbol()
+            sage: h = ModularSymbolMap(g)
+            sage: h._eval1(-3,7)
+            [-2]
+            sage: h.denom
+            1
+            sage: g(-3/7)
+            -2
+
+            sage: f.denom*f.C == h.denom*h.C
+            True
+        """
+        import sage.schemes.elliptic_curves.ell_modular_symbols as ell_modular_symbols
+        from sage.modular.modsym.space import ModularSymbolsSpace
+
+        if isinstance(A, ell_modular_symbols.ModularSymbol):
+            C = self._init_using_ell_modular_symbol(A)
+
+        elif isinstance(A, ModularSymbolsSpace):
+            C = self._init_using_modsym_space(A)
+
+        else:
+
+            raise NotImplementedError, "Creating modular symbols from object of type %s not implemented"%type(A)
+
+        # useful for debugging only -- otherwise is a waste of memory/space
+        self.C = C
         
-        # Now store in a C data structure the entries of X (as long's), and d
+        X, self.denom = C._clear_denom()
+        # Now store in a C data structure the entries of X (as long's)
         self.X = <long*>sage_malloc(sizeof(long*)*X.nrows()*X.ncols())
         cdef Py_ssize_t i, j, n
         n = 0
         for a in X.list():
             self.X[n] = a
             n += 1
+
+    def _init_using_ell_modular_symbol(self, f):
+        # Input f is an elliptic curve modular symbol map
+        assert f.sign() != 0
+        self.d = 1  # the dimension
+
+        E = f.elliptic_curve()
+        self.N = E.conductor()
+        self.P1 = P1List(self.N)
+
+        # Make a matrix whose rows are the images of the Manin symbols
+        # corresponding to the elements of P^1 under f.
+        n = len(self.P1)
+        C = matrix(QQ, n, 1)
+        for i in range(n):
+            # If the ith element of P1 is (u,v) for some u,v modulo N.
+            # We need to turn this into something we can evaluate f on.
+            # 1. Lift to a 2x2 SL2Z matrix M=(a,b;c,d) with c=u, d=v (mod N).
+            # 2. The modular symbol is M{0,oo} = {b/d,a/c}.
+            # 3. So {b/d, a/c} = {b/d,oo} + {oo,a/c} = -{oo,b/d} + {oo,a/c} = f(a/c)-f(b/d).
+            # 4. Thus x |--> f(a/c)-f(b/d).
+            a,b,c,d = self.P1.lift_to_sl2z(i)  # output are Python ints, so careful!
+            C[i,0] = (f(Integer(a)/c) if c else 0) - (f(Integer(b)/d) if d else 0)
+        return C
+
+    def _init_using_modsym_space(self, A):
+        # Very slow generic setup code.  This is "O(1)" in that we
+        # care mainly about evaluation time being fast, at least in
+        # this code.
+        if A.sign() == 0:
+            raise ValueError, "A must have sign +1 or -1"
+        self.d = A.dimension()
+        
+        self.N = A.level()
+        self.P1 = P1List(self.N)
+
+        # The key data we need from the modular symbols space is the
+        # map that assigns to an element of P1 the corresponding
+        # element of ZZ^n.  That's it.  We forget everything else.
+        M = A.ambient_module()        
+        W = matrix([M.manin_symbol(x).element() for x in self.P1])
+        B = A.dual_free_module().basis_matrix().transpose()
+
+        # Return matrix whose rows are the images of the Manin symbols
+        # corresponding to the elements of P^1 under the modular
+        # symbol map.
+        return W*B
+
 
     def __dealloc__(self):
         if self.X:
@@ -138,11 +211,13 @@ cdef class ModularSymbolMap:
     def _eval1(self, a, b):
         """
         EXAMPLE::
-        
+
+            sage: from psage.modform.rational.modular_symbol_map import ModularSymbolMap
             sage: A = ModularSymbols(188,sign=1).cuspidal_subspace().new_subspace().decomposition()[-1]
             sage: f = ModularSymbolMap(A)
             sage: f._eval1(-3,7)
             [-3, 0]
+
         """
         cdef long v[MAX_DEG]
         self.evaluate(v, a, b)

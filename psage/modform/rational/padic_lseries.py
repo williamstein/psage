@@ -389,10 +389,7 @@ class pAdicLseries(SageObject):
         EXAMPLES::
 
             sage: J = J0(23)[0]
-	    sage: for p in prime_range(5,30):
-	    ....:     L = J.padic_lseries(p)
-	    ....:     p, L.ap()
-	    ....:     
+            sage: [(p, J.padic_lseries(p)) for p in prime_range(5,30)]
 	    (5, 2*alpha)
 	    (7, 2*alpha + 2)
 	    (11, -2*alpha - 4)

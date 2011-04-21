@@ -2,7 +2,9 @@
 Functions to reduce indices of Jacobi forms and to multiply expansions
 of Jacobi forms.
 
-    -- Martin Raum (2010 - 04 - 05) Initial version
+AUTHORS:
+
+    - Martin Raum (2010 - 04 - 05) Initial version
 """
 
 #===============================================================================

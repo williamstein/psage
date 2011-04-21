@@ -74,10 +74,10 @@ def _jacobi_forms_by_taylor_expansion_coords(index, weight, precision) :
 #===============================================================================
 
 def jacobi_form_by_taylor_expansion(i, index, weight, precision) :
-    """
+    r"""
     We first lift an echelon basis of elliptic modular forms to weak Jacobi forms.
     Then we return an echelon basis with respect enumeration of this first echelon
-    basis of the ZZ-submodule of Jacobi forms.
+    basis of the '\ZZ'-submodule of Jacobi forms.
     """
     expansion_ring = JacobiD1NNFourierExpansionModule(ZZ, index)
         
@@ -118,8 +118,8 @@ class DelayedFactory_JacobiFormD1NN_taylor_expansion :
 
 @cached_function
 def _theta_decomposition_indices(index, weight) :
-    """
-    A list of possible indices of the echelon bases M_k, S_{k+2}, etc. or -1
+    r"""
+    A list of possible indices of the echelon bases `M_k, S_{k+2}` etc. or `-1`
     if a component is zero." 
     """
     dims = [ ModularForms(1, weight).dimension()] + \
@@ -135,22 +135,39 @@ def _theta_decomposition_indices(index, weight) :
 @cached_function
 def _all_weak_jacobi_forms_by_taylor_expansion(index, weight, precision) :
     """
-    TEST::
-        #sage: from psage.modforms.jacobiforms.jacobiformd1nn_fourierexpansion import *
-        #sage: from psage.modforms.jacobiforms.jacobiformd1nn_fegenerators_modular import *
-        #sage: from psage.modforms.fourier_expansion_framework import *
-        #sage: prec = 20
-        #sage: d = JacobiFormD1NNFilter(prec, 2)
-        #sage: f = _all_weak_jacobi_forms_by_taylor_expansion(2, 4, prec)[0]
-        #sage: (g1,g2) = tuple(_all_weak_jacobi_forms_by_taylor_expansion(2, 8, prec))
-        #sage: em = ExpansionModule([g1, g2])
-        #sage: P.<q, zeta> = PolynomialRing(QQ, 2)
-        #sage: fp = sum(f[k] * q**k[0] * zeta**k[1] for k in JacobiFormD1NNFilter(prec, 2, reduced = False))
-        #sage: mf4 = ModularForms(1, 4).0.qexp(prec).polynomial()
-        #sage: h = mf4 * fp
-        #sage: eh = EquivariantMonoidPowerSeries(g1.parent(), {g1.parent().characters().gen(0) : dict((k, h[k[0],k[1]]) for k in d)}, d)
-        #sage: neh = eh - em.0.fourier_expansion() * 7 / 66 - em.1.fourier_expansion() * 4480
-        #sage: em.coordinates(eh.truncate(5), in_base_ring = False)
+    TESTS:
+    
+    We compute the Fourier expansion of a Jacobi form of weight `4` and index `2`.  This
+    is denoted by ``d``.  Moreover, we span the space of all Jacobi forms of weight `8` and
+    index `2`.  Multiplying the weight `4` by the Eisenstein series of weight `4` must
+    yield an element of the weight `8` space.  Note that the multiplication is done using
+    a polynomial ring, since no native multiplication for Jacobi forms is implemented.
+    
+    ::
+    
+        sage: from psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion import *
+        sage: from psage.modform.jacobiforms.jacobiformd1nn_fegenerators import _all_weak_jacobi_forms_by_taylor_expansion
+        sage: from psage.modform.fourier_expansion_framework import *
+        sage: prec = 20
+        sage: d = JacobiFormD1NNFilter(prec, 2)
+        sage: f = _all_weak_jacobi_forms_by_taylor_expansion(2, 4, prec)[0]
+        sage: (g1,g2) = tuple(_all_weak_jacobi_forms_by_taylor_expansion(2, 8, prec))
+        sage: em = ExpansionModule([g1, g2])
+        sage: P.<q, zeta> = PolynomialRing(QQ, 2)
+        sage: fp = sum(f[k] * q**k[0] * zeta**k[1] for k in JacobiFormD1NNFilter(prec, 2, reduced = False))
+        sage: mf4 = ModularForms(1, 4).0.qexp(prec).polynomial()
+        sage: h = mf4 * fp
+        sage: eh = EquivariantMonoidPowerSeries(g1.parent(), {g1.parent().characters().gen(0) : dict((k, h[k[0],k[1]]) for k in d)}, d)
+        sage: em.coordinates(eh.truncate(5), in_base_ring = False)
+        [7/66, 4480]
+        
+    According to this we express ``eh`` in terms of the basis of the weight `8` space.
+    
+    ::
+    
+        sage: neh = eh - em.0.fourier_expansion() * 7 / 66 - em.1.fourier_expansion() * 4480
+        sage: neh.coefficients()
+        {(18, 0): 0, (12, 1): 0, (9, 1): 0, (3, 0): 0, (11, 2): 0, (8, 0): 0, (16, 2): 0, (2, 1): 0, (15, 1): 0, (6, 2): 0, (14, 0): 0, (19, 0): 0, (5, 1): 0, (7, 2): 0, (4, 0): 0, (1, 2): 0, (12, 2): 0, (9, 0): 0, (8, 1): 0, (18, 2): 0, (15, 0): 0, (17, 2): 0, (14, 1): 0, (11, 1): 0, (18, 1): 0, (5, 0): 0, (2, 2): 0, (10, 0): 0, (4, 1): 0, (1, 1): 0, (3, 2): 0, (0, 0): 0, (13, 2): 0, (8, 2): 0, (7, 1): 0, (6, 0): 0, (17, 1): 0, (11, 0): 0, (19, 2): 0, (16, 0): 0, (10, 1): 0, (4, 2): 0, (1, 0): 0, (14, 2): 0, (0, 1): 0, (13, 1): 0, (7, 0): 0, (15, 2): 0, (12, 0): 0, (9, 2): 0, (6, 1): 0, (3, 1): 0, (16, 1): 0, (2, 0): 0, (19, 1): 0, (5, 2): 0, (17, 0): 0, (13, 0): 0, (10, 2): 0}
     """
     modular_form_bases = \
       [ ModularForms(1, weight + 2*i) \
@@ -277,9 +294,9 @@ class JacobiFormD1NNFactory_class (SageObject) :
         self.__theta_factors = theta_factors
     
     def _theta_factors(self, p = None) :
-        """
-        Return the factor W^# (\theta_0, .., \theta_{2m - 1})^T as a list.
-        The q-expansion is shifted by -(m+1)(2*m + 1)/24 which will be compensated
+        r"""
+        Return the factor `W^\# (\theta_0, .., \theta_{2m - 1})^{\mathrm{T}}` as a list.
+        The `q`-expansion is shifted by `-(m + 1)(2*m + 1) / 24` which will be compensated
         for by the eta factor.
         """
         try :
@@ -334,6 +351,12 @@ class JacobiFormD1NNFactory_class (SageObject) :
             W = matrix(PS, m + 1, [ thetas[(j, l)]
                                     for j in xrange(m + 1) for l in xrange(m + 1) ])
             
+            
+            ## Since the adjoint of matrices with entries in a general ring
+            ## is extremely slow for matrices of small size, we hard code the
+            ## the cases `m = 2` and `m = 3`.  The expressions are obtained by
+            ## computing the adjoint of a matrix with entries `w_{i,j}` in a
+            ## polynomial algebra.
             if m == 2 and qexp_prec > 10**5 :
                 adj00 =   W[1,1] * W[2,2] - W[2,1] * W[1,2]
                 adj01 = - W[1,0] * W[2,2] + W[2,0] * W[1,2]
@@ -389,8 +412,8 @@ class JacobiFormD1NNFactory_class (SageObject) :
         self.__eta_factor = eta_factor
     
     def _eta_factor(self) :
-        """
-        The inverse determinant of W, which in these cases is always a negative
+        r"""
+        The inverse determinant of `W`, which in these cases is always a negative
         power of the eta function. 
         """
         try :
@@ -407,10 +430,10 @@ class JacobiFormD1NNFactory_class (SageObject) :
             return self.__eta_factor
  
     def by_taylor_expansion(self, fs, k, is_integral=False) :
-        """
+        r"""
         We combine the theta decomposition and the heat operator as in [Sko].
-        This yields a bijections of Jacobi forms of weight k and
-         M_k \times S_{k+2} \times .. \times S_{k+2m} .
+        This yields a bijections of Jacobi forms of weight `k` and
+        `M_k \times S_{k+2} \times .. \times S_{k+2m}`.
         """
         ## we introduce an abbreviations
         if is_integral :
@@ -458,8 +481,8 @@ class JacobiFormD1NNFactory_class (SageObject) :
         return phi_coeffs
 
     def _by_taylor_expansion_m1(self, f_divs, k, is_integral=False) :
-        """
-        This provides special, faster code in the Jacobi index 1 case.
+        r"""
+        This provides special, faster code in the Jacobi index `1` case.
         """
         if is_integral :
             PS = self.integral_power_series_ring()

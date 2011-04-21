@@ -2,7 +2,7 @@
 Types of Jacobi forms of fixed index and weight.
 
 AUTHOR :
-    -- Martin Raum (2010 - 04 - 07) Initial version.
+    - Martin Raum (2010 - 04 - 07) Initial version.
 """
 
 #===============================================================================
@@ -78,7 +78,17 @@ def JacobiFormsD1NN(A, type, precision, *args, **kwds) :
 class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
     r"""
     Type of Jacobi forms of degree `1` and index in `\mathbb{N}` associated with
-    the full modular group. 
+    the full modular group.
+    
+    TESTS::
+    
+        sage: from psage.modform.jacobiforms import *
+        sage: from psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion import JacobiFormD1NNFilter 
+        sage: JR = JacobiFormsD1NN(QQ, JacobiFormD1NN_Gamma(3, 6), JacobiFormD1NNFilter(10, 3))
+        sage: JR.gens()
+        (Graded expansion TDE_0, Graded expansion TDE_1)
+        sage: JR.0 + 2 * JR.1
+        Graded expansion TDE_0 + 2*TDE_1
     """
     def __init__(self, index, weight) :
         if weight % 2 != 0 :

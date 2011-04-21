@@ -1,9 +1,10 @@
-"""
-Classes describing the Fourier expansion of Jacobi forms of degree 1
-with indices in \NN.
+r"""
+Classes describing the Fourier expansion of Jacobi forms of degree `1`
+with indices in `\mathbf{N}`.
 
 AUTHOR :
-    -- Martin Raum (2010 - 04 - 04) Initial version
+
+    - Martin Raum (2010 - 04 - 04) Initial version
 """
 
 #===============================================================================
@@ -194,7 +195,7 @@ class JacobiFormD1NNIndices ( SageObject ) :
         return "Jacobi Fourier indices for index %s forms" % (self.__m,)
     
     def _latex_(self) :
-        return "\text{Jacobi Fourier indices for index $%s$ forms}" % (latex(self.__m),)
+        return r"\text{Jacobi Fourier indices for index $%s$ forms}" % (latex(self.__m),)
         
 #===============================================================================
 # JacobiFormD1NNFilter
@@ -356,7 +357,7 @@ class JacobiFormD1NNFilter ( SageObject ) :
         return "Jacobi precision %s" % (self.__bound,)
     
     def _latex_(self) :
-        return "\text{Jacobi precision $%s$}" % (latex(self.__bound),)
+        return r"\text{Jacobi precision $%s$}" % (latex(self.__bound),)
 
 #===============================================================================
 # JacobiD1NNFourierExpansionModule

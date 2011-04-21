@@ -1,5 +1,5 @@
-"""
-We provide methods to create Fourier expansions of (weak) Jacobi forms mod p.
+r"""
+We provide methods to create Fourier expansions of (weak) Jacobi forms `\mathrm{mod} p`.
 """
 
 #===============================================================================
@@ -68,13 +68,13 @@ class JacobiFormD1NNModularFactory_class (SageObject) :
     def by_taylor_expansion(self, fs, k) :
         """
         We combine the theta decomposition and the heat operator as in [Sko].
-        This yields a bijections of Jacobi forms of weight k and
-         M_k \times S_{k+2} \times .. \times S_{k+2m} .
+        This yields a bijections of Jacobi forms of weight `k` and
+        `M_k \times S_{k+2} \times .. \times S_{k+2m}`.
         
         NOTE:
 
-            To make phi_divs integral we introduce an extra factor
-            2**index * factorial(k + 2*index - 1).
+            To make ``phi_divs`` integral we introduce an extra factor
+            `2^{\mathrm{index}} * \mathrm{factorial}(k + 2 * \mathrm{index} - 1)`.
         """
         ## we introduce an abbreviations
         p = self.__p

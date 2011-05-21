@@ -382,7 +382,7 @@ cdef class pAdicLseries:
         with the p-adic L-series and p-adic regulator.
         """
         L   = self.series_to_enough_prec(verb=verb)
-        p   = self.p
+        p   = ZZ(self.p)
         reg = self.E.padic_regulator(p)
         r   = self.E.rank()
         lg  = (1 + p + O(p**10)).log()

@@ -378,8 +378,21 @@ cdef class pAdicLseries:
 
     def sha_modp(self, bint verb=0):
         """
-        Return the p-adic conjectural order of Sha mod p using p-adic BSD, along
-        with the p-adic L-series and p-adic regulator.
+        Return the p-adic conjectural order of Sha mod p using p-adic
+        BSD, along with the p-adic L-series and p-adic regulator.
+
+        EXAMPLES::
+
+            sage: E = EllipticCurve('10050s1')
+            sage: from psage.modform.rational.padic_elliptic_lseries_fast import pAdicLseries
+            sage: L = pAdicLseries(E, 13)
+            sage: sha, L, reg = L.sha_modp()
+            sage: sha
+            1 + O(13)
+            sage: L
+            O(13^2) + O(13^2)*T + (10*13 + O(13^2))*T^2 + (12*13 + O(13^2))*T^3 + (9 + 10*13 + O(13^2))*T^4 + (7 + 9*13 + O(13^2))*T^5 + O(T^6)
+            sage: reg
+            12*13^3 + 4*13^4 + 9*13^5 + 11*13^6 + 5*13^7 + 7*13^9 + 6*13^10 + 5*13^12 + 4*13^13 + 4*13^14 + 5*13^15 + 5*13^16 + 4*13^17 + 10*13^18 + 2*13^19 + 6*13^20 + O(13^21)             
         """
         L   = self.series_to_enough_prec(verb=verb)
         p   = ZZ(self.p)
@@ -388,167 +401,10 @@ cdef class pAdicLseries:
         lg  = (1 + p + O(p**10)).log()
         tam = self.E.tamagawa_product()
         eps = (1 - 1/(self.alpha()+O(p**10)))**2  # assumes good ordinary
-        tor = self.E.torsion_order()
+        tor = self.E.torsion_order()**2
 
         #sha = Mod(tam * (reg / lg**r) * eps / tor,  p)
         sha = L[r] / (tam * (reg / lg**r) * eps / tor)
         
         return sha, L, reg
         
-
-## #############################################################################
-## #
-## # The following class implements the same algorithm as above, but with
-## # arbitrary precision integers.  We use the Integer and
-## # Vector_integer_dense only so that we can completely avoid having to
-## # explicitly allocate and deallocate memory, and of course since some
-## # other things are easier (e.g., debugging).
-## #
-## #####################################################################
-
-## from sage.rings.integer cimport Integer
-## from sage.modules.vector_integer_dense cimport Vector_integer_dense
-
-## cdef class pAdicLseries_Integer:
-##     cdef public object E
-##     cdef public int p, prec
-##     cdef public Integer normalization
-##     cdef public Integer _alpha
-##     cdef public Vector_integer_dense alpha_inv
-##     cdef public Vector_integer_dense p_pow
-##     cdef public Vector_integer_dense teich
-##     cdef public ModularSymbolMap modsym
-
-##     def __init__(self, E, p, padic_prec=10, algorithm='eclib'):
-##         """
-##         INPUT:
-##         - E -- an elliptic curve over QQ
-##         - p -- a prime of good ordinary reduction with E[p] surjective
-##         - padic_prec -- p-adic precision
-##         - algorithm -- str (default: 'eclib')
-##            - 'eclib' -- use elliptic curve modular symbol computed using eclib
-##            - 'sage' -- use elliptic curve modular symbol computed using sage
-##            - 'modsym' -- use sage modular symbols directly (!! not correctly normalized !!)
-
-##         EXAMPLES::
-
-##             sage: from psage.modform.rational.padic_elliptic_lseries_fast import pAdicLseries_Integer as pAdicLseries
-##             sage: E = EllipticCurve('389a'); L = pAdicLseries(E, 7)
-##             sage: L.series()
-##             O(7) + O(7)*T + (5 + O(7))*T^2 + (3 + O(7))*T^3 + (6 + O(7))*T^4 + O(T^5)
-##             sage: L.series(n=3)
-##             O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
-##             sage: L.series(n=4)
-##             O(7^3) + O(7^3)*T + (5 + 4*7 + 5*7^2 + O(7^3))*T^2 + (3 + 6*7 + 4*7^2 + O(7^3))*T^3 + (6 + 3*7 + 3*7^2 + O(7^3))*T^4 + O(T^5)
-
-##         We can also get the series just mod 7::
-
-##             sage: L.series_modp()
-##             5*T^2 + 3*T^3 + 6*T^4 + O(T^5)
-##             sage: L.series_modp().list()
-##             [0, 0, 5, 3, 6]        
-
-##         We use Sage modular symbols instead of eclib's::
-        
-##             sage: L = pAdicLseries(E, 7, algorithm='sage')
-##             sage: L.series(n=3)
-##             O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
-
-##         When we use algorithm='modsym', we see that the normalization
-##         is not correct (as is documented above -- no attempt is made
-##         to normalize!)::
-        
-##             sage: L = pAdicLseries(E, 7, algorithm='modsym')
-##             sage: L.series(n=3)
-##             O(7^2) + O(7^2)*T + (6 + 5*7 + O(7^2))*T^2 + (5 + 6*7 + O(7^2))*T^3 + (3 + 5*7 + O(7^2))*T^4 + O(T^5)
-##             sage: 2*L.series(n=3)
-##             O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
-
-##         These agree with the L-series computed directly using separate code in Sage::
-        
-##             sage: L = E.padic_lseries(7)
-##             sage: L.series(3)
-##             O(7^5) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)            
-##         """
-##         self.E = E
-##         self.p = p
-##         self.prec = padic_prec
-
-##         assert Integer(p).is_pseudoprime(), "p (=%s) must be prime"%p
-##         assert E.is_ordinary(p), "p (=%s) must be ordinary for E"%p
-##         assert E.is_good(p), "p (=%s) must be good for E"%p
-        
-##         if algorithm == 'eclib':
-##             f = E.modular_symbol(sign=1, use_eclib=True)
-##             self.modsym = ModularSymbolMap(f)
-##         elif algorithm == 'sage':
-##             f = E.modular_symbol(sign=1, use_eclib=False)
-##             self.modsym = ModularSymbolMap(f)
-##         elif algorithm == "modsym":
-##             A = E.modular_symbol_space(sign=1)
-##             self.modsym = ModularSymbolMap(A)
-##         else:
-##             raise ValueError, "unknown algorithm '%s'"%algorithm
-            
-##         # the denom must be a unit, given our hypotheses (and assumptions in code!)
-##         assert ZZ(self.modsym.denom)%self.p != 0, "internal modsym denominator must be a p(=%s)-unit, but it is %s"%(self.p, self.modsym.denom)
-            
-##         # Compute alpha:
-##         f = ZZ['x']([p, -E.ap(p), 1])
-##         G = f.factor_padic(p, self.prec)
-##         Zp = None
-##         for pr, e in G:
-##             alpha = -pr[0]
-##             if alpha.valuation() < 1:
-##                 Zp = alpha.parent()
-##                 self._alpha = alpha.lift()
-##                 break
-##         assert Zp is not None, "bug -- must have unit root (p=%s)"%p
-
-##         cdef int n
-##         K = Qp(self.p, self.prec//2)
-
-##         # Compute array of powers of inverse of alpha, modulo p^prec,
-##         # for each power up to prec/2.
-##         self.alpha_inv = (ZZ**(self.prec//2+1))(0)
-##         u = Integer(1)
-##         self.alpha_inv[0] = u
-##         for n in range(self.prec//2):
-##             u *= alpha
-##             self.alpha_inv[n+1] = K(1/u).lift()   # coerce to K to lower precision
-
-##         # Make a table of powers of p up to prec
-##         self.p_pow = (ZZ**(self.prec+1))(0)
-##         ppow = Integer(1)
-##         self.p_pow[0] = ppow
-##         for n in range(self.prec):
-##             ppow *= self.p
-##             self.p_pow[n+1] = ppow
-
-##         # Make a table of Teichmuller lifts
-##         self.teich =  (ZZ**self.p)(0)
-##         self.teich[0] = 0
-##         for n in range(1,p):
-##             self.teich[n] = K.teichmuller(n).lift()
-
-##         # Compute normalization
-##         self.normalization = Integer(self.E.real_components()).inverse_mod(self.p_pow[self.prec//2])
-
-##     def __repr__(self):
-##         return "%s-adic L-series of %s using arbitrary precision integers"%(self.p, self.E)
-
-##     def alpha(self):
-##         return self._alpha
-        
-##     cpdef long modular_symbol(self, long a, long b):
-##         cdef long v[1]
-##         self.modsym.evaluate(v, a, b)
-##         return v[0]
-
-##     cpdef long measure(self, long a, int n):
-##         # TODO: case when p divides level is different -- but we check in __init__ that p is good.
-##         return (self.alpha_inv[n] * self.modular_symbol(a, self.p_pow[n])
-##                    - self.alpha_inv[n+1] * self.modular_symbol(a, self.p_pow[n-1]))
-
-    
-

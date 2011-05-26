@@ -300,6 +300,90 @@ cdef class pAdicLseries:
             
         return L * self.normalization
 
+    def _series2(self, int n, prec, ser_prec=5, bint verb=0, bint force_mulmod=False,
+                 int start=-1, int stop=-1):
+        """
+        EXAMPLES::
+        
+            sage: import psage.modform.rational.padic_elliptic_lseries_fast as p; L = p.pAdicLseries(EllipticCurve('389a'),5)
+            sage: f = L._series(2, 3, ser_prec=6); f.change_ring(Integers(5^3))
+            73*T^4 + 42*T^3 + 89*T^2 + 120*T
+            sage: f = L._series(3, 4, ser_prec=6); f.change_ring(Integers(5^3))
+            36*T^5 + 53*T^4 + 47*T^3 + 99*T^2
+            sage: f = L._series(4, 5, ser_prec=6); f.change_ring(Integers(5^3))
+            61*T^5 + 53*T^4 + 22*T^3 + 49*T^2
+            sage: f = L._series(5, 6, ser_prec=6); f.change_ring(Integers(5^3))
+            111*T^5 + 53*T^4 + 22*T^3 + 49*T^2
+        """
+        if verb:
+            print "_series %s computing mod p^%s"%(n, prec)
+            
+        cdef long a, b, j, s, gamma_pow, gamma, pp
+
+        assert prec >= n, "prec (=%s) must be as large as approximation n (=%s)"%(prec, n)
+        
+        pp = self.p_pow[prec]
+
+        gamma = 1 + self.p
+        gamma_pow = 1
+
+        R = Integers(pp)['T']
+        T = R.gen()
+        one_plus_T_factor = R(1)
+        L = R(0)
+        one_plus_T = 1+T
+
+        if start == -1:
+            start = 0
+            stop = self.p_pow[n-1]
+            
+        if start != 0:
+            # initialize gamma_pow and one_plus_T_factor to be
+            #    gamma_pow = gamma^start
+            #    one_plus_T_factor = one_plus_T^start
+            gamma_pow = Mod(gamma, pp)**start
+            one_plus_T_factor = ((one_plus_T + O(T**ser_prec))**start).truncate(ser_prec)
+
+        if not force_mulmod and prec <= self.prec // 2:
+            # no concerns about overflow when multiplying together two longs, then reducing modulo pp
+            for j in range(start, stop):
+                _sig_on
+                s = 0
+                for a in range(1, self.p):
+                    b = self.teich[a] * gamma_pow
+                    s += self.measure(b, n)
+                _sig_off
+                L += (s * one_plus_T_factor).truncate(ser_prec)
+                one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
+                gamma_pow = (gamma_pow * gamma)%pp
+                #if verb: print j, s, one_plus_T_factor, gamma_pow
+        else:
+            if verb: print "Using mulmod"
+            # Since prec > self.prec//2, where self.prec =
+            #     ZZ(2**63).exact_log(p) = floor(log_p(2^63)), 
+            # all multiplies in the loop above of longs must be done with
+            # long long, then reduced modulo pp.  This is slower, but
+            # is necessary to ensure no overflow.
+
+            assert prec <= self.prec, "requested precision (%s) too large (max: %s)"%(prec, self.prec)
+            for j in range(start, stop):
+                _sig_on
+                s = 0
+                for a in range(1, self.p):
+                    b = mulmod(self.teich[a], gamma_pow, pp)
+                    s += self.measure_mulmod(b, n, pp)
+                    if s >= pp: s -= pp  # normalize
+                _sig_off
+                L += (s * one_plus_T_factor).truncate(ser_prec)
+                one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
+                gamma_pow = mulmod(gamma_pow, gamma, pp)
+            
+        return L * self.normalization
+
+    def _series_parallel(self, int n, prec, ser_prec=5, bint verb=0, bint force_mulmod=False,
+                         ncpus=None):
+        return series_parallel(self, n, prec, ser_prec, verb, force_mulmod, ncpus)
+
     def _prec_bounds(self, n, ser_prec):
         pn  = Integer(self.p_pow[n-1])
         enj = infinity
@@ -311,7 +395,8 @@ cdef class pAdicLseries:
             res.append(enj)
         return res
     
-    def series(self, int n=2, prec=None, ser_prec=5, int check=True, bint verb=False):
+    def series(self, int n=2, prec=None, ser_prec=5, int check=True, bint verb=False,
+               bint parallel=False):
         """
         EXAMPLES::
 
@@ -334,7 +419,11 @@ cdef class pAdicLseries:
         p = self.p
         if check:
             assert self.E.galois_representation().is_surjective(p), "p (=%s) must be surjective for E"%p
-        f = self._series(n, prec, ser_prec, verb=verb)
+
+        if parallel:
+            f = self._series_parallel(n, prec, ser_prec, verb=verb)
+        else:
+            f = self._series(n, prec, ser_prec, verb=verb)
         aj = f.list()
         R = Zp(p, prec)
         if len(aj) > 0:
@@ -408,3 +497,32 @@ cdef class pAdicLseries:
         
         return sha, L, reg
         
+def series_parallel(L, n, prec, ser_prec=5, verb=False, force_mulmod=False, ncpus=None):
+    # Use @parallel to do this computation by dividing it up into
+    # p separate tasks, doing those in separate processes,
+    # combining the results, etc.
+    from sage.all import parallel
+    if ncpus is None:
+        import sage.parallel.ncpus
+        ncpus = sage.parallel.ncpus.ncpus()
+    @parallel(ncpus)
+    def f(start, stop):
+        return L._series2(n, prec, ser_prec, verb, force_mulmod, start, stop)
+
+    # intervals is going to be a list of (start, stop) pairs that give
+    # the (Python) range of j's to sum over.   We thus must divide 
+    #     range(0, p^(n-1))
+    # up into ncpus sublists.
+    last = L.p**(n-1)
+    intervals = []
+    start = 0; stop = last//ncpus
+    for i in range(ncpus):
+        intervals.append((start, stop))
+        start = stop
+        stop += last//ncpus
+    if start < last:
+        intervals.append((start, last))
+    P = 0
+    for x in f(intervals):
+        P += x[-1]
+    return P

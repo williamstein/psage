@@ -49,20 +49,25 @@ cdef long mulmod(long a, long b, long n):
 cdef class pAdicLseries:
     cdef bint parallel
     cdef public object E
-    cdef public int p, prec
-    cdef public long normalization
+    cdef public long p, prec
+    cdef public long normalization, normalization_mulmod
     cdef public long _alpha
-    cdef long alpha_inv[64]
+    cdef long alpha_inv[64], alpha_inv_mulmod[64]
     cdef long p_pow[64]
     cdef long *teich
+    cdef long *teich_mulmod
     cdef public ModularSymbolMap modsym
 
     def __cinit__(self):
         self.teich = NULL
+        self.teich_mulmod = NULL
 
     def __dealloc__(self):
         if self.teich:
             sage_free(self.teich)
+        if self.teich_mulmod:
+            sage_free(self.teich_mulmod)
+    
     
     def __init__(self, E, p, algorithm='eclib', parallel=False):
         """
@@ -167,14 +172,23 @@ cdef class pAdicLseries:
 
         cdef int n
         K = Qp(self.p, self.prec//2)
-
-        # Compute array of powers of inverse of alpha, modulo p^prec,
-        # for each power up to prec/2.
+        # Compute array of powers of inverse of alpha, modulo p^prec
+        # for each power up to prec.  This is only used for the
+        # non-mulmod version.
         u = 1
         self.alpha_inv[0] = u
-        for n in range(self.prec//2):
+        for n in range(self.prec):
             u *= alpha
             self.alpha_inv[n+1] = K(1/u).lift()   # coerce to K to lower precision
+
+        # Now do the same, but modulo p^(prec).  This is used for the
+        # mulmod larger precision version of computations.
+        K_mulmod = Qp(self.p, self.prec)
+        u = 1
+        self.alpha_inv_mulmod[0] = u
+        for n in range(self.prec):
+            u *= alpha
+            self.alpha_inv_mulmod[n+1] = K_mulmod(1/u).lift()  
 
         # Make a table of powers of p up to prec
         ppow = 1
@@ -183,14 +197,21 @@ cdef class pAdicLseries:
             ppow *= self.p
             self.p_pow[n+1] = ppow
 
-        # Make a table of Teichmuller lifts
+        # Make a table of Teichmuller lifts to precision p^(prec//2)
         self.teich = <long*> sage_malloc(sizeof(long)*self.p)
         self.teich[0] = 0
         for n in range(1,p):
             self.teich[n] = K.teichmuller(n).lift()
 
+        # Make a table of Teichmuller lifts to precision p^prec
+        self.teich_mulmod = <long*> sage_malloc(sizeof(long)*self.p)
+        self.teich_mulmod[0] = 0
+        for n in range(1,p):
+            self.teich_mulmod[n] = K_mulmod.teichmuller(n).lift()
+
         # Compute normalization
         self.normalization = ZZ(self.E.real_components()).inverse_mod(self.p_pow[self.prec//2])
+        self.normalization_mulmod = ZZ(self.E.real_components()).inverse_mod(self.p_pow[self.prec])
 
     def __repr__(self):
         return "%s-adic L-series of %s"%(self.p, self.E)
@@ -211,7 +232,7 @@ cdef class pAdicLseries:
         - a -- long
         - n -- int (very small)
         """
-        if n > self.prec:  # for safety
+        if n+1 > self.prec:  # for safety
             raise ValueError, "n too large to compute measure"
 
         # TODO/WARNING: The case when p divides level is different -- but we check in __init__ that p is good.
@@ -229,14 +250,13 @@ cdef class pAdicLseries:
         - n -- int (very small)
         - pp -- long (modulus, a power of p).
         """
-        if n > self.prec:  # for safety
+        if n+1 > self.prec:  # for safety
             raise ValueError, "n too large to compute measure"
 
         # TODO/WARNING: The case when p divides level is different -- but we check in __init__ that p is good.
 
-
-        cdef long ans = (mulmod(self.alpha_inv[n], self.modular_symbol(a, self.p_pow[n]), pp)
-                         - mulmod(self.alpha_inv[n+1], self.modular_symbol(a, self.p_pow[n-1]), pp))
+        cdef long ans = (mulmod(self.alpha_inv_mulmod[n], self.modular_symbol(a, self.p_pow[n]), pp)
+                         - mulmod(self.alpha_inv_mulmod[n+1], self.modular_symbol(a, self.p_pow[n-1]), pp))
         
         # mulmod returns a number between 0 and pp-1, inclusive, and so does this function.  Since
         # we compute ans as a difference of two such numbers, it is already in the interval [0..pp-1],
@@ -246,7 +266,7 @@ cdef class pAdicLseries:
         return ans
                         
     def _series(self, int n, prec, ser_prec=5, bint verb=0, bint force_mulmod=False,
-                 int start=-1, int stop=-1):
+                 long start=-1, long stop=-1):
         """
         EXAMPLES::
         
@@ -302,6 +322,7 @@ cdef class pAdicLseries:
                 one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
                 gamma_pow = (gamma_pow * gamma)%pp
                 #if verb: print j, s, one_plus_T_factor, gamma_pow
+            return L * self.normalization
         else:
             if verb: print "Using mulmod"
             # Since prec > self.prec//2, where self.prec =
@@ -315,15 +336,14 @@ cdef class pAdicLseries:
                 _sig_on
                 s = 0
                 for a in range(1, self.p):
-                    b = mulmod(self.teich[a], gamma_pow, pp)
+                    b = mulmod(self.teich_mulmod[a], gamma_pow, pp)
                     s += self.measure_mulmod(b, n, pp)
                     if s >= pp: s -= pp  # normalize
                 _sig_off
                 L += (s * one_plus_T_factor).truncate(ser_prec)
                 one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
                 gamma_pow = mulmod(gamma_pow, gamma, pp)
-            
-        return L * self.normalization
+            return L * self.normalization_mulmod            
 
     def _series_parallel(self, int n, prec, ser_prec=5, bint verb=0, bint force_mulmod=False,
                          ncpus=None):
@@ -460,7 +480,7 @@ def series_parallel(L, n, prec, ser_prec=5, verb=False, force_mulmod=False, ncpu
     # the (Python) range of j's to sum over.   We thus must divide 
     #     range(0, p^(n-1))
     # up into ncpus sublists.
-    last = L.p**(n-1)
+    last = ZZ(L.p)**(n-1)
     intervals = []
     start = 0; stop = last//ncpus
     for i in range(ncpus):

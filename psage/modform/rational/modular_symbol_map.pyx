@@ -205,7 +205,7 @@ cdef class ModularSymbolMap:
 
         # compute corresponding modular symbols, mapping over...
         for i in range(1,n):
-            j = self.P1.index(sign*q[i], q[i-1])
+            j = self.P1.index((sign*q[i])%self.N, q[i-1]%self.N)
             # map over, adding a row of the matrix self.X
             # to the answer vector v.
             x = self.X + j*self.d

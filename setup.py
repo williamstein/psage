@@ -8,12 +8,12 @@
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  PSAGE is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -28,7 +28,7 @@ if sys.maxint != 2**63 - 1:
     print "The PSAGE library only works on 64-bit computers.  Terminating build."
     print "*"*70
     sys.exit(1)
-    
+
 
 import build_system
 
@@ -58,7 +58,7 @@ def Extension(*args, **kwds):
         kwds['extra_compile_args'] = ['-w']
     else:
         kwds['extra_compile_args'].append('-w')
-        
+
     E = build_system.Extension(*args, **kwds)
     E.libraries = ['csage'] + E.libraries
     return E
@@ -78,13 +78,13 @@ ext_modules = [
                "psage/ellff/lzz_pEExtra.cpp",
                "psage/ellff/lzz_pEratX.cpp"],
               language = 'c++'),
-    
+
     Extension("psage.function_fields.function_field_element",
               ["psage/function_fields/function_field_element.pyx"]),
 
     Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
               ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),
-    
+
     Extension("psage.modform.siegel.fastmult",
               ["psage/modform/siegel/fastmult.pyx"]),
 
@@ -119,12 +119,16 @@ ext_modules = [
               sources = ['psage/ellcurve/galrep/wrapper.pyx', 'psage/ellcurve/galrep/galrep.c'],
               libraries = ['gmp']),
 
+    Extension('psage.ellcurve.minmodel.sqrt5',
+              sources = ['psage/ellcurve/minmodel/sqrt5.pyx'],
+              libraries = ['gmp']),
+
     Extension('psage.rh.mazur_stein.game',
               sources = ['psage/rh/mazur_stein/game.pyx']),
 
     Extension('psage.rh.mazur_stein.book_cython',
               sources = ['psage/rh/mazur_stein/book_cython.pyx']),
-    
+
     Extension("psage.ellcurve.lseries.fast_twist",
               ["psage/ellcurve/lseries/fast_twist.pyx"],
               libraries = ['gsl']),
@@ -144,7 +148,7 @@ for g in [1, 2]:
 # checking, is now included in the latest development version of
 # Cython (Nov 2, 2010).  It's supposed to be a rewrite he did of the
 # code in the Sage library.  Hence once that gets released, we should
-# switch to using it here. 
+# switch to using it here.
 
 build_system.cythonize(ext_modules)
 
@@ -157,6 +161,7 @@ build_system.setup(
     url = 'http://purple.sagemath.org',
     license = 'GPL v2+',
     packages = ['psage',
+                'psage.ellcurve',
                 'psage.ellff',
                 'psage.function_fields',
                 'psage.lmfdb',

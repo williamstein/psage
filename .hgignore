@@ -47,3 +47,5 @@ psage/ellcurve/lseries/fast_twist.c # cython
 psage/modform/rational/padic_elliptic_lseries_fast.c # cython
 psage/ellcurve/lseries/sqrt5.c    # cython
 psage/ellcurve/lseries/helper.c   # cython
+
+psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.c # cython

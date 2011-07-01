@@ -182,10 +182,10 @@ cdef class TracesOfFrobenius:
         if a1 or a2 or a3:
             b2 = a1*a1 + 4*a2; b4 = a1*a3 + 2*a4; b6 = a3**2 + 4*a6
             if b2:
-                A = 8*b4; B = 16*b6
-            else:
                 c4 = b2**2 - 24*b4; c6 = -b2**3 + 36*b2*b4 - 216*b6
                 A = -27*c4; B = -54*c6
+            else:
+                A = 8*b4; B = 16*b6
         else:
             A = a4; B = a6
 

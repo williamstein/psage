@@ -265,7 +265,7 @@ cdef void f_mapC(mpz_t rop1, mpz_t rop2, mpz_t rop3, mpz_t rop4, mpz_t op1, mpz_
     mpz_clear(f)
     mpz_sub(rop1,rop1,rop2)
     mpz_divexact_ui(rop1,rop1,2ul)
-    if not mpz_mod_ui(NULL, rop1, 13ul) and not mpz_mod_ui(NULL,rop2,8ul):
+    if not mpz_mod_ui(g, rop1, 13ull) and not mpz_mod_ui(t, rop2, 8ul):
         mpz_divexact_ui(t, rop1, 13ul)
         mpz_divexact_ui(g, rop2, 8ul)
         mpz_neg(g,g)
@@ -275,6 +275,7 @@ cdef void f_mapC(mpz_t rop1, mpz_t rop2, mpz_t rop3, mpz_t rop4, mpz_t op1, mpz_
             mpz_sub(rop3,rop4,rop3)
             mpz_sub(rop4,rop4,rop3)
     mpz_clear(g); mpz_clear(t)
+
 cpdef f_map(Integer a, Integer b):
     """
     Computes 'cannonical' representitives for the equivalence relation

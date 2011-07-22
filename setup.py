@@ -111,7 +111,8 @@ ext_modules = [
 
     Extension("psage.ellcurve.lseries.sqrt5",
               ["psage/ellcurve/lseries/sqrt5.pyx"],
-              libraries = ['gmp']),
+              libraries = ['ntl', 'gmp'],
+              language = 'c++'),
 
     Extension("psage.ellcurve.lseries.helper",
               ["psage/ellcurve/lseries/helper.pyx"]),

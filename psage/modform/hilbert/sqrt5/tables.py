@@ -1,6 +1,6 @@
 import sqrt5, sqrt5_fast
 from sage.misc.all import cputime
-from sage.rings.all import Integer
+from sage.rings.all import Integer, ZZ
 
 F = sqrt5.F
 
@@ -168,3 +168,58 @@ def elliptic_curves_parallel(v, B, dir, ncpu=16):
     for X in f(ideals_of_norm(v)):
         print X
         
+#################################################################
+
+from sage.libs.all import pari
+from sage.rings.all import primes
+
+def primes_of_bounded_norm(B):
+    """
+    Return the prime ideals of the integers of the field Q(sqrt(5)) of
+    norm at most B, ordered first by norm, then by the image of the
+    golden ratio mod the prime in GF(p)={0,1,...,p-1}.
+
+    INPUT:
+
+        - B -- integer
+
+    OUTPUT:
+
+        - list of prime ideals
+
+    EXAMPLES::
+
+        sage: import psage
+        sage: psage.modform.hilbert.sqrt5.primes_of_bounded_norm(4)
+        [Fractional ideal (2)]
+        sage: len(psage.modform.hilbert.sqrt5.primes_of_bounded_norm(10^4))
+        1233
+        sage: v = psage.modform.hilbert.sqrt5.primes_of_bounded_norm(11); v
+        [Fractional ideal (2), Fractional ideal (2*a - 1), Fractional ideal (3), Fractional ideal (3*a - 1), Fractional ideal (3*a - 2)]
+
+    Check that the sort order is as claimed::
+    
+        sage: P0 = v[-2]; P1 = v[-1]
+        sage: K = P0.number_field(); K
+        Number Field in a with defining polynomial x^2 - x - 1
+        sage: P0.residue_field()(K.gen())
+        4
+        sage: P1.residue_field()(K.gen())   # yep, 4 < 8
+        8
+    """
+    v = []
+    g = F.gen()
+    for p in primes(B+1):
+        if p == 5:
+            v.append((5, F.ideal(2*g-1)))
+        elif p%5 in [2,3]:
+            Norm = p*p
+            if Norm <= B:
+                v.append((Norm, F.ideal(p)))
+        else:
+            s = pari(5).Mod(p).sqrt()
+            a = int(((1 + s)/2).lift()); b = int(((1 - s)/2).lift())
+            v.append((p, a, F.ideal([p, g - a])))
+            v.append((p, b, F.ideal([p, g - b])))
+    v.sort()    
+    return [z[-1] for z in v]

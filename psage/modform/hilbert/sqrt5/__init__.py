@@ -21,3 +21,5 @@
 
 
 from hmf import HilbertModularForms
+
+from tables import primes_of_bounded_norm

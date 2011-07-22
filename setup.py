@@ -106,7 +106,8 @@ ext_modules = [
 
     Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
               ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
-              libraries = ['gmp']),
+              libraries = ['ntl', 'gmp'],
+              language = 'c++'),
 
     Extension("psage.ellcurve.lseries.sqrt5",
               ["psage/ellcurve/lseries/sqrt5.pyx"],

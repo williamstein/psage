@@ -1,7 +1,10 @@
 from sage.rings.ring cimport CommutativeRing
+from sage.rings.number_field.number_field_element_quadratic cimport NumberFieldElement_quadratic
 
 # Residue element
 ctypedef long residue_element[2]
+
+cdef class ResidueRingElement
 
 cdef class ResidueRing_abstract(CommutativeRing):
     cdef object P, F
@@ -15,7 +18,9 @@ cdef class ResidueRing_abstract(CommutativeRing):
     cdef int inv(self, residue_element rop, residue_element op) except -1
     cdef bint is_unit(self, residue_element op)
     cdef void neg(self, residue_element rop, residue_element op)
-    cdef int coerce_from_nf(self, residue_element rop, op) except -1
+    cdef ResidueRingElement new_element(self)
+    cdef int coefficients(self, long* v0, long* v1, NumberFieldElement_quadratic x) except -1    
+    cdef int coerce_from_nf(self, residue_element r, NumberFieldElement_quadratic x) except -1
     cdef bint element_is_1(self, residue_element op)
     cdef bint element_is_0(self, residue_element op)
     cdef void set_element_to_1(self, residue_element op)
@@ -43,7 +48,7 @@ cdef class ResidueRingElement:
     cdef ResidueRing_abstract _parent
     cpdef long index(self)
     cpdef parent(self)
-    cdef new(self)
+    cdef new_element(self)
     cpdef bint is_unit(self)
     cpdef bint is_square(self)
     cpdef sqrt(self)

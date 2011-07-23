@@ -1609,6 +1609,15 @@ cdef class ResidueRingModN:
             s = '(' + s + ')'
         return s
 
+    cdef int cmp_element(self, modn_element op0, modn_element op1):
+        cdef int i, c
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            c = R.cmp_element(op0[i], op1[i])
+            if c: return c
+        return 0
+
     cdef void mul(self, modn_element rop, modn_element op0, modn_element op1):
         cdef int i
         cdef ResidueRing_abstract R
@@ -1624,12 +1633,27 @@ cdef class ResidueRingModN:
             R.inv(rop[i], op[i])
         return 0
         
+    cdef int neg(self, modn_element rop, modn_element op) except -1:
+        cdef int i
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            R.neg(rop[i], op[i])
+        return 0
+
     cdef void add(self, modn_element rop, modn_element op0, modn_element op1):
         cdef int i
         cdef ResidueRing_abstract R
         for i in range(self.r):
             R = self.residue_rings[i]
             R.add(rop[i], op0[i], op1[i])
+
+    cdef void sub(self, modn_element rop, modn_element op0, modn_element op1):
+        cdef int i
+        cdef ResidueRing_abstract R
+        for i in range(self.r):
+            R = self.residue_rings[i]
+            R.sub(rop[i], op0[i], op1[i])
 
     cdef bint is_last_element(self, modn_element x):
         cdef int i
@@ -1676,6 +1700,32 @@ cdef class ResidueRingModN:
     #######################################    
     cdef matrix_to_str(self, modn_matrix A):
         return '[%s, %s; %s, %s]'%tuple([self.element_to_str(A[i]) for i in range(4)])
+
+    cdef bint matrix_is_invertible(self, modn_matrix x):
+        # det = x[0]*x[3] - x[1]*x[2], so we return True
+        # when x[0]*x[3] != x[1]*x[2]
+        cdef modn_element t1, t2
+        self.mul(t1, x[0], x[3])
+        self.mul(t2, x[1], x[2])
+        return self.cmp_element(t1, t2) != 0
+
+    cdef int matrix_inv(self, modn_matrix rop, modn_matrix x) except -1:
+        cdef modn_element d, t1, t2
+        self.mul(t1, x[0], x[3])
+        self.mul(t2, x[1], x[2])
+        self.sub(d, t1, t2)   # x[0]*x[2] - x[1]*x[3]
+        self.inv(d, d)
+        # Inverse is [x3,-x1,-x2,x0] * d
+        self.set_element(rop[0], x[3])
+        self.set_element(rop[3], x[0])
+        self.neg(t1, x[1])
+        self.neg(t2, x[2])
+        self.set_element(rop[1], t1)
+        self.set_element(rop[2], t2)
+        cdef int i
+        for i in range(4):
+            self.mul(rop[i], rop[i], d)
+        return 0  # success
 
     cdef matrix_mul(self, modn_matrix rop, modn_matrix x, modn_matrix y):
         cdef modn_element t, t2
@@ -2300,6 +2350,16 @@ cdef class IcosiansModP1ModN:
     def __repr__(self):
         return "The %s orbits for the action of the Icosian group on %s"%(self._cardinality, self.P1)
 
+    def level(self):
+        """
+        Return the level N, which is the ideal we quotiented out by in
+        constructing this set.
+        
+        EXAMPLES::
+
+        """
+        return self.P1.S.N
+
     cpdef compute_std_to_rep_table(self):
         # Algorithm is pretty obvious.  Just take first element of P1,
         # hit by all icosians, making a list of those that are
@@ -2462,7 +2522,38 @@ cdef class IcosiansModP1ModN:
             (x - 12) * (x^2 + 5*x + 5) * (x^4 - x^3 - 23*x^2 + 18*x + 52)
             sage: t2*t3 == t3*t2, t2*t5 == t5*t2, t11a*t11b == t11b*t11a
             (True, True, True)
+
+        Examples involving a prime dividing the level::
+        
+            sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
+            sage: v = F.primes_above(31); I = IcosiansModP1ModN(v[0])
+            sage: t31 = I.hecke_matrix(v[1]); t31
+            [17 15]
+            [ 9 23]
+            sage: t31.fcp()
+            (x - 32) * (x - 8)
+            sage: t5 = I.hecke_matrix(F.prime_above(5))
+            sage: t5*t31 == t31*t5
+            True
+            sage: I.hecke_matrix(v[0])
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: computation of T_P for P dividing the level is not implemented
+
+        Another test involving a prime that divides the norm of the level::
+
+            sage: v = F.primes_above(809); I = IcosiansModP1ModN(v[0])
+            sage: t = I.hecke_matrix(v[1])
+            sage: I
+            The 14 orbits for the action of the Icosian group on Projective line modulo the ideal (-26*a + 7) of norm 809
+            sage: t.fcp()
+            (x - 810) * (x + 46) * (x^4 - 48*x^3 - 1645*x^2 + 65758*x + 617743) * (x^8 + 52*x^7 - 2667*x^6 - 118268*x^5 + 2625509*x^4 + 55326056*x^3 - 1208759312*x^2 + 4911732368*x - 4279699152)
+            sage: s = I.hecke_matrix(F.prime_above(11))
+            sage: t*s == s*t
+            True
         """
+        if ZZ(self.level().norm()).gcd(ZZ(P.norm())) != 1:
+            return self._hecke_matrix_badnorm(P, sparse=sparse)
         cdef modn_matrix M
         cdef p1_element Mx
         from sqrt5 import hecke_elements
@@ -2479,22 +2570,43 @@ cdef class IcosiansModP1ModN:
                 T[i,j] += 1
         return T
         
-    def bench_hecke_matrix(self, P, sparse=True):
-        cdef modn_matrix M
+    def _hecke_matrix_badnorm(self, P, sparse=True):
+        """
+        Compute the Hecke matrix for a prime P whose norm divides the
+        norm of the level.
+
+        This function doesn't work if P itself divides the level.
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN; v=F.primes_above(71); I=IcosiansModP1ModN(v[0])
+            sage: I._hecke_matrix_badnorm(v[1])
+            [61 11]
+            [55 17]
+            sage: I._hecke_matrix_badnorm(v[1]).fcp()
+            (x - 72) * (x - 6)
+        """
+        cdef modn_matrix M, M0
         cdef p1_element Mx
         from sqrt5 import hecke_elements
 
         T = zero_matrix(QQ, self._cardinality, sparse=sparse)
         cdef long i, j
 
-        for alpha in hecke_elements(P):
-            self.f.quatalg_to_modn_matrix(M, alpha)
-            for i in [0]: #range(self._cardinality):
-                self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
-                self.P1.reduce_element(Mx, Mx)
-                j = self.std_to_rep_table[self.P1.standard_index(Mx)]
-                T[i,j] += 1
-        #return T
+        if P.divides(self.level()):
+            raise NotImplementedError, "computation of T_P for P dividing the level is not implemented"
+
+        for beta in hecke_elements(P):
+            alpha = beta**(-1)
+            self.f.quatalg_to_modn_matrix(M0, alpha)
+            if self.P1.S.matrix_is_invertible(M0):
+                self.P1.S.matrix_inv(M, M0)
+                for i in range(self._cardinality):
+                    self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
+                    self.P1.reduce_element(Mx, Mx)
+                    j = self.std_to_rep_table[self.P1.standard_index(Mx)]
+                    T[i,j] += 1
+        return T
 
     def degeneracy_matrix(self, P, sparse=True):
         """

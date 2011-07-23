@@ -6,14 +6,21 @@ The target audience of PSAGE is research mathematicians, with an
 emphasis on arithmetic geometry. PSAGE is closely related to Sage, but
 is aimed squarely at research mathematicians.
 
-It contains:
+UNIT TESTS:
 
-    * FunctionFields -- some basic code for arithmetic with function fields
+  Install nose: 
+    sage -sh; easy_install nose
 
-    * ELLFF -- computing L-functions of elliptic curves over function fields
+  Then from the root of the psage install:
+    nosetests -v --processes=8   # run 8 tests in parallel
+  
+DOCTESTS:
 
-    * modform:
+  Do this to run 8 tests in parallel:
 
-           - rational -- some code for modular forms over the rational (GL_2)
+    sage -tp 8 --force_lib psage/
 
-           - hilbert -- code for hilbert modular forms
+  A lot of doctests in certain parts of psage will fail.   This is because various authors wrote doctests for code
+  as if it were in Sage (or as if the file is pre-imported), but for the tests to pass in Sage one must explicitly
+  import functions from psage. 
+ 

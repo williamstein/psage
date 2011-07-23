@@ -143,6 +143,7 @@ class HilbertModularForms(Space):
 
         TESTS::
 
+            sage: import psage
             sage: H = psage.hilbert.sqrt5.HilbertModularForms(3); H
             Hilbert modular forms of dimension 1, level 3 (of norm 9=3^2) over QQ(sqrt(5))
             sage: loads(dumps(H)) == H

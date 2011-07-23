@@ -33,6 +33,8 @@ from sage.matrix.all import MatrixSpace, zero_matrix
 
 from sage.rings.integer cimport Integer
 
+from sqrt5 import F
+
 cdef Integer temp1 = Integer(0)
 
 cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
@@ -40,8 +42,7 @@ cdef long SQRT_MAX_LONG = 2**(4*sizeof(long)-1)
 #from sqrt5_fast_python import ResidueRing
 
 def is_ideal_in_F(I):
-    import sqrt5
-    return is_Ideal(I) and I.number_field() is sqrt5.F
+    return is_Ideal(I) and I.number_field() is F
 
 cpdef long ideal_characteristic(I):
     return I.number_field()._pari_().idealtwoelt(I._pari_())[0]
@@ -1164,38 +1165,39 @@ cdef class ResidueRingElement_nonsplit(ResidueRingElement):
     """
     EXAMPLES::
 
-        sage: from psage.modform.hilbert.sqrt5_fast import ResidueRing
+        sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import ResidueRing
 
     Inert example::
     
-        sage: F = NumberField(x**2 - x -1, 'a')
-        sage: P = F.primes_above(3)[0]
-        sage: R = ResidueRing(Pinert, 2)
-        sage: s = Rinert(F.0); s
-        0 + 1*gamma_bar
+        sage: F.<a> = NumberField(x^2 - x - 1)
+        sage: P_inert = F.primes_above(3)[0]
+        sage: R_inert = ResidueRing(P_inert, 2)
+        sage: s = R_inert(F.0); s
+        g
         sage: s + s + s
-        0 + 3*gamma_bar
+        3*g
         sage: s*s*s*s
-        2 + 3*gamma_bar
-        sage: Rinert(F.0^4)
-        2 + 3*gamma_bar
+        2 + 3*g
+        sage: R_inert(F.0^4)
+        2 + 3*g
 
-    Ramified example::
+    Ramified example (with even exponent)::
 
         sage: P = F.primes_above(5)[0]
         sage: R = ResidueRing(P, 2)
         sage: s = R(F.0); s
-        0 + 1*gamma_bar
+        g
         sage: s*s*s*s*s
-        3 + 0*gamma_bar
+        3
         sage: R(F.0^5)
-        3 + 0*gamma_bar
+        3
         sage: a = (s+s - R(F(1))); a*a
-        0 + 0*gamma_bar
+        0
         sage: R = ResidueRing(P, 3)
-        sage: t = R(2*F.0-1)   # reduction of sqrt(5)
+        sage: t = R(2*F.0-1); t   # reduction of sqrt(5)
+        s
         sage: t*t*t
-        0 + 0*gamma_bar
+        0
     """
     def __init__(self, ResidueRing_nonsplit parent, x):
         self._parent = parent
@@ -2233,6 +2235,25 @@ cdef class ModN_Reduction:
 ctypedef modn_matrix icosian_matrices[120]
 
 cdef class IcosiansModP1ModN:
+    """
+    Create object that represents that set of orbits
+          (Icosian Group) \ P^1(O_F / N).
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
+        sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
+        sage: I = IcosiansModP1ModN(F.prime_above(31)); I
+        The 2 orbits for the action of the Icosian group on Projective line modulo the ideal (5*a - 2) of norm 31
+        sage: I = IcosiansModP1ModN(F.prime_above(389)); I
+        The 7 orbits for the action of the Icosian group on Projective line modulo the ideal (18*a - 5) of norm 389
+        sage: I = IcosiansModP1ModN(F.prime_above(2011)); I
+        The 35 orbits for the action of the Icosian group on Projective line modulo the ideal (41*a - 11) of norm 2011
+
+        sage: from psage.modform.hilbert.sqrt5.tables import ideals_of_bounded_norm
+        sage: [len(IcosiansModP1ModN(b)) for b in ideals_of_bounded_norm(300)]
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 4, 4, 3, 3, 3, 3, 3, 4, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 6, 5, 5, 4, 4, 6, 4, 4, 6, 6, 4, 4, 4, 4, 5, 5, 6, 6, 6, 5, 5, 5, 5, 4, 4, 6, 6, 7, 7, 6, 5, 5, 6, 6, 6, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
+    """
     cdef icosian_matrices G
     cdef ModN_Reduction f
     cdef ProjectiveLineModN P1
@@ -2266,6 +2287,9 @@ cdef class IcosiansModP1ModN:
 
     def __reduce__(self):
         return unpickle_IcosiansModP1ModN_v1, (self.P1.S.N.gens_reduced()[0], )
+
+    def __len__(self):
+        return self._cardinality
 
     def __dealloc__(self):
         sage_free(self.std_to_rep_table)
@@ -2372,7 +2396,72 @@ cdef class IcosiansModP1ModN:
 
     def hecke_matrix(self, P, sparse=True):
         """
-        Return matrix of Hecke action, acting from the right!
+        Return matrix of Hecke action, acting from the right, so the
+        i-th row is the image of the i-th standard basis vector.
+
+        INPUT:
+            - P -- prime ideal
+            - ``sparse`` -- bool (default: True) if True, then a sparse
+              matrix is returned, otherwise a dense one
+              
+        OUTPUT:
+            - a dense or sparse matrix over the rational numbers
+
+        NOTE: This function does not cache its results.
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
+            sage: I = IcosiansModP1ModN(F.primes_above(31)[0]); I
+            The 2 orbits for the action of the Icosian group on Projective line modulo the ideal (5*a - 2) of norm 31
+            sage: I.hecke_matrix(F.prime_above(2))
+            [0 5]
+            [3 2]
+            sage: I.hecke_matrix(F.prime_above(3))
+            [5 5]
+            [3 7]
+            sage: I.hecke_matrix(F.prime_above(5))
+            [1 5]
+            [3 3]
+            sage: I.hecke_matrix(F.prime_above(3)).fcp()
+            (x - 10) * (x - 2)
+            sage: I.hecke_matrix(F.prime_above(2)).fcp()
+            (x - 5) * (x + 3)
+            sage: I.hecke_matrix(F.prime_above(5)).fcp()
+            (x - 6) * (x + 2)
+
+        A bigger example::
+
+            sage: I = IcosiansModP1ModN(F.prime_above(389)); I
+            The 7 orbits for the action of the Icosian group on Projective line modulo the ideal (18*a - 5) of norm 389
+            sage: t2 = I.hecke_matrix(F.prime_above(2)); t2
+            [0 3 0 1 1 0 0]
+            [3 0 0 0 1 0 1]
+            [0 0 2 1 0 1 1]
+            [1 0 1 0 1 0 2]
+            [1 1 0 1 0 1 1]
+            [0 0 2 0 2 1 0]
+            [0 1 1 2 1 0 0]
+            sage: t2.is_sparse()
+            True
+            sage: I.hecke_matrix(F.prime_above(2), sparse=False).is_sparse()
+            False
+            sage: t3 = I.hecke_matrix(F.prime_above(3))
+            sage: t5 = I.hecke_matrix(F.prime_above(5))
+            sage: t11a = I.hecke_matrix(F.primes_above(11)[0])
+            sage: t11b = I.hecke_matrix(F.primes_above(11)[1])
+            sage: t2.fcp()
+            (x - 5) * (x^2 + 5*x + 5) * (x^4 - 3*x^3 - 3*x^2 + 10*x - 4)
+            sage: t3.fcp()
+            (x - 10) * (x^2 + 3*x - 9) * (x^4 - 5*x^3 + 3*x^2 + 6*x - 4)
+            sage: t5.fcp()
+            (x - 6) * (x^2 + 4*x - 1) * (x^2 - x - 4)^2
+            sage: t11a.fcp()
+            (x - 12) * (x + 3)^2 * (x^4 - 17*x^2 + 68)
+            sage: t11b.fcp()
+            (x - 12) * (x^2 + 5*x + 5) * (x^4 - x^3 - 23*x^2 + 18*x + 52)
+            sage: t2*t3 == t3*t2, t2*t5 == t5*t2, t11a*t11b == t11b*t11a
+            (True, True, True)
         """
         cdef modn_matrix M
         cdef p1_element Mx

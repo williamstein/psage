@@ -21,82 +21,83 @@
 
 
 """
+Toy Implementation of Hilbert Modular Forms
+
+This file contains an incredibly slow naive toy implementation of
+Dembele's quaternion algebra algorithm for computing Hilbert modular
+forms of weight (2,2) and ramified or split prime level.  This is for
+testing and educational purposes only.  The file sqrt5_fast.pyx
+contains a dramatically faster version.  That said, figuring out the
+content of this file based on the contents of Dembele's paper
+"Explicit Computations of Hilbert Modular Forms on Q(sqrt(5))"
+was a timing consuming and very painful task.
+
 EXAMPLES:
 
 LEVEL 31::
 
-    sage: from psage.modform.hilbert.sqrt5 import *    
-    sage: F.<a> = QuadraticField(5)
+    sage: from psage.modform.hilbert.sqrt5.sqrt5 import THETA, hecke_ops, F
     sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1)
     sage: c = F.factor(31)[1][0]
     sage: P = F.primes_above(5)[0]
-    sage: TH = THETA(B, 20)   # currently about a minute
-    pi = [2, 3, -1/2*a + 5/2, -a + 4, -1/2*a + 7/2, -1/2*a + 9/2, -3/2*a + 11/2]
-    tr = [4, 6, 5, 8, 7, 9, 11]
-    N = 11
+    sage: TH = THETA(20)        # about 1 minute
+    pi = [2, a + 2, 3, 2*a + 3, a + 3, 3*a + 4, a + 4]
     Sorting through 22440 elements
-    sage: T = hecke_ops(B, c, TH)
-    sage: T
-    [(5, -1/2*a + 5/2, [3 3]
-    [5 1]), (9, 3, [7 3]
-    [5 5]), (11, -1/2*a + 7/2, [9 3]
-    [5 7]), (11, -a + 4, [ 6  6]
-    [10  2]), (19, -1/2*a + 9/2, [11  9]
-    [15  5]), (19, -3/2*a + 11/2, [14  6]
-    [10 10])]
+    sage: T = hecke_ops(c, TH); T   # random output do to choice of basis
+    [(5, a + 2, [1 5]
+    [3 3]), (9, 3, [5 5]
+    [3 7]), (11, a + 3, [ 2 10]
+    [ 6  6]), (11, 2*a + 3, [7 5]
+    [3 9]), (19, a + 4, [10 10]
+    [ 6 14]), (19, 3*a + 4, [ 5 15]
+    [ 9 11])]
     sage: for nm,p,t in T:
     ...       print nm, p, t.charpoly().factor()
-    5 -1/2*a + 5/2 (x - 6) * (x + 2)
+    5 a + 2 (x - 6) * (x + 2)
     9 3 (x - 10) * (x - 2)
-    11 -1/2*a + 7/2 (x - 12) * (x - 4)
-    11 -a + 4 (x - 12) * (x + 4)
-    19 -1/2*a + 9/2 (x - 20) * (x + 4)
-    19 -3/2*a + 11/2 (x - 20) * (x - 4)
-
+    11 a + 3 (x - 12) * (x + 4)
+    11 2*a + 3 (x - 12) * (x - 4)
+    19 a + 4 (x - 20) * (x - 4)
+    19 3*a + 4 (x - 20) * (x + 4)
 
 LEVEL 41::
 
-    sage: from psage.modform.hilbert.sqrt5 import * 
-    sage: F.<a> = QuadraticField(5)
+    sage: from psage.modform.hilbert.sqrt5.sqrt5 import THETA, hecke_ops, F
     sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1)
     sage: F.primes_above(41)
-    [Fractional ideal (1/2*a - 13/2), Fractional ideal (1/2*a + 13/2)]
+    [Fractional ideal (a - 7), Fractional ideal (a + 6)]
     sage: c = F.primes_above(41)[0]
-    sage: TH = THETA(B, 11)   # about 30 seconds
-    pi = [2, 3, -1/2*a + 5/2, -a + 4, -1/2*a + 7/2]
-    tr = [4, 6, 5, 8, 7]
-    N = 8
+    sage: TH = THETA(11)    # about 30 seconds
+    pi = [2, a + 2, 3, 2*a + 3, a + 3]
     Sorting through 6660 elements
-    sage: T = hecke_ops(B, c, TH)
-    sage: T
-    [(5, -1/2*a + 5/2, [4 2]
+    sage: T = hecke_ops(c, TH); T   # random output do to choice of basis
+    [(5, a + 2, [4 2]
     [5 1]), (9, 3, [ 6  4]
-    [10  0]), (11, -a + 4, [10  2]
-    [ 5  7]), (11, -1/2*a + 7/2, [ 8  4]
+    [10  0]), (11, a + 3, [10  2]
+    [ 5  7]), (11, 2*a + 3, [ 8  4]
     [10  2])]
     sage: for nm,p,t in T:
     ...         print nm, p, t.charpoly().factor()
-    5 -1/2*a + 5/2 (x - 6) * (x + 1)
+    5 a + 2 (x - 6) * (x + 1)
     9 3 (x - 10) * (x + 4)
-    11 -a + 4 (x - 12) * (x - 5)
-    11 -1/2*a + 7/2 (x - 12) * (x + 2)
+    11 a + 3 (x - 12) * (x - 5)
+    11 2*a + 3 (x - 12) * (x + 2)
+    
 
 LEVEL 389!:
 
 This relies on having TH from above (say from the level 31 block above)::
     
+    sage: F.primes_above(389)
+    [Fractional ideal (18*a - 5), Fractional ideal (-18*a + 13)]
     sage: c = F.primes_above(389)[0]
-    sage: T = hecke_ops(B, c, TH)
+    sage: T = hecke_ops(c, TH)
     sage: for nm,p,t in T:
     ...       print nm, p, t.charpoly().factor()
-    5 -1/2*a + 5/2 (x - 6) * (x^2 + 4*x - 1) * (x^2 - x - 4)^2
+    5 a + 2 (x - 6) * (x^2 + 4*x - 1) * (x^2 - x - 4)^2
     9 3 (x - 10) * (x^2 + 3*x - 9) * (x^4 - 5*x^3 + 3*x^2 + 6*x - 4)
-    11 -1/2*a + 7/2 (x - 12) * (x^2 + 5*x + 5) * (x^4 - x^3 - 23*x^2 + 18*x + 52)
-    11 -a + 4 (x - 12) * (x + 3)^2 * (x^4 - 17*x^2 + 68)
-    19 -1/2*a + 9/2 (x - 20) * (x^2 + 3*x - 9) * (x^4 + x^3 - 23*x^2 + 16*x + 52)
-    19 -3/2*a + 11/2 (x - 20) * (x^2 + 3*x - 9) * (x^4 + 5*x^3 - 65*x^2 - 278*x + 404)
-    sage: F.primes_above(389)
-    [Fractional ideal (9*a + 4), Fractional ideal (-9*a + 4)]
+    11 a + 3 (x - 12) * (x + 3)^2 * (x^4 - 17*x^2 + 68)
+    11 2*a + 3 (x - 12) * (x^2 + 5*x + 5) * (x^4 - x^3 - 23*x^2 + 18*x + 52)
 """
 
 
@@ -119,24 +120,20 @@ def modp_splitting(p):
           an algebra morphism, i.e., I^2=a, J^2=b, I*J=-J*I.
 
     EXAMPLES::    
-                        
-        sage: F.<a> = QuadraticField(5); F
-        Number Field in a with defining polynomial x^2 - 5
-        sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1); B
-        Quaternion Algebra (-1, -1) with base ring Number Field in a with defining polynomial x^2 - 5
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, B, modp_splitting
         sage: c = F.factor(31)[0][0]
-        sage: from psage.modform.hilbert.sqrt5 import modp_splitting
-        sage: modp_splitting(B, c)
+        sage: modp_splitting(c)
         (
         [ 0 30]  [18  4]
         [ 1  0], [ 4 13]
         )
         sage: c = F.factor(37)[0][0]; c
         Fractional ideal (37)
-        sage: I, J = modp_splitting(B, c); I, J
+        sage: I, J = modp_splitting(c); I, J
         (
-        [ 0 36]  [ 7*abar + 15 21*abar + 32]
-        [ 1  0], [21*abar + 32 30*abar + 22]
+        [ 0 36]  [23*abar + 21  36*abar + 8]
+        [ 1  0], [ 36*abar + 8 14*abar + 16]
         )
         sage: I^2
         [36  0]
@@ -207,12 +204,10 @@ def modp_splitting_map(p):
 
     EXAMPLES::
 
-        sage: from psage.modform.hilbert.sqrt5 import *    
-        sage: attach /tmp/a.sage
-        sage: F.<a> = QuadraticField(5)
-        sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1)
-        sage: theta = modp_splitting_map(B, F.primes_above(5)[0])
-        sage: theta(i+j-k)
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, B, modp_splitting_map
+        sage: i,j,k = B.gens()
+        sage: theta = modp_splitting_map(F.primes_above(5)[0])
+        sage: theta(i + j - k)
         [2 1]
         [3 3]
         sage: s = 2 + 3*i - 2*j - 2*k
@@ -225,10 +220,10 @@ def modp_splitting_map(p):
         x^2 + x + 1
         sage: s.reduced_characteristic_polynomial().change_ring(GF(5))
         x^2 + x + 1
-        sage: theta = modp_splitting_map(B, F.primes_above(3)[0])
+        sage: theta = modp_splitting_map(F.primes_above(3)[0])
         sage: smod = theta(s); smod
-        [  abar + 2     2*abar]
-        [    2*abar 2*abar + 2]
+        [2*abar + 1   abar + 1]
+        [  abar + 1       abar]
         sage: smod^2 - 4*smod + 21
         [0 0]
         [0 0]    
@@ -248,12 +243,10 @@ def icosian_gens():
 
     EXAMPLES::
     
-        sage: F.<a> = QuadraticField(5)
-        sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1)
-        sage: from psage.modform.hilbert.sqrt5 import icosian_gens
-        sage: icosian_gens(B)
-        [i, j, k, -1/2 + 1/2*i + 1/2*j + 1/2*k, 1/2*i + (-1/4*a + 1/4)*j + (1/4*a + 1/4)*k]
-        sage: [a.reduced_norm() for a in icosian_gens(B)]
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import icosian_gens
+        sage: icosian_gens()
+        [i, j, k, -1/2 + 1/2*i + 1/2*j + 1/2*k, 1/2*i + 1/2*a*j + (-1/2*a + 1/2)*k]
+        sage: [a.reduced_norm() for a in icosian_gens()]
         [1, 1, 1, 1, 1]
     """
     global B, F
@@ -266,6 +259,22 @@ def icosian_gens():
 
 
 def compute_all_icosians():
+    """
+    Return a list of the elements of the Icosian group of order 120,
+    which we compute by generating enough products of icosian
+    generators.
+    
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import compute_all_icosians, all_icosians
+        sage: v = compute_all_icosians()
+        sage: len(v)
+        120
+        sage: v
+        [1/2 + 1/2*a*i + (-1/2*a + 1/2)*k, 1/2 + (-1/2*a + 1/2)*i + 1/2*a*j,..., -k, i, j, -i]
+        sage: assert set(v) == set(all_icosians())  # double check
+    """
+    from sage.all import permutations, cartesian_product_iterator
     Icos = []
     ig = icosian_gens()
     per = permutations(range(5))
@@ -285,6 +294,16 @@ def compute_all_icosians():
 
 @cached_function
 def all_icosians():
+    """
+    Return a list of all 120 icosians, from a precomputed table.
+
+    EXAMPLES::
+
+    sage: from psage.modform.hilbert.sqrt5.sqrt5 import all_icosians
+    sage: v = all_icosians()
+    sage: len(v)
+    120
+    """
     s = '[1+a*i+(-a+1)*k,1+(-a+1)*i+a*j,-a+i+(a-1)*j,1+(-a)*i+(-a+1)*k,-a-j+(-a+1)*k,1+(a-1)*i+(-a)*j,-1+(-a)*i+(a-1)*k,-1+(a-1)*i+(-a)*j,-a+1+(-a)*j-k,-1+a*i+(-a+1)*k,-a+1+i+(-a)*k,-1+(-a+1)*i+(-a)*j,(-a+1)*i+j+(-a)*k,a-1+(-a)*j+k,(a-1)*i-j+a*k,a+i+(-a+1)*j,1+a*i+(a-1)*k,-1+(-a)*i+(-a+1)*k,a*i+(-a+1)*j-k,a-1+i+a*k,(-a)*i+(a-1)*j+k,a+j+(-a+1)*k,1+(-a+1)*i+(-a)*j,-1+(a-1)*i+a*j,a-i+(-a+1)*j,-1+a*i+(a-1)*k,a+j+(a-1)*k,-1+(-a+1)*i+a*j,(-a+1)*i+j+a*k,a-1+a*j+k,-a+i+(-a+1)*j,1+(-a)*i+(a-1)*k,a*i+(-a+1)*j+k,a-1-i+a*k,-a+j+(a-1)*k,1+(a-1)*i+a*j,(a-1)*i+j+a*k,-a+1+a*j+k,(-a)*i+(-a+1)*j+k,-a+1+i+a*k,-a-i+(-a+1)*j,-a+1+(-a)*j+k,(-a+1)*i-j+a*k,(a-1)*i+j+(-a)*k,a+i+(a-1)*j,a-1+a*j-k,-a+j+(-a+1)*k,-a+1-i+a*k,a*i+(a-1)*j+k,(-a)*i+(-a+1)*j-k,a-j+(a-1)*k,a-1+i+(-a)*k,-1+i+j+k,-1-i-j+k,1-i-j-k,1+i-j+k,a-j+(-a+1)*k,-1+i-j-k,1-i+j+k,(a-1)*i-j+(-a)*k,-a-j+(a-1)*k,1+i+j-k,a*i+(a-1)*j-k,-1-i+j-k,a-1+(-a)*j-k,-a+1+a*j-k,(-a)*i+(a-1)*j-k,-a+1-i+(-a)*k,-a-i+(a-1)*j,a-1-i+(-a)*k,(-a+1)*i-j+(-a)*k,a-i+(a-1)*j,-i+(-a)*j+(a-1)*k,i+a*j+(a-1)*k,i+a*j+(-a+1)*k,-i+a*j+(a-1)*k,-i+a*j+(-a+1)*k,i+(-a)*j+(a-1)*k,-i+(-a)*j+(-a+1)*k,i+(-a)*j+(-a+1)*k,-1-i-j-k,1+i+j+k,2,-a+1+a*i-j,-2,-a+(-a+1)*i-k,a-1+a*i+j,a+(-a+1)*i+k,a-1+(-a)*i+j,1+(-a+1)*j+(-a)*k,-a+1+a*i+j,-1+(-a+1)*j+a*k,a+(a-1)*i+k,-1+(a-1)*j+a*k,-a+(-a+1)*i+k,1+(-a+1)*j+a*k,-a+1+(-a)*i+j,-a+(a-1)*i+k,a-1+a*i-j,1+(a-1)*j+a*k,a+(-a+1)*i-k,-1+(-a+1)*j+(-a)*k,-a+1+(-a)*i-j,-a+(a-1)*i-k,a-1+(-a)*i-j,1+(a-1)*j+(-a)*k,a+(a-1)*i-k,-1+(a-1)*j+(-a)*k,-1+i+j-k,1-i+j-k,1-i-j+k,-1-i+j+k,-1+i-j+k,1+i-j-k,2*k,(-2)*j,(-2)*k,2*i,2*j,(-2)*i]'
     v = eval(s, {'a':F.gen(), 'i':B.gen(0), 'j':B.gen(1), 'k':B.gen(0)*B.gen(1)})
     return [B(x)/B(2) for x in v]
@@ -292,9 +311,19 @@ def all_icosians():
 
 def icosian_ring_gens():
     """
-    Return generators for the icosian ring (a maximal order) in the
+    Return ring generators for the icosian ring (a maximal order) in the
     quaternion algebra ramified only at infinity over F=Q(sqrt(5)).
     These are generators over the ring of integers of F.
+
+    OUTPUT:
+
+       - list
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import icosian_ring_gens
+        sage: icosian_ring_gens()
+        [1/2 + (1/2*a - 1/2)*i + 1/2*a*j, (1/2*a - 1/2)*i + 1/2*j + 1/2*a*k, 1/2*a*i + (1/2*a - 1/2)*j + 1/2*k, 1/2*i + 1/2*a*j + (1/2*a - 1/2)*k]
     """
     global B, F
     # See page 6 of Dembele.
@@ -310,6 +339,14 @@ def icosian_ring_gens():
 def icosian_ring_gens_over_ZZ():
     """
     Return basis over ZZ for the icosian ring, which has ZZ-rank 8.
+
+    EXAMPLES::
+    
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import icosian_ring_gens_over_ZZ
+        sage: v = icosian_ring_gens_over_ZZ(); v
+        [1/2 + (1/2*a - 1/2)*i + 1/2*a*j, (1/2*a - 1/2)*i + 1/2*j + 1/2*a*k, 1/2*a*i + (1/2*a - 1/2)*j + 1/2*k, 1/2*i + 1/2*a*j + (1/2*a - 1/2)*k, 1/2*a + 1/2*i + (1/2*a + 1/2)*j, 1/2*i + 1/2*a*j + (1/2*a + 1/2)*k, (1/2*a + 1/2)*i + 1/2*j + 1/2*a*k, 1/2*a*i + (1/2*a + 1/2)*j + 1/2*k]
+        sage: len(v)
+        8
     """
     global B, F
     I = icosian_ring_gens()
@@ -319,7 +356,28 @@ def icosian_ring_gens_over_ZZ():
 def tensor_over_QQ_with_RR(prec=53):
     """
     Return map from the quaternion algebra B to the tensor product of
-    B over QQ with RR, viewed as an 8-dimensional real vector space.
+    B over QQ with RealField(prec), viewed as an 8-dimensional real
+    vector space.
+
+    INPUT:
+        - prec -- (integer: default 53); bits of real precision 
+
+    OUTPUT:
+        - a Python function
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import tensor_over_QQ_with_RR, B
+        sage: f = tensor_over_QQ_with_RR()
+        sage: B.gens()
+        [i, j, k]
+        sage: f(B.0)
+        (0.000000000000000, 1.00000000000000, 0.000000000000000, 0.000000000000000, 0.000000000000000, 1.00000000000000, 0.000000000000000, 0.000000000000000)
+        sage: f(B.1)
+        (0.000000000000000, 0.000000000000000, 1.00000000000000, 0.000000000000000, 0.000000000000000, 0.000000000000000, 1.00000000000000, 0.000000000000000)
+        sage: f = tensor_over_QQ_with_RR(20)
+        sage: f(B.0 - (1/9)*B.1)
+        (0.00000, 1.0000, -0.11111, 0.00000, 0.00000, 1.0000, -0.11111, 0.00000)
     """
     global B, F
     from sage.all import RealField
@@ -332,7 +390,28 @@ def tensor_over_QQ_with_RR(prec=53):
 
 def modp_icosians(p):
     """
-    Return matrices of images of all 120 icosians mod p.
+    Return matrices of images of all 120 icosians modulo p.
+
+    INPUT:
+        - p -- *split* or ramified prime ideal of real quadratic field F=Q(sqrt(5))
+
+    OUTPUT:
+        - list of matrices modulo p.
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, modp_icosians
+        sage: len(modp_icosians(F.primes_above(5)[0]))
+        120
+        sage: v = modp_icosians(F.primes_above(11)[0])
+        sage: len(v)
+        120
+        sage: v[0]
+        [10  8]
+        [ 8  1]
+        sage: v[-1]
+        [0 3]
+        [7 0]
     """
     I, J = modp_splitting(p); K = I*J
     k = p.residue_field()
@@ -341,10 +420,51 @@ def modp_icosians(p):
     return [g.matrix() for g in MatrixGroup(G)]
 
 class P1ModList(object):
+    """
+    Object the represents the elements of the projective line modulo
+    a nonzero *prime* ideal of the ring of integers of Q(sqrt(5)).
+
+    Elements of the projective line are represented by elements of a 2-dimension
+    vector space over the residue field.
+
+    EXAMPLES::
+
+    We construct the projective line modulo the ideal (2), and illustrate
+    all the standard operations with it::
+    
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+        sage: P1 = P1ModList(F.primes_above(2)[0]); P1
+        Projective line over Residue field in abar of Fractional ideal (2)
+        sage: len(P1)
+        5
+        sage: list(P1)
+        [(0, 1), (1, 0), (1, abar), (1, abar + 1), (1, 1)]
+        sage: P1.random_element()   # random output
+        (1, abar + 1)
+        sage: z = P1.random_element(); z   # random output
+        (1, 0)
+        sage: z[0].parent()
+        Residue field in abar of Fractional ideal (2)
+        sage: g = z[0].parent().gen()
+        sage: P1.normalize((g,g))
+        (1, 1)
+        sage: P1((g,g))
+        (1, 1)
+    """
     def __init__(self, c):
         """
         INPUT:
-           - c -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
+           - c -- a nonzero prime of the ring of integers of Q(sqrt(5))
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: P1ModList(F.primes_above(3)[0])
+            Projective line over Residue field in abar of Fractional ideal (3)
+            sage: P1ModList(F.primes_above(11)[1])
+            Projective line over Residue field of Fractional ideal (3*a - 1)
+            sage: list(P1ModList(F.primes_above(5)[0]))
+            [(0, 1), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]
         """
         self._c = c
         F = c.residue_field()
@@ -356,10 +476,38 @@ class P1ModList(object):
             a.set_immutable()
 
     def random_element(self):
+        """
+        Return a random element of this projective line.
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: P1 = P1ModList(F.primes_above(13)[0]); P1
+            Projective line over Residue field in abar of Fractional ideal (13)
+            sage: P1.random_element()   # random output
+            (1, 10*abar + 5)
+        """
         import random
         return random.choice(self._list)
         
     def normalize(self, uv):
+        """
+        Normalize a representative element so it is either of the form
+        (1,*) if the first entry is nonzero, or of the form (0,1)
+        otherwise.
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: p = F.primes_above(13)[0]
+            sage: P1 = P1ModList(p)
+            sage: k = p.residue_field()
+            sage: g = k.gen()
+            sage: P1.normalize([3,4])
+            (1, 10)
+            sage: P1.normalize([g,g])
+            (1, 1)
+            sage: P1.normalize([0,g])
+            (0, 1)
+        """
         w = self._V(uv)
         if w[0]:
             w = (~w[0]) * w
@@ -370,28 +518,99 @@ class P1ModList(object):
             return self._list[0]
 
     def __len__(self):
+        """
+        Return number of elements of this P1.
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: len(P1ModList(F.primes_above(3)[0]))
+            10
+            sage: len(P1ModList(F.primes_above(5)[0]))
+            6
+            sage: len(P1ModList(F.primes_above(19)[0]))
+            20
+            sage: len(P1ModList(F.primes_above(19)[1]))
+            20
+        """
         return len(self._list)
     
     def __getitem__(self, i):
+        """
+        Return i-th element.
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: P = P1ModList(F.primes_above(3)[0]); list(P)
+            [(0, 1), (1, 0), (1, 2*abar), (1, abar + 1), (1, abar + 2), (1, 2), (1, abar), (1, 2*abar + 2), (1, 2*abar + 1), (1, 1)]
+            sage: P[2]
+            (1, 2*abar)
+        """
         return self._list[i]
 
     def __call__(self, x):
+        """
+        Coerce x into this P1 list. Here x is anything that coerces to
+        the 2-dimensional vector space over the residue field.  The
+        result is normalized (in fact this function is just an alias
+        for the normalize function).
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: p = F.primes_above(13)[0]
+            sage: k = p.residue_field(); g = k.gen()
+            sage: P1 = P1ModList(p)
+            sage: P1([3,4])
+            (1, 10)
+            sage: P1([g,g])
+            (1, 1)
+            sage: P1(P1([g,g]))
+            (1, 1)
+        """
         return self.normalize(x)
 
     def __repr__(self):
+        """
+        EXAMPLES::
+        
+            sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, P1ModList
+            sage: P1ModList(F.primes_above(19)[1]).__repr__()
+            'Projective line over Residue field of Fractional ideal (-4*a + 3)'
+        """
         return 'Projective line over %s'%self._F
     
 
 def P1_orbits(p):
     """
     INPUT:
+       - p -- a split or ramified prime of the integers of Q(sqrt(5)).
 
-       - p -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
+    OUTPUT:
+        - ``orbits`` -- dictionary mapping elements of P1 to a choice of orbit rep
+        - ``reps`` -- list of representatives for the orbits
+        - ``P1`` -- the P1ModList object
 
     AUTHOR: William Stein
 
     EXAMPLES::
 
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import P1_orbits, F
+        sage: orbits, reps, P1 = P1_orbits(F.primes_above(5)[0])
+        sage: orbits   # random output
+        {(1, 2): (1, 0), (0, 1): (1, 0), (1, 3): (1, 0), (1, 4): (1, 0), (1, 0): (1, 0), (1, 1): (1, 0)}
+        sage: reps   # random output
+        [(1, 1)]
+        sage: len(reps)
+        1
+        sage: P1
+        Projective line over Residue field of Fractional ideal (2*a - 1)
+        sage: orbits, reps, P1 = P1_orbits(F.primes_above(41)[0])
+        sage: reps   # random output
+        [(1, 40), (1, 5)]
+        sage: len(reps)
+        2
     """
     global B
     
@@ -424,13 +643,22 @@ def P1_orbits(p):
 def P1_orbits2(p):
     """
     INPUT:
+        - p -- a split or ramified prime of the integers of Q(sqrt(5)).
 
-       - p -- a prime of O_F, where F is the totally real field Q(sqrt(5)).
+    OUTPUT:
+        - list of disjoint sets of elements of P1 that are orbits
 
     AUTHOR: William Stein
 
     EXAMPLES::
 
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import P1_orbits2, F
+        sage: P1_orbits2(F.primes_above(5)[0])  # random output
+        [set([(1, 2), (0, 1), (1, 3), (1, 4), (1, 0), (1, 1)])]
+        sage: P1_orbits2(F.primes_above(11)[0])  # random output
+        [set([(0, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 8), (1, 6), (1, 9), (1, 7), (1, 10), (1, 0), (1, 1)])]
+        sage: len(P1_orbits2(F.primes_above(41)[0]))
+        2
     """
     global B
     
@@ -454,7 +682,7 @@ def P1_orbits2(p):
 def totally_pos_gen(p):
     """
     Given a prime ideal p of a narrow class number 1 real quadratic
-    field, return a totally positive generator.
+    field, return a totally positive generator for p.
 
     INPUT:
         - p -- prime ideal of narrow class number 1 real
@@ -467,12 +695,13 @@ def totally_pos_gen(p):
 
     EXAMPLES::
     
-        sage: F.<a> = QuadraticField(5)
-        sage: from psage.modform.hilbert.sqrt5 import totally_pos_gen
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, totally_pos_gen
         sage: g = totally_pos_gen(F.factor(19)[0][0]); g
-        -1/2*a + 9/2
+        3*a + 4
+        sage: g.norm()
+        19
         sage: g.complex_embeddings()
-        [5.61803398874989, 3.38196601125011]        
+        [2.14589803375032, 8.85410196624968]
 
         sage: for p in primes(14):
         ...       for P, e in F.factor(p):
@@ -480,10 +709,10 @@ def totally_pos_gen(p):
         ...           print P, g, g.complex_embeddings()
         Fractional ideal (2) 2 [2.00000000000000, 2.00000000000000]
         Fractional ideal (3) 3 [3.00000000000000, 3.00000000000000]
-        Fractional ideal (a) -1/2*a + 5/2 [3.61803398874989, 1.38196601125011]
+        Fractional ideal (2*a - 1) a + 2 [1.38196601125011, 3.61803398874989]
         Fractional ideal (7) 7 [7.00000000000000, 7.00000000000000]
-        Fractional ideal (-3/2*a + 1/2) -a + 4 [6.23606797749979, 1.76393202250021]
-        Fractional ideal (-3/2*a - 1/2) -1/2*a + 7/2 [4.61803398874989, 2.38196601125011]
+        Fractional ideal (3*a - 2) a + 3 [2.38196601125011, 4.61803398874989]
+        Fractional ideal (3*a - 1) 2*a + 3 [1.76393202250021, 6.23606797749979]
         Fractional ideal (13) 13 [13.0000000000000, 13.0000000000000]
     """
     F = p.number_field()
@@ -519,7 +748,22 @@ def totally_pos_gen(p):
 
 def gram_matrix_of_maximal_order(R):
     """
-    Return 8x8 Gram matrix of maximal order R.
+    Return 8x8 Gram matrix of maximal order defined by R, which is assumed to be
+    a basis for maximal order over ZZ.
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import icosian_ring_gens_over_ZZ, gram_matrix_of_maximal_order
+        sage: R = icosian_ring_gens_over_ZZ()
+        sage: gram_matrix_of_maximal_order(R)
+        [4 2 2 1 2 1 1 3]
+        [2 4 1 1 1 2 3 3]
+        [2 1 4 1 1 3 2 3]
+        [1 1 1 4 3 3 3 2]
+        [2 1 1 3 6 3 3 4]
+        [1 2 3 3 3 6 4 4]
+        [1 3 2 3 3 4 6 4]
+        [3 3 3 2 4 4 4 6]
     """
     G = [[(R[i]*R[j].conjugate()).reduced_trace().trace()
           for i in range(8)] for j in range(8)]
@@ -527,9 +771,26 @@ def gram_matrix_of_maximal_order(R):
     return matrix(ZZ, G)
 
 def qfminim(qf, N):
-    """Call the PARI qfminim method on qf and 2*N, with smaller and
+    """
+    Call the PARI qfminim method on qf and 2*N, with smaller and
     and smaller search range, until a MemoryError is *not* raised.
-    On a large-memory machine this will succeed the first time."""
+    On a large-memory machine this will succeed the first time.
+
+    EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import icosian_ring_gens_over_ZZ, gram_matrix_of_maximal_order
+        sage: R = icosian_ring_gens_over_ZZ()
+        sage: G = gram_matrix_of_maximal_order(R)
+        sage: qf = pari(G)
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import icosian_ring_gens_over_ZZ, gram_matrix_of_maximal_order, qfminim
+        sage: n, m, v = qfminim(qf, 2)
+        sage: n
+        120
+        sage: m
+        4
+        sage: v[0]
+        [0, 0, 0, -1, 1, 0, 0, 0]~
+    """
     i = 32
     while i>10:
         try:
@@ -545,10 +806,8 @@ def bounded_elements(N):
 
     EXAMPLES::
 
-        sage: from psage.modform.hilbert.sqrt5 import *    
-        sage: F.<a> = QuadraticField(5)
-        sage: B.<i,j,k> = QuaternionAlgebra(F,-1,-1)
-        sage: X = bounded_elements(B,3)
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import bounded_elements
+        sage: X = bounded_elements(3)
         sage: len(X)
         180
         sage: rnX = [a.reduced_norm() for a in X]
@@ -556,7 +815,7 @@ def bounded_elements(N):
         set([2, 3])
         sage: set([a.norm() for a in rnX])
         set([1])
-        sage: X = bounded_elements(B,5)
+        sage: X = bounded_elements(5)
         sage: len(X)
         1200
         sage: rnX = [a.reduced_norm() for a in X]
@@ -590,55 +849,42 @@ def bounded_elements(N):
         V.append(sum(w[j]*R[j] for j in range(8)))
     return V
 
-def primes_of_bounded_norm(F, N):
-    """
-    Return the primes of the quadratic field F = Q(sqrt(5))
-    of norm up to N.
-
-    EXAMPLES::
-
-        sage: from psage.modform.hilbert.sqrt5.sqrt5 import *
-        sage: F.<a> = QuadraticField(5)
-        sage: primes_of_bounded_norm(F, 5)
-        [Fractional ideal (2), Fractional ideal (a)]         
-        sage: P = primes_of_bounded_norm(F,25)
-        [Fractional ideal (2), Fractional ideal (3), Fractional ideal (-a),
-         Fractional ideal (-3/2*a + 1/2), Fractional ideal (-3/2*a - 1/2),
-         Fractional ideal (-2*a - 1), Fractional ideal (-2*a + 1)]
-
-    The ideals are ordered not by norm, but by residue characteristic:
-    
-        sage: [I.norm() for I in P]
-        [4, 9, 5, 11, 11, 19, 19]
-    """
-    # The answer is the set of primes over primes p of ZZ
-    # with p<=N with p split (or ramified) or p^2<=N with p inert.
-    X = []
-    from sage.all import primes
-    for p in primes(N+1):
-        fac = F.factor(p)
-        if len(fac) == 2: # split
-            X.append(fac[0][0])
-            X.append(fac[1][0])
-        elif len(fac) == 1 and fac[0][1]==2: # ramified
-            X.append(fac[0][0])
-        elif p*p <= N: # inert
-            X.append(fac[0][0])
-    return X
+from tables import primes_of_bounded_norm
 
 def THETA(N):
     r"""
-    Return representative elements of the maximal order of `R` of norm
-    `\pi_p` up to `N` modulo the left action of the units of `R` (the
-    icosians).  Here `\pi_p` runs through totally positive generators
-    of the prime ideals with norm up to `N`.
+    Return representative elements of the maximal order of `R` of
+    reduced norm `\pi_p` up to `N` modulo the left action of the units
+    of `R` (the icosians).  Here `\pi_p` runs through totally positive
+    generators of the odd prime ideals with norm up to `N`.
 
     INPUT:
-       - `N` -- a positive integer
+        - `N` -- a positive integer >= 4.
+
+    OUTPUT:
+        - dictionary with keys the totally positive generators of the
+          odd prime ideals with norm up to and including `N`, and values
+          a dictionary with values the actual elements of reduced norm
+          `\pi_p`.
 
     AUTHOR: William Stein
 
     EXAMPLES::
+
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import THETA
+        sage: d = THETA(9)
+        pi = [2, a + 2, 3]
+        Sorting through 2400 elements
+        sage: d.keys()
+        [a + 2, 3]
+        sage: d[3]
+        {(0, 1): a + 1/2*i + (-1/2*a + 1)*j + (-1/2*a + 1/2)*k, (1, 2): a - 1 + a*j, (1, abar): a - 1/2 + (1/2*a + 1/2)*i + (-1/2*a + 1)*j, (1, abar + 1): a - 1/2 + 1/2*i + 1/2*j + (-a + 1/2)*k, (1, abar + 2): a - 1 + (1/2*a + 1/2)*i + 1/2*j + (-1/2*a)*k, (1, 2*abar + 2): a - 1 + 1/2*a*i + (1/2*a + 1/2)*j + 1/2*k, (1, 2*abar): a - 1/2 + i + (-1/2*a + 1/2)*j + (-1/2*a)*k, (1, 2*abar + 1): a - 1/2 + (-1/2*a)*i + j + (-1/2*a + 1/2)*k, (1, 0): a + (-a + 1)*k, (1, 1): a - 1/2 + 1/2*a*i + j + (-1/2*a + 1/2)*k}
+        sage: k = d[3].keys(); k
+        [(0, 1), (1, 2), (1, abar), (1, abar + 1), (1, abar + 2), (1, 2*abar + 2), (1, 2*abar), (1, 2*abar + 1), (1, 0), (1, 1)]
+        sage: d[3][k[0]]
+        a + 1/2*i + (-1/2*a + 1)*j + (-1/2*a + 1/2)*k
+        sage: d[3][k[0]].reduced_norm()
+        3
     """
     # ** NOTE: This algorithm will not scale up well, because there
     #    are so many vectors of bounded norm. 
@@ -659,7 +905,7 @@ def THETA(N):
     global B, F
 
     # Get primes of norm up to N.
-    S = primes_of_bounded_norm(F, N)
+    S = primes_of_bounded_norm(N)
 
     # Find totally positive generators pi_p
     pi = [totally_pos_gen(p) for p in S]
@@ -1099,7 +1345,7 @@ class ResidueRing_ramified_odd(ResidueRing_base):
 
     EXAMPLES::
 
-        sage: from psage.modform.hilbert.sqrt5 import *
+        sage: from psage.modform.hilbert.sqrt5.sqrt5 import F, residue_ring
         sage: P = F.primes_above(5)[0]; P
         Fractional ideal (2*a - 1)
         sage: R = residue_ring(P^5)
@@ -1253,38 +1499,3 @@ class Mod_P_reduction_map:
         assert K == -J*I, "bug in that I,J don't skew commute"    
         return I, J, R
     
-
-def canonical_representative_mod_units(I):
-    """
-    Given an ideal I or element of F, returns our agreed upon canonical
-    element, which generators the same fractional ideal.
-
-    See the tables.canonical_gen method, for something that is I think
-    much better than this in practice, regarding the look of the answer.
-    """
-    phi = F.real_embeddings()[1]
-    from sage.all import log, floor, ceil
-    from sage.rings.all import is_Ideal
-
-    if is_Ideal(I):
-        alpha = I.gens_reduced()[0]
-    else:
-        alpha = F(I)
-    s = phi(alpha) 
-    if s < 0:
-        alpha *= -1
-        s = phi(alpha)
-
-    gamma = F.gen()
-    if s < phi(gamma):
-        # multiply by some power of gamma so bigger than gamma
-        n = ceil(1 - log(s)/log(gamma))
-        alpha *= gamma**n
-    # Now make it the first number smaller than gamma
-    n = floor(log(s)/log(phi(gamma)))
-    alpha = alpha/gamma**n
-    if alpha == gamma:
-        alpha = F(1)
-    return alpha
-
-

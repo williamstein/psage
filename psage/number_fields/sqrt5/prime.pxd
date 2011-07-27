@@ -23,4 +23,6 @@ cdef class Prime:
     cdef public long p, r
     cdef bint first
     cpdef long norm(self)
-    
+    cpdef bint is_split(self)
+    cpdef bint is_inert(self)
+    cpdef bint is_ramified(self)

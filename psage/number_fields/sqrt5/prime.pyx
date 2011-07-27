@@ -76,9 +76,9 @@ cdef class Prime:
             2a
             sage: type(P)
             <type 'psage.number_fields.sqrt5.prime.Prime'>
-            sage: P = Prime(5,-2,True); P
+            sage: P = Prime(5,3,True); P
             5a
-            sage: P = Prime(11,-3,True); P
+            sage: P = Prime(11,8,True); P
             11a
             sage: P = Prime(11,4,False); P
             11b
@@ -104,12 +104,60 @@ cdef class Prime:
         EXAMPLES::
 
             sage: from psage.number_fields.sqrt5.prime import Prime
-            sage: Prime(11,-3,True)._latex_()
+            sage: Prime(11,8,True)._latex_()
             '11a'
             sage: Prime(11,4,False)._latex_()
             '11b'
         """
         return self.__repr__()
+
+    cpdef bint is_split(self):
+        """
+        Return True if this prime is split (and not ramified).
+        
+        EXAMPLES::
+
+            sage: from psage.number_fields.sqrt5.prime import Prime
+            sage: Prime(11,8,True).is_split()
+            True
+            sage: Prime(3,0,True).is_split()
+            False
+            sage: Prime(5,3,True).is_split()
+            False
+        """
+        return self.r != 0 and self.p != 5
+    
+    cpdef bint is_inert(self):
+        """
+        Return True if this prime is inert. 
+
+        EXAMPLES::
+
+            sage: from psage.number_fields.sqrt5.prime import Prime
+            sage: Prime(11,8,True).is_inert()
+            False
+            sage: Prime(3,0,True).is_inert()
+            True
+            sage: Prime(5,3,True).is_inert()
+            False
+        """
+        return self.r == 0
+    
+    cpdef bint is_ramified(self):
+        """
+        Return True if this prime is ramified (i.e., the prime over 5).
+                
+        EXAMPLES::
+
+            sage: from psage.number_fields.sqrt5.prime import Prime
+            sage: Prime(11,8,True).is_ramified()
+            False
+            sage: Prime(3,0,True).is_ramified()
+            False
+            sage: Prime(5,3,True).is_ramified()
+            True
+        """
+        return self.p == 5
 
     cpdef long norm(self):
         """
@@ -179,9 +227,9 @@ cdef class Prime:
             sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
             sage: v = primes_of_bounded_norm(20)
             sage: v[1].sage_ideal()
-            Fractional ideal (a + 2)
+            Fractional ideal (a - 3)
             sage: [P.sage_ideal() for P in v]
-            [Fractional ideal (2), Fractional ideal (a + 2), Fractional ideal (3), Fractional ideal (3*a - 1), Fractional ideal (3*a - 2), Fractional ideal (-4*a + 1), Fractional ideal (-4*a + 3)]
+            [Fractional ideal (2), Fractional ideal (a - 3), Fractional ideal (3), Fractional ideal (3*a - 1), Fractional ideal (3*a - 2), Fractional ideal (-4*a + 1), Fractional ideal (-4*a + 3)]
         """
         from misc import F
         cdef long p=self.p, r=self.r
@@ -286,13 +334,13 @@ def primes_of_bounded_norm(bound):
             # Find the two values of (1+sqrt(5))/2.
             r0 = Fl_div(1+sr, 2, p)
             r1 = Fl_div(1+p-sr, 2, p)
-            if r0 > r1: # swap
-                r0, r1 = r1, r0
+            # Sort
+            if r0 > r1: r0, r1 = r1, r0
             # Append each prime to the list
             P = PY_NEW(Prime); P.p = p; P.r = r0; P.first = True; v.append(P)
             P = PY_NEW(Prime); P.p = p; P.r = r1; P.first = False; v.append(P)
         elif p == 5:  # ramified
-            v.append(Prime(p, -2, True))
+            v.append(Prime(p, 3, True))
         elif p*p < bound:  # inert
             v.append(Prime(p, 0, True))
     v.sort()

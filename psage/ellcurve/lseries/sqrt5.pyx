@@ -19,6 +19,12 @@
 #
 #################################################################################
 
+#### WARNING #### WARNING #### WARNING #####
+##
+# This file is now largely irrelevant and replaced by aplist_sqrt5.pyx
+##
+#### WARNING #### WARNING #### WARNING #####
+
 """
 Fast Cython code needed to compute L-series of elliptic curves over F = Q(sqrt(5)).
 

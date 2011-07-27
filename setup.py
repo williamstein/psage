@@ -135,6 +135,10 @@ ext_modules = [
               ["psage/ellcurve/lseries/fast_twist.pyx"],
               libraries = ['gsl']),
 
+    Extension("psage.ellcurve.lseries.aplist_sqrt5",
+              ["psage/ellcurve/lseries/aplist_sqrt5.pyx"],
+              language = 'c++'),
+
     Extension("psage.number_fields.sqrt5.prime",
               ["psage/number_fields/sqrt5/prime.pyx"],
               libraries = ['pari']),

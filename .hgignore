@@ -2,6 +2,7 @@ psage.egg-info
 ~
 pyc
 build/
+push
 dist
 #
 ascent.egg-info

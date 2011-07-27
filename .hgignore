@@ -51,3 +51,4 @@ psage/ellcurve/lseries/helper.c   # cython
 psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.c # cython
 
 psage/ellcurve/minmodel/sqrt5.c
+psage/number_fields/sqrt5/prime.c

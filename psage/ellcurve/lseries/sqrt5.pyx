@@ -90,19 +90,20 @@ cpdef long ap_via_enumeration(ResidueRingElement a4, ResidueRingElement a6) exce
             cnt += 2
     return R.cardinality() + 1 - cnt
 
-cdef extern from "pari/pari.h":
-    unsigned long Fl_sqrt(unsigned long a, unsigned long p)
-
 from sage.libs.gmp.mpz cimport (
     mpz_t, mpz_set, mpz_init, mpz_clear,
     mpz_fdiv_ui)
+
+cdef extern from "pari/pari.h":
+    unsigned long Fl_sqrt(unsigned long a, unsigned long p)
+    unsigned long Fl_div(unsigned long a, unsigned long b, unsigned long p)
 
 cpdef unsigned long sqrt_mod(unsigned long a, unsigned long p):
     return Fl_sqrt(a, p)
 
 from sage.rings.integer cimport Integer
 
-from sage.all import prime_range, pari, verbose, get_verbose
+from sage.all import prime_range, pari, verbose, get_verbose, prime_pi
 
 from psage.libs.smalljac.wrapper1 import elliptic_curve_ap
 
@@ -507,5 +508,3 @@ cdef class InertTraceCalculator:
         return 0   # no error occurred
             
             
-
-

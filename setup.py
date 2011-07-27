@@ -134,6 +134,12 @@ ext_modules = [
     Extension("psage.ellcurve.lseries.fast_twist",
               ["psage/ellcurve/lseries/fast_twist.pyx"],
               libraries = ['gsl']),
+
+    Extension("psage.number_fields.sqrt5.prime",
+              ["psage/number_fields/sqrt5/prime.pyx"],
+              libraries = ['pari']),
+    
+    
 ]
 
 for g in [1, 2]:

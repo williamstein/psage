@@ -48,8 +48,8 @@ include "stdsage.pxi"
 include "interrupt.pxi"
 
 cdef extern from "pari/pari.h":
-    unsigned long Fl_sqrt(unsigned long a, unsigned long p)
-    unsigned long Fl_div(unsigned long a, unsigned long b, unsigned long p)
+    unsigned long Fl_sqrt(unsigned long, unsigned long)
+    unsigned long Fl_div(unsigned long, unsigned long, unsigned long)
 
 cdef class Prime:
     """
@@ -166,12 +166,12 @@ cdef class Prime:
         EXAMPLES::
 
             sage: from psage.number_fields.sqrt5.prime import Prime
-            sage: Prime(11,3,True).norm()
+            sage: Prime(11,4,True).norm()
             11
             sage: Prime(7,0,True).norm()
             49
         """
-        return self.p*self.p if self.r == 0 else self.p
+        return self.p if self.r else self.p*self.p
 
     def __cmp__(self, Prime right):
         """
@@ -184,7 +184,7 @@ cdef class Prime:
 
         EXAMPLES::
 
-            sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm        
+            sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
             sage: v = primes_of_bounded_norm(50); v
             [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a]
             sage: v[3], v[4]
@@ -193,7 +193,6 @@ cdef class Prime:
             True
             sage: v[4] > v[3]
             True
-        
 
         We test the ordering a bit by sorting::
         
@@ -211,11 +210,13 @@ cdef class Prime:
             sage: v == w
             True
         """
-        cdef int c
-        c = cmp(self.norm(), right.norm())
-        if c: return c
-        return cmp(self.r, right.r)
-    
+        cdef long selfn = self.norm(),  rightn = right.norm()
+        if   selfn > rightn: return 1
+        elif rightn > selfn: return -1
+        elif self.r > right.r: return 1
+        elif right.r > self.r: return -1
+        else: return 0
+
     def sage_ideal(self):
         """
         Return the usual prime fractional ideal associated to this
@@ -227,18 +228,16 @@ cdef class Prime:
             sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
             sage: v = primes_of_bounded_norm(20)
             sage: v[1].sage_ideal()
-            Fractional ideal (a - 3)
+            Fractional ideal (2*a - 1)
             sage: [P.sage_ideal() for P in v]
-            [Fractional ideal (2), Fractional ideal (a - 3), Fractional ideal (3), Fractional ideal (3*a - 1), Fractional ideal (3*a - 2), Fractional ideal (-4*a + 1), Fractional ideal (-4*a + 3)]
+            [Fractional ideal (2), Fractional ideal (2*a - 1), Fractional ideal (3), Fractional ideal (3*a - 1), Fractional ideal (3*a - 2), Fractional ideal (-4*a + 1), Fractional ideal (-4*a + 3)]
         """
         from misc import F
         cdef long p=self.p, r=self.r
-        if p == 5:   # ramified
-            return F.ideal(F.gen()-r)
-        elif r == 0: # inert case
-            return F.ideal([p])
-        else:        # split case
-            return F.ideal([p, F.gen()-r])
+        if r: # split and ramified cases
+            return F.ideal(p, F.gen()-r)
+        else: # inert case
+            return F.ideal(p)
 
 def primes_of_bounded_norm(bound):
     """
@@ -315,25 +314,25 @@ def primes_of_bounded_norm(bound):
         ...
         ValueError: bound must be less than 2^31
     """
-    if bound < 0:
+    if bound < 4:
         return []
     if bound >= 2**31:
         raise ValueError, "bound must be less than 2^31"
 
-    cdef long p, i = 0, sr, r0, r1
+    cdef long p, sr, r0, r1
     cdef Prime P
     cdef list v = []
 
     from sage.all import prime_range
     
-    for p in prime_range(bound):
+    for p in prime_range(bound, py_ints=True):
         t = p % 5
         if t == 1 or t == 4:   # split
             # Compute a square root of 5 modulo p.
             sr = Fl_sqrt(5, p)
             # Find the two values of (1+sqrt(5))/2.
             r0 = Fl_div(1+sr, 2, p)
-            r1 = Fl_div(1+p-sr, 2, p)
+            r1 = p+1-r0
             # Sort
             if r0 > r1: r0, r1 = r1, r0
             # Append each prime to the list

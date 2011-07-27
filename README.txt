@@ -6,10 +6,18 @@ The target audience of PSAGE is research mathematicians, with an
 emphasis on arithmetic geometry. PSAGE is closely related to Sage, but
 is aimed squarely at research mathematicians.
 
+BUILDING:
+
+  To build in place just do:
+
+      sage setup.py develop
+
+
 UNIT TESTS:
 
   Install nose: 
-    sage -sh; easy_install nose
+
+      sage -sh; easy_install nose
 
   Then from the root of the psage install:
     nosetests -v --processes=8   # run 8 tests in parallel

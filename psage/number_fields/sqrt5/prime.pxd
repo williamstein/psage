@@ -23,25 +23,4 @@ cdef class Prime:
     cdef public long p, r
     cdef bint first
     cpdef long norm(self)
-
-cdef class PrimesOfBoundedNorm:
-    cdef public long bound
-
-    # size of the array of primes -- it has this many entries
-    cdef long table_size
-
-    # fast *UNSAFE* access to the i-th prime and root through these C arrays
-    cdef long* prime
-    cdef long* root
-
-    # fast SAFE access to the i-th prime and the i-th root
-    cdef long get_prime(self, Py_ssize_t i) except -1
-    cdef long get_root(self, Py_ssize_t i) except 1099511627776
-
-    # only used internally
-    cdef long _allocate_memory(self) except -1
-    # only used internally
-    cdef int _reallocate_memory(self, long max_size) except -1
-
-    
     

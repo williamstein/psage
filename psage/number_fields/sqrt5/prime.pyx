@@ -51,21 +51,27 @@ cdef extern from "pari/pari.h":
     unsigned long Fl_sqrt(unsigned long, unsigned long)
     unsigned long Fl_div(unsigned long, unsigned long, unsigned long)
 
+from sage.rings.number_field.number_field_ideal import NumberFieldFractionalIdeal
+
 cdef class Prime:
     """
     Nonzero prime ideal of the ring of integers of Q(sqrt(5)).  This
     is a fast customized Cython class; to get at the corresponding
     Sage prime ideal use the sage_ideal method.
     """
-    def __init__(self, long p, long r, bint first):
+    def __init__(self, p, long r=0, bint first=True):
         """
         Create Prime ideal with given residue characteristic, root,
         and first or not with that characterstic.
 
-        INPUT:
+        INPUT form 1:
             - `p` -- prime
             - `r` -- root (or 0)
             - ``first`` -- boolean: True if first prime over p
+
+        INPUT form 2:
+            - p -- prime ideal of integers of Q(sqrt(5)); validity of the
+              input is not checked in any way!
 
         NOTE: No checking is done to verify that the input is valid.
         
@@ -82,10 +88,49 @@ cdef class Prime:
             11a
             sage: P = Prime(11,4,False); P
             11b
+
+        We can also set P using a prime ideal of the ring of integers::
+
+            sage: from psage.number_fields.sqrt5.prime import Prime; K.<a> = NumberField(x^2-x-1)
+            sage: P1 = Prime(K.primes_above(11)[0]); P2 = Prime(K.primes_above(11)[1]); P1, P2
+            (11b, 11a)
+            sage: P1 > P2
+            True
+            sage: Prime(K.prime_above(2))
+            2a
+            sage: P = Prime(K.prime_above(5)); P, P.r
+            (5a, 3)
+            sage: Prime(K.prime_above(3))
+            3a
+
+        Test that conversion both ways works for primes up to norm `10^5`::
+        
+            sage: from psage.number_fields.sqrt5.prime import primes_of_bounded_norm, Prime
+            sage: v = primes_of_bounded_norm(10^5)
+            sage: w = [Prime(z.sage_ideal()) for z in v]
+            sage: v == w
+            True
         """
-        self.p = p
-        self.r = r
-        self.first = first
+        cdef long t, r1
+        if isinstance(p, NumberFieldFractionalIdeal):
+            # Set self using a prime ideal of Q(sqrt(5)).
+            H = p.pari_hnf()
+            self.p = H[0,0]
+            self.first = True
+            t = self.p % 5
+            if t == 1 or t == 4:
+                self.r = self.p - H[0,1]
+                r1 = self.p + 1 - self.r
+                if self.r > r1:
+                    self.first = False
+            elif t == 0:
+                self.r = 3
+            else:
+                self.r = 0
+        else:
+            self.p = p
+            self.r = r
+            self.first = first
         
     def __repr__(self):
         """
@@ -98,6 +143,9 @@ cdef class Prime:
             '11a'
         """
         return '%s%s'%(self.p, 'a' if self.first else 'b')
+
+    def __hash__(self):
+        return self.p*(self.r+1) + int(self.first)
 
     def _latex_(self):
         """

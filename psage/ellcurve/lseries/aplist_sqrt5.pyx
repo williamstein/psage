@@ -40,7 +40,7 @@ The `a_P` in the above list exactly correspond to those output by the primes_of_
     [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a, 59a, 59b]
 """
 
-from sage.libs.gmp.mpz cimport (mpz_t, mpz_set, mpz_init, mpz_clear, mpz_fdiv_ui)
+from sage.libs.gmp.mpz cimport (mpz_t, mpz_set, mpz_set_si, mpz_init, mpz_clear, mpz_fdiv_ui)
 
 from sage.rings.integer cimport Integer
 
@@ -142,6 +142,11 @@ def aplist(E, bound, fast_only=False):
         Traceback (most recent call last):
         ...
         ValueError: coefficients of the input curve must be algebraic integers
+
+        sage: K.<a> = NumberField(x^2 - x - 1)
+        sage: E = EllipticCurve(K, [1, 1, 1, 0, 0])
+        sage: aplist(E, 50)
+        [-3, 1, 1, -4, -4, 4, 4, -2, -2, 0, 0, 10, 10, -14]
     """
     if list(E.base_field().defining_polynomial()) != [-1,-1,1]:
         raise ValueError, "E must have base field with defining polynomial x^2-x-1"
@@ -238,12 +243,29 @@ def aplist_short(A, B, primes):
     mpz_init(Ax); mpz_init(Ay); mpz_init(Bx); mpz_init(By)
     v = A._coefficients()  # slow
     cdef Integer z
+    cdef int N
     try:
-        z = Integer(v[0]); mpz_set(Ax, z.value)
-        z = Integer(v[1]); mpz_set(Ay, z.value)
+        N = len(v)
+        if N == 0:
+            mpz_set_si(Ax, 0)
+            mpz_set_si(Ay, 0)
+        elif N == 1:
+            z = Integer(v[0]); mpz_set(Ax, z.value)
+            mpz_set_si(Ay, 0)
+        else:
+            z = Integer(v[0]); mpz_set(Ax, z.value)
+            z = Integer(v[1]); mpz_set(Ay, z.value)
         v = B._coefficients()
-        z = Integer(v[0]); mpz_set(Bx, z.value)
-        z = Integer(v[1]); mpz_set(By, z.value)
+        N = len(v)
+        if N == 0:
+            mpz_set_si(Bx, 0)
+            mpz_set_si(By, 0)
+        elif N == 1:
+            z = Integer(v[0]); mpz_set(Bx, z.value)
+            mpz_set_si(By, 0)
+        else:
+            z = Integer(v[0]); mpz_set(Bx, z.value)
+            z = Integer(v[1]); mpz_set(By, z.value)
     except TypeError:
         raise ValueError, "coefficients of the input curve must be algebraic integers"
 

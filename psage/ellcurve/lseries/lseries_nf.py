@@ -44,7 +44,7 @@ AUTHORS:
 
 """
 
-import bisect, math
+import math
 
 from sage.all import (PowerSeriesRing, Integer, factor, QQ, ZZ,
                       RDF, RealField, Dokchitser, prime_range, prod, pari)
@@ -95,15 +95,7 @@ def anlist_over_sqrt5(E, bound):
     # Compute information about the primes of bad reduction, in
     # particular the integers i such that primes[i] is a prime of bad
     # reduction.
-    bad_primes = [Prime(a.prime()) for a in E.local_data()]
-    bad_indexes = set([])
-    for P in bad_primes:
-        # We use the bisect module instead of primes.index(P), since primes is a *sorted* list.
-        i = bisect.bisect(primes, P)
-        # Biset returns position + 1 = the place to insert.  Also, if bound is small some
-        # bad primes won't even be in the list. 
-        if primes[i-1] == P:
-            bad_indexes.add(i-1)
+    bad_primes = set([Prime(a.prime()) for a in E.local_data()])
 
 
     # We compute the local factors of the L-series as power series in ZZ[T].
@@ -116,14 +108,14 @@ def anlist_over_sqrt5(E, bound):
     L_P = []
     for i, P in enumerate(primes):
         inertial_deg = 2 if P.is_inert() else 1
-        if i in bad_indexes:
+        a_p = v[i]
+        if P in bad_primes:
             # bad reduction
-            a = E.local_data(P.sage_ideal()).bad_reduction_type()
-            f = 1 - a*Tp[inertial_deg]
+            f = 1 - a_p*Tp[inertial_deg]
         else:
             # good reduction
             q = P.norm()
-            f = 1 - v[i]*Tp[inertial_deg] + q*Tp[2*inertial_deg]
+            f = 1 - a_p*Tp[inertial_deg] + q*Tp[2*inertial_deg]
         L_P.append(f)
 
     # Use the local factors of the L-series to compute the Dirichlet

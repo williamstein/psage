@@ -69,16 +69,56 @@ class Space(object):
             raise NotImplementedError
         return cmp((self.level(), self.dimension(), self.vector_space()),
                    (right.level(), right.dimension(), right.vector_space()))
-    def _subspace(self, V):
+
+    def subspace(self, V):
         raise NotImplementedError
+    
     def vector_space(self):
         raise NotImplementedError
+    
     def basis(self):
         return self.vector_space().basis()
 
     def new_subspace(self, p=None):
+        """
+        Return (p-)new subspace of this space of Hilbert modular forms.
+
+        WARNING: There are known examples where this is still wrong somehow...
+
+        INPUT:
+            - p -- None or a prime divisor of the level
+
+        OUTPUT:
+            - subspace of this space of Hilbert modular forms
+
+        EXAMPLES::
+
+        We make a space of level a product of 2 split primes and (2)::
+        
+            sage: from psage.modform.hilbert.sqrt5.hmf import F, HilbertModularForms
+            sage: P = F.prime_above(31); Q = F.prime_above(11); R = F.prime_above(2)
+            sage: H = HilbertModularForms(P*Q*R); H
+            Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
+
+        The full new space::
+        
+            sage: N = H.new_subspace(); N
+            Subspace of dimension 22 of Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
+
+        The new subspace for each prime divisor of the level::
+        
+            sage: N_P = H.new_subspace(P); N_P
+            Subspace of dimension 31 of Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
+            sage: N_Q = H.new_subspace(Q); N_Q
+            Subspace of dimension 28 of Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
+            sage: N_R = H.new_subspace(R); N_R
+            Subspace of dimension 24 of Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
+            sage: N_P.intersection(N_Q).intersection(N_R) == N
+            True
+
+        """
         V = self.degeneracy_matrix(p).kernel()
-        return self._subspace(V)
+        return self.subspace(V)
 
     def decomposition(self, B, verbose=False):
         """
@@ -102,7 +142,7 @@ class Space(object):
                     for Z in T.decomposition_of_subspace(X[0]):
                         D2.append(Z)
             D = D2
-        D = [self._subspace(X[0]) for X in D]
+        D = [self.subspace(X[0]) for X in D]
         D.sort()
         S = Sequence(D, immutable=True, cr=True, universe=int, check=False)
         return S
@@ -128,7 +168,7 @@ class Space(object):
                     for Z in T.decomposition_of_subspace(X[0]):
                         D2.append(Z)
             D = D2
-        D = [self._subspace(X[0]) for X in D]
+        D = [self.subspace(X[0]) for X in D]
         D.sort()
         S = Sequence(D, immutable=True, cr=True, universe=int, check=False)
         return S
@@ -161,6 +201,15 @@ class HilbertModularForms(Space):
         return "Hilbert modular forms of dimension %s, level %s (of norm %s=%s) over QQ(sqrt(5))"%(
             self._dimension, str(self._gen).replace(' ',''),
             self._level.norm(), str(self._level.norm().factor()).replace(' ',''))
+
+    def intersection(self, M):
+        if isinstance(M, HilbertModularForms):
+            assert self == M
+            return self
+        if isinstance(M, HilbertModularFormsSubspace):
+            assert self == M.ambient()
+            return M
+        raise TypeError
 
     def level(self):
         return self._level
@@ -216,7 +265,7 @@ class HilbertModularForms(Space):
         # first sort by norms
         return cmp((self._level.norm(), self._level), (other._level.norm(), other._level))
 
-    def _subspace(self, V):
+    def subspace(self, V):
         return HilbertModularFormsSubspace(self, V)
     
     def elliptic_curve_factors(self):
@@ -238,11 +287,27 @@ class HilbertModularForms(Space):
 
 class HilbertModularFormsSubspace(Space):
     def __init__(self, H, V):
+        assert H.dimension() == V.degree()
         self._H = H
         self._V = V
 
     def __repr__(self):
         return "Subspace of dimension %s of %s"%(self._V.dimension(), self._H)
+
+    def subspace(self, V):
+        raise NotImplementedError
+        #return HilbertModularFormsSubspace(self._H, V)
+
+    def intersection(self, M):
+        if isinstance(M, HilbertModularForms):
+            assert self.ambient() == M
+            return self
+        if isinstance(M, HilbertModularFormsSubspace):
+            assert self.ambient() == M.ambient()
+            H = self.ambient()
+            V = self.vector_space().intersection(M.vector_space())
+            return HilbertModularFormsSubspace(H, V)
+        raise TypeError
 
     def ambient(self):
         return self._H

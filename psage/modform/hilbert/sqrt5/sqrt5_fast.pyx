@@ -2292,7 +2292,6 @@ cdef class IcosiansModP1ModN:
     EXAMPLES::
 
         sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
-        sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
         sage: I = IcosiansModP1ModN(F.prime_above(31)); I
         The 2 orbits for the action of the Icosian group on Projective line modulo the ideal (5*a - 2) of norm 31
         sage: I = IcosiansModP1ModN(F.prime_above(389)); I

@@ -157,8 +157,6 @@ cdef void f_map64(int64_t *o):
             g[2] -= g[1] > h[1] or (g[1] == h[1] and g[0] > h[0])
             o[2] = o[3]-o[2]
             o[3] -= o[2]
-    o[0] *= 1-2*s
-    o[1] *= (1-2*s)
     o[0] = o[0]-o[1]>>1
     if not o[0]%13 and not o[1]%8 and o[0]/13 == -(o[1]/8):
         t = o[0]/13
@@ -166,6 +164,14 @@ cdef void f_map64(int64_t *o):
         o[1] = 8*t
         o[2] = o[3]-o[2]
         o[3] -= o[2]
+    elif not o[0]%29 and not o[1]%18 and o[0]/29 == -(o[1]/18):
+        t = o[1]/18
+        o[0] = 11*t
+        o[1] = 18*t
+        o[2] = o[3]-o[2]
+        o[3] -= o[2]
+    o[0] *= 1-2*s
+    o[1] *= 1-2*s
 
 cdef void f_mapC(mpz_t rop1, mpz_t rop2, mpz_t rop3, mpz_t rop4, mpz_t op1, mpz_t op2):
     """
@@ -187,6 +193,12 @@ cdef void f_mapC(mpz_t rop1, mpz_t rop2, mpz_t rop3, mpz_t rop4, mpz_t op1, mpz_
     cdef mpz_t f,g,t
     mpz_add(rop1,op1,op1)
     mpz_add(rop1,rop1,op2)
+    if not mpz_sgn(rop1):
+        mpz_set(rop1, op1)
+        mpz_set(rop2, op2)
+        mpz_set_si(rop3, 1)
+        mpz_set_si(rop4, 0)
+        return
     mpz_set(rop2,op2)
     if mpz_sizeinbase(rop1, 2) < (sizeof(o[0])<<3):
         if mpz_sizeinbase(rop2, 2) < (sizeof(o[1])<<3):
@@ -259,22 +271,31 @@ cdef void f_mapC(mpz_t rop1, mpz_t rop2, mpz_t rop3, mpz_t rop4, mpz_t op1, mpz_
             mpz_sub(rop3,rop4,rop3)
             mpz_sub(rop4,rop4,rop3)
     # fix sign if needed
-    if s:
-        mpz_neg(rop1,rop1)
-        mpz_neg(rop2,rop2)
     mpz_clear(f)
     mpz_sub(rop1,rop1,rop2)
     mpz_divexact_ui(rop1,rop1,2ul)
-    if not mpz_mod_ui(g, rop1, 13ull) and not mpz_mod_ui(t, rop2, 8ul):
+    if not mpz_mod_ui(g, rop1, 13ul) and not mpz_mod_ui(t, rop2, 8ul):
         mpz_divexact_ui(t, rop1, 13ul)
-        mpz_divexact_ui(g, rop2, 8ul)
+        mpz_divexact_ui(g, rop2, 11ul)
         mpz_neg(g,g)
         if not mpz_cmp(t,g):
             mpz_mul_ui(rop1, t, 5ul)
             mpz_mul_ui(rop2, t, 8ul)
             mpz_sub(rop3,rop4,rop3)
             mpz_sub(rop4,rop4,rop3)
+    elif not mpz_mod_ui(g, rop1, 29ul) and not mpz_mod_ui(t, rop2, 18ul):
+        mpz_divexact_ui(g, rop1, 29ul)
+        mpz_divexact_ui(t, rop2, 18ul)
+        mpz_neg(t,t)
+        if not mpz_cmp(t,g):
+            mpz_mul_ui(rop1, g, 11ul)
+            mpz_mul_ui(rop2, g, 18ul)
+            mpz_sub(rop3,rop4,rop3)
+            mpz_sub(rop4,rop4,rop3)
     mpz_clear(g); mpz_clear(t)
+    if s:
+        mpz_neg(rop1,rop1)
+        mpz_neg(rop2,rop2)
 
 cpdef f_map(Integer a, Integer b):
     """
@@ -292,7 +313,8 @@ cpdef f_map(Integer a, Integer b):
     the unit `u`
     
     EXAMPLES::
-    
+
+        sage: from psage.ellcurve.minmodel.sqrt5 import f_map
         sage: K.<a> = NumberField(x^2-x-1)
         sage: E = EllipticCurve(K,[a,a+1,a+2,a+3,a+4])
         sage: olddelta = E.discriminant()
@@ -327,6 +349,7 @@ def canonical_model(E):
 
     EXAMPLES::
 
+      sage: from psage.ellcurve.minmodel.sqrt5 import canonical_model
       sage: K.<a> = NumberField(x**2-x-1)
       sage: E = EllipticCurve(K,[a,a-1,a,-1,-a+1])
       sage: F = canonical_model(E)
@@ -400,6 +423,7 @@ cpdef canonical_model_c_invariants(Integer a, Integer b, Integer c, Integer d):
         sage: Ecs += [Integer(i) for i in E.c6()]
         sage: Fcs = [Integer(i) for i in F.c4()]
         sage: Fcs += [Integer(i) for i in F.c6()]
+        sage: from psage.ellcurve.minmodel.sqrt5 import canonical_model_c_invariants
         sage: canonical_model_c_invariants(Ecs[0],Ecs[1],Ecs[2],Ecs[3])
         (-118, -45, -3001, 116)
         sage: canonical_model_c_invariants(Fcs[0],Fcs[1],Fcs[2],Fcs[3])

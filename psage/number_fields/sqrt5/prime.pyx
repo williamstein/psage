@@ -27,7 +27,7 @@ enumeration.  The main entry function is primes_of_bounded_norm::
 
     sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
     sage: v = primes_of_bounded_norm(50); v
-    [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a]
+    [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7]
 
 Note that the output of primes_of_bounded_norm is a list.  Each entry
 is a prime ideal, which prints using a simple label consisting of the
@@ -79,7 +79,7 @@ cdef class Prime:
 
             sage: from psage.number_fields.sqrt5.prime import Prime
             sage: P = Prime(2,0,True); P
-            2a
+            2
             sage: type(P)
             <type 'psage.number_fields.sqrt5.prime.Prime'>
             sage: P = Prime(5,3,True); P
@@ -97,11 +97,11 @@ cdef class Prime:
             sage: P1 > P2
             True
             sage: Prime(K.prime_above(2))
-            2a
+            2
             sage: P = Prime(K.prime_above(5)); P, P.r
             (5a, 3)
             sage: Prime(K.prime_above(3))
-            3a
+            3
 
         Test that conversion both ways works for primes up to norm `10^5`::
         
@@ -141,8 +141,12 @@ cdef class Prime:
             '11b'
             sage: Prime(11,4,True).__repr__()
             '11a'
+            sage: Prime(7,0,True).__repr__()
+            '7'
         """
-        return '%s%s'%(self.p, 'a' if self.first else 'b')
+        if self.r:
+            return '%s%s'%(self.p, 'a' if self.first else 'b')
+        return '%s'%self.p
 
     def __hash__(self):
         return self.p*(self.r+1) + int(self.first)
@@ -234,7 +238,7 @@ cdef class Prime:
 
             sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
             sage: v = primes_of_bounded_norm(50); v
-            [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a]
+            [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7]
             sage: v[3], v[4]
             (11a, 11b)
             sage: v[3] < v[4]
@@ -245,11 +249,11 @@ cdef class Prime:
         We test the ordering a bit by sorting::
         
             sage: v.sort(); v
-            [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a]
+            [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7]
             sage: v = list(reversed(v)); v
-            [7a, 41b, 41a, 31b, 31a, 29b, 29a, 19b, 19a, 11b, 11a, 3a, 5a, 2a]
+            [7, 41b, 41a, 31b, 31a, 29b, 29a, 19b, 19a, 11b, 11a, 3, 5a, 2]
             sage: v.sort(); v
-            [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a]
+            [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7]
 
         A bigger test::
 
@@ -313,9 +317,9 @@ def primes_of_bounded_norm(bound):
         sage: primes_of_bounded_norm(0)
         []
         sage: primes_of_bounded_norm(10)
-        [2a, 5a, 3a]
+        [2, 5a, 3]
         sage: primes_of_bounded_norm(50)
-        [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a]
+        [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7]
         sage: len(primes_of_bounded_norm(10^6))
         78510
 

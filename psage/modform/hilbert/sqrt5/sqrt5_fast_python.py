@@ -121,25 +121,3 @@ def find_mod2pow_splitting(i):
 
 
 
-IB = (F**4).span_of_basis([x.coefficient_tuple() for x in icosian_ring_gens()])
-def quaternion_in_terms_of_icosian_basis(alpha):
-    """
-    Write the quaternion alpha in terms of the fixed basis for integer icosians.
-    """
-    return IB.coordinates(alpha.coefficient_tuple())
-
-
-# The following is equivalent to the above, but is well over 100 times
-# faster.  It would break if, e.g,. somebody changed the
-# icosian_ring_gens basis.
-F_one = F(1); F_two = F(2)
-def quaternion_in_terms_of_icosian_basis2(alpha):
-    """
-    Write the quaternion alpha in terms of the fixed basis for integer icosians.
-    """
-    b0 = alpha[0]; b1=alpha[1]; b2=alpha[2]; b3=alpha[3]
-    a = F.gen()
-    return [F_two*b0,
-            (a-F_one)*b0 - b1 + a*b3,
-            (a-F_one)*b0 + a*b1 - b2,
-            (-a-F_one)*b0 + a*b2 - b3]

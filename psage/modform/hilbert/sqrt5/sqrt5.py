@@ -41,7 +41,7 @@ LEVEL 31::
     sage: c = F.factor(31)[1][0]
     sage: P = F.primes_above(5)[0]
     sage: TH = THETA(20)        # about 1 minute
-    pi = [2, a + 2, 3, 2*a + 3, a + 3, 3*a + 4, a + 4]
+    pi = [...]
     Sorting through 22440 elements
     sage: T = hecke_ops(c, TH); T   # random output do to choice of basis
     [(5, a + 2, [1 5]
@@ -68,7 +68,7 @@ LEVEL 41::
     [Fractional ideal (a - 7), Fractional ideal (a + 6)]
     sage: c = F.primes_above(41)[0]
     sage: TH = THETA(11)    # about 30 seconds
-    pi = [2, a + 2, 3, 2*a + 3, a + 3]
+    pi = [...]
     Sorting through 6660 elements
     sage: T = hecke_ops(c, TH); T   # random output do to choice of basis
     [(5, a + 2, [4 2]

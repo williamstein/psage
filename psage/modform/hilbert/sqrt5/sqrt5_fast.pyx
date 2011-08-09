@@ -150,10 +150,9 @@ cdef class ResidueRing_abstract(CommutativeRing):
         cdef ResidueRingElement z
         try:
             y = x
-            if y._parent is self.F:
-                z = self.new_element()
-                self.coerce_from_nf(z.x, y)
-                return z
+            z = self.new_element()
+            self.coerce_from_nf(z.x, y)
+            return z
         except TypeError:
             pass
 
@@ -2050,6 +2049,31 @@ cdef class ProjectiveLineModN:
 ##             return 0
 
 
+# readable version of the function below (not used):
+def quaternion_in_terms_of_icosian_basis2(alpha):
+    """
+    Write the quaternion alpha in terms of the fixed basis for integer icosians.
+    """
+    b0 = alpha[0]; b1=alpha[1]; b2=alpha[2]; b3=alpha[3]
+    a = F.gen()
+    return [F_two*b0,
+            (a-F_one)*b0 - b1 + a*b3,
+            (a-F_one)*b0 + a*b1 - b2,
+            (-a-F_one)*b0 + a*b2 - b3]
+
+cdef NumberFieldElement_quadratic F_one = F(1), F_two = F(2), F_gen = F.gen(), F_gen_m1=F_gen-F_one, F_gen_m2 = -F_gen-F_one
+
+cpdef object quaternion_in_terms_of_icosian_basis(object alpha):
+    """
+    Write the quaternion alpha in terms of the fixed basis for integer icosians.
+    """
+    # this is a critical path for speed.
+    cdef NumberFieldElement_quadratic b0 = alpha[0], b1=alpha[1], b2=alpha[2], b3=alpha[3], 
+    return [F_two._mul_(b0), F_gen_m1._mul_(b0)._sub_(b1)._add_(F_gen._mul_(b3)),
+            F_gen_m1._mul_(b0)._add_(F_gen._mul_(b1))._sub_(b2),
+            F_gen_m2._mul_(b0)._add_(F_gen._mul_(b2))._sub_(b3)]
+
+
 ####################################################################
 # Reduction from Quaternion Algebra mod N.
 ####################################################################
@@ -2179,53 +2203,6 @@ cdef class ModN_Reduction:
             self.S.N._repr_short(), self.S.N.norm(),
             self.S.matrix_to_str(self.G[1]), self.S.matrix_to_str(self.G[2]))
 
-    def quatalg_to_modn_matrix0(self, alpha):
-        cdef modn_matrix M
-        self.quatalg_to_modn_matrix(M, alpha)
-        return self.S.matrix_to_str(M)
-
-    def quatalg_to_modn_matrix1(self, alpha):
-        cdef modn_matrix M
-        cdef modn_element t
-        cdef modn_element X[4]
-        cdef int i, j
-        cdef ResidueRingModN S = self.S
-        cdef ResidueRing_abstract R
-        cdef residue_element z[4]
-        cdef residue_element t2
-
-        for i in range(4):
-            S.coerce_from_nf(X[i], alpha[i], 1)
-        for i in range(4):
-            S.mul(M[i], self.G[0][i], X[0])
-            for j in range(1, 4):
-                S.mul(t, self.G[j][i], X[j])
-                S.add(M[i], M[i], t)
-                
-        if not self.is_odd:
-            # The first prime is 2, so we have to fix that the above was
-            # totally wrong at 2.
-            # TODO: I'm writing this code slowly to work rather
-            # than quickly, since I'm running out of time.
-            # Will redo this to be fast later.  The algorithm is:
-            # 1. Write alpha in terms of Icosian ring basis.
-            # 2. Take the coefficients from *that* linear combination
-            #    and apply the map, just as above, but of course only
-            #    to the first factor of M.
-            from sqrt5_fast_python import quaternion_in_terms_of_icosian_basis2
-            v = quaternion_in_terms_of_icosian_basis2(alpha)
-            # Now v is a list of 4 elements of O_F (unless alpha wasn't in R).
-            R = self.S.residue_rings[0]
-            assert R.p == 2, '%s\nBUG: order of factors wrong? '%(self.S.residue_rings,)
-            for i in range(4):
-                R.coerce_from_nf(z[i], v[i])
-            for i in range(4):
-                R.mul(M[i][0], self.G[0][i][0], z[0])
-                for j in range(1,4):
-                    R.mul(t2, self.G[j][i][0], z[j])
-                    R.add(M[i][0], M[i][0], t2)
-            
-
     cdef int quatalg_to_modn_matrix(self, modn_matrix M, alpha) except -1:
         # Given an element alpha in the quaternion algebra, find its image M as a modn_matrix.
         cdef modn_element t
@@ -2254,8 +2231,7 @@ cdef class ModN_Reduction:
             # 2. Take the coefficients from *that* linear combination
             #    and apply the map, just as above, but of course only
             #    to the first factor of M.
-            from sqrt5_fast_python import quaternion_in_terms_of_icosian_basis2
-            v = quaternion_in_terms_of_icosian_basis2(alpha)
+            v = quaternion_in_terms_of_icosian_basis(alpha)
             # Now v is a list of 4 elements of O_F (unless alpha wasn't in R).
             R = self.S.residue_rings[0]
             assert R.p == 2, '%s\nBUG: order of factors wrong? '%(self.S.residue_rings,)
@@ -2569,6 +2545,7 @@ cdef class IcosiansModP1ModN:
                 T[i,j] += 1
         return T
         
+
     def _hecke_matrix_badnorm(self, P, sparse=True):
         """
         Compute the Hecke matrix for a prime P whose norm divides the
@@ -2606,6 +2583,66 @@ cdef class IcosiansModP1ModN:
                     j = self.std_to_rep_table[self.P1.standard_index(Mx)]
                     T[i,j] += 1
         return T
+
+    def hecke_operator_on_basis_element(self, P, long i):
+        """
+        Return image of i-th basis vector of self under the Hecke
+        operator T_P, for P coprime to the level, computed efficiently
+        in the sense of not computing images of all basis vectors.
+
+        INPUT:
+            - P -- nonzero prime ideal of ring of integers of Q(sqrt(5))
+              that does not divide the level
+            - i -- nonnegative integer less than the dimension
+
+        OUTPUT:
+            - a dense vector over the integers
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
+            sage: v = F.primes_above(31); I = IcosiansModP1ModN(v[0])
+            sage: I.hecke_matrix(F.prime_above(2))
+            [0 5]
+            [3 2]
+            sage: I.hecke_matrix(v[1])
+            [17 15]
+            [ 9 23]
+            sage: I.hecke_operator_on_basis_element(F.prime_above(2), 0)
+            (0, 5)
+            sage: I.hecke_operator_on_basis_element(F.prime_above(2), 1)
+            (3, 2)
+            sage: I.hecke_operator_on_basis_element(v[1], 0)
+            (17, 15)
+            sage: I.hecke_operator_on_basis_element(v[1], 1)
+            (9, 23)
+        """
+        cdef modn_matrix M, M0
+        cdef p1_element Mx
+
+        from sqrt5 import hecke_elements
+        cdef list Q = hecke_elements(P)
+        v = (ZZ**self._cardinality)(0)  # important -- do not use the vector function to make this: see trac 11657.
+
+        if ZZ(self.level().norm()).gcd(ZZ(P.norm())) == 1:
+            for alpha in Q:
+                self.f.quatalg_to_modn_matrix(M, alpha)
+                self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
+                self.P1.reduce_element(Mx, Mx)
+                v[self.std_to_rep_table[self.P1.standard_index(Mx)]] += 1
+        else:
+            if P.divides(self.level()):
+                raise NotImplementedError
+            for beta in Q:
+                alpha = beta**(-1)
+                self.f.quatalg_to_modn_matrix(M0, alpha)
+                if self.P1.S.matrix_is_invertible(M0):
+                    self.P1.S.matrix_inv(M, M0)
+                    self.P1.matrix_action(Mx, M, self.orbit_reps_p1elt[i])
+                    self.P1.reduce_element(Mx, Mx)
+                    v[self.std_to_rep_table[self.P1.standard_index(Mx)]] += 1
+        return v
+        
 
     def degeneracy_matrix(self, P, sparse=True):
         """

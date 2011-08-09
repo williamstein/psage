@@ -50,6 +50,7 @@ from sage.all import (PowerSeriesRing, Integer, factor, QQ, ZZ,
                       RDF, RealField, Dokchitser, prime_range, prod, pari)
 from sage.rings.all import is_NumberField
 
+from psage.ellcurve.lseries.helper import extend_multiplicatively_generic
 
 ##################################################################################
 # Optimized Special Case: Q(sqrt(5))
@@ -139,16 +140,7 @@ def anlist_over_sqrt5(E, bound):
 
     # Using multiplicativity, fill in the non-prime power Dirichlet
     # series coefficients.
-    # TODO: This is a bottleneck and can of course be greatly optimized,
-    # e.g., there is a function extend_multiplicatively in the file
-    # helper.pyx (in this directory) that may help a lot.
-    for i in range(6, bound):
-        if not Integer(i).is_prime_power():
-            factored = factor(i)
-            coefficients[i] = 1
-            for j in range(len(factored)):
-                coefficients[i] = coefficients[i]*coefficients[ factored[j][0]**factored[j][1] ]
-
+    extend_multiplicatively_generic(coefficients)
     return coefficients
 
 
@@ -212,7 +204,7 @@ def anlist_over_nf(E, bound):
         sage: E = EllipticCurve(K,[0,-1,1,0,0])
         sage: from psage.ellcurve.lseries.lseries_nf import anlist_over_nf
         sage: anlist_over_nf(E, 20)
-        [0, 1, -2, 0, 2, 2, 0, 0, 0, -5, -4, 0, 0, 8, 0, 0, -4, -4, 10, 0, 0]
+        [0, 1, -2, 0, 2, 2, 0, 0, 0, -5, -4, 0, 0, 8, 0, 0, -4, -4, 10, 0, 4]
     """    
     conductor = E.conductor()
     coefficients = [0,1] + [0]*(bound-1)
@@ -220,14 +212,8 @@ def anlist_over_nf(E, bound):
         accuracy_p = int(math.floor(math.log(bound)/math.log(p))) + 1
         series_p = get_coeffs_p_over_nf(E, p, accuracy_p, conductor)
         for i in range(1, accuracy_p):
-            coefficients[p**i] = series_p[i] 
-    for i in range(6, bound):
-        if not Integer(i).is_prime_power():
-            factored = factor(i)
-            coefficients[i] = 1
-            for j in range(len(factored)):
-                coefficients[i] = coefficients[i]*coefficients[ factored[j][0]**factored[j][1] ]
-
+            coefficients[p**i] = series_p[i]
+    extend_multiplicatively_generic(coefficients)
     return coefficients
 
 
@@ -255,7 +241,7 @@ def anlist(E, bound):
         [0, 1, 0, 0, -3, -3, 0, 0, 0, -6, 0, -2, 0, 0, 0, 0, 5, 0, 0, 8, 9, 0, 0, 0, 0, 4, 0, 0, 0, -4, 0, 4, 0, 0, 0, 0, 18, 0, 0, 0, 0]
         sage: K.<i> = NumberField(x^2+1)
         sage: anlist(EllipticCurve(K,[1,2,3,4,5]),40)
-        [0, 1, 1, 0, -1, -6, 0, 0, -3, -6, -6, 0, 0, 2, 0, 0, -1, 10, -6, 0, 6, 0, 0, 0, 0, 17, 2, 0, 0, -4, 0, 0, 5, 0, 10, 0, 6, 14, 0, 0, 0]
+        [0, 1, 1, 0, -1, -6, 0, 0, -3, -6, -6, 0, 0, 2, 0, 0, -1, 10, -6, 0, 6, 0, 0, 0, 0, 17, 2, 0, 0, -4, 0, 0, 5, 0, 10, 0, 6, 14, 0, 0, 18]
 
     Note that the semantics of anlist agree with the anlist method on
     elliptic curves over QQ in Sage::

@@ -23,7 +23,12 @@
 Weight 2 Hilbert modular forms over F = Q(sqrt(5)).
 """
 
-from sqrt5 import F, O_F, primes_of_bounded_norm
+from sage.misc.cachefunc import cached_method
+
+from sqrt5 import F, O_F
+
+from psage.number_fields.sqrt5 import primes_of_bounded_norm
+
 
 from sqrt5_fast import IcosiansModP1ModN
 from sage.rings.all import is_Ideal, Integer, prime_divisors, QQ, next_prime, ZZ
@@ -122,8 +127,15 @@ class Space(object):
 
     def decomposition(self, B, verbose=False):
         """
-        Return Hecke decomposition of self using Hecke operators T_p coprime to the level with norm(p) <= B.
+        Return Hecke decomposition of self using Hecke operators T_p
+        coprime to the level with norm(p) <= B.
         """
+
+        # TODO: rewrite to use primes_of_bounded_norm so that we
+        # iterate through primes ordered by *norm*, which is
+        # potentially vastly faster.  Delete these functions
+        # involving characteristic!
+        
         p = next_prime_of_characteristic_coprime_to(F.ideal(1), self.level())
         T = self.hecke_matrix(p)
         D = T.decomposition()
@@ -213,7 +225,7 @@ class HilbertModularForms(Space):
 
     def level(self):
         return self._level
-
+ 
     def vector_space(self):
         return self._vector_space
 
@@ -229,8 +241,6 @@ class HilbertModularForms(Space):
         # to be transparent to see which matrices have been computed,
         # to clear the cache, etc.
         n = ideal(n)
-        if ZZ(n.norm()).gcd(ZZ(self.level().norm())) != 1:
-            raise NotImplementedError, "norm of n must currently be coprime to the norm of the level"
         if self._hecke_matrices.has_key(n):
             return self._hecke_matrices[n]
         t = self._icosians_mod_p1.hecke_matrix(n)
@@ -282,7 +292,7 @@ class HilbertModularForms(Space):
                 break
             else:
                 p = next_prime_of_characteristic_coprime_to(p, self.level())
-        return Sequence([ModularEllipticCurve(X, number) for number, X in enumerate(D)],
+        return Sequence([EllipticCurveFactor(X, number) for number, X in enumerate(D)],
                         immutable=True, cr=True, universe=int, check=False)
 
 class HilbertModularFormsSubspace(Space):
@@ -329,22 +339,205 @@ class HilbertModularFormsSubspace(Space):
         return self._V.dimension()
         
 
-class ModularEllipticCurve(object):
+class EllipticCurveFactor(object):
+    """
+    A subspace of the new subspace of a space of weight 2 Hilbert
+    modular forms that (conjecturally) corresponds to an elliptic
+    curve.
+    """
     def __init__(self, S, number):
+        """
+        INPUT:
+            - S -- subspace of a space of Hilbert modular forms
+            - ``number`` -- nonnegative integer indicating some
+              ordering among the factors of a given level.
+        """
         self._S = S
         self._number = number
 
     def __repr__(self):
+        """
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.hmf import HilbertModularForms, F
+            sage: H = HilbertModularForms(F.prime_above(31)).elliptic_curve_factors()[0]
+            sage: type(H)
+            <class 'psage.modform.hilbert.sqrt5.hmf.EllipticCurveFactor'>
+            sage: H.__repr__()
+            'Isogeny class of elliptic curves over QQ(sqrt(5)) attached to form number 0 in Hilbert modular forms of dimension 2, level 5*a-2 (of norm 31=31) over QQ(sqrt(5))'
+        """
         return "Isogeny class of elliptic curves over QQ(sqrt(5)) attached to form number %s in %s"%(self._number, self._S.ambient())
 
+    def base_field(self):
+        """
+        Return the base field of this elliptic curve factor.
+
+        OUTPUT:
+            - the field Q(sqrt(5))
+        
+        EXAMPLES::
+        
+            sage: from psage.modform.hilbert.sqrt5.hmf import HilbertModularForms, F
+            sage: H = HilbertModularForms(F.prime_above(31)).elliptic_curve_factors()[0]
+            sage: H.base_field()
+            Number Field in a with defining polynomial x^2 - x - 1
+        """
+        return F
+
     def conductor(self):
+        """
+        Return the conductor of this elliptic curve factor, which is
+        the level of the space of Hilbert modular forms.
+
+        OUTPUT:
+            - ideal of the ring of integers of Q(sqrt(5))
+        
+        EXAMPLES::
+        
+        """
         return self._S.level()
 
     def ap(self, P):
-        if P.smallest_integer().gcd(ZZ(self.conductor().norm())) != 1:
-            return '?'
+        """
+        Return the trace of Frobenius at the prime P, for a prime P of
+        good reduction.
+
+        INPUT:
+            - `P` -- a prime ideal of the ring of integers of Q(sqrt(5)).
+            
+        OUTPUT:
+            - an integer
+
+        EXAMPLES::
+
+            sage: from psage.modform.hilbert.sqrt5.hmf import HilbertModularForms, F
+            sage: H = HilbertModularForms(F.primes_above(31)[0]).elliptic_curve_factors()[0]
+            sage: H.ap(F.primes_above(11)[0])
+            4
+            sage: H.ap(F.prime_above(5))
+            -2
+            sage: H.ap(F.prime_above(7))
+            2
+
+        We check that the ap we compute here match with those of a known elliptic curve
+        of this conductor::
+
+            sage: a = F.0; E = EllipticCurve(F, [1,a+1,a,a,0])
+            sage: E.conductor().norm()
+            31
+            sage: 11+1 - E.change_ring(F.primes_above(11)[0].residue_field()).cardinality()
+            4
+            sage: 5+1 - E.change_ring(F.prime_above(5).residue_field()).cardinality()
+            -2
+            sage: 49+1 - E.change_ring(F.prime_above(7).residue_field()).cardinality()
+            2
+        """
+        if P.divides(self.conductor()):
+            if (P*P).divides(self.conductor()):
+                # It is 0, because the reduction is additive.
+                return ZZ(0)
+            else:
+                # TODO: It is +1 or -1, but I do not yet know how to
+                # compute which without using the L-function.
+                return '?'
         else:
             return self._S.hecke_matrix(P)[0,0]
 
-    def aplist(self, B):
-        return [self.ap(P) for P in primes_of_bounded_norm(F, B)]
+    @cached_method
+    def dual_eigenspace(self, B=None):
+        """
+        Return 1-dimensional subspace of the dual of the ambient space
+        with the same system of eigenvalues as self.  This is useful when
+        computing a large number of `a_P`.
+
+        If we can't find such a subspace using Hecke operators of norm
+        less than B, then we raise a RuntimeError.  This should only happen
+        if you set B way too small, or self is actually not new.
+        
+        INPUT:
+            - B -- Integer or None; if None, defaults to a heuristic bound.
+        """
+        N = self.conductor()
+        H = self._S.ambient()
+        V = H.vector_space()
+        if B is None:
+            # TODO: This is a heuristic guess at a "Sturm bound"; it's the same
+            # formula as the one over QQ for Gamma_0(N).  I have no idea if this
+            # is correct or not yet. It is probably much too large. -- William Stein
+            from sage.modular.all import Gamma0
+            B = Gamma0(N.norm()).index()//6 + 1
+        for P in primes_of_bounded_norm(B+1):
+            P = P.sage_ideal()
+            if V.dimension() == 1:
+                return V
+            if not P.divides(N):
+                T = H.hecke_matrix(P).transpose()
+                V = (T - self.ap(P)).kernel_on(V)
+        raise RuntimeError, "unable to isolate 1-dimensional space"
+
+    @cached_method
+    def dual_eigenvector(self, B=None):
+        # 1. compute dual eigenspace
+        E = self.dual_eigenspace(B)
+        assert E.dimension() == 1
+        # 2. compute normalized integer eigenvector in dual
+        return E.basis_matrix()._clear_denom()[0][0]
+
+    def aplist(self, B, dual_bound=None, algorithm='dual'):
+        """
+        Return list of traces of Frobenius for all primes P of norm
+        less than bound.  Use the function
+        psage.number_fields.sqrt5.primes_of_bounded_norm(B)
+        to get the corresponding primes.
+
+        INPUT:
+            - `B` -- a nonnegative integer
+            - ``dual_bound`` -- default None; passed to dual_eigenvector function
+            - ``algorithm`` -- 'dual' (default) or 'direct'
+
+        OUTPUT:
+             - a list of Sage integers
+
+        EXAMPLES::
+
+        We compute the aplists up to B=50::
+
+            sage: from psage.modform.hilbert.sqrt5.hmf import HilbertModularForms, F
+            sage: H = HilbertModularForms(F.primes_above(71)[1]).elliptic_curve_factors()[0]
+            sage: v = H.aplist(50); v
+            [-1, 0, -2, 0, 0, 2, -4, 6, -6, 8, 2, 6, 12, -4]
+
+        This agrees with what we get using an elliptic curve of this
+        conductor::
+        
+            sage: a = F.0; E = EllipticCurve(F, [a,a+1,a,a,0])
+            sage: from psage.ellcurve.lseries.aplist_sqrt5 import aplist
+            sage: w = aplist(E, 50)
+            sage: v == w
+            True
+
+        We compare the output from the two algorithms up to norm 75::
+
+            sage: H.aplist(75, algorithm='direct') == H.aplist(75, algorithm='dual')
+            True
+        """
+        primes = [P.sage_ideal() for P in primes_of_bounded_norm(B)]
+        if algorithm == 'direct':
+            return [self.ap(P) for P in primes]
+        elif algorithm == 'dual':
+            v = self.dual_eigenvector(dual_bound)
+            i = v.nonzero_positions()[0]
+            c = v[i]
+            I = self._S.ambient()._icosians_mod_p1
+            N = self.conductor()
+            aplist = []
+            for P in primes:
+                if P.divides(N):
+                    ap = self.ap(P)
+                else:
+                    ap = (I.hecke_operator_on_basis_element(P,i).dot_product(v))/c
+                aplist.append(ap)
+            return aplist
+        else:
+            raise ValueError, "unknown algorithm '%s'"%algorithm
+

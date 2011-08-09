@@ -291,21 +291,62 @@ cdef class Prime:
         else: # inert case
             return F.ideal(p)
 
+from sage.rings.integer import Integer
+
+def primes_above(long p, bint check=True):
+    """
+    Return ordered list of all primes above p in the ring of integers
+    of Q(sqrt(5)).  See the docstring for primes_of_bounded_norm.
+
+    INPUT:
+        - p -- prime number in integers ZZ (less than `2^{31}`)
+        - check -- bool (default: True); if True, check that p is prime
+    OUTPUT:
+        - list of 1 or 2 Prime objects
+
+    EXAMPLES::
+
+        sage: from psage.number_fields.sqrt5.prime import primes_above
+        sage: primes_above(2)
+        [2]
+        sage: primes_above(3)
+        [3]
+        sage: primes_above(5)
+        [5a]
+        sage: primes_above(11)
+        [11a, 11b]
+        sage: primes_above(13)
+        [13]
+        sage: primes_above(17)
+        [17]
+        sage: primes_above(4)
+        Traceback (most recent call last):
+        ...
+        ValueError: p must be a prime
+        sage: primes_above(4, check=False)
+        [2]
+    """
+    if check and not Integer(p).is_pseudoprime():
+        raise ValueError, "p must be a prime"
+    cdef long t = p%5
+    if t == 1 or t == 4 or t == 0:
+        return prime_range(p, p+1)
+    else: # inert
+        return [Prime(p, 0, True)]
+        
 def primes_of_bounded_norm(bound):
     """
     Return ordered list of all prime ideals of the ring of integers of
     Q(sqrt(5)) of norm less than bound.
 
-    The primes are instances of a special fast Primes class.  They are
-    sorted first by norm, then in the remaining split case by the
-    integer in the interval [0,p) congruent to (1+sqrt(5))/2.  For
-    optimal speed you can use the Prime objects directly from Cython,
-    which provides direct C-level access to the underlying data
-    structure.
-
+    The primes are instances of a special fast Primes class (they are
+    *not* usual Sage prime ideals -- use the sage_ideal() method to
+    get those).  They are sorted first by norm, then in the remaining
+    split case by the integer in the interval [0,p) congruent to
+    (1+sqrt(5))/2.  
 
     INPUT:
-        - ``bound`` -- nonnegative integer, less than `2^31`
+        - ``bound`` -- nonnegative integer, less than `2^{31}`
 
     WARNING: The ordering is NOT the same as the ordering of primes by
     Sage.   Even if you order first by norm, then use Sage's ordering
@@ -366,34 +407,79 @@ def primes_of_bounded_norm(bound):
         ...
         ValueError: bound must be less than 2^31
     """
-    if bound < 4:
-        return []
-    if bound >= 2**31:
+    return prime_range(bound)
+
+def prime_range(long start, stop=None):
+    """
+    Return ordered list of all prime ideals of the ring of integers of
+    Q(sqrt(5)) of norm at least start and less than stop.  If only
+    start is given then return primes with norm less than start.
+
+    The primes are instances of a special fast Primes class (they are
+    *not* usual Sage prime ideals -- use the sage_ideal() method to
+    get those).  They are sorted first by norm, then in the remaining
+    split case by the integer in the interval [0,p) congruent to
+    (1+sqrt(5))/2.  For optimal speed you can use the Prime objects
+    directly from Cython, which provides direct C-level access to the
+    underlying data structure.
+
+    INPUT:
+        - ``start`` -- nonnegative integer, less than `2^{31}`
+        - ``stop``  -- None or nonnegative integer, less than `2^{31}`
+
+    EXAMPLES::
+
+        sage: from psage.number_fields.sqrt5.prime import prime_range
+        sage: prime_range(10, 60)
+        [11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7, 59a, 59b]
+        sage: prime_range(2, 11)
+        [2, 5a, 3]
+        sage: prime_range(2, 12)
+        [2, 5a, 3, 11a, 11b]
+        sage: prime_range(3, 12)
+        [2, 5a, 3, 11a, 11b]
+        sage: prime_range(9, 12)
+        [3, 11a, 11b]
+        sage: prime_range(5, 12)
+        [5a, 3, 11a, 11b]
+    """
+    if start >= 2**31 or (stop and stop >= 2**31):
         raise ValueError, "bound must be less than 2^31"
 
-    cdef long p, sr, r0, r1
+    cdef long p, p2, sr, r0, r1, t, bound
     cdef Prime P
     cdef list v = []
 
-    from sage.all import prime_range
+    if stop is None:
+        bound = start
+        start = 2
+    else:
+        bound = stop
     
-    for p in prime_range(bound, py_ints=True):
+    from sage.all import prime_range as prime_range_ZZ
+    
+    for p in prime_range_ZZ(bound, py_ints=True):
         t = p % 5
         if t == 1 or t == 4:   # split
-            # Compute a square root of 5 modulo p.
-            sr = Fl_sqrt(5, p)
-            # Find the two values of (1+sqrt(5))/2.
-            r0 = Fl_div(1+sr, 2, p)
-            r1 = p+1-r0
-            # Sort
-            if r0 > r1: r0, r1 = r1, r0
-            # Append each prime to the list
-            P = PY_NEW(Prime); P.p = p; P.r = r0; P.first = True; v.append(P)
-            P = PY_NEW(Prime); P.p = p; P.r = r1; P.first = False; v.append(P)
-        elif p == 5:  # ramified
-            v.append(Prime(p, 3, True))
-        elif p*p < bound:  # inert
-            v.append(Prime(p, 0, True))
+            if p >= start:
+                # Compute a square root of 5 modulo p.
+                sr = Fl_sqrt(5, p)
+                # Find the two values of (1+sqrt(5))/2.
+                r0 = Fl_div(1+sr, 2, p)
+                r1 = p+1-r0
+                # Sort
+                if r0 > r1: r0, r1 = r1, r0
+                # Append each prime to the list
+                P = PY_NEW(Prime); P.p = p; P.r = r0; P.first = True; v.append(P)
+                P = PY_NEW(Prime); P.p = p; P.r = r1; P.first = False; v.append(P)
+        elif p == 5:   # ramified
+            if p >= start:  
+                v.append(Prime(p, 3, True))
+        else:
+            p2 = p*p
+            if p2 < bound and p2 >= start:
+                v.append(Prime(p, 0, True))
+                
     v.sort()
     return v
 

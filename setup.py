@@ -33,6 +33,7 @@ if sys.maxint != 2**63 - 1:
 import build_system
 
 SAGE_ROOT = os.environ['SAGE_ROOT']
+SAGE_LOCAL = SAGE_ROOT + '/local'
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
             ['local/include/csage', 'local/include', 'local/include/python2.6/',
@@ -143,7 +144,13 @@ ext_modules = [
               ["psage/number_fields/sqrt5/prime.pyx"],
               libraries = ['pari']),
     
-    
+    Extension("psage.modform.rational.special",
+              ["psage/modform/rational/special.pyx"],
+              libraries = ['gmp', 'flint'],
+              language = 'c++',
+              include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],
+              extra_compile_args = ['-std=c99']),
+
 ]
 
 for g in [1, 2]:

@@ -12,6 +12,10 @@ BUILDING:
 
       sage setup.py develop
 
+  To force all modules to rebuild do:
+ 
+      sage setup.py develop -ba
+
 
 UNIT TESTS:
 
@@ -30,5 +34,11 @@ DOCTESTS:
 
   A lot of doctests in certain parts of psage will fail.   This is because various authors wrote doctests for code
   as if it were in Sage (or as if the file is pre-imported), but for the tests to pass in Sage one must explicitly
-  import functions from psage. 
+  import functions from psage.  Fixing all this is something that needs to get done.
+
+  In general, whenever you doctest in psage, do 
+
+     sage -t --force_lib
+
+  i.e., use the force_lib option.
  

@@ -36,6 +36,46 @@ from sage.rings.polynomial.polynomial_rational_flint cimport Polynomial_rational
 from sage.libs.flint.fmpq_poly cimport (fmpq_poly_get_coeff_mpq, fmpq_poly_set_coeff_mpq,
                                         fmpq_poly_length)
 
+from sage.rings.polynomial.polynomial_integer_dense_flint cimport (Polynomial_integer_dense_flint,
+                                                                   fmpz_poly_set_coeff_mpz)
+
+from sage.libs.gmp.mpq cimport mpq_numref
+
+from sage.rings.all import ZZ
+
+def _change_ring_ZZ(Polynomial_rational_flint f):
+    """
+    Return the polynomial of numerators of coefficients of f.  
+    
+    INPUT:
+        - f -- a polynomial over the rational numbers with no denominators
+    OUTPUT:
+        - a polynomial over the integers
+
+    EXAMPLES::
+
+        sage: import psage.modform.rational.special as s
+        sage: R.<q> = QQ[]
+        sage: f = 3 + q + 17*q^2 - 4*q^3 - 2*q^5
+        sage: g = s._change_ring_ZZ(f); g
+        -2*q^5 - 4*q^3 + 17*q^2 + q + 3
+        sage: g.parent()
+        Univariate Polynomial Ring in q over Integer Ring
+
+    Notice that the denominators are just uniformly ignored::
+
+        sage: f = 3/2 + -5/8*q + 17/3*q^2
+        sage: s._change_ring_ZZ(f)
+        17*q^2 - 5*q + 3
+    """
+    cdef Polynomial_integer_dense_flint res = ZZ[f.parent().variable_name()](0)
+    cdef Rational x = Rational(0)
+    cdef unsigned long i
+    for i in range(fmpq_poly_length(f.__poly)):
+        fmpq_poly_get_coeff_mpq(x.value, f.__poly, i)
+        fmpz_poly_set_coeff_mpz(res.__poly, i, mpq_numref(x.value))
+    return res
+
 def _evaluate_poly_at_power_of_gen(Polynomial_rational_flint f, unsigned long n, bint truncate):
     """
     INPUT:
@@ -158,6 +198,7 @@ def cusp_form_level8_weight4(prec, verbose=False):
         computed E2(q)-8*E2(q^8) in ... seconds
         computed (E2(q)-8*E2(q^8))^2 in ... seconds
         computed final formula in ... seconds
+        change base ring to ZZ in ... seconds
     """
     while prec % 8:
         prec += 1
@@ -200,5 +241,9 @@ def cusp_form_level8_weight4(prec, verbose=False):
     if verbose: t = cputime()
     f = 4*E2s2 - (ZZ(4)/3)*E4 + E4q2 + 4*E4q4 - (ZZ(256)/3)*E4q8
     if verbose: tm = cputime(t); print "computed final formula in %.2f seconds"%tm    
-    
-    return f.change_ring(ZZ)
+
+    if verbose: t = cputime()
+    f = ZZ[['q']](_change_ring_ZZ(f.polynomial()), f.prec())
+    if verbose: tm = cputime(t); print "change base ring to ZZ in %.2f seconds"%tm    
+ 
+    return f

@@ -247,3 +247,144 @@ def cusp_form_level8_weight4(prec, verbose=False):
     if verbose: tm = cputime(t); print "change base ring to ZZ in %.2f seconds"%tm    
  
     return f
+
+
+
+def cusp_form_level7_weight4(prec, verbose=False):
+    """
+    Return the level Gamma0(7) weight 4 cusp form to precision at least prec.
+
+    INPUT:
+         - prec -- integer
+         - verbose -- bool
+
+    OUTPUT:
+         - power series in q over the integer ring ZZ
+
+    EXAMPLES::
+
+         sage: import psage.modform.rational.special as s
+         sage: s.cusp_form_level7_weight4(10)
+         q - q^2 - 2*q^3 - 7*q^4 + 16*q^5 + 2*q^6 - 7*q^7 + 15*q^8 - 23*q^9 - 16*q^10 - 8*q^11 + 14*q^12 + 28*q^13 + O(q^14)
+         sage: CuspForms(8,4).basis()[0].qexp(16)
+         q - 4*q^3 - 2*q^5 + 24*q^7 - 11*q^9 - 44*q^11 + 22*q^13 + 8*q^15 + O(q^16)
+         sage: f = s.cusp_form_level7_weight4(100)
+         sage: CuspForms(7,4).basis()[0].qexp(f.prec()) == f
+         True
+
+    Verbose mode::
+
+        sage: f = s.cusp_form_level7_weight4(10^4, verbose=True)
+        computed E2 in ... seconds
+        computed E4 in ... seconds
+        computed E2q7 in ... seconds
+        computed E4q7 in ... seconds
+        computed E2(q)-7*E2(q^7) in ... seconds
+        computed (E2(q)-7*E2(q^7))^2 in ... seconds
+        computed final formula in ... seconds
+        change base ring to ZZ in ... seconds
+    """
+    while prec % 7:
+        prec += 1
+    
+    # By playing around, I found that the cusp form f we want equals
+    #   5*E2(q^2) - (3/2)*E4 - (147/2)*E4(q^7)
+    
+    if verbose: t = cputime()
+    E2 = eisenstein_series_qexp(2, prec)
+    if verbose: tm = cputime(t); print "computed E2 in %.2f seconds"%tm
+
+    if verbose: t = cputime()
+    E4 = eisenstein_series_qexp(4, prec)
+    if verbose: tm = cputime(t); print "computed E4 in %.2f seconds"%tm    
+
+    if verbose: t = cputime()
+    E2q7 = degen(E2,7)
+    if verbose: tm = cputime(t); print "computed E2q7 in %.2f seconds"%tm
+
+    if verbose: t = cputime()
+    E4q7 = degen(E4,7)
+    if verbose: tm = cputime(t); print "computed E4q7 in %.2f seconds"%tm
+
+    if verbose: t = cputime()
+    E2s = E2 - 7*E2q7
+    if verbose: tm = cputime(t); print "computed E2(q)-7*E2(q^7) in %.2f seconds"%tm
+    
+    if verbose: t = cputime()
+    E2s2 = E2s**2
+    if verbose: tm = cputime(t); print "computed (E2(q)-7*E2(q^7))^2 in %.2f seconds"%tm
+
+    if verbose: t = cputime()
+    f = 5*E2s2 - (ZZ(3)/2)*E4 - (ZZ(147)/2)*E4q7
+    if verbose: tm = cputime(t); print "computed final formula in %.2f seconds"%tm    
+    
+    if verbose: t = cputime()
+    f = ZZ[['q']](_change_ring_ZZ(f.polynomial()), f.prec())
+    if verbose: tm = cputime(t); print "change base ring to ZZ in %.2f seconds"%tm    
+ 
+    return f
+
+
+def cusp_form_level3_weight6(prec, verbose=False):
+    """
+    Return the level Gamma0(3) weight 6 cusp form to precision at least prec.
+
+    INPUT:
+         - prec -- integer
+         - verbose -- bool
+
+    OUTPUT:
+         - power series in q over the integer ring ZZ
+
+    EXAMPLES::
+
+         sage: import psage.modform.rational.special as s
+         sage: s.cusp_form_level3_weight6(10)
+         q - 6*q^2 + 9*q^3 + 4*q^4 + 6*q^5 - 54*q^6 - 40*q^7 + 168*q^8 + 81*q^9 - 36*q^10 - 564*q^11 + O(q^12)
+         sage: CuspForms(3,6).basis()[0].qexp(16)
+         q - 6*q^2 + 9*q^3 + 4*q^4 + 6*q^5 - 54*q^6 - 40*q^7 + 168*q^8 + 81*q^9 - 36*q^10 - 564*q^11 + 36*q^12 + 638*q^13 + 240*q^14 + 54*q^15 + O(q^16)
+         sage: f = s.cusp_form_level3_weight6(100)
+         sage: CuspForms(3,6).basis()[0].qexp(f.prec()) == f
+         True
+
+    Verbose mode::
+
+        sage: f = s.cusp_form_level3_weight6(10^4, verbose=True)
+        computed E2 in ... seconds
+        computed E6 in ... seconds
+        computed E2(q^3) in ... seconds
+        computed E6(q^3) in ... seconds
+        computed final formula in ... seconds
+        change base ring to ZZ in ... seconds
+    """
+    while prec % 3:
+        prec += 1
+    
+    # By playing around, I found that the cusp form f we want equals
+    #   104*(E2 - 3*E2q3)^3 - (7/6)*E6 + (63/2)*E6q3
+    
+    if verbose: t = cputime()
+    E2 = eisenstein_series_qexp(2, prec)
+    if verbose: tm = cputime(t); print "computed E2 in %.2f seconds"%tm
+
+    if verbose: t = cputime()
+    E6 = eisenstein_series_qexp(6, prec)
+    if verbose: tm = cputime(t); print "computed E6 in %.2f seconds"%tm    
+
+    if verbose: t = cputime()
+    E2q3 = degen(E2,3)
+    if verbose: tm = cputime(t); print "computed E2(q^3) in %.2f seconds"%tm    
+
+    if verbose: t = cputime()
+    E6q3 = degen(E6,3)
+    if verbose: tm = cputime(t); print "computed E6(q^3) in %.2f seconds"%tm
+    
+    if verbose: t = cputime()
+    f = 104*(E2 - 3*E2q3)**3 - (ZZ(7)/6)*E6 + (ZZ(63)/2)*E6q3
+    if verbose: tm = cputime(t); print "computed final formula in %.2f seconds"%tm    
+    
+    if verbose: t = cputime()
+    f = ZZ[['q']](_change_ring_ZZ(f.polynomial()), f.prec())
+    if verbose: tm = cputime(t); print "change base ring to ZZ in %.2f seconds"%tm    
+ 
+    return f

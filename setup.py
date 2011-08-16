@@ -144,8 +144,8 @@ ext_modules = [
               ["psage/number_fields/sqrt5/prime.pyx"],
               libraries = ['pari']),
     
-    Extension("psage.modform.rational.special",
-              ["psage/modform/rational/special.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
+    Extension("psage.modform.rational.special_fast",
+              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
               libraries = ['gmp', 'flint'],
               language = 'c++',
               include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],

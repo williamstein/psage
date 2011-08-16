@@ -54,4 +54,4 @@ psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.c # cython
 psage/ellcurve/minmodel/sqrt5.c
 psage/number_fields/sqrt5/prime.c
 psage/ellcurve/lseries/aplist_sqrt5.c
-psage/modform/rational/special.cpp
+psage/modform/rational/special_fast.c

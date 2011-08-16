@@ -181,15 +181,38 @@ build_system.setup(
     license = 'GPL v2+',
     packages = ['psage',
                 'psage.ellcurve',
+                'psage.ellcurve.lseries',
+
                 'psage.ellff',
+
                 'psage.function_fields',
+
                 'psage.lmfdb',
                 'psage.lmfdb.ellcurves',
                 'psage.lmfdb.ellcurves.sqrt5',
+
                 'psage.modform',
+
+                'psage.modform.fourier_expansion_framework',
+                'psage.modform.fourier_expansion_framework.gradedexpansions',
+                'psage.modform.fourier_expansion_framework.modularforms',
+                'psage.modform.fourier_expansion_framework.monoidpowerseries',
+                
                 'psage.modform.hilbert',
                 'psage.modform.hilbert.sqrt5',
-                'psage.modform.rational'],
+                
+                'psage.modform.rational',
+
+                'psage.modform.siegel',
+                'psage.modform.jacobiforms',
+                'psage.modform.maass',
+                
+                'psage.number_fields',
+                'psage.number_fields.sqrt5',
+                
+                'psage.rh',
+                'psage.rh.mazur_stein'
+                ],
     platforms = ['any'],
     download_url = 'NA',
     ext_modules = ext_modules

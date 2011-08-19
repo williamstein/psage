@@ -350,7 +350,7 @@ def eisenstein_basis(N, k, verbose=False):
     E = []
     for i, z in enumerate(m):
         d = z.degrees()
-        f = prod(g[2]**d[i] for i, g in enumerate(gens))
+        f = prod(g[2]**d[i] for i, g in enumerate(gens) if d[i])
         v = A(f.padded_list(prec))
         if v not in V:
             V = V + A.span([v])

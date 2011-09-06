@@ -1276,7 +1276,7 @@ class LSeriesAbstract(object):
             verbose -1 (...: dokchitser.py, __call__) Warning: Loss of 14 decimal digits due to cancellation
             0.793046013671137 - 1.04127377821427*I
             sage: L(ComplexField(200)(1/2 + 40*I))
-            verbose -1 (371: dokchitser.py, __call__) Warning: Loss of 14 decimal digits due to cancellation
+            verbose -1 (...: dokchitser.py, __call__) Warning: Loss of 14 decimal digits due to cancellation
             0.79304495256192867196489258889793696080572220439302833315881 - 1.0412746146510650200518905953910554313275550685861559488384*I
 
         An example with a pole::
@@ -2147,7 +2147,37 @@ class LSeriesModularSymbolsNewformGamma0(LSeriesModularSymbolsAbstract):
     def _cmp(self, right):
         return cmp((self._M, self._conjugate), (right._M, right._conjugate))
 
-    def __init__(self, M, conjugate=0):
+    def __init__(self, M, conjugate=0, check=True, epsilon=None):
+        """
+        INPUT:
+            - M -- a simple, new, cuspidal modular symbols space with
+              sign 1
+            - conjugate -- (default: 0), integer between 0 and dim(M)-1
+            - check -- (default: True), if True, checks that M is
+              simple, new, cuspidal, which can take a very long time,
+              depending on how M was defined
+            - epsilon -- (default: None), if not None, should be the sign
+              in the functional equation, which is -1 or 1.  If this is
+              None, then epsilon is computed by computing the sign of
+              the main Atkin-Lehner operator on M.  If you have a faster
+              way to determine epsilon, use it.
+
+        EXAMPLES::
+
+            sage: from psage.lseries.eulerprod import LSeriesModularSymbolsNewformGamma0
+            sage: M = ModularSymbols(43,sign=1).cuspidal_subspace()[1]; M
+            Modular Symbols subspace of dimension 2 of Modular Symbols space of dimension 4 for Gamma_0(43) of weight 2 with sign 1 over Rational Field
+            sage: L0 = LSeriesModularSymbolsNewformGamma0(M,0,check=False,epsilon=1); L0
+            L-series of a degree 2 newform of level 43 and weight 2
+            sage: L0.taylor_series()
+            0.620539857407845 + 0.331674007376949*z - 0.226392184536589*z^2 + 0.0960519649929789*z^3 - 0.00451826124421802*z^4 - 0.0203363026933833*z^5 + O(z^6)
+            sage: L1 = LSeriesModularSymbolsNewformGamma0(M,1,check=False,epsilon=1); L1
+            L-series of a degree 2 newform of level 43 and weight 2
+            sage: L1(1)
+            0.921328017272472
+            sage: L1.taylor_series()
+            0.921328017272472 + 0.492443075089339*z - 0.391019352704047*z^2 + 0.113271812405127*z^3 + 0.0213067052584679*z^4 - 0.0344198080536274*z^5 + O(z^6)
+        """
         if M.dimension() == 0:
             raise ValueError, "modular symbols space must positive dimension"
         chi = M.character()
@@ -2155,19 +2185,21 @@ class LSeriesModularSymbolsNewformGamma0(LSeriesModularSymbolsAbstract):
             raise ValueError, "modular symbols space must have trivial character"
         self._M = M
         N = M.level()
-        w = M.atkin_lehner_operator(N).matrix()
-        if w not in [-1, 1]:
-            raise ValueError, "modular symbols space must have constant Atkin-Lehner operator"
-        
-        if not M.is_simple():
-            raise ValueError, "modular symbols space must be simple"
-        if not M.is_new():
-            raise ValueError, "modular symbols space must be new"
-        if not M.is_cuspidal():
-            raise ValueError, "modular symbols space must be cuspidal"
+
+        if check:
+            if not M.is_simple():
+                raise ValueError, "modular symbols space must be simple"
+            if not M.is_new():
+                raise ValueError, "modular symbols space must be new"
+            if not M.is_cuspidal():
+                raise ValueError, "modular symbols space must be cuspidal"
 
         k = M.weight()
-        epsilon = (-1)**(k/2) * w[0,0]
+        if epsilon is None:
+            w = M.atkin_lehner_operator(N).matrix()
+            if w not in [-1, 1]:
+                raise ValueError, "modular symbols space must have constant Atkin-Lehner operator"
+            epsilon = (-1)**(k/2) * w[0,0]
 
         conjugate = ZZ(conjugate)
         if conjugate < 0 or conjugate >= M.dimension():

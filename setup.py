@@ -33,14 +33,15 @@ if sys.maxint != 2**63 - 1:
 import build_system
 
 SAGE_ROOT = os.environ['SAGE_ROOT']
-SAGE_LOCAL = SAGE_ROOT + '/local'
+SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-            ['local/include/csage', 'local/include', 'local/include/python2.6/',
-             'devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl']]
-
+             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl')] \
+         + ['%s/%s/'%(SAGE_LOCAL,x) for x in
+             ('include/csage', 'include', 'python')]
 if '-ba' in sys.argv:
     print "Rebuilding all Cython extensions."
+    sys.argv.remove('-ba')
     FORCE = True
 else:
     FORCE = False
@@ -65,8 +66,8 @@ def Extension(*args, **kwds):
     return E
 
 
-numpy_include_dirs = [os.path.join(SAGE_ROOT,
-                                   'local/lib/python/site-packages/numpy/core/include')]
+numpy_include_dirs = [os.path.join(SAGE_LOCAL,
+                                   'lib/python/site-packages/numpy/core/include')]
 
 ext_modules = [
     Extension("psage.ellff.ellff",
@@ -143,7 +144,7 @@ ext_modules = [
     Extension("psage.number_fields.sqrt5.prime",
               ["psage/number_fields/sqrt5/prime.pyx"],
               libraries = ['pari']),
-    
+
     Extension("psage.modform.rational.special_fast",
               ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
               libraries = ['gmp', 'flint'],
@@ -197,19 +198,19 @@ build_system.setup(
                 'psage.modform.fourier_expansion_framework.gradedexpansions',
                 'psage.modform.fourier_expansion_framework.modularforms',
                 'psage.modform.fourier_expansion_framework.monoidpowerseries',
-                
+
                 'psage.modform.hilbert',
                 'psage.modform.hilbert.sqrt5',
-                
+
                 'psage.modform.rational',
 
                 'psage.modform.siegel',
                 'psage.modform.jacobiforms',
                 'psage.modform.maass',
-                
+
                 'psage.number_fields',
                 'psage.number_fields.sqrt5',
-                
+
                 'psage.rh',
                 'psage.rh.mazur_stein'
                 ],

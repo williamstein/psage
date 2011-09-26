@@ -37,7 +37,7 @@ The `a_P` in the above list exactly correspond to those output by the primes_of_
 
     sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
     sage: primes_of_bounded_norm(60)
-    [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a, 59a, 59b]
+    [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7, 59a, 59b]
 """
 
 from sage.libs.gmp.mpz cimport (mpz_t, mpz_set, mpz_set_si, mpz_init, mpz_clear, mpz_fdiv_ui)
@@ -112,7 +112,7 @@ def aplist(E, bound, fast_only=False):
         [1, -2, 2, -4, -2, 0, -5, 0, -5, 0, 2, 11, 12, 10, -11, -6]
         sage: from psage.number_fields.sqrt5 import primes_of_bounded_norm
         sage: primes_of_bounded_norm(60)
-        [2a, 5a, 3a, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7a, 59a, 59b]
+        [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7, 59a, 59b]
 
     If you give the fast_only option, then only the `a_P` for which
     the current implemenation can compute quickly are computed::

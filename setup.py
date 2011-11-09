@@ -152,6 +152,15 @@ ext_modules = [
               include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],
               extra_compile_args = ['-std=c99']),
 
+    Extension("psage.ellcurve.xxx.rankbound",
+              sources = [   'psage/ellcurve/xxx/rankbound.pyx',
+                            'psage/ellcurve/xxx/rankbound_.cc',
+                            'psage/ellcurve/xxx/mathlib.cc',
+                            'psage/libs/smalljac/wrapper_g1.c'],
+              libraries = ['gmp', 'm'],
+              include_dirs = ['psage/libs/smalljac/'],
+              language = 'c'
+              )
 ]
 
 for g in [1, 2]:
@@ -160,6 +169,7 @@ for g in [1, 2]:
                              'psage/libs/smalljac/wrapper_g%s.c'%g],
                   libraries = ['gmp', 'm'])
     ext_modules.append(e)
+
 
 
 # I just had a long chat with Robert Bradshaw (a Cython dev), and he

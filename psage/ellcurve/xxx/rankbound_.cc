@@ -73,6 +73,7 @@ inline complex<double> digamma(complex<double> z) {
 int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a[], int n, void *arg) {
     count++;
 
+    double p_endpoint = log(endpoint)/log(p);
     if(!good) {
         long ap = 2;
         for(int n = 0; n < number_of_bad_primes; n++) {
@@ -81,16 +82,17 @@ int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a
             continue;
         }
         if(ap == 2) {
-            cout << "warning: missing or bad ap for bad prime " << p << endl;
+            cerr << "warning: missing or bad ap for bad prime " << p << endl;
         }
-        sum -= log(p) * ap/(double)p * triangle(log(p)/(2.0 * M_PI), delta)/M_PI;
+        for(int k = 1; k <= p_endpoint; k++) {
+            sum -= log(p) * ap/pow((double)p, k) * triangle(k * log(p)/(2.0 * M_PI), delta)/M_PI;
+        }
     }
     else {
         double ap = -a[0]/sqrt(p);
         complex<double> alpha = ap/2.0 + I * sqrt(1 - ap/2.0);
         complex<double> beta = ap/2.0 - I * sqrt(1 - ap/2.0);
 
-        double p_endpoint = log(endpoint)/log(p);
         
         for(int k = 1; k <= p_endpoint; k++) {
             double cn = (pow(alpha, k) + pow(beta, k)).real();

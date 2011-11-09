@@ -18,6 +18,12 @@ cdef extern from "stdlib.h":
 from sage.schemes.elliptic_curves.ell_rational_field import EllipticCurve_rational_field
 
 def xxx_rankbound(E, float delta, verbose = 0):
+    """
+    Compute an upper bound for the rank of E, assuming BSD and RH.
+
+
+
+    """
     if not isinstance(E, EllipticCurve_rational_field):
         raise NotImplementedError("Only elliptic curves over Q are implemented for now.")
 

@@ -50,7 +50,8 @@ def xxx_rankbound(E, float delta, verbose = 0):
     OUTPUT:
 
      -  The sum described above, a bound for the rank if RH+BSD holds, expected
-        to be accurate to about `10^{-3}` or so (or maybe less).
+        to be accurate to about `.05` (This is a guess from 1 example. Either
+        the numeric integration is quite off of there is some bug somewhere.)
 
 
     EXAMPLES:
@@ -75,14 +76,14 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: xxx_rankbound(E, 2.0)
         0.67...
 
-    Also, it has some small bugs/precision issues (or RH is false for
-    the following curve).
+    Also, it has some small bugs/precision issues (or RH is false
+    for the following curve).
 
     ::
 
         sage: from psage.ellcurve.xxx.rankbound import xxx_rankbound
         sage: E = EllipticCurve([1, -1, 1, -15126, 717349]) # rank 0
-        sage: xxx_rankbound(E, 2.0)
+        sage: xxx_rankbound(E, 2.0) # answer should be ~.039
         -0.019...
 
     Often it doesn't work so well for curves of small rank and

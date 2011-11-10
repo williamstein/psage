@@ -61,7 +61,7 @@ int number_of_bad_primes;
 double delta = 3.6; 
 double endpoint;
 double sum;
-long count;
+long _count;
 const complex<double> I = complex<double>(0.0, 1.0);
 
 int verbose = 0;
@@ -71,7 +71,7 @@ inline complex<double> digamma(complex<double> z) {
 }
 
 int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a[], int n, void *arg) {
-    count++;
+    _count++;
 
     double p_endpoint = log(endpoint)/log(p);
     if(!good) {
@@ -101,7 +101,7 @@ int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a
             sum -= z;
         }
         
-        if( verbose && ((count % 100000 == 0) || (count < 10000 && count % 10 == 0)))
+        if( verbose && ((_count % 100000 == 0) || (_count < 10000 && _count % 10 == 0)))
             cout << p << " " << (double)p/(double)endpoint << " " << sum << " " << endl;
     }
     return 1;
@@ -125,7 +125,7 @@ double rankbound(char * curve_string, double logN, long * bad_primes_, int * ap_
     int err;
     long maxp = endpoint;
 
-    count = 0;
+    _count = 0;
 
     curve = smalljac_Qcurve_init(curve_string, &err);
 

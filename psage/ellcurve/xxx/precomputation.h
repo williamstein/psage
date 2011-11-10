@@ -53,7 +53,7 @@ do_precomputation()
 #include <iostream>
 #include <cmath>
 
-double precomputed_gamma_terms[501] = {
+double precomputed_gamma_terms[401] = {
 -0.32100, -0.31897, -0.31626, -0.31413, -0.31190, -0.30952, -0.30731,
 -0.30473, -0.30307, -0.30098, -0.29938, -0.29505, -0.29422, -0.29250,
 -0.29060, -0.28858, -0.28582, -0.28483, -0.28288, -0.28153, -0.27918,
@@ -115,6 +115,7 @@ double precomputed_gamma_terms[501] = {
 
 
 double gamma_terms(double Delta) {
+    std::cout << Delta << std::endl;
     if(Delta < 1 || Delta > 5) {
         std::cerr << "WARNING in gamma_terms(), Delta was out of bounds." << std::endl;
         
@@ -137,7 +138,7 @@ double gamma_terms(double Delta) {
         // I don't know exactly how accurate this is. Probably about
         // 3 digits?
         
-        Delta *= 500;
+        Delta = (Delta - 1.0) * 100;
         int a = (int)(std::floor(Delta));
         int b = (int)(std::ceil(Delta));
 

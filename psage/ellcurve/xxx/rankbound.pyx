@@ -76,8 +76,8 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: xxx_rankbound(E, 2.0)
         0.53...
 
-    Also, it has some small bugs/precision issues (or RH is false
-    for the following curve).
+    Here is another rank 0 example that used to have problems, but
+    doesn't anymore.
 
     ::
 

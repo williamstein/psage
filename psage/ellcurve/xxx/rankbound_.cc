@@ -60,7 +60,7 @@ int number_of_bad_primes;
 
 double delta = 3.6; 
 double endpoint;
-double sum;
+volatile double sum;
 long _count;
 const complex<double> I = complex<double>(0.0, 1.0);
 
@@ -69,7 +69,7 @@ int verbose = 0;
 inline complex<double> digamma(complex<double> z) {
     return log_GAMMA(z, 1);
 }
-
+/*
 int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a[], int n, void *arg) {
     _count++;
 
@@ -101,10 +101,55 @@ int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a
             sum -= z;
         }
         
-        if( verbose && ((_count % 100000 == 0) || (_count < 10000 && _count % 10 == 0)))
+        if( verbose && ((_count % 100000 == 0) || (_count < 10000 && _count % 1000 == 0)))
             cout << p << " " << (double)p/(double)endpoint << " " << sum << " " << endl;
     }
     return 1;
+}
+*/
+
+int smalljac_callback(smalljac_Qcurve_t curve, unsigned long p, int good, long a[], int n, void *arg) {
+    _count++;
+
+    double p_endpoint = log(endpoint)/log(p);
+
+    complex<double> alpha;
+    complex<double> beta;
+
+    if(!good) {
+        long ap = 2;
+        for(int n = 0; n < number_of_bad_primes; n++) {
+            if(p == bad_primes[n])
+                ap = bad_prime_aps[n];
+            continue;
+        }
+        if(ap == 2) {
+            cerr << "warning: missing or bad ap for bad prime " << p << endl;
+        }
+        alpha = ap/sqrt(p);
+        beta = 0.0;
+    }
+    else {
+        double ap = -a[0]/sqrt(p);
+        alpha = ap/2.0 + I * sqrt(1 - ap*ap/4.0);
+        beta = ap/2.0 - I * sqrt(1 - ap*ap/4.0);
+    }
+
+    double x = 0;
+
+    for(int k = 1; k <= p_endpoint; k++) {
+        double cn = (pow(alpha, k) + pow(beta, k)).real();
+        double z = cn/pow(p, k/2.0) * triangle(k * log(p)/(2.0 * M_PI), delta);
+        x += z;
+    }
+
+    sum = sum - log(p) * x/M_PI;
+
+    if( verbose && ((_count % 100000 == 0) || (_count < 10000 && _count % 1000 == 0)))
+        cout << p << " " << (double)p/(double)endpoint << " " << sum << " " << endl;
+
+    return 1;
+
 }
 
 extern "C"
@@ -117,7 +162,13 @@ double rankbound(char * curve_string, double logN, long * bad_primes_, int * ap_
 
     endpoint = exp(2 * M_PI * delta);
     double conductor_term = triangle(0, delta)/(2 * M_PI) * logN;
-    sum = gamma_terms(delta) - triangle(0, delta) * log(M_PI)/M_PI + conductor_term;
+    if(verbose) {
+        cout << "conductor term: " << conductor_term << endl;
+        cout << "gamma terms: " << gamma_terms(delta) << endl;
+        cout << "logpi term: " << -triangle(0, delta) * log(M_PI)/M_PI << endl;
+    }
+    //sum = gamma_terms(delta) - triangle(0, delta) * log(M_PI)/M_PI + conductor_term;
+    sum = gamma_terms(delta) - triangle(0, delta) * log(2 * M_PI)/M_PI + conductor_term;
 
     smalljac_Qcurve_t curve;
 

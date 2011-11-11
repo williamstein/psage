@@ -65,7 +65,7 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: from psage.ellcurve.xxx.rankbound import xxx_rankbound
         sage: E = EllipticCurve([1,0,0,-431092980766333677958362095891166,5156283555366643659035652799871176909391533088196]) # rank >= 20
         sage: xxx_rankbound(E, 2.1)
-        21.80...
+        21.48...
 
     It also sometimes works well on some not so high rank curves.
 
@@ -74,7 +74,7 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: from psage.ellcurve.xxx.rankbound import xxx_rankbound
         sage: E = EllipticCurve([0, -1, 1, 109792, 10201568]) # rank 0
         sage: xxx_rankbound(E, 2.0)
-        0.67...
+        0.53...
 
     Also, it has some small bugs/precision issues (or RH is false
     for the following curve).
@@ -84,7 +84,7 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: from psage.ellcurve.xxx.rankbound import xxx_rankbound
         sage: E = EllipticCurve([1, -1, 1, -15126, 717349]) # rank 0
         sage: xxx_rankbound(E, 2.0) # answer should be ~.039
-        -0.019...
+        0.040...
 
     Often it doesn't work so well for curves of small rank and
     large conductor, but I'm not going to write down an example

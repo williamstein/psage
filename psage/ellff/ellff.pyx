@@ -44,7 +44,8 @@ from sage.rings.arith import is_prime
 from sage.rings.integer cimport Integer
 #from sage.rings.fraction_field_element import FractionFieldElement, is_FractionFieldElement
 from sage.rings.polynomial.polynomial_element import is_Polynomial
-from sage.schemes.elliptic_curves.ell_generic import is_EllipticCurve, EllipticCurve
+from sage.schemes.elliptic_curves.ell_generic import is_EllipticCurve
+from sage.schemes.elliptic_curves.constructor import EllipticCurve
 from sage.structure.sage_object import SageObject
 
 ####################

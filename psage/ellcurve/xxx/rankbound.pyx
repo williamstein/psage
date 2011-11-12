@@ -76,15 +76,33 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: xxx_rankbound(E, 2.0)
         0.53...
 
-    Here is another rank 0 example that used to have problems, but
-    doesn't anymore.
+    We test the accuracy with some curves where we can actually
+    compute the zeros. In both of the following cases, it is
+    likely (but not certain) that the value computed by xxx_rankbound()
+    is more accurate than the value computed by summing over zeros,
+    since we are not finding enough zeros for high accuracy.
 
     ::
 
         sage: from psage.ellcurve.xxx.rankbound import xxx_rankbound
-        sage: E = EllipticCurve([1, -1, 1, -15126, 717349]) # rank 0
-        sage: xxx_rankbound(E, 2.0) # answer should be ~.039
-        0.040...
+        sage: E = EllipticCurve('11a1') # rank 0
+        sage: a = xxx_rankbound(E, 2.0); # answer is around .0027
+        sage: abs(a - .0027) < 1e-5
+        True
+        sage: f = lambda t : (sin(RR(t * 2.0 * pi))/RR(t * pi * 2.0))^2 # long time
+        sage: zeros = lcalc.zeros(1000, E)                              # long time
+        sage: b = 2 * sum( (f(z) for z in zeros) )                      # long time
+        sage: abs(a - b) < 1e-4                                         # long time
+        True
+        sage: E = EllipticCurve('389a1') # rank 2
+        sage: a = xxx_rankbound(E, 1.1); # the answer is around 2.03
+        sage: abs(a - 2.03) < 1e-4
+        True
+        sage: f = lambda t : (sin(RR(t * 1.1 * pi))/RR(t * pi * 1.1))^2 # long time
+        sage: zeros = lcalc.zeros(4000, E)                              # long time
+        sage: b = 2 * sum( (f(z) for z in zeros[2:]) ) + 2              # long time
+        sage: abs(a - b) < 1e-4                                         # long time
+        True    
 
     Often it doesn't work so well for curves of small rank and
     large conductor, but I'm not going to write down an example

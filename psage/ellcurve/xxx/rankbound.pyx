@@ -124,10 +124,11 @@ def xxx_rankbound(E, float delta, bad_primes = None, verbose = 0):
 
     We use the explicit formula to compute the sum over zeros. (So
     we don't actually find the zeros.) As such, the complexity grows
-    exponentially with delta. Guidelines on a fast machine:
-    delta = 2.0 is fast, delta = 2.5 is a little slower, delta = 3.0
-    takes a few minutes, delta = 3.5 takes at least a few hours,
-    delta = 4.0 takes over a day (a few days?).
+    exponentially with delta (while, unfortunately, giving only slightly
+    better bounds). Guidelines on a fast machine: delta = 2.0 is fast,
+    delta = 2.5 is a little slower, delta = 3.0 takes a few minutes,
+    delta = 3.5 takes at least a few hours, delta = 4.0 takes over a
+    day (a few days?).
 
     """
 

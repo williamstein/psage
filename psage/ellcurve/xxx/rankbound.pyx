@@ -22,7 +22,7 @@ from sage.schemes.elliptic_curves.ell_rational_field import EllipticCurve_ration
 def xxx_rankbound(E, float delta, bad_primes = None, verbose = 0):
     r"""
     Assuming the Riemann hypothesis for `L(s, E)` and the BSD conjecture,
-    this funtion computes and returns an upper bound for the rank of `E`,
+    this function computes and returns an upper bound for the rank of `E`,
     which must be defined over `Q`.
 
     More precisely, we compute the sum

@@ -19,7 +19,7 @@ cdef extern from "stdlib.h":
 
 from sage.schemes.elliptic_curves.ell_rational_field import EllipticCurve_rational_field
 
-def xxx_rankbound(E, float delta, verbose = 0):
+def xxx_rankbound(E, float delta, bad_primes = None, verbose = 0):
     r"""
     Assuming the Riemann hypothesis for `L(s, E)` and the BSD conjecture,
     this funtion computes and returns an upper bound for the rank of `E`,
@@ -49,9 +49,8 @@ def xxx_rankbound(E, float delta, verbose = 0):
 
     OUTPUT:
 
-     -  The sum described above, a bound for the rank if RH+BSD holds, expected
-        to be accurate to about `.05` (This is a guess from 1 example. Either
-        the numeric integration is quite off of there is some bug somewhere.)
+     -  The sum described above, which happens to be a bound for the rank if
+        RH+BSD holds, expected to be accurate to about `5e-5`.
 
 
     EXAMPLES:
@@ -66,6 +65,19 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: E = EllipticCurve([1,0,0,-431092980766333677958362095891166,5156283555366643659035652799871176909391533088196]) # rank >= 20
         sage: xxx_rankbound(E, 2.1)
         21.48...
+
+    It is also possible to specify a list of the bad primes, so that computing
+    the conductor is fast. (In the following example, a larger value of Delta
+    would give a better bound, but a tight bound seems unattainable at the
+    moment.)
+
+    ::
+
+        sage: from psage.ellcurve.xxx.rankbound import xxx_rankbound
+        sage: E = EllipticCurve([1, -1, 1, -20067762415575526585033208209338542750930230312178956502, 34481611795030556467032985690390720374855944359319180361266008296291939448732243429]) # rank >= 28
+        sage: xxx_rankbound(E, 2.0, bad_primes = [2, 3, 5, 7, 11, 13, 17, 19, 48463, 20650099, 315574902691581877528345013999136728634663121, 376018840263193489397987439236873583997122096511452343225772113000611087671413])
+        36.13...
+        
 
     It also sometimes works well on some not so high rank curves.
 
@@ -101,7 +113,7 @@ def xxx_rankbound(E, float delta, verbose = 0):
         sage: f = lambda t : (sin(RR(t * 1.1 * pi))/RR(t * pi * 1.1))^2 # long time
         sage: zeros = lcalc.zeros(4000, E)                              # long time
         sage: b = 2 * sum( (f(z) for z in zeros[2:]) ) + 2              # long time
-        sage: abs(a - b) < 1e-4                                         # long time
+        sage: abs(a - b) < 5e-4                                         # long time
         True    
 
     Often it doesn't work so well for curves of small rank and
@@ -123,16 +135,25 @@ def xxx_rankbound(E, float delta, verbose = 0):
         raise NotImplementedError("Only elliptic curves over Q are implemented for now.")
 
     L = str(list(E.ainvs()))
-    logN = log(E.conductor())
 
-    bad_primes_list = [x.prime().gen() for x in E.local_data()]
-    bad_primes_list = [x for x in bad_primes_list if x < 2**63]
-    cdef long* bad_primes = <long*>malloc(sizeof(long) * len(bad_primes_list))
-    cdef int* bad_ap = <int*>malloc(sizeof(int) * len(bad_primes_list))
+    if bad_primes is not None:
+        N = 1
+        for p in bad_primes:
+            e = E.local_data(p).conductor_valuation()
+            a = p**e
+            N = N * a
+        logN = float(log(N))
+    else:
+        logN = float(log(E.conductor()))
+        bad_primes = [x.prime().gen() for x in E.local_data()]
 
-    for n in range(len(bad_primes_list)):
-        p = bad_primes_list[n]
-        bad_primes[n] = p
+    bad_primes = [x for x in bad_primes if x < 2**63]
+    cdef long* bad_primes_array = <long*>malloc(sizeof(long) * len(bad_primes))
+    cdef int* bad_ap = <int*>malloc(sizeof(int) * len(bad_primes))
+
+    for n in range(len(bad_primes)):
+        p = bad_primes[n]
+        bad_primes_array[n] = p
         bad_ap[n] = E.ap(p)
 
     sig_on()
@@ -140,8 +161,8 @@ def xxx_rankbound(E, float delta, verbose = 0):
     # We make no attempt to cleanup nicely if there is a keyboard interrupt.
     # Oh well, only a few bytes will be lost...
     #
-    bound = rankbound(L, logN, bad_primes, bad_ap, len(bad_primes_list), delta, verbose)
+    bound = rankbound(L, logN, bad_primes_array, bad_ap, len(bad_primes), delta, verbose)
     sig_off()
-    free(bad_primes)
+    free(bad_primes_array)
     free(bad_ap)
     return bound

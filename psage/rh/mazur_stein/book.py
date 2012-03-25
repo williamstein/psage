@@ -38,12 +38,13 @@ from sage.all import (
     ellipsis_range as erange,
     exp,
     factor,
+    fast_callable,
     finance,
     floor,
     gcd,
     Graphics,
     graphics_array,
-    is_prime, is_prime_power, is_pseudoprime,
+    is_prime, is_prime_power, is_pseudoprime, nth_prime,
     latex,
     Li,
     line,
@@ -76,6 +77,8 @@ from sage.all import (
     zeta_zeros,
     ZZ
     )
+
+TimeSeries = finance.TimeSeries
 
 
 ##############################################################
@@ -688,7 +691,7 @@ def race_mult_parity(bound, time_series=False, **kwds):
                 v.append(v[-1]+1)
             else:
                 v.append(v[-1]-1)
-        return finance.TimeSeries(v).plot()
+        return TimeSeries(v).plot()
 
 
 def mult_parities_python(bound, verbose=False):
@@ -1236,17 +1239,162 @@ def cesaro_sum(s):
         - the sequences of Cesaro sums: 
               1/n * sum(s[k] for k from 0 up to n-1)      
     """
-    ps = finance.TimeSeries(s).sums()
-    return finance.TimeSeries([ps[i]/(i+1) for i in range(len(ps))])
+    ps = TimeSeries(s).sums()
+    return TimeSeries([ps[i]/(i+1) for i in range(len(ps))])
+
+def T_function():
+    # Return the function T_C(theta) as fast float callable function.
+    C, t = var('C, t')
+    T = sqrt(C)/(ZZ(1)/4 + t**2) * (cos(t*log(C)) + 2*t*sin(t*log(C)))
+    return fast_callable(T, vars=[C, t], domain=float)
+
+def A_C_theta(Cmax):
+    """
+    Return the function denoted A_C(theta) in the book.
+    This is Phi_hat_{<=C}(theta) + T_C(theta).
+    """
+    Z = [float(z) for z in zeta_zeros()]
+    Cmax = int(Cmax)
+    from math import log, sqrt
+    P = [log(p) for p in prime_range(Cmax)]
+    PP = prime_powers(Cmax)[1:]
+    logPP = [log(pn) for pn in PP]
+    logPP1 = [log(factor(pn)[0][0]) for pn in PP]
+    PP2 = [sqrt(pn) for pn in PP]
+
+    t = var('t')
+    v = [(PP[i], fast_callable(-2*logPP1[i]/PP2[i] * cos(t*logPP[i]), vars=[t], domain=float)) for i in range(len(PP))]
+
+    T = T_function()
+
+    def f(C, t):
+        C = float(C); t = float(t)
+        a = T(C, t)
+        for pp, g in v:
+            if pp <= C:
+                a += g(t)
+            else:
+                return a
+        raise ValueError, "C must be at most %s"%Cmax
+
+    return f
+
+def A_C_theta_tilde(Cmax):
+    A = A_C_theta(Cmax)
+    def f(C, t):
+        return sum(A(c, t) for c in range(1, C+1)) / float(C)
+    return f
+
+def B_C_theta(Cmax):
+    A = A_C_theta_tilde(Cmax)
+    from math import log
+    def f(C, t):
+        return A(C, t) / log(float(C))
+    return f
 
 
-def T_C_of_theta(C):
-    # Return the function T_C(theta), viewed as a function of theta,
-    # as defined in the book.  The function is a fast callable that
-    # takes input a float and outputs a float.
-    theta = var('theta')
-    T = sqrt(C)/(ZZ(1)/4 + theta**2) * (cos(theta*log(C)) + 2*theta*sin(theta*log(C)))
-    return fast_callable(T, float)
+
+def plot_B_C_theta(C, xmin, xmax, plot_points=250, zeros=True):
+    f = B_C_theta(C+10)
+    P = plot(lambda t:f(C,t), xmin, xmax, plot_points=plot_points, ymax=1.1, ymin=0)
+    if not zeros:
+        return P
+    ym = P.ymax()
+    Z = []
+    for y in zeta_zeros():
+        if y > xmax: break
+        Z.append(y)
+    zeros = sum([arrow((x,ym),(x,0),rgbcolor='red',width=0.5,arrowsize=2)
+                 for i, x in enumerate(Z)])
+    return P + zeros
+
+# TODO: this is tooooo slow: like 50 seconds total!
+def fig_B_C_theta(dir, ext, verbose=False):
+    p = []
+    for C in [5, 20, 50, 100]:
+        p.append(plot_B_C_theta(C, 2, 100))
+        if verbose:
+            print "Finished with C=%s"%C
+    g = graphics_array([[a] for a in p],len(p),1)
+    g.save(dir+'/Bc_all.%s'%ext, ymin=0, ymax=1.1)
+
+
+def B_C_theta_tilde(Cmax):
+    B = B_C_theta(Cmax)
+    def f(C, t):
+        return sum(B(c, t) for c in range(2, C+1)) / float(C)
+    return f
+
+
+def plot_B_C_theta_tilde(C, xmin, xmax, plot_points=250, zeros=True):
+    f = B_C_theta_tilde(C+10)
+    P = plot(lambda t:f(C,t), xmin, xmax, plot_points=plot_points, ymax=1.1, ymin=0)
+    if not zeros:
+        return P
+    ym = P.ymax()
+    Z = []
+    for y in zeta_zeros():
+        if y > xmax: break
+        Z.append(y)
+    zeros = sum([arrow((x,ym),(x,0),rgbcolor='red',width=0.5,arrowsize=2)
+                 for i, x in enumerate(Z)])
+    return P + zeros
+
+# TODO: this is tooooo slow: like 50 seconds total!
+def fig_B_C_theta_tilde(dir, ext, verbose=False):
+    p = []
+    for C in [5, 20, 50, 100]:
+        p.append(plot_B_C_theta_tilde(C, 2, 100))
+        if verbose:
+            print "Finished with C=%s"%C
+    g = graphics_array([[a] for a in p],len(p),1)
+    g.save(dir+'/Bctilde_all.%s'%ext, ymin=0, ymax=1.1)
+
+    
+
+
+
+
+
+## def Phi_hat_terms(C):
+##     """
+##     INPUT:
+##         - C -- a positive integer
+##     OUTPUT:
+##         - function that takes as input t and returns the
+##           sequence of partial sums of the series
+##             -sum( p^(-n/2)*log(p)*cos(log(p^n)*t) ... )
+##           where the sum is over the first C prime powers
+##     """
+##     Z = [float(z) for z in zeta_zeros()]
+##     C = int(C)
+##     B = nth_prime(C+1)
+##     from math import log, sqrt, cos
+##     P = [log(p) for p in prime_range(B)]
+##     PP = prime_powers(B)[1:]
+##     logPP = [log(pn) for pn in PP]
+##     logPP1 = [log(factor(pn)[0][0]) for pn in PP]
+##     PP2 = [sqrt(pn) for pn in PP]
+
+##     def f(t):
+##         t = float(t)
+##         s = [float(0)]
+##         for i in range(C):
+##             x = - logPP1[i]/PP2[i] * cos(t*logPP[i])
+##             s.append(s[-1] + x)
+##         return TimeSeries(s[1:])  # get rid of the s[0] = 0 which we put in just to simplify the above code.
+##     return f
+
+## def A_C_tilde(C):
+##     T = T_C(C)
+##     A = Phi_hat_terms(C)
+    
+    
+##############################################################
+# Gaussian Primes
+##############################################################
+
+
 
 
 ##############################################################

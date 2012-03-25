@@ -1,0 +1,60 @@
+psage.egg-info
+~
+*.pyc
+build/
+push
+dist
+#
+ascent.egg-info
+MANIFEST
+*.c
+*.cpp
+*~
+*.aux
+*.dvi
+*.log
+*.toc
+*auto
+docs/ascent.pdf
+docs/notebook.out
+*.so
+
+a.py
+a.sage
+go
+
+PKG-INFO
+setup.cfg
+
+
+
+psage/ellff/ellff.cpp   # cython autogen 
+psage/function_fields/function_field_element.c  # cython autogen
+psage/modform/siegel/fastmult.c   # cython
+psage/modform/maass/maass_forms_alg.c   # cython
+psage/modform/maass/mysubgroups_alg.c   # cython
+psage/modform/maass/lpkbessel.c   # cython
+psage/modform/hilbert/sqrt5/sqrt5_fast.c   # cython
+psage/modform/rational/modular_symbol_map.c # cython
+psage/ellcurve/galrep/wrapper.c   # cython
+psage/libs/smalljac/wrapper.c     # cython
+psage/libs/smalljac/wrapper1.c    # cython
+psage/libs/smalljac/wrapper2.c    # cython
+psage/libs/smalljac/wrapper3.c    # cython
+
+psage/rh/mazur_stein/game.c       # cython
+
+psage/rh/mazur_stein/book_cython.c # cython
+psage/ellcurve/lseries/fast_twist.c # cython
+
+psage/ellcurve/lseries/fast_twist.c # cython
+psage/modform/rational/padic_elliptic_lseries_fast.c # cython
+psage/ellcurve/lseries/sqrt5.c    # cython
+psage/ellcurve/lseries/helper.c   # cython
+
+psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.c # cython
+
+psage/ellcurve/minmodel/sqrt5.c
+psage/number_fields/sqrt5/prime.c
+psage/ellcurve/lseries/aplist_sqrt5.c
+psage/modform/rational/special_fast.c

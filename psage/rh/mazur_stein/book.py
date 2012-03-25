@@ -1226,6 +1226,30 @@ def plot_symbolic_phihat(bound, xmin, xmax, plot_points=1000, zeros=True):
     return P + zeros
 
 ##############################################################
+# Cesaro sums of Phi
+##############################################################
+def cesaro_sum(s):
+    """
+    INPUT:
+        - s -- sequence of partial sums of an infinite series
+    OUTPUT:
+        - the sequences of Cesaro sums: 
+              1/n * sum(s[k] for k from 0 up to n-1)      
+    """
+    ps = finance.TimeSeries(s).sums()
+    return finance.TimeSeries([ps[i]/(i+1) for i in range(len(ps))])
+
+
+def T_C_of_theta(C):
+    # Return the function T_C(theta), viewed as a function of theta,
+    # as defined in the book.  The function is a fast callable that
+    # takes input a float and outputs a float.
+    theta = var('theta')
+    T = sqrt(C)/(ZZ(1)/4 + theta**2) * (cos(theta*log(C)) + 2*theta*sin(theta*log(C)))
+    return fast_callable(T, float)
+
+
+##############################################################
 # Calculus pictures
 ##############################################################
 

@@ -113,7 +113,7 @@ cdef class J:
 
     cpdef double H2(self, double t, int N):
         cdef int n
-        return sum(self.F(t,n) + self.e(t,n) for n in range(1,N+1)) / N
+        return sum([self.F(t,n) + self.e(t,n) for n in range(1,N+1)]) / N
 
     cpdef double J2(self, double t, int N):
         return self.H2(t, N) / log(N)

@@ -37,7 +37,7 @@ from sage.rings.ring import Ring
 #===============================================================================
 
 def EquivariantMonoidPowerSeries_lazy(parent, precision, coefficient_function, components = None, bounding_precision = None) :
-    """
+    r"""
     Construct a equivariant monoid power series, which calculates its coefficients
     on demand.
     
@@ -83,13 +83,13 @@ def EquivariantMonoidPowerSeries_lazy(parent, precision, coefficient_function, c
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_abstract) :
-    """
+    r"""
     This class implements an equivariant monoid power series which calculates the
     coefficients on demand.
     """
 
     def __init__(self, parent, precision, coefficient_function, components, bounding_precision = None ) :
-        """
+        r"""
         INPUT:
             - ``parent``               -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``precision``            -- A filter for the parent's action.
@@ -118,7 +118,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
         self.__components = components
         
     def non_zero_components(self) :
-        """
+        r"""
         Return all those characters which are not guaranteed to have only
         vanishing coefficients associated with.
 
@@ -147,7 +147,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
         return self.__components
     
     def _bounding_precision(self) :
-        """
+        r"""
         If a filter for the vanishing of coefficients is given return this. Otherwise,
         return the precision, which is then guaranteed to be finite.
 
@@ -190,7 +190,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
         return self.precision()
     
     def coefficients(self, force_characters = False) :
-        """
+        r"""
         Evaluate all coefficients within the precision bounds and return a
         dictionary which saves all coefficients of this element.
     
@@ -243,7 +243,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
             return self.__coefficients
 
     def _truncate_in_place(self, precision) :
-        """
+        r"""
         Truncate ``self`` modifying also the coefficient cache.
         
         INPUT:
@@ -279,7 +279,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
             self._set_precision(nprec)
 
     def __getitem__(self, k) :
-        """
+        r"""
         Evaluate and return the `k`-th coefficient if it below the series' precision. If no character is contained
         in the key ``self`` must have only one nonvanishing component.
         
@@ -351,12 +351,12 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_moduleelement_lazy (EquivariantMonoidPowerSeries_abstract_lazy, ModuleElement) :
-    """
+    r"""
     A lazy element of a module of equivariant monoid power series.
     """
 
     def __init__(self, parent, precision, coefficient_function, components, bounding_precision ) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``precision``    -- A filter for the parent's action.
@@ -382,12 +382,12 @@ class EquivariantMonoidPowerSeries_moduleelement_lazy (EquivariantMonoidPowerSer
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_algebraelement_lazy (EquivariantMonoidPowerSeries_abstract_lazy, AlgebraElement) :
-    """
+    r"""
     A lazy element of an algebra of equivariant monoid power series.
     """
 
     def __init__(self, parent, precision, coefficient_function, components, bounding_precision ) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``precision``    -- A filter for the parent's action.
@@ -412,12 +412,12 @@ class EquivariantMonoidPowerSeries_algebraelement_lazy (EquivariantMonoidPowerSe
 #===============================================================================
 
 class EquivariantMonoidPowerseries_MultiplicationDelayedFactory :
-    """
+    r"""
     A helper class for lazy multplication of equivariant monoid power series.
     """
     
     def __init__( self, left, right ) :
-        """
+        r"""
         INPUT:
             - ``left``  -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.EquivariantMonoidPowerSeries_abstract`.
             - ``right`` -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.EquivariantMonoidPowerSeries_abstract`.
@@ -447,7 +447,7 @@ class EquivariantMonoidPowerseries_MultiplicationDelayedFactory :
         self.__right_coefficients = None
 
     def getcoeff(self, (ch, k)) :
-        """
+        r"""
         Return the `k`-th coefficient of the component ``ch`` of the product.
         
         INPUT:
@@ -490,7 +490,7 @@ class EquivariantMonoidPowerseries_MultiplicationDelayedFactory :
 #===============================================================================
 
 def EquivariantMonoidPowerSeries_LazyMultiplication(left, right) :
-    """
+    r"""
     The product of two equivariant monoid power series which is only evaluated
     if a coefficient is demanded.
     

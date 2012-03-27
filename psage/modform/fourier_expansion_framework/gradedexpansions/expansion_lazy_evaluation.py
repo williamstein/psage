@@ -42,6 +42,7 @@ def LazyFourierExpansionEvaluation(parent, element, precision) :
     TESTS::
         sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
         sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+        sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import LazyFourierExpansionEvaluation
         sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
         sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
         sage: em = ExpansionModule(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
@@ -72,6 +73,7 @@ class DelayedEvaluation_fourier_expansion :
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import DelayedEvaluation_fourier_expansion
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
@@ -93,6 +95,7 @@ class DelayedEvaluation_fourier_expansion :
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import DelayedEvaluation_fourier_expansion
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))

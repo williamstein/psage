@@ -1,4 +1,4 @@
-"""
+r"""
 Modules of elements with Fourier expansion and partially known relations. 
 
 AUTHOR :
@@ -41,7 +41,7 @@ import operator
 #===============================================================================
 
 class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
-    """
+    r"""
     A class for a module of vector valued graded expansions
     over an ambient of graded expansions, that might also be trivial.
     
@@ -51,7 +51,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
     
     def __init__ ( self, base_ring_generators, generators, relations,
                    grading, all_relations = True, reduce_before_evaluating = True ) :
-        """
+        r"""
         The degree one part of the monomials that correspond to generators over the
         base expansion ring will serve as the coordinates of the elements.
         
@@ -114,7 +114,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
           convert_method_name = "_graded_expansion_submodule_to_graded_ambient_" )
 
     def _graded_monoms(self, index) :
-        """
+        r"""
         Return all monoms in the generators that have a given grading index.
         
         INPUT:
@@ -157,7 +157,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import DegreeGrading
-            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ring import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_module import *
             sage: m = FreeModule(QQ, 3)
             sage: mpsm = MonoidPowerSeriesModule(m, NNMonoid(False))
             sage: mps = mpsm.base_ring()
@@ -179,7 +179,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
         return Module._coerce_map_from_(self, other)
 
     def _element_constructor_(self, x) :
-        """
+        r"""
         INPUT:
             - `x` -- A zero integer, an element of the underlying polynomial ring or
                      an element in a submodule of graded expansions.
@@ -192,7 +192,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import DegreeGrading
-            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ring import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_module import *
             sage: m = FreeModule(QQ, 3)
             sage: mpsm = MonoidPowerSeriesModule(m, NNMonoid(False))
             sage: mps = mpsm.base_ring()
@@ -228,7 +228,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
                 + ''.join(map(lambda e: repr(e.polynomial()) + ", ", self.gens()))[:-2]
                 
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import *
@@ -240,7 +240,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
             sage: mps = mpsm.base_ring()
             sage: ger = GradedExpansionModule_class(Sequence([MonoidPowerSeries(mps, {1: 1}, mps.monoid().filter(4))]), Sequence([MonoidPowerSeries(mpsm, {1: m([1,1,1]), 2: m([1,3,-3])}, mpsm.monoid().filter(4))]), PolynomialRing(QQ, ['a', 'b']).ideal(0), DegreeGrading((1,2)))
             sage: latex(ger)
-            Graded expansion module with generators b
+            \text{Graded expansion module with generators }b
         """
-        return "Graded expansion module with generators " \
+        return r"\text{Graded expansion module with generators }" \
                 + ''.join(map(lambda e: latex(e.polynomial()) + ", ", self.gens()))[:-2]

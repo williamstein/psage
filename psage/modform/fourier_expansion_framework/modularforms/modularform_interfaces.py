@@ -1,4 +1,4 @@
-"""
+r"""
 Interfaces for modular forms which admit Hecke actions or ring which have
 Maass lifts.
 

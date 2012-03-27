@@ -1,4 +1,4 @@
-"""
+r"""
 Ambients of elements with Fourier expansion and partially known relations.
 
 AUTHOR :
@@ -44,7 +44,7 @@ GradedExpansionSubmodule_abstract = None
 #===============================================================================
 
 class GradedExpansionAmbient_abstract :
-    """
+    r"""
     A ring of graded expansions. This is a polynomial ring with relations
     and a mapping to an (equivariant) monoid power series. These should
     respect the given relations, but there can me more relations of the
@@ -53,7 +53,7 @@ class GradedExpansionAmbient_abstract :
     
     def __init__ ( self, base_ring_generators, generators, relations,
                    grading, all_relations = True, reduce_before_evaluating = True) :
-        """
+        r"""
         INPUT:
             - ``base_ring_generators``      -- A sequence of (equivariant) monoid power series with
                                                coefficient domain the base ring of the coefficient
@@ -96,10 +96,11 @@ class GradedExpansionAmbient_abstract :
         self.__grading = grading
         
         if base_ring_generators is None :
+            base_ring_generators = []
             base_ring_generators = Sequence([], universe = generators.universe().base_ring())
         self.__base_gens = \
           tuple([ self.base_ring()._element_class( self.base_ring(), self.base_ring().relations().ring()(g) )
-                  for g in self.__relations.ring().gens()[:len(base_ring_generators)]])
+                  for g in self.__relations.ring().gens()[:len(base_ring_generators)] ])
         self.__gens = \
          tuple([ self._element_class( self, g )
                  for g in self.__relations.ring().gens()[len(base_ring_generators):] ])
@@ -111,11 +112,11 @@ class GradedExpansionAmbient_abstract :
         self.__evaluation_hom = GradedExpansionEvaluationHomomorphism( self.__relations, self.__base_gen_expansions,
                                                                        self.__gen_expansions, self.__gen_expansions.universe(),
                                                                        reduce_before_evaluating )
-
+        
         self.__graded_submodules = dict()
     
     def ngens(self) :
-        """
+        r"""
         The number of generators of ``self`` over the base expansion ring.
         
         OUTPUT:
@@ -135,7 +136,7 @@ class GradedExpansionAmbient_abstract :
         return len(self.__gens)
     
     def gen(self, i = 0) :
-        """
+        r"""
         The `i`-th generator of ``self`` over the base expansion ring.
 
         INPUT:
@@ -158,7 +159,7 @@ class GradedExpansionAmbient_abstract :
         return self.__gens[i]
     
     def gens(self) :
-        """
+        r"""
         The generators of ``self`` over the base expansion ring.
         
         OUTPUT:
@@ -178,7 +179,7 @@ class GradedExpansionAmbient_abstract :
         return self.__gens
     
     def nbasegens(self) :
-        """
+        r"""
         Number of generators of the base expansion ring.
         
         OUTPUT:
@@ -201,7 +202,7 @@ class GradedExpansionAmbient_abstract :
         return len(self.__base_gens)
     
     def basegen(self, i) :
-        """
+        r"""
         The `i`-th generator of the base expansion ring.
         
         INPUT:
@@ -225,7 +226,7 @@ class GradedExpansionAmbient_abstract :
         return self.__base_gens[i]
     
     def basegens(self) :
-        """
+        r"""
         The generators of the base expansion ring.
         
         OUTPUT:
@@ -245,7 +246,7 @@ class GradedExpansionAmbient_abstract :
         return self.__base_gens
     
     def is_field(self) :
-        """
+        r"""
         OUTPUT:
             A boolean.
         
@@ -265,7 +266,7 @@ class GradedExpansionAmbient_abstract :
         return False
     
     def grading(self) :
-        """
+        r"""
         The grading imposed on this ring.
         
         OUTPUT:
@@ -285,7 +286,7 @@ class GradedExpansionAmbient_abstract :
         return self.__grading
     
     def relations(self) :
-        """
+        r"""
         The relation of the generators of this ring with in the underlying
         polynomial ring.
         
@@ -313,7 +314,7 @@ class GradedExpansionAmbient_abstract :
         return self.__relations
     
     def all_relations_known(self) :
-        """
+        r"""
         If ``True`` is returned any relation of the Fourier expansions associated
         with elements of this ring - thought of as expansions with
         infinite precision - implies that the relation is also contained
@@ -339,7 +340,7 @@ class GradedExpansionAmbient_abstract :
         return self.__all_relations
     
     def has_relation_free_generators(self) :
-        """
+        r"""
         If ``True`` is returned, there are no relations of the Fourier
         expansions - thought of as expansions with infinite precision.
         
@@ -367,7 +368,7 @@ class GradedExpansionAmbient_abstract :
         return self.__all_relations and self.__relations.is_zero()
     
     def _generator_expansions(self) :
-        """
+        r"""
         The generators' Fourier expansion within a common parent.
         
         OUTPUT:
@@ -389,7 +390,7 @@ class GradedExpansionAmbient_abstract :
         return self.__gen_expansions
     
     def _base_generator_expansions(self) :
-        """
+        r"""
         The Fourier expansions of the generators of the base expansion ring.
         
         OUTPUT:
@@ -413,7 +414,7 @@ class GradedExpansionAmbient_abstract :
     
     @cached_method
     def fourier_expansion_precision(self) :
-        """
+        r"""
         A precision which is obtained by all expansions of any element.
         
         OUTPUT:
@@ -437,7 +438,7 @@ class GradedExpansionAmbient_abstract :
     
     @cached_method
     def fourier_ring(self) :
-        """
+        r"""
         The ring that Fourier expansions of all elements of this
         ring will be contained in.
         
@@ -472,14 +473,14 @@ class GradedExpansionAmbient_abstract :
     
     #===========================================================================
     # def precision(self) :
-    #    """
+    #    r"""
     #    Return the minimal precision of any fourier expansion in this ring.
     #    """
     #    return min([g.precision() for g in self._generator_expansions()])
     #===========================================================================
 
     def _set_evaluation_hom(self, hom) :
-        """
+        r"""
         Set the homomorphism that maps every polynomial in the underlying
         polynomial ring to its expansion.
         
@@ -506,7 +507,7 @@ class GradedExpansionAmbient_abstract :
         self.__evaluation_hom = hom
     
     def _fourier_expansion_of_element(self, e) :
-        """
+        r"""
         The Fourier expansion of an element `e`.
         
         INPUT:
@@ -537,7 +538,7 @@ class GradedExpansionAmbient_abstract :
     
 #===============================================================================
 #    def graded_submodules_are_free(self) :
-#        """
+#        r"""
 #        If ``True`` is returned, there are no relations within the module
 #        formed by the Fourier expansions - thought of as expansions with
 #        infinite precision - for a fixed grading value.
@@ -560,7 +561,7 @@ class GradedExpansionAmbient_abstract :
 #===============================================================================
 
     def _graded_monoms(self, index) :
-        """
+        r"""
         Return all monoms in the generators that have a given grading index.
         
         INPUT:
@@ -585,7 +586,7 @@ class GradedExpansionAmbient_abstract :
         raise NotImplementedError
 
     def graded_submodule(self, indices, **kwds) :
-        """
+        r"""
         The submodule which contains all elements of given 
         grading values.
         
@@ -658,7 +659,7 @@ class GradedExpansionAmbient_abstract :
         return self.__graded_submodules[indices] 
     
     def _submodule(self, arg, *args, **kwds) :
-        """
+        r"""
         Return a submodule of ``self``.
         
         INPUT:
@@ -683,7 +684,7 @@ class GradedExpansionAmbient_abstract :
             raise NotImplementedError
 
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -719,7 +720,7 @@ class GradedExpansionAmbient_abstract :
         return c
     
     def construction(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -737,7 +738,7 @@ class GradedExpansionAmbient_abstract :
                  self.base_ring() )
 
     def _element_constructor_(self, x) :
-        """
+        r"""
         INPUT:
             - `x` -- An element of the underlying polynomial ring or
                      an element in a submodule of graded expansions.
@@ -781,7 +782,7 @@ class GradedExpansionAmbient_abstract :
         raise TypeError( "The element %s cannot be converted into %s," % (x, self) )
 
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *

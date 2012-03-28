@@ -1,9 +1,9 @@
-"""
+r"""
 Implementation of base classes used as parameters for a ring of monoid 
 power series.
 
 AUTHOR :
-    -- Martin Raum (2009 - 07 - 25) Initial version
+    - Martin Raum (2009 - 07 - 25) Initial version
 """
 
 #===============================================================================
@@ -27,7 +27,7 @@ AUTHOR :
 
 from operator import xor
 from sage.misc.latex import latex
-from sage.rings.all import is_Ring
+from sage.categories.all import Rings
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
@@ -38,13 +38,13 @@ from sage.structure.sage_object import SageObject
 #===============================================================================
 
 class CharacterMonoid_class ( SageObject ) :
-    """
+    r"""
     The characters for an equivariant monoid power series must
     form a monoid. A basic implementation is given here.
     """
     
     def __init__(self, G, C, codomain, eval, C_multiplicative = True) :
-        """
+        r"""
         INPUT:
         
             - `G`          -- Every type accepted; Representative of a group which
@@ -62,7 +62,7 @@ class CharacterMonoid_class ( SageObject ) :
             The interface may change in the future, enforcing `G` to be a group.
         
         EXAMPLES::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             
         TESTS::
@@ -76,12 +76,12 @@ class CharacterMonoid_class ( SageObject ) :
         self.__C_multiplicative = C_multiplicative
 
     def ngens(self) :
-        """
+        r"""
         OUTPUT:
             An integer.
             
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.ngens()
             1
@@ -92,12 +92,12 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__C.ngens()
     
     def gen(self, i = 0) :
-        """
+        r"""
         OUTPUT:
             An instance of :class:`~.CharacterMonoidElement_class`.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.gen()
             1
@@ -105,12 +105,12 @@ class CharacterMonoid_class ( SageObject ) :
         return CharacterMonoidElement_class(self, self.__C.gen(i))
     
     def gens(self) :
-        """
+        r"""
         OUTPUT:
             A tuple of instances of :class:`~.CharacterMonoidElement_class`.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.gens()
             (1,)
@@ -118,7 +118,7 @@ class CharacterMonoid_class ( SageObject ) :
         return tuple(map(lambda c: CharacterMonoidElement_class(self, c), self.__C.gens()))
     
     def group(self) :
-        """
+        r"""
         Return the group, which is the common domain of all characters
         of this monoid of characters.
         
@@ -126,7 +126,7 @@ class CharacterMonoid_class ( SageObject ) :
             Of arbitrary type.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.group()
             'ZZ'
@@ -134,14 +134,14 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__G
 
     def codomain(self) :
-        """
+        r"""
         Return the common codomain of all characters of this monoid of characters.
 
         OUTPUT:
             A ring.
         
         EXAMPLES::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.codomain()
             Rational Field
@@ -149,14 +149,14 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__codomain
   
     def monoid(self) :
-        """
+        r"""
         Return the abstract monoid underlying this monoid of characters.
         
         OUTPUT:
             A monoid.
         
         EXAMPLES::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.monoid()
             Trivial monoid
@@ -167,7 +167,7 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__C
     
     def extends(self, other) :
-        """
+        r"""
         Decide whether ``self`` extends ``other``. Namely, whether there is a is an embedding of ``other``
         into ``self`` that is compatible with a common codomain. A negative answer does not mean
         that there is no such embedding.
@@ -179,7 +179,7 @@ class CharacterMonoid_class ( SageObject ) :
             A boolean.
         
         EXAMPLES::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm1 = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm2 = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm1 == cm2
@@ -188,14 +188,14 @@ class CharacterMonoid_class ( SageObject ) :
         return self == other
     
     def _is_C_multiplicative(self) :
-        """
+        r"""
         Return whether the underlying monoid is multiplicative.
         
         OUTPUT:
             A boolean.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm._is_C_multiplicative()
             True
@@ -203,7 +203,7 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__C_multiplicative
     
     def _eval_function(self) :
-        """
+        r"""
         Return the evaluation function, mapping an element of the associated group and an element of ``self``
         to an element of the codomain.
         
@@ -211,7 +211,7 @@ class CharacterMonoid_class ( SageObject ) :
             A function with signature `g, c \mapsto e`. 
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: e = lambda g, c: 1
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, e)
             sage: e == cm._eval_function()
@@ -220,7 +220,7 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__eval
         
     def _apply(self, g, c, b) :
-        """
+        r"""
         Apply `c(g)` to some element `b` by multiplication.
         
         INPUT:
@@ -233,7 +233,7 @@ class CharacterMonoid_class ( SageObject ) :
            An element of a ring. 
         
         EXAMPLES::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm._apply(1, 1, 2)
             2
@@ -241,9 +241,9 @@ class CharacterMonoid_class ( SageObject ) :
         return self.__eval(g, c) * b
 
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm1 = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm2 = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm1 == cm2
@@ -262,9 +262,9 @@ class CharacterMonoid_class ( SageObject ) :
         return c
     
     def __iter__(self) :
-        """
+        r"""
         TEST::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: list(cm)
             [1]
@@ -275,9 +275,9 @@ class CharacterMonoid_class ( SageObject ) :
         raise StopIteration
     
     def one_element(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm.one_element()
             1
@@ -285,7 +285,7 @@ class CharacterMonoid_class ( SageObject ) :
         return CharacterMonoidElement_class(self, self.__C.one_element())
 
     def __call__(self, x) :
-        """
+        r"""
         Convert an element to ``self``.
         
         INPUT:
@@ -295,7 +295,7 @@ class CharacterMonoid_class ( SageObject ) :
             An element of ``self``.
         
         TESTS::
-           sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+           sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: cm(1)
             1 
@@ -303,31 +303,31 @@ class CharacterMonoid_class ( SageObject ) :
         return CharacterMonoidElement_class(self, self.__C(x))
     
     def __hash__(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: d = dict([(cm.one_element, 0)]) # indirect doctest
         """
         return xor(hash(self.__C), hash(self.__G))
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
             sage: CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             Character monoid over Trivial monoid
         """
         return "Character monoid over %s" % self.__C
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
-            Character monoid over Trivial monoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, TrivialMonoid
+            sage: latex(CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1))
+            \text{Character monoid over } \text{Trivial monoid}
         """
-        return "Character monoid over %s" % latex(self.__C)
+        return r"\text{Character monoid over }" + latex(self.__C)
 
 #===============================================================================
 # CharacterMonoidElement_class
@@ -339,15 +339,14 @@ class CharacterMonoidElement_class ( SageObject ) :
     """
     
     def __init__(self, parent, c) :
-        """
+        r"""
         INPUT:
             - ``parent``  -- An instance of :class:`~.CharacterMonoid_class`; The parent of ``self``.
             - `c`         -- An element of a monoid; The element in the underlying monoid of ``parent``
                              associated to ``self``.
                 
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c = CharacterMonoidElement_class(cm, cm.monoid().one_element())
         """
@@ -355,13 +354,12 @@ class CharacterMonoidElement_class ( SageObject ) :
         self.__c = c
         
     def parent(self) :
-        """
+        r"""
         OUTPUT:
             An instance of :class:`~.CharacterMonoid_class`.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: c.parent() is cm
@@ -370,15 +368,14 @@ class CharacterMonoidElement_class ( SageObject ) :
         return self.__parent
     
     def _monoid_element(self) :
-        """
+        r"""
         The underlying element of the monoid.
         
         OUTPUT:
             An element of a character.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: c._monoid_element() == cm.monoid().one_element()
@@ -387,13 +384,12 @@ class CharacterMonoidElement_class ( SageObject ) :
         return self.__c
             
     def __call__(self, g) :
-        """
+        r"""
         OUTPUT:
             An element of the codomain of the parent.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: c(2)
@@ -408,7 +404,7 @@ class CharacterMonoidElement_class ( SageObject ) :
         return self.parent()._eval_function()(g, self)
 
     def __mul__(left, right) :
-        """
+        r"""
         NOTE:
             If the underlying monoid is additive the character are nevertheless multiplied.
         
@@ -416,8 +412,7 @@ class CharacterMonoidElement_class ( SageObject ) :
             An instance of :class:`~.CharacterMonoidElement_class`.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: c * c     # indirect doctest
@@ -437,10 +432,9 @@ class CharacterMonoidElement_class ( SageObject ) :
             return CharacterMonoidElement_class(left.parent(), left.__c + right.__c)
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", ZZ, QQ, lambda g, c: 1, False)
             sage: c1 = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: c2 = CharacterMonoidElement_class(cm, cm.monoid().one_element())
@@ -458,13 +452,12 @@ class CharacterMonoidElement_class ( SageObject ) :
         return c
     
     def __hash__(self) :
-        """
+        r"""
         OUTPUT:
             An integer.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c1 = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: hash(c1)    # indirect doctest
@@ -474,13 +467,12 @@ class CharacterMonoidElement_class ( SageObject ) :
         return xor(hash(self.__parent), hash(self.__c))
     
     def _repr_(self) :
-        """
+        r"""
         OUTPUT:
             A string.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c1 = CharacterMonoidElement_class(cm, cm.monoid().one_element())
             sage: repr(c1)    # indirect doctest
@@ -489,17 +481,16 @@ class CharacterMonoidElement_class ( SageObject ) :
         return repr(self.__c)
     
     def _latex_(self) :
-        """
+        r"""
         OUTPUT:
             A string.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoidElement_class
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import CharacterMonoid_class, CharacterMonoidElement_class, TrivialMonoid
             sage: cm = CharacterMonoid_class("ZZ", TrivialMonoid(), QQ, lambda g, c: 1)
             sage: c1 = CharacterMonoidElement_class(cm, cm.monoid().one_element())
-            sage: repr(c1)    # indirect doctest
-            '1'
+            sage: latex(c1)    # indirect doctest
+            1
         """
         return latex(self.__c)
 
@@ -508,13 +499,13 @@ class CharacterMonoidElement_class ( SageObject ) :
 #===============================================================================
 
 class TrivialMonoid ( SageObject ) :
-    """
+    r"""
     A monoid with one element, which implements only functions that are necessary for
     being an arguemnt of :meth:`~.CharacterMonoid_class.__init__`.
     """
     
     def __init__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialMonoid
             sage: m = TrivialMonoid()
@@ -522,7 +513,7 @@ class TrivialMonoid ( SageObject ) :
         SageObject.__init__(self)
     
     def ngens(self) :
-        """
+        r"""
         OUTPUT:
             An integer.
         
@@ -535,7 +526,7 @@ class TrivialMonoid ( SageObject ) :
         return 1
     
     def gen(self, i = 0) :
-        """
+        r"""
         OUTPUT:
             An integer.
         
@@ -555,7 +546,7 @@ class TrivialMonoid ( SageObject ) :
         raise ValueError, "Generator not defined."
     
     def gens(self) :
-        """
+        r"""
         OUTPUT:
             A tuple of integers.
         
@@ -568,7 +559,7 @@ class TrivialMonoid ( SageObject ) :
         return (Integer(1), )
     
     def one_element(self) :
-        """
+        r"""
         OUTPUT:
             An integer.
         
@@ -581,7 +572,7 @@ class TrivialMonoid ( SageObject ) :
         return Integer(1)
     
     def __call__(self, x) :
-        """
+        r"""
         INPUT:
             - `x` -- An integer.
         
@@ -604,7 +595,7 @@ class TrivialMonoid ( SageObject ) :
         raise TypeError( "Cannot convert %s into Trivial monoid." % (x,) )
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialMonoid
             sage: TrivialMonoid() == TrivialMonoid()    # indirect doctest
@@ -613,7 +604,7 @@ class TrivialMonoid ( SageObject ) :
         return cmp(type(self), type(other))
     
     def __iter__(self) :
-        """
+        r"""
         OUTPUT:
             A generator over integers.
         
@@ -628,7 +619,7 @@ class TrivialMonoid ( SageObject ) :
         raise StopIteration
     
     def _repr_(self) :
-        """
+        r"""
         OUTPUT:
             A string.
         
@@ -641,7 +632,7 @@ class TrivialMonoid ( SageObject ) :
         return "Trivial monoid"
     
     def _latex_(self) :
-        """
+        r"""
         OUTPUT:
             A string.
         
@@ -649,9 +640,9 @@ class TrivialMonoid ( SageObject ) :
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialMonoid
             sage: m = TrivialMonoid()
             sage: latex(m)    # indirect doctest
-            Trivial monoid
+            \text{Trivial monoid}
         """
-        return "Trivial monoid"
+        return r"\text{Trivial monoid}"
 
 #===============================================================================
 # TrivialCharacterMonoid
@@ -660,7 +651,7 @@ class TrivialMonoid ( SageObject ) :
 _trivial_evaluations = dict()
 
 def TrivialCharacterMonoid(G, K) :
-    """
+    r"""
     Return the monoid of characters with codomain `K` with one element.
     
     INPUT:
@@ -670,6 +661,7 @@ def TrivialCharacterMonoid(G, K) :
         An instance of :class:`~.CharacterMonoid_class`.
     
     TESTS::
+        sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialCharacterMonoid
         sage: h = TrivialCharacterMonoid("ZZ", QQ)
         sage: h
         Character monoid over Trivial monoid
@@ -691,13 +683,13 @@ def TrivialCharacterMonoid(G, K) :
 #===============================================================================
 
 class TrivialRepresentation ( SageObject ) :
-    """
+    r"""
     A trivial representation over a group `G` with codomain `K` occurring as a representation for
     :class:`~fourier_expansion_framework.monoidpowerseries.EquivariantMonoidPowerSeriesAmbient_abstract`.
     """
     
     def __init__(self, G, K) :
-        """
+        r"""
         INPUT:
             - `G`    -- Arbitrary type; A group or representative of a group.
             - `K`    -- A module or ring; The codomain of the representation.
@@ -716,7 +708,7 @@ class TrivialRepresentation ( SageObject ) :
         self.__K = K
         
     def base_ring(self) :
-        """
+        r"""
         The base ring of the representation, commuting with the action.
         
         OUTPUT:
@@ -731,13 +723,13 @@ class TrivialRepresentation ( SageObject ) :
             sage: rep.base_ring()
             Integer Ring
         """
-        if is_Ring(self.__K) :
+        if self.__K in Rings() :
             return self.__K
         else :
             return self.__K.base_ring()
     
     def codomain(self) :
-        """
+        r"""
         The codomain of the representation.
         
         OUTPUT:
@@ -751,8 +743,31 @@ class TrivialRepresentation ( SageObject ) :
         """
         return self.__K
     
-    def base_extend(self, L) :
+    def from_module(self, R) :
+        r"""
+        Construct a representation of the same type with codomain `R`.
+        
+        INPUT:
+        
+        - `R`        -- A module that the representation can be restricted or
+                        extended to.
+        
+        OUTPUT:
+        
+        - An instance of :class:`~.TrivialRepresentation`.
+        
+        EXAMPLES::
+        
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialRepresentation
+            sage: rep = TrivialRepresentation("ZZ", FreeModule(ZZ, 3))
+            sage: rep2 = rep.from_module(FreeModule(QQ, 2))
+            sage: rep2.codomain()
+            Vector space of dimension 2 over Rational Field
         """
+        return TrivialRepresentation( self.__G, R )
+    
+    def base_extend(self, L) :
+        r"""
         Extend the representation's codomain by `L`.
         
         INPUT:
@@ -771,11 +786,23 @@ class TrivialRepresentation ( SageObject ) :
             Traceback (most recent call last):
             ...
             TypeError: Base extension of self (over 'Rational Field') to ring 'Finite Field of size 3' not defined.
+            sage: rep = TrivialRepresentation("ZZ", ZZ)
+            sage: repQQ = rep.base_extend(QQ)
+            sage: repQQ.codomain()
+            Rational Field
+            sage: repQQ.base_extend(GF(3))
+            Traceback (most recent call last):
+            ...
+            AssertionError
         """
-        return TrivialRepresentation( self.__G, self.__K.base_extend(L) )
+        if self.__K in Rings() :
+            assert L.has_coerce_map_from(self.__K)
+            return TrivialRepresentation( self.__G, L )
+        else :
+            return TrivialRepresentation( self.__G, self.__K.base_extend(L) )
         
     def extends(self, other) :
-        """
+        r"""
         Wheter ``self`` is an extension of ``other``.
         
         INPUT:
@@ -803,7 +830,7 @@ class TrivialRepresentation ( SageObject ) :
         return self.__K.has_coerce_map_from(other.__K)
 
     def group(self) :
-        """
+        r"""
         The group that acts.
         
         OUTPUT:
@@ -818,7 +845,7 @@ class TrivialRepresentation ( SageObject ) :
         return self.__G
     
     def _apply_function(self) :
-        """
+        r"""
         A function that maps a group element and an element of the codomain to its image.
         
         OUTPUT:
@@ -833,7 +860,7 @@ class TrivialRepresentation ( SageObject ) :
         return self.apply
     
     def apply(self, g, a) :
-        """
+        r"""
         Return the image of `a` under the transformation `g`.
         
         INPUT:
@@ -852,7 +879,7 @@ class TrivialRepresentation ( SageObject ) :
         return a
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialRepresentation
             sage: rep1 = TrivialRepresentation("ZZ", QQ)
@@ -872,7 +899,7 @@ class TrivialRepresentation ( SageObject ) :
         return c
     
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialRepresentation
             sage: rep = TrivialRepresentation("ZZ", QQ)
@@ -883,7 +910,7 @@ class TrivialRepresentation ( SageObject ) :
         return xor(hash(self.__G), hash(self.__K))
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialRepresentation
             sage: rep = TrivialRepresentation("ZZ", QQ)
@@ -893,27 +920,27 @@ class TrivialRepresentation ( SageObject ) :
         return "Trivial representation of %s on %s" % (self.__G, self.__K)
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialRepresentation
             sage: rep = TrivialRepresentation("ZZ", QQ)
             sage: latex(rep)
-            Trivial representation of \texttt{ZZ} on \Bold{Q}
+            \text{Trivial representation of $\verb|ZZ|$ on $\Bold{Q}$}
         """
-        return "Trivial representation of %s on %s" % (latex(self.__G), latex(self.__K))
+        return r"\text{Trivial representation of $%s$ on $%s$}" % (latex(self.__G), latex(self.__K))
 
 #===============================================================================
 # NNMonoid
 #===============================================================================
 
 class NNMonoid( SageObject ) :
-    """
+    r"""
     Monoid of all natural numbers with zero as is can occure as an arguement of
     :class:`~fourier_expansion_framework.monoidpowerseries.MonoidPowerSeriesAmbient_abstract`.
     """
     
     def __init__(self, reduced = True) :
-        """
+        r"""
         INPUT:
             - ``reduce``    -- A boolean (default: True); Wheter ``self`` is equipped with an action
                                or not.
@@ -928,7 +955,7 @@ class NNMonoid( SageObject ) :
         self.__reduced = reduced
 
     def ngens(self) :
-        """
+        r"""
         OUTPUT:
             An integer.
         
@@ -941,7 +968,7 @@ class NNMonoid( SageObject ) :
         return 1
     
     def gen(self, i = 0) :
-        """
+        r"""
         OUTPUT:
             An integer.
         
@@ -962,7 +989,7 @@ class NNMonoid( SageObject ) :
         raise ValueError( "Generator not defined." )
     
     def gens(self) :
-        """
+        r"""
         OUTPUT:
             A tuple of integers.
         
@@ -975,7 +1002,7 @@ class NNMonoid( SageObject ) :
         return tuple([self.gen(i) for i in xrange(self.ngens())])
 
     def is_commutative(self) :
-        """
+        r"""
         Whether the monoid is commutative or not.
         
         OUTPUT:
@@ -990,7 +1017,7 @@ class NNMonoid( SageObject ) :
         return True
     
     def monoid(self) :
-        """
+        r"""
         If ``self`` respects the action of the trivial group return the underlying
         monoid without this action. Otherwise return a copy of ``self``.
 
@@ -1011,7 +1038,7 @@ class NNMonoid( SageObject ) :
         return NNMonoid(False) 
 
     def group(self) :
-        """
+        r"""
         If ``self`` respects the action of a group return representative.
         
         OUTPUT:
@@ -1034,7 +1061,7 @@ class NNMonoid( SageObject ) :
             raise ArithmeticError( "Monoid is not equipped with a group action.")
 
     def is_monoid_action(self) :
-        """
+        r"""
         In case ``self`` respects the action of a group, decide whether this action is a monoid action
         on the underlying monoid.
 
@@ -1058,7 +1085,7 @@ class NNMonoid( SageObject ) :
             raise ArithmeticError( "Monoid is not equipped with a group action.")
     
     def filter(self, bound) :
-        """
+        r"""
         Return a filter with given bound associated to this monoid.
         
         INPUT:
@@ -1083,7 +1110,7 @@ class NNMonoid( SageObject ) :
         return NNFilter(bound, self.__reduced)
 
     def filter_all(self) :
-        """
+        r"""
         Return the filter associated to this monoid which contains all elements.
         
         OUTPUT:
@@ -1104,7 +1131,7 @@ class NNMonoid( SageObject ) :
         return NNFilter(infinity, self.__reduced)
     
     def zero_filter(self) :
-        """
+        r"""
         Return the filter associated to this monoid which contains no elements.
         
         OUTPUT:
@@ -1125,7 +1152,7 @@ class NNMonoid( SageObject ) :
         return NNFilter(0, self.__reduced)         
 
     def minimal_composition_filter(self, ls, rs) :
-        """
+        r"""
         Given two lists `ls` and `rs` of natural numbers return a filter that contains
         all the sums `l + r` of elements `l \in ls,\, r \in rs`.
         
@@ -1162,7 +1189,7 @@ class NNMonoid( SageObject ) :
         return NNFilter(max(0, max(ls) + max(rs) + 1), self.__reduced)
 
     def _reduction_function(self) :
-        """
+        r"""
         In case ``self`` respects the action of a group, return the
         reduction funtion for elements of this monoid.
         
@@ -1189,7 +1216,7 @@ class NNMonoid( SageObject ) :
             raise ArithmeticError( "Monoid is not equipped with a group action." )
 
     def reduce(self, s) :
-        """
+        r"""
         Reduce a natural number with respect to the trivial groups.
         
         INPUT:
@@ -1207,7 +1234,7 @@ class NNMonoid( SageObject ) :
         return (s, 1)
   
     def decompositions(self, s) :
-        """
+        r"""
         Decompose a natural number `s` in to a sum of two.
         
         INPUT:
@@ -1228,7 +1255,7 @@ class NNMonoid( SageObject ) :
         raise StopIteration
     
     def zero_element(self) :
-        """
+        r"""
         The zero element of this monoid.
         
         OUTPUT:
@@ -1243,7 +1270,7 @@ class NNMonoid( SageObject ) :
         return 0
 
     def __contains__(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
             sage: m = NNMonoid()
@@ -1257,7 +1284,7 @@ class NNMonoid( SageObject ) :
         return isinstance(x, (int, Integer)) and x >= 0
 
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
             sage: m = NNMonoid()
@@ -1273,7 +1300,7 @@ class NNMonoid( SageObject ) :
         return c
     
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
             sage: hash(NNMonoid())
@@ -1284,7 +1311,7 @@ class NNMonoid( SageObject ) :
         return hash(self.__reduced)
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
             sage: repr(NNMonoid())
@@ -1298,30 +1325,30 @@ class NNMonoid( SageObject ) :
             return "NN with action"
             
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
             sage: latex(NNMonoid())
-            $\NN$ with action
+            \Bold{N}\text{ with action}
             sage: latex(NNMonoid(False))
-            $\NN$
+            \Bold{N}
         """
         if not self.__reduced :
-            return "$\NN$"
+            return r"\Bold{N}"
         else :
-            return "$\NN$ with action"
+            return r"\Bold{N}\text{ with action}"
 
 #===============================================================================
 # NNFilter
 #===============================================================================
 
 class NNFilter ( SageObject ) :
-    """
+    r"""
     A filter for the monoid of natrual numbers bounding elements by their value.
     """
     
     def __init__(self, bound, reduced = True) :
-        """
+        r"""
         INPUT:
             - ``bound``   -- An integer; A bound for the natural numbers.
             - ``reduced`` -- A boolean (default: True); If True the action of the trivial
@@ -1331,7 +1358,7 @@ class NNFilter ( SageObject ) :
             An instance of :class:`~.NNFilter`.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: f = NNFilter(3) # indirect doctest
             sage: f = NNFilter(7, False) # indirect doctest
         """
@@ -1342,14 +1369,14 @@ class NNFilter ( SageObject ) :
         self.__reduced = reduced
 
     def is_infinite(self) :
-        """
+        r"""
         Whether the filter contains infinitely many elements.
         
         OUTPUT:
             A boolean.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: NNFilter(3).is_infinite()
             False
             sage: NNFilter(infinity).is_infinite()
@@ -1358,14 +1385,14 @@ class NNFilter ( SageObject ) :
         return self.__bound is infinity
 
     def is_all(self) :
-        """
+        r"""
         Whether the filter contains all elements of the associated monoid.
         
         OUTPUT:
             A boolean.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: NNFilter(3).is_all()
             False
             sage: NNFilter(infinity).is_all()
@@ -1374,28 +1401,28 @@ class NNFilter ( SageObject ) :
         return self.is_infinite()
 
     def index(self) :
-        """
+        r"""
         Return the bound for this filter.
         
         OUTPUT:
             An integer.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: NNFilter(3).index()
             3
         """
         return self.__bound
     
     def is_reduced(self) :
-        """
+        r"""
         Whether the filter respects the action of a group.
         
         OUTPUT:
             A boolean.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: NNFilter(3).is_reduced()
             True
             sage: NNFilter(7, False).is_reduced()
@@ -1404,9 +1431,9 @@ class NNFilter ( SageObject ) :
         return self.__reduced
     
     def __contains__(self, n) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: f = NNFilter(10)
             sage: 3 in f # indirect doctest
             True
@@ -1421,12 +1448,12 @@ class NNFilter ( SageObject ) :
         return n < self.__bound
     
     def __iter__(self) :
-        """
+        r"""
         OUTPUT:
             A generator over integers.
         
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: list(NNFilter(4)) == range(4) # indirect doctest
             True
             sage: list(NNFilter(infinity))
@@ -1443,9 +1470,9 @@ class NNFilter ( SageObject ) :
         raise StopIteration
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: NNFilter(4) == NNFilter(4) # indirect doctest
             True
             sage: NNFilter(4) == NNFilter(5) # indirect doctest
@@ -1462,9 +1489,9 @@ class NNFilter ( SageObject ) :
         return c
 
     def __hash__(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: hash(NNFilter(4)) # indirect doctest
             21
             sage: hash(NNFilter(7, False)) # indirect doctest
@@ -1473,9 +1500,9 @@ class NNFilter ( SageObject ) :
         return hash(self.__bound) + 17 * hash(self.__reduced)
                    
     def _repr_(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: repr(NNFilter(3))
             'Filtered NN with action up to 3'
             sage: repr(NNFilter(4, False))
@@ -1487,15 +1514,15 @@ class NNFilter ( SageObject ) :
             return "Filtered NN up to %s" % self.__bound
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNMonoid
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import NNFilter
             sage: latex(NNFilter(3))
-            Filtered $\NN$ with action up to $3$
+            \text{Filtered $\Bold{N}$ with action up to $3$}
             sage: latex(NNFilter(4, False))
-            Filtered $\NN$ up to $4$
+            \text{Filtered $\Bold{N}$ up to $4$}
         """
         if self.__reduced :
-            return "Filtered $\NN$ with action up to $%s$" % latex(self.__bound)
+            return r"\text{Filtered $\Bold{N}$ with action up to $%s$}" % latex(self.__bound)
         else :
-            return "Filtered $\NN$ up to $%s$" % latex(self.__bound)
+            return r"\text{Filtered $\Bold{N}$ up to $%s$}" % latex(self.__bound)

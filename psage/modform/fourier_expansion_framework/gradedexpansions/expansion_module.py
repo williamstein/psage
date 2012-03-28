@@ -1,8 +1,8 @@
-"""
+r"""
 Module abstractly spanned by Fourier expansions. 
 
-AUTHOR :
-    -- Martin Raum (2010 - 05 - 15) Initial version
+AUTHOR:
+    - Martin Raum (2010 - 05 - 15) Initial version
 """
 
 #===============================================================================
@@ -47,7 +47,7 @@ from sage.rings.principal_ideal_domain import PrincipalIdealDomain
 from sage.rings.rational_field import QQ
 from sage.rings.ring import Ring
 from sage.structure.element import Element
-from sage.structure.sequence import Sequence
+from sage.structure.sequence import Sequence, Sequence_generic
 import itertools
 
 #===============================================================================
@@ -55,7 +55,7 @@ import itertools
 #===============================================================================
 
 def ExpansionModule(forms) :
-    """
+    r"""
     Construct a module of over the forms' base ring of rank ``len(forms)``
     with underlying expansions associated to.
     
@@ -100,7 +100,7 @@ def ExpansionModule(forms) :
         ...
         TypeError: The forms' base ring must be a commutative ring.
     """
-    if not isinstance(forms, Sequence) :
+    if not isinstance(forms, Sequence_generic) :
         forms = Sequence(forms)
         if len(forms) == 0 :
             raise ValueError( "Empty modules must be constructed with a universe." )
@@ -134,12 +134,12 @@ def ExpansionModule(forms) :
 #===============================================================================
 
 class ExpansionModule_abstract :
-    """
+    r"""
     An abstract implementation of a module with expansions associated to its basis elements.
     """
     
     def __init__(self, basis, **kwds) :
-        """
+        r"""
         INPUT:
             - ``basis`` -- A sequence of (equivariant) monoid power series.
         
@@ -147,13 +147,14 @@ class ExpansionModule_abstract :
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_abstract
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", QQ))
             sage: em = ExpansionModule_abstract(Sequence([emps.one_element(), emps.one_element()]))
         """
         self.__abstract_basis = basis
 
     def _abstract_basis(self) :
-        """
+        r"""
         Return a basis in terms of elements of the graded ambient.
         
         OUTPUT:
@@ -173,7 +174,7 @@ class ExpansionModule_abstract :
 
     @cached_method
     def precision(self) :
-        """
+        r"""
         A common precision of the expansions associated to the basis elements.
         
         OUTPUT:
@@ -203,7 +204,7 @@ class ExpansionModule_abstract :
                 return self.__abstract_basis.universe().monoid().filter_all()
     
     def _bounding_precision(self) :
-        """
+        r"""
         A common precision of the expansions associtated to the basis elements
         if it is finite or in case it is not a filter that comprises all
         nonzero coefficient of the expansion.
@@ -236,12 +237,12 @@ class ExpansionModule_abstract :
 
     @cached_method
     def _check_precision(self, precision = None, lazy_rank_check = False) :
-        """
+        r"""
         Check whether the elements of this module are uniquely determined
         by their Fourier expansions up to ``precision``. If ``precision`` is ``None``
         the precision of this module will be used.
         
-        INPUT::
+        INPUT:
             - ``precision``        -- A filter for the expansions' parent monoid or action or ``None`` (default: ``None``).
             - ``lazy_rank_check``  -- A boolean (default: ``False``); If ``True`` the involved rank checks will
                                       be done over `Q_p` (with finite precision).
@@ -308,7 +309,7 @@ class ExpansionModule_abstract :
         return basis_fe_expansion.rank() >= self.rank()
     
     def _fourier_expansion_of_element(self, e) :
-        """
+        r"""
         The Fourier expansion of an element optained via linear combinations
         of the basis' Fourier expansions.
         
@@ -336,7 +337,7 @@ class ExpansionModule_abstract :
 
     @cached_method
     def _non_zero_characters(self) :
-        """
+        r"""
         Return those characters which cannot be guaranteed to have vanishing Fourier
         expansion associated with for all basis elements of ``self``.
         
@@ -364,7 +365,7 @@ class ExpansionModule_abstract :
 
     @cached_method
     def _fourier_expansion_indices(self) :
-        """
+        r"""
         A list of Fourier indices which are considered by the Fourier expansion morphism.
         
         OUTPUT:
@@ -420,7 +421,7 @@ class ExpansionModule_abstract :
 
     @cached_method
     def fourier_expansion_homomorphism(self, precision = None) :
-        """
+        r"""
         A morphism mapping elements of the underlying module to
         a module such that each component of the image corresponds to an
         Fourier coefficient of the Fourier expansion associated with this
@@ -452,7 +453,7 @@ class ExpansionModule_abstract :
             sage: em = ExpansionModule(Sequence([hv]))
             sage: em.fourier_expansion_homomorphism()
             Free module morphism defined by the matrix
-            (not printing 1 x 9 matrix)
+            [0 0 0 1 0 0 0 0 1]
             Domain: Module of Fourier expansions in Module of equivariant monoid ...
             Codomain: Vector space of dimension 9 over Rational Field
         """
@@ -470,7 +471,7 @@ class ExpansionModule_abstract :
     
     @cached_method
     def _fourier_expansion_matrix_over_fraction_field(self) :
-        """
+        r"""
         The matrix associated with the Fourier expansion homomorphism
         such that its base ring is a field.
         
@@ -497,7 +498,7 @@ class ExpansionModule_abstract :
                   
     @cached_method
     def pivot_elements(self) :
-        """
+        r"""
         Determine a set of generators, which minimally span the image of the Fourier expansion
         homomorphism.
         
@@ -533,10 +534,10 @@ class ExpansionModule_abstract :
         if expansion_matrix.rank() == self.rank() :
             return range(self.rank())
         else :
-            return expansion_matrix.pivots()
+            return list(expansion_matrix.pivots())
                   
     def _element_to_fourier_expansion_generator(self, e) :
-        """
+        r"""
         Given a monoid power series `e` return a generator iterating over the components of
         the image of `e` under the Fourier expansion morphism.
 
@@ -581,7 +582,7 @@ class ExpansionModule_abstract :
             return (e[k][i] if k in e else 0 for (i,k) in keys)
 
     def coordinates(self, x, in_base_ring = True, force_ambigous = False) :
-        """
+        r"""
         The coordinates in ``self`` of an element either of the following:
             - An element of a submodule.
             - An expansion in the parent of the basis' expansions.
@@ -636,7 +637,7 @@ class ExpansionModule_abstract :
             [1/2]
             sage: K.<rho> = CyclotomicField(6)
             sage: em.coordinates(rho * emps.one_element(), in_base_ring = False)
-            [rho]
+            [zeta6]
             sage: h = EquivariantMonoidPowerSeries(emps, {emps.characters().one_element(): {1: 2, 2: 3}}, emps.action().filter_all())
             sage: em.coordinates(h)
             Traceback (most recent call last):
@@ -781,7 +782,7 @@ class ExpansionModule_abstract :
         raise ArithmeticError( "No coordinates for %s." % (x,) )
         
     def _sparse_module(self):
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
@@ -796,7 +797,7 @@ class ExpansionModule_abstract :
         raise NotImplementedError
 
     def _dense_module(self):
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
@@ -809,7 +810,7 @@ class ExpansionModule_abstract :
         return self
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
@@ -821,26 +822,26 @@ class ExpansionModule_abstract :
         return "Module of Fourier expansions in %s" % (self.__abstract_basis.universe(),)            
 
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: latex( ExpansionModule(Sequence([emps.one_element()])) )
-            Module of Fourier expansions in Ring of equivariant monoid power series over $\NN$
+            \text{Module of Fourier expansions in }\text{Ring of equivariant monoid power series over }\Bold{N}
         """
-        return "Module of Fourier expansions in %s" % (latex(self.__abstract_basis.universe()),)
+        return r"\text{Module of Fourier expansions in }%s" % (latex(self.__abstract_basis.universe()),)
 
 
 class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
-    """
+    r"""
     A generic module of abstract elements with Fourier expansions attached to.
     The base ring has to be an integral domain.
     """
     
     def __init__(self, basis, degree, **kwds) :
-        """
+        r"""
         INPUT:
             - ``basis``  -- A sequence of (equivariant) monoid power series.
             - ``degree`` -- An integer; The ambient's module dimension.
@@ -854,6 +855,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_generic, ExpansionModuleVector_generic
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_generic(Sequence([emps.one_element()]), 2)
@@ -869,7 +871,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
         FreeModule_generic.__init__(self, basis.universe().base_ring(), len(basis), degree, sparse = False)
 
     def gen(self, i) :
-        """
+        r"""
         The `i`-th generator of the module.
         
         INPUT:
@@ -881,6 +883,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_generic
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_generic(Sequence([emps.one_element()]), 1)
@@ -892,7 +895,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
         raise NotImplementedError
 
     def basis(self) :
-        """
+        r"""
         A basis of ``self``.
         
         OUTPUT:
@@ -901,6 +904,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_generic
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_generic(Sequence([emps.one_element()]), 1)
@@ -912,7 +916,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
         raise NotImplementedError
     
     def change_ring(self, R):
-        """
+        r"""
         Return the ambient expansion module over `R` with the same basis as ``self``.
         
         INPUT:
@@ -925,6 +929,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_generic
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_generic(Sequence([emps.one_element()]), 2)
             sage: em.change_ring(ZZ) is em
@@ -947,7 +952,7 @@ class ExpansionModule_generic ( ExpansionModule_abstract, FreeModule_generic ) :
 #===============================================================================
 
 def _fourier_expansion_kernel(self) :
-    """
+    r"""
     The kernel of the Fourier expansion morphism.
     
     OUTPUT:
@@ -982,7 +987,7 @@ def _fourier_expansion_kernel(self) :
 #===============================================================================
 
 def _span( self, gens, base_ring = None, check = True, already_echelonized = False ) :
-    """
+    r"""
     The expansion submodule spanned by ``gens``.
     
     INPUT:
@@ -1035,12 +1040,12 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
 #===============================================================================
 
 class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient_pid ) :
-    """
+    r"""
     An ambient module of expansions over a principal ideal domain.
     """
     
     def __init__(self, basis, _element_class = None, **kwds) :
-        """
+        r"""
         INPUT:
             - ``basis``         -- A list or sequence of (equivariant) monoid power series.
             - ``element_class`` -- A type or ``None`` (default: ``None``); The element class
@@ -1051,6 +1056,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid, ExpansionModuleVector_generic
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]), _element_class = ExpansionModuleVector_generic)
@@ -1078,7 +1084,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
     span = _span
     
     def gen(self, i) :
-        """
+        r"""
         The `i`-th generator of the module.
         
         INPUT:
@@ -1091,6 +1097,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: em.gen(0)
@@ -1099,7 +1106,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
         return self._element_class(self, FreeModule_ambient_pid.gen(self, i))
 
     def basis(self) :
-        """
+        r"""
         A basis of ``self``.
         
         OUTPUT:
@@ -1109,6 +1116,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: em.basis()
@@ -1117,7 +1125,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
         return map(lambda b: self._element_class(self, b), FreeModule_ambient_pid.basis(self))    
         
     def change_ring(self, R):
-        """
+        r"""
         Return the ambient expansion module over `R` with the same basis as ``self``.
         
         INPUT:
@@ -1130,6 +1138,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: em.change_ring(ZZ) is em
@@ -1148,7 +1157,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
         return ExpansionModule_ambient_pid(Sequence(self._abstract_basis(), universe = R), _element_class = self._element_class)
 
     def ambient_module(self) :
-        """
+        r"""
         Return the ambient module of ``self``.
         
         OUTPUT:
@@ -1158,6 +1167,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: em.ambient_module() is em
@@ -1170,12 +1180,12 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
 #===============================================================================
 
 class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submodule_pid ) :
-    """
+    r"""
     A submodule of another module of expansions over a principal ideal domain.
     """
 
     def __init__(self, ambient, gens, _element_class = None, **kwds) :
-        """
+        r"""
         INPUT:
             - ``ambient``       -- An instance of :class:~`.ExpansionModule_ambient_pid` or :class:~`.ExpansionModule_submodule_pid`.
             - ``gens``          -- A list, tuple or sequence of elements of ``ambient``.
@@ -1187,6 +1197,7 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid, ExpansionModule_submodule_pid, ExpansionModuleVector_generic
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: ems = ExpansionModule_submodule_pid(em, [em([1,0,0]), em([1,2,0])])
@@ -1213,7 +1224,7 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
     span = _span
 
     def gen(self, i) :
-        """
+        r"""
         The `i`-th generator of the module.
         
         INPUT:
@@ -1226,35 +1237,38 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid, ExpansionModule_submodule_pid
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: ems = ExpansionModule_submodule_pid(em, [em([1,0,0]), em([1,2,0])])
             sage: ems.gen(0)
             (1, 0, 0)
         """
-        return self._element_class(self, FreeModule_submodule_pid.gen(self, i).list())
+        return self._element_class(self, super(ExpansionModule_submodule_pid, self).gen(i).list())
 
-    def basis(self) :
-        """
-        A basis of ``self``.
+    # TODO: The module should be hidden so that we can adopt the category framework
+    # def basis(self) :
+    #     r"""
+    #     A basis of ``self``.
         
-        OUTPUT:
-            A list of elements of ``self``.
+    #     OUTPUT:
+    #         A list of elements of ``self``.
         
-        TESTS::
-            sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
-            sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
-            sage: ems = ExpansionModule_submodule_pid(em, [em([1,0,0]), em([1,2,0])])
-            sage: ems.basis()
-            [(1, 0, 0), (0, 2, 0)]
-        """
-        return [self._element_class(self, b.list()) for b in FreeModule_submodule_pid.basis(self)]    
+    #     TESTS::
+    #         sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
+    #         sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
+    #         sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+    #         sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid, ExpansionModule_submodule_pid
+    #         sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
+    #         sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
+    #         sage: ems = ExpansionModule_submodule_pid(em, [em([1,0,0]), em([1,2,0])])
+    #         sage: ems.basis()
+    #         [(1, 0, 0), (0, 2, 0)]
+    #     """
+    #     return [self._element_class(self, b.list()) for b in super().basis()]
     
     def change_ring(self, R):
-        """
+        r"""
         Return the ambient expansion module over `R` with the same basis as ``self``.
         
         INPUT:
@@ -1266,6 +1280,7 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_ambient_pid, ExpansionModule_submodule_pid
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule_ambient_pid(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: ems = ExpansionModule_submodule_pid(em, [em([1,0,0]), em([1,2,0])])
@@ -1290,12 +1305,12 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
 #===============================================================================
 
 class ExpansionModuleVector_generic ( FreeModuleElement_generic_dense, FourierExpansionWrapper ) :
-    """
+    r"""
     A generic implementation of an element in a module of expansions.
     """
     
     def __init__(self, parent, x, coerce = True, copy = True) :
-        """
+        r"""
         INPUT:
             - ``parent``  -- An instance of :class:~`.ExpansionModule_abstract`.
             - `x`         -- A list or tuple of integers or an element that admits coordinates
@@ -1307,6 +1322,7 @@ class ExpansionModuleVector_generic ( FreeModuleElement_generic_dense, FourierEx
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModuleVector_generic
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: ExpansionModuleVector_generic(em, [1,0,2])
@@ -1320,7 +1336,7 @@ class ExpansionModuleVector_generic ( FreeModuleElement_generic_dense, FourierEx
         FreeModuleElement_generic_dense.__init__(self, parent, x, coerce, copy)
     
     def _add_(left, right) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
@@ -1333,7 +1349,7 @@ class ExpansionModuleVector_generic ( FreeModuleElement_generic_dense, FourierEx
         return left.parent()._element_class(left.parent(), FreeModuleElement_generic_dense._add_(left, right))
     
     def __copy__(self) :
-        """
+        r"""
         Return a copy of ``self``.
         
         OUTPUT:
@@ -1343,6 +1359,7 @@ class ExpansionModuleVector_generic ( FreeModuleElement_generic_dense, FourierEx
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
+            sage: from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModuleVector_generic
             sage: emps = EquivariantMonoidPowerSeriesRing(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ))
             sage: em = ExpansionModule(Sequence([emps.one_element(), emps.one_element(), emps.one_element()]))
             sage: copy(ExpansionModuleVector_generic(em, [1,0,2])) == ExpansionModuleVector_generic(em, [1,0,2])

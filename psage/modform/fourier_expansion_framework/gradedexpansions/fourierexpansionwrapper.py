@@ -25,7 +25,7 @@ AUTHOR :
 #===============================================================================
 
 class FourierExpansionWrapper :
-    """
+    r"""
     Abstract class for elements, which do not represent Fourier
     expansions on their own, but encapsulate one.
     
@@ -34,7 +34,7 @@ class FourierExpansionWrapper :
     """
     
     def fourier_expansion(self, cache = True) :
-        """
+        r"""
         The Fourier expansion which is associated with ``self``.
         
         INPUT:
@@ -67,7 +67,7 @@ class FourierExpansionWrapper :
                 return self.parent()._fourier_expansion_of_element(self)
             
     def _set_fourier_expansion(self, expansion ) :
-        """
+        r"""
         Set the cache for the Fourier expansion to an given monoid power series.
         
         INPUT:

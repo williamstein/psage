@@ -2,7 +2,7 @@
 Ambients of monoid power series and ambients of equivariant monoid power series.
 
 AUTHOR :
-    -- Martin Raum (2010 - 02 - 10) Initial version
+    - Martin Raum (2010 - 02 - 10) Initial version
 """
 
 #===============================================================================
@@ -33,7 +33,7 @@ from sage.structure.element import Element
 #===============================================================================
 
 class MonoidPowerSeriesAmbient_abstract :
-    """
+    r"""
     Given some `K` module or algebra `A` and a monoid `S` filtered over
     a net `\Lambda` construct a module or ring of monoid power series.
     
@@ -43,7 +43,7 @@ class MonoidPowerSeriesAmbient_abstract :
     """
     
     def __init__(self, A, S) :
-        """
+        r"""
         INPUT:
             - `A` -- A ring or module.
             - `S` -- A monoid as implemented in :class:~`from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids.NNMonoid`.
@@ -62,7 +62,7 @@ class MonoidPowerSeriesAmbient_abstract :
             self._element_class = MonoidPowerSeries
 
     def is_exact(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing
@@ -73,7 +73,7 @@ class MonoidPowerSeriesAmbient_abstract :
         return False
         
     def monoid(self) :
-        """
+        r"""
         Return the index monoid of ``self``.
         
         OUTPUT:
@@ -89,7 +89,7 @@ class MonoidPowerSeriesAmbient_abstract :
         return self.__monoid
     
     def coefficient_domain(self) :
-        """
+        r"""
         The coefficient domain of ``self``.
         
         OUTPUT:
@@ -108,7 +108,7 @@ class MonoidPowerSeriesAmbient_abstract :
         return self.__coefficient_domain
     
     def _multiply_function(self) :
-        """
+        r"""
         Return the currect multiply function.
         
         The standard implementation of elements asks its parent to
@@ -132,7 +132,7 @@ class MonoidPowerSeriesAmbient_abstract :
         return self.__multiply_function
         
     def _set_multiply_function(self, f = None) :
-        """
+        r"""
         Set the multiply function that is decribed in :meth:~`._multiply_function`.
         If `f` is ``None`` an iteration over the decompositions in the
         monoid is used.
@@ -146,6 +146,7 @@ class MonoidPowerSeriesAmbient_abstract :
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import MonoidPowerSeries
             sage: mps = MonoidPowerSeriesRing(QQ, NNMonoid(False))
             sage: e = MonoidPowerSeries( mps, { 4 : 1, 5 : 2}, mps.monoid().filter_all() )
             sage: h = e * e # indirect doctest
@@ -174,7 +175,7 @@ class MonoidPowerSeriesAmbient_abstract :
         self.__multiply_function = mul
         
     def _coerce_map_from_(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing
@@ -189,7 +190,7 @@ class MonoidPowerSeriesAmbient_abstract :
                 return CallableConvertMap(other, self, self._element_constructor_)
     
     def _element_constructor_(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing
@@ -216,7 +217,7 @@ class MonoidPowerSeriesAmbient_abstract :
         raise (TypeError, "Cannot construct an element of %s" % (x))
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import MonoidPowerSeriesAmbient_abstract
@@ -245,7 +246,7 @@ class MonoidPowerSeriesAmbient_abstract :
 #===============================================================================
 
 class EquivariantMonoidPowerSeriesAmbient_abstract :
-    """
+    r"""
     Given some ring or module `A`, a monoid `S` filtered over some originated
     net `\Lambda` such that all induced submonoids are finite, a group `G`, a
     semigroup `C` with a map `c \rightarrow \mathrm{Hom}(G, Aut_K(A))`, a
@@ -260,7 +261,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
     """
         
     def __init__(self, O, C, R) :
-        """
+        r"""
         INPUT:
             - `O` -- A monoid with an action of a group; As implemented in
                      :class:~`fourier_expansion_framework.monoidpowerseries.NNMonoid`.
@@ -289,7 +290,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
             self._element_class = EquivariantMonoidPowerSeries
     
     def is_exact(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
@@ -300,7 +301,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return False
     
     def coefficient_domain(self) :
-        """
+        r"""
         The domain of coefficients.
         
         OUTPUT:
@@ -316,7 +317,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__coefficient_domain
     
     def group(self) :
-        """
+        r"""
         The group acting on the index monoid.
         
         OUTPUT:
@@ -336,7 +337,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__action.group()
         
     def monoid(self) :
-        """
+        r"""
         The index monoid.
         
         OUTPUT:
@@ -352,7 +353,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__action.monoid()
     
     def action(self) :
-        """
+        r"""
         The index monoid with the action of a group.
         
         OUTPUT:
@@ -368,7 +369,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__action
     
     def characters(self) :
-        """
+        r"""
         The monoid of characters associated to the monoid index' group.
         
         OUTPUT:
@@ -384,7 +385,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__characters
         
     def representation(self) :
-        """
+        r"""
         The representation on the coefficient domain.
         
         OUTPUT:
@@ -400,7 +401,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__representation
     
     def _reduction_function(self) :
-        """
+        r"""
         The reduction function accepts an index `s`. It returns the pair
         reduction `(rs = g^-1 s, g)` of `s` with a group element `g`.
         
@@ -418,7 +419,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__reduction_function
     
     def _set_reduction_function(self, f = None) :
-        """
+        r"""
         Set the reduction function, explained in :class:~`._reduction_function`.
         If `f` is ``None`` the reduction function of the action is used.
         
@@ -442,7 +443,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         self.__reduction_function = self.__action._reduction_function()
     
     def _character_eval_function(self) :
-        """
+        r"""
         The character evaluation function. It accepts a character `c` and 
         a group element `g` and returns `c(g)`.
         
@@ -460,7 +461,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__character_eval_function 
     
     def _set_character_eval_function(self, f = None) :
-        """
+        r"""
         Set the character evaluation function. If `f` is ``None``, the 
         implementation of the character monoid is used.
         
@@ -484,7 +485,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         self.__character_eval_function = self.__characters._eval_function() 
     
     def _apply_function(self) :
-        """
+        r"""
         The apply function. It applies a group element `g` to an element `v`
         of the coefficient domain, the base space of the representation.
         
@@ -502,7 +503,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__apply_function
         
     def _set_apply_function(self, f = None) :
-        """
+        r"""
         Set the apply function. If `f` is ``None``, the implementation of
         the representation is used.
         
@@ -526,7 +527,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         self.__apply_function = self.__representation._apply_function()
         
     def _multiply_function(self) :
-        """
+        r"""
         The standard implementation of elements of this ring will ask its
         parent to provide multplication function, which has the
         following signature:
@@ -557,7 +558,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         return self.__multiply_function
     
     def _set_multiply_function(self, f = None) :
-        """
+        r"""
         Set the multiply function. If `f` is ``None`` an iteration over the
         decompositions in the monoid is used.
         
@@ -604,7 +605,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         self.__multiply_function = mul
 
     def _coerce_map_from_(self, other) :
-        """
+        r"""
         TODO:
           This is a stub. The dream is that representations know about
           compatible coercions and so would actions and characters. Then
@@ -627,7 +628,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
                     return CallableConvertMap(other, self, self._element_constructor_)
 
     def _element_constructor_(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing, EquivariantMonoidPowerSeriesRing
@@ -683,7 +684,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
         raise TypeError, "can't convert %s into %s" % (x, self)
         
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import EquivariantMonoidPowerSeriesAmbient_abstract

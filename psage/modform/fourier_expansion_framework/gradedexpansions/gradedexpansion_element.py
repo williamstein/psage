@@ -1,4 +1,4 @@
-"""
+r"""
 Elements wrapping a Fourier expansion which partially known relations.
 
 AUTHOR :
@@ -38,12 +38,12 @@ import operator
 #===============================================================================
 
 class GradedExpansion_abstract ( FourierExpansionWrapper ) :
-    """
+    r"""
     An abstract graded expansion.
     """
     
     def __init__(self, parent, polynomial) :
-        """
+        r"""
         INPUT:
             - ``parent``     -- An instance of :class:~`fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient.GradedExpansionAmbient_abstract`.
             - ``polynomial`` -- A polynomial in the polynomial ring underlying the parent.
@@ -64,7 +64,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
         self.__polynomial = polynomial
         
     def polynomial(self) :
-        """
+        r"""
         The underlying polynomial.
         
         OUTPUT:
@@ -91,7 +91,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
         return self.__polynomial
     
     def _reduce_polynomial(self, set_polynomial = True) :
-        """
+        r"""
         The Groebner reduced underlying polynomial.
 
         INPUT:
@@ -129,7 +129,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
             return self.parent().relations().reduce(self.__polynomial)
     
     def homogeneous_components(self) :
-        """
+        r"""
         Split the underlying polynomial with respect to grading imposed on
         the parent.
         
@@ -180,7 +180,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
         return components
 
     def exponents(self) :
-        """
+        r"""
         The exponents of the underlying polynomial.
         
         OUTPUT:
@@ -211,7 +211,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
             return map(tuple, self.polynomial().exponents())
 
     def grading_index(self) :
-        """
+        r"""
         If ``self`` is homogeneous, return the index of ``self`` with respect to
         the grading imposed on the parent. Otherwise, a ``ValueError`` is raised.
         
@@ -249,7 +249,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
         return cps.keys()[0]
     
     def _add_(left, right) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -269,7 +269,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
                 left.polynomial() + right.polynomial() )
         
     def _lmul_(self, c) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -292,7 +292,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
                     self.polynomial() * c )
         
     def _rmul_(self, c) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -315,7 +315,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
                     c * self.polynomial() )
             
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -364,14 +364,14 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
 #===============================================================================
 
 class GradedExpansion_class ( GradedExpansion_abstract, AlgebraElement ) :
-    """
+    r"""
     A graded expansion which is element of an algebra.
     
     SEE:
         :class:`fourier_expansion_framework.gradedexpansions.gradedexpansion_ring.GradedExpansionRing_class`.
     """
     def __init__(self, parent, polynomial) :
-        """
+        r"""
         INPUT:
             - ``parent``     -- An instance of :class:~`fourier_expansion_framework.gradedexpansions.gradedexpansion_ring.GradedExpansionRing_class`.
             - ``polynomial`` -- A polynomial in the polynomial ring underlying the parent.
@@ -392,7 +392,7 @@ class GradedExpansion_class ( GradedExpansion_abstract, AlgebraElement ) :
         GradedExpansion_abstract.__init__(self, parent, polynomial)        
         
     def _mul_(left, right) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -411,7 +411,7 @@ class GradedExpansion_class ( GradedExpansion_abstract, AlgebraElement ) :
                 left.polynomial() * right.polynomial() )
 
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -430,7 +430,7 @@ class GradedExpansion_class ( GradedExpansion_abstract, AlgebraElement ) :
         return hash(self.polynomial())
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -447,7 +447,7 @@ class GradedExpansion_class ( GradedExpansion_abstract, AlgebraElement ) :
         return "Graded expansion %s" % (self.polynomial(),)
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -459,12 +459,12 @@ class GradedExpansion_class ( GradedExpansion_abstract, AlgebraElement ) :
             sage: P.<a,b> = QQ[]
             sage: ger = GradedExpansionRing_class(Sequence([MonoidPowerSeries(mps, {1: 1}, mps.monoid().filter(4))]), Sequence([MonoidPowerSeries(mps, {1: 1, 2: 3}, mps.monoid().filter(4))]), P.ideal(a - b), DegreeGrading((1,2)))
             sage: latex( GradedExpansion_class(ger, a^2) )
-            Graded expansion a^{2}
+            \text{Graded expansion }a^{2}
         """
-        return "Graded expansion %s" % latex(self.polynomial())
+        return r"\text{Graded expansion }%s" % latex(self.polynomial())
 
 class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
-    """
+    r"""
     A graded expansion which is element of a module.
         
     SEE:
@@ -472,7 +472,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
     """
 
     def __init__(self, parent, polynomial) :
-        """
+        r"""
         INPUT:
             - ``parent``     -- An instance of :class:~`fourier_expansion_framework.gradedexpansions.gradedexpansion_module.GradedExpansionModule_class`.
             - ``polynomial`` -- A polynomial in the polynomial ring underlying the parent.
@@ -495,7 +495,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
         GradedExpansion_abstract.__init__(self, parent, polynomial)
 
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import *
@@ -516,7 +516,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
         return hash(self.polynomial())
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import *
@@ -555,7 +555,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
         return "Graded expansion vector %s" % (tuple(vector_repr),)
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import *
@@ -569,7 +569,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
             sage: P.<a,b> = QQ[]
             sage: ger = GradedExpansionModule_class(Sequence([MonoidPowerSeries(mps, {1: 1}, mps.monoid().filter(4))]), Sequence([MonoidPowerSeries(mpsm, {1: m([1,1,1]), 2: m([1,3,-3])}, mpsm.monoid().filter(4))]), P.ideal(0), DegreeGrading((1,2)))
             sage: latex( GradedExpansionVector_class(ger, a*b) )
-            Graded expansion vector \left(a\right)
+            \text{Graded expansion vector }\left(a\right)
         """
         poly = self.polynomial()
         
@@ -591,5 +591,5 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
                 c += poly[e] * prod(map(operator.pow, coefficient_monomials, e[:self.parent().nbasegens()]))
             vector_repr[ind] += c
                 
-        return "Graded expansion vector %s" % (latex(tuple(vector_repr)),)
+        return r"\text{Graded expansion vector }%s" % (latex(tuple(vector_repr)),)
     

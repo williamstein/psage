@@ -1,4 +1,4 @@
-"""
+r"""
 Modules of monoid power series and modules of equivariant monoid power series.
 
 AUTHOR :
@@ -27,8 +27,6 @@ AUTHOR :
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import MonoidPowerSeriesAmbient_abstract,\
                                       EquivariantMonoidPowerSeriesAmbient_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialRepresentation
-from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import EquivariantMonoidPowerSeriesFunctor,\
-    MonoidPowerSeriesFunctor
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing, \
                                    EquivariantMonoidPowerSeriesRing
 from sage.modules.module import Module
@@ -43,7 +41,7 @@ _equivariantmonoidpowerseries_module_cache = dict()
 #===============================================================================
 
 def MonoidPowerSeriesModule(A, S) :
-    """
+    r"""
     Return the globally unique monoid power series ring with indices
     in the filtered monoid `S` and coefficients in `A`.
     
@@ -74,7 +72,7 @@ def MonoidPowerSeriesModule(A, S) :
 #===============================================================================
 
 class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Module ) :
-    """
+    r"""
     Given some `K` module `A` and a monoid `S` filtered over
     a net `\Lambda` construct a module of monoid power series.
     
@@ -87,7 +85,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
     """
 
     def __init__(self, A, S) :
-        """
+        r"""
         INPUT:
             - `A` -- A module.
             - `S` -- A monoid as implemented in :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids.NNMonoid`.
@@ -96,7 +94,12 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
             sage: mps = MonoidPowerSeriesModule_generic(FreeModule(QQ,2), NNMonoid(False))
-        """       
+            sage: mps = MonoidPowerSeriesModule_generic(FreeModule(ZZ,2), NNMonoid(False))
+            sage: mps.base_ring()
+            Ring of monoid power series over NN
+            sage: (1 / 2) * mps.0
+            Monoid power series in Module of monoid power series over NN
+        """
         Module.__init__(self, MonoidPowerSeriesRing(A.base_ring(), S))
         MonoidPowerSeriesAmbient_abstract.__init__(self, A, S)
         
@@ -106,7 +109,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
             for a in A.gens() ]
 
     def ngens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
@@ -117,7 +120,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
         return len(self.__coeff_gens)
     
     def gen(self, i = 0) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
@@ -128,7 +131,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
         return self.gens()[i]
         
     def gens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
@@ -139,21 +142,22 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
         return self.__coeff_gens
     
     def construction(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
             sage: mps = MonoidPowerSeriesModule_generic(FreeModule(QQ,2), NNMonoid(False))
             sage: (f, a) = mps.construction()
             sage: (f, a)
-            (MonoidPowerSeriesFunctor, Vector space of dimension 2 over Rational Field)
+            (MonoidPowerSeriesModuleFunctor, Vector space of dimension 2 over Rational Field)
             sage: f(a) == mps
             True
         """
-        return MonoidPowerSeriesFunctor(self.monoid()), self.coefficient_domain()
+        from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import MonoidPowerSeriesModuleFunctor
+        return MonoidPowerSeriesModuleFunctor(self.base_ring().coefficient_domain(), self.monoid()), self.coefficient_domain()
 
     def zero_element(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
@@ -163,7 +167,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
         return self(0)
     
     def _element_constructor_(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
@@ -184,7 +188,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
         return MonoidPowerSeriesAmbient_abstract._element_constructor_(self, x)
  
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
@@ -194,14 +198,14 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
         return "Module of monoid power series over " + self.monoid()._repr_()
 
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import MonoidPowerSeriesModule_generic
             sage: latex(MonoidPowerSeriesModule_generic(FreeModule(QQ,2), NNMonoid(False)))
-            Module of monoid power series over $\NN$
+            \text{Module of monoid power series over }\Bold{N}
         """
-        return "Module of monoid power series over " + self.monoid()._latex_()
+        return r"\text{Module of monoid power series over }" + self.monoid()._latex_()
     
 ###############################################################################
 ###############################################################################
@@ -212,7 +216,7 @@ class MonoidPowerSeriesModule_generic ( MonoidPowerSeriesAmbient_abstract, Modul
 #===============================================================================
 
 def EquivariantMonoidPowerSeriesModule(O, C, R) :
-    """
+    r"""
     Return the globally unique module of equivariant monoid power
     over the monoid with action `O` with coefficients in the codomain `R`
     with a representation and a set of virtual characters `C`.
@@ -266,7 +270,7 @@ def EquivariantMonoidPowerSeriesModule(O, C, R) :
 #===============================================================================
 
 class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesAmbient_abstract, Module ) :
-    """
+    r"""
     Given some module `A`, a monoid `S` filtered over some originated
     net `\Lambda` such that all induced submonoids are finite, a group `G`, a
     semigroup `C` with a map `c \rightarrow \mathrm{Hom}(G, Aut_K(A))`, a
@@ -285,7 +289,7 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
     """
         
     def __init__(self, O, C, R) :
-        """
+        r"""
         INPUT:
             - `O` -- A monoid with an action of a group; As implemented in
                      :class:~`fourier_expansion_framework.monoidpowerseries.NNMonoid`.
@@ -295,8 +299,13 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
 
         EXAMPLES::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2))) # indirect doctest
+            sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", FreeModule(ZZ, 2))) # indirect doctest
+            sage: emps.base_ring()
+            Ring of equivariant monoid power series over NN
+            sage: (1 / 2) * emps.0
+            Equivariant monoid power series in Module of equivariant monoid power series over NN
         """
         
         # If the representation O respects the monoid structure of S
@@ -314,10 +323,10 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
            for a in self.coefficient_domain().gens()]
           
     def ngens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             sage: emps.ngens()
             2
@@ -325,10 +334,10 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
         return len(self.__coeff_gens)
     
     def gen(self, i = 0) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             sage: emps.gen()
             Equivariant monoid power series in Module of equivariant monoid power series over NN
@@ -336,10 +345,10 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
         return self.gens()[i]
     
     def gens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             sage: emps.gens()
             [Equivariant monoid power series in Module of equivariant monoid power series over NN, Equivariant monoid power series in Module of equivariant monoid power series over NN]
@@ -347,35 +356,37 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
         return self.__coeff_gens
     
     def construction(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             sage: (f, a) = emps.construction()
             sage: (f, a)
-            (EquivariantMonoidPowerSeriesFunctor, Rational Field)
+            (EquivariantMonoidPowerSeriesModuleFunctor, Rational Field)
             sage: f(a) == emps
             True
         """
-        return EquivariantMonoidPowerSeriesFunctor(self.action(), self.characters(), self.representation()), \
+        from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import EquivariantMonoidPowerSeriesModuleFunctor
+
+        return EquivariantMonoidPowerSeriesModuleFunctor(self.action(), self.characters(), self.representation()), \
                self.coefficient_domain().base_ring()
     
     def zero_element(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             sage: h = emps.zero_element()
         """
         return self(0)
     
     def _element_constructor_(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: emps = EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             sage: h = emps(0) # indirect doctest
             sage: h = emps(int(0)) # indirect doctest
@@ -398,21 +409,21 @@ class EquivariantMonoidPowerSeriesModule_generic ( EquivariantMonoidPowerSeriesA
         return EquivariantMonoidPowerSeriesAmbient_abstract._element_constructor_(self, x)
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2)))
             Module of equivariant monoid power series over NN
         """
         return "Module of equivariant monoid power series over " + self.monoid()._repr_()
 
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
-            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+            sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_module import EquivariantMonoidPowerSeriesModule_generic
             sage: latex( EquivariantMonoidPowerSeriesModule_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", FreeModule(QQ, 2))) )
-            Module of equivariant monoid power series over $\NN$
+            \text{Module of equivariant monoid power series over }\Bold{N}
         """
-        return "Module of equivariant monoid power series over " + self.monoid()._latex_()
+        return r"\text{Module of equivariant monoid power series over }" + self.monoid()._latex_()

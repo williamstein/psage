@@ -36,13 +36,13 @@ from sage.structure.all import Sequence
 from sage.structure.sage_object import SageObject
 
 class Grading_abstract ( SageObject ) :
-    """
+    r"""
     A common interface for monomial gradings of polynomial rings
     `R[x_1, .., x_n]`.
     """
     
     def ngens(self) :
-        """
+        r"""
         The number of generators of the polynomial ring.
         
         OUTPUT:
@@ -58,7 +58,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
         
     def gen(self, i) :
-        """
+        r"""
         The grading associated to the `i`-th generator of the polynomial ring.
         
         INPUT:
@@ -77,7 +77,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
         
     def gens(self) :
-        """
+        r"""
         The gradings of the generators of the polynomial ring.
         
         OUTPUT:
@@ -93,7 +93,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
         
     def index(self, x) :
-        """
+        r"""
         The grading value of `x` with respect to this grading. 
 
         INPUT:
@@ -112,7 +112,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
         
     def basis(self, index, vars = None) :
-        """
+        r"""
         All monomials that are have given grading index involving only the
         given variables.
         
@@ -135,7 +135,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
     
     def subgrading(self, gens) :
-        """
+        r"""
         The grading of same type for the ring with only the variables given by
         ``gens``.
         
@@ -155,7 +155,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
     
     def __contains__(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: 1 in Grading_abstract()
@@ -166,7 +166,7 @@ class Grading_abstract ( SageObject ) :
         raise NotImplementedError
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: Grading_abstract()
@@ -175,26 +175,26 @@ class Grading_abstract ( SageObject ) :
         return "A grading"
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: latex( Grading_abstract() )
-            A grading
+            \text{A grading}
         """
-        return "A grading"
+        return r"\text{A grading}"
                 
 #===============================================================================
 # DegreeGrading
 #===============================================================================
 
 class DegreeGrading( Grading_abstract ) :
-    """
+    r"""
     This class implements a monomial grading for a polynomial ring
     `R[x_1, .., x_n]`.
     """
   
     def __init__( self, degrees ) :
-        """
+        r"""
         INPUT:
             - ``degrees`` -- A list or tuple of `n` positive integers.
         
@@ -209,7 +209,7 @@ class DegreeGrading( Grading_abstract ) :
         self.__module_basis = self.__module.basis()
         
     def ngens(self) :
-        """
+        r"""
         The number of generators of the polynomial ring.
         
         OUTPUT:
@@ -225,7 +225,7 @@ class DegreeGrading( Grading_abstract ) :
         return len(self.__degrees)
      
     def gen(self, i) :
-        """
+        r"""
         The number of generators of the polynomial ring.
         
         OUTPUT:
@@ -246,7 +246,7 @@ class DegreeGrading( Grading_abstract ) :
         raise ValueError("Generator %s does not exist." % (i,))
     
     def gens(self) :
-        """
+        r"""
         The gradings of the generators of the polynomial ring.
         
         OUTPUT:
@@ -262,7 +262,7 @@ class DegreeGrading( Grading_abstract ) :
         return self.__degrees
                 
     def index(self, x) :
-        """
+        r"""
         The grading value of `x` with respect to this grading. 
 
         INPUT:
@@ -290,7 +290,7 @@ class DegreeGrading( Grading_abstract ) :
         return sum( map(mul, x, self.__degrees) )
         
     def basis(self, index, vars = None) :
-        """
+        r"""
         All monomials that are have given grading index involving only the
         given variables.
         
@@ -334,7 +334,7 @@ class DegreeGrading( Grading_abstract ) :
         return res
 
     def subgrading(self, gens) :
-        """
+        r"""
         The grading of same type for the ring with only the variables given by
         ``gens``.
         
@@ -355,7 +355,7 @@ class DegreeGrading( Grading_abstract ) :
         return DegreeGrading([self.__degrees[i] for i in gens])
         
     def __contains__(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: g = DegreeGrading([5,2,3])
@@ -367,7 +367,7 @@ class DegreeGrading( Grading_abstract ) :
         return isinstance(x, (int, Integer)) 
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: g = DegreeGrading([5,2,3])
@@ -384,7 +384,7 @@ class DegreeGrading( Grading_abstract ) :
         return c
     
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: hash( DegreeGrading([5,2,3]) )
@@ -394,7 +394,7 @@ class DegreeGrading( Grading_abstract ) :
         return hash(self.__degrees)
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: DegreeGrading([5,2,3])
@@ -403,22 +403,22 @@ class DegreeGrading( Grading_abstract ) :
         return "Degree grading %s" % str(self.__degrees)
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: latex( DegreeGrading([5,2,3]) )
-            Degree grading $\left(5, 2, 3\right)$
+            \text{Degree grading } \left(5, 2, 3\right)
         """
-        return "Degree grading $%s$" % latex(self.__degrees)
+        return r"\text{Degree grading }" + latex(self.__degrees)
 
 class TrivialGrading ( Grading_abstract ) :
-    """
+    r"""
     A grading for a polynomial ring `R[x_1, .., x_n]` assigning to every
     element the same, arbitrary index.
     """
     
     def __init__(self, nmb_generators, index) :
-        """
+        r"""
         INPUT:
             - ``nmb_generators`` -- A positive integer; The number `n` of
                                     variables of the graded polynomial ring.
@@ -434,7 +434,7 @@ class TrivialGrading ( Grading_abstract ) :
         self.__index = index
         
     def ngens(self) :
-        """
+        r"""
         The number of generators of the polynomial ring.
         
         OUTPUT:
@@ -448,7 +448,7 @@ class TrivialGrading ( Grading_abstract ) :
         return self.__ngens
     
     def gen(self, i) :
-        """
+        r"""
         The number of generators of the polynomial ring.
         
         OUTPUT:
@@ -469,7 +469,7 @@ class TrivialGrading ( Grading_abstract ) :
         raise ValueError("Generator %s does not exist." % (i,))
     
     def gens(self) :
-        """
+        r"""
         The gradings of the generators of the polynomial ring.
         
         OUTPUT:
@@ -483,7 +483,7 @@ class TrivialGrading ( Grading_abstract ) :
         return tuple(self.__ngens*[self.__index])
     
     def index(self, x) :
-        """
+        r"""
         The grading value of `x` with respect to this grading. 
 
         INPUT:
@@ -507,7 +507,7 @@ class TrivialGrading ( Grading_abstract ) :
         return self.__index
     
     def basis(self, index, vars = None) :
-        """
+        r"""
         All degree one monomials that are have given grading index involving only the
         given variables.
         
@@ -537,7 +537,7 @@ class TrivialGrading ( Grading_abstract ) :
             return [] 
         
     def subgrading(self, gens) :
-        """
+        r"""
         The grading of same type for the ring with only the variables given by
         ``gens``.
         
@@ -557,7 +557,7 @@ class TrivialGrading ( Grading_abstract ) :
         return TrivialGrading(len(gens), self.__index)
     
     def __contains__(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: g = TrivialGrading( 3, "t" )
@@ -571,7 +571,7 @@ class TrivialGrading ( Grading_abstract ) :
         return x == self.__index
     
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: g = TrivialGrading( 3, "t" )
@@ -592,7 +592,7 @@ class TrivialGrading ( Grading_abstract ) :
         return c
     
     def __hash__(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: hash( TrivialGrading( 3, "t" ) )
@@ -602,7 +602,7 @@ class TrivialGrading ( Grading_abstract ) :
         return reduce(xor, map(hash, [self.__ngens, self.__index]))
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: TrivialGrading( 3, "t" )
@@ -612,11 +612,11 @@ class TrivialGrading ( Grading_abstract ) :
                 % (self.__ngens, repr(self.__index))
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import *
             sage: latex( TrivialGrading( 3, "t" ) )
-            Trivial grading on $3$ generators with index $\texttt{t}$
+            \text{Trivial grading on $3$ generators with index $\verb|t|$}
         """
-        return "Trivial grading on $%s$ generators with index $%s$" \
+        return r"\text{Trivial grading on $%s$ generators with index $%s$}" \
                 % (latex(self.__ngens), latex(self.__index))

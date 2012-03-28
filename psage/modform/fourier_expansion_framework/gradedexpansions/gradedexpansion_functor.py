@@ -1,4 +1,4 @@
-"""
+r"""
 Functors for ring and modules of graded expansions.
 
 AUTHOR :
@@ -40,7 +40,7 @@ import operator
 #===============================================================================
 
 class GradedExpansionFunctor ( ConstructionFunctor ) :
-    """
+    r"""
     Constructing a graded expansion ring or module from a base ring.
     """
     
@@ -48,7 +48,7 @@ class GradedExpansionFunctor ( ConstructionFunctor ) :
     
     def __init__( self, base_ring_generators, generators,
                   relations, grading, all_relations = True, reduce_before_evaluating = True ) :
-        """
+        r"""
         INPUT:
         - ``base_ring_generators``      -- A sequence of (equivariant) monoid power series with
                                            coefficient domain the base ring of the coefficient
@@ -112,7 +112,7 @@ class GradedExpansionFunctor ( ConstructionFunctor ) :
         ConstructionFunctor.__init__( self, Rings(), Rings() )
         
     def __call__(self, R) :
-        """
+        r"""
         The graded expansion ring with the given generators over the base
         ring `R`.
                 
@@ -161,7 +161,7 @@ class GradedExpansionFunctor ( ConstructionFunctor ) :
         raise RuntimeError( "The generators' universe must be an algebra or a module." )
         
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -197,7 +197,7 @@ class GradedExpansionFunctor ( ConstructionFunctor ) :
         return c
 
     def merge(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -240,12 +240,12 @@ class GradedExpansionFunctor ( ConstructionFunctor ) :
 #===============================================================================
 
 class GradedExpansionBaseringInjection ( Morphism ) :
-    """
+    r"""
     The injection of the base ring into a ring of graded expansions.
     """
     
     def __init__(self, domain, codomain ) :
-        """
+        r"""
         INPUT:
             - ``domain``   -- A ring.
             - ``codomain`` -- A ring of graded expansions.
@@ -269,7 +269,7 @@ class GradedExpansionBaseringInjection ( Morphism ) :
         self._repr_type_str = "Base ring injection of %s" % (codomain,)
 
     def _call_(self, x) :
-        """
+        r"""
         INPUT:
             - `x` -- An element of the domain.
         
@@ -292,7 +292,7 @@ class GradedExpansionBaseringInjection ( Morphism ) :
         return self.codomain()._element_constructor_(x)
             
     def _call_with_args(self, x, *args, **kwds):
-        """
+        r"""
         INPUT:
             - `x`      -- An element of the domain.
             - `args``  -- Will be forwarded to the codomain's element constructor. 
@@ -320,13 +320,13 @@ class GradedExpansionBaseringInjection ( Morphism ) :
 #===============================================================================
 
 class GradedExpansionEvaluationHomomorphism ( Morphism ) :
-    """
+    r"""
     The evaluation of a polynomial by substituting the Fourier expansions
     attached to a ring or module of graded expansions.
     """
     
     def __init__(self, relations, base_ring_images, images, codomain, reduce = True) :
-        """
+        r"""
         INPUT:
             - ``relations``        -- An ideal in a polynomial ring.
             - ``base_ring_images`` -- A list or sequence of elements of a ring of (equivariant)
@@ -356,7 +356,7 @@ class GradedExpansionEvaluationHomomorphism ( Morphism ) :
         self._repr_type_str = "Evaluation homomorphism from %s to %s" % (relations.ring(), codomain)
 
     def _call_with_args(self, x, *args, **kwds) :
-        """
+        r"""
         SEE:
             :meth:~`._call_`.
         
@@ -378,7 +378,7 @@ class GradedExpansionEvaluationHomomorphism ( Morphism ) :
         return self._call_(x)
     
     def _call_(self, x) :
-        """
+        r"""
         INPUT:
             - `x` -- A polynomial.
         

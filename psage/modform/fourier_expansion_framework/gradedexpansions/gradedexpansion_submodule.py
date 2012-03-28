@@ -1,4 +1,4 @@
-"""
+r"""
 Finite dimensional submodules of a ring or module of graded expansions. 
 
 AUTHOR :
@@ -58,7 +58,7 @@ from sage.structure.sequence import Sequence
 #===============================================================================
 
 def GradedExpansionSubmodule(arg1, arg2) :
-    """
+    r"""
     A submodule of either a graded ring, module or submodule.
     
     INPUT (first possibility):
@@ -116,7 +116,7 @@ def GradedExpansionSubmodule(arg1, arg2) :
 #===============================================================================
 
 class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
-    """
+    r"""
     Abstract implementation of a finite dimensional module of graded expansions
     within an ambient.
     
@@ -125,7 +125,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
     """
     
     def __init__(self, graded_ambient, basis, degree, **kwds) :
-        """
+        r"""
         INPUT:
             - ``graded_ambient`` -- An instance of :class:~`fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient.GradedExpansionAmbient_abstract`.
             - ``basis``          -- A tuple, list or sequence of elements of the graded ambient.
@@ -167,7 +167,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
                                                                   universe = graded_ambient.fourier_ring(), check = False ))
         
     def graded_ambient(self) :
-        """
+        r"""
         The graded ambientm, namely, the graded ring or module
         ``self`` is a submodule of.
         
@@ -192,7 +192,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         return self.__graded_ambient
 
     def _basis_in_graded_ambient(self) :
-        """
+        r"""
         A basis for ``self`` in terms of elements of the graded ambient.
         
         OUTPUT:
@@ -217,7 +217,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
 
     @cached_method
     def _reduced_basis_polynomials(self, coerce_to = None) :
-        """
+        r"""
         A list of reduced polynomials associated to the basis of ``self``
         within the graded ambient. If coerce_to is not None, these elements
         will first be coerced into ``coerce_to`` and the resulting polynomials
@@ -272,7 +272,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         
     @cached_method
     def _non_zero_monomials(self, coerce_to = None) :
-        """
+        r"""
         A list of monomials which occur in the reduced polynomials
         associated with the basis of ``self``.
         
@@ -317,7 +317,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
 
     @cached_method
     def _monomial_homomorphism(self, coerce_to = None) :
-        """
+        r"""
         A homomorphism that maps the underlying module to a vector space
         where each component corresponds to a coefficient of the polynomial
         associated to elements of ``self`` within the graded ambient or
@@ -380,7 +380,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
           
           
     def _ambient_element_to_monomial_coefficients_generator(self, x, reduce = False, coerce_basis_to = None) :
-        """
+        r"""
         Given an element `x` of the graded ambient ring or space return a generator
         corresponding to the image of `x` with respect to the morphism returned
         by :meth:~`._monomial_homomorphism`.
@@ -436,7 +436,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
                  for m in self._non_zero_monomials(coerce_to = coerce_basis_to) ) 
 
     def coordinates(self, x, in_base_ring = True, force_ambigous = False) :
-        """
+        r"""
         The coordinates in ``self`` of an element either of the following:
             - The graded ambient,
             - An element of a submodule,
@@ -561,7 +561,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         return ExpansionModule_abstract.coordinates(self, x, in_base_ring, force_ambigous)
         
     def _graded_expansion_submodule_to_graded_ambient_(self, x) :
-        """
+        r"""
         The element `x` of ``self`` as an element of the graded ambient ring or space.
         
         INPUT:
@@ -591,7 +591,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         return sum( map(mul, self.coordinates(x), self._basis_in_graded_ambient()) )
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -612,7 +612,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         return "Submodule of %s" % (self.__graded_ambient,)
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -628,16 +628,16 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
             sage: ger = GradedExpansionRing_class(None, Sequence([MonoidPowerSeries(mps, {1 : 4, 2 : 3}, mps.monoid().filter_all()), MonoidPowerSeries(mps, {1 : 1, 2 : 3}, mps.monoid().filter_all()), MonoidPowerSeries(mps, {2 : 1, 3: 6, 4 : 9}, mps.monoid().filter_all())]), PolynomialRing(QQ, ['a', 'b', 'c']).ideal(0), DegreeGrading((1,2,3)))
             sage: ger2 = GradedExpansionRing_class(None, Sequence([MonoidPowerSeries(mps, {1 : 4, 2 : 3}, mps.monoid().filter_all()), MonoidPowerSeries(mps, {1 : 1, 2 : 3}, mps.monoid().filter_all()), MonoidPowerSeries(mps, {2 : 1, 3: 6, 4 : 9}, mps.monoid().filter_all())]), P.ideal(a - b), DegreeGrading((1,2,3)))
             sage: latex( GradedExpansionSubmodule_ambient_pid(ger, Sequence([ger.0, ger.1])) )
-            Submodule of Graded expansion ring with generators a, b, c
+            \text{Submodule of }\text{Graded expansion ring with generators }a , b , c
         """
-        return "Submodule of %s" % (latex(self.__graded_ambient),)
+        return r"\text{Submodule of }%s" % (latex(self.__graded_ambient),)
 
 #===============================================================================
 # GradedExpansionSubmodule_generic
 #===============================================================================
 
 class GradedExpansionSubmodule_generic ( GradedExpansionSubmodule_abstract, ExpansionModule_generic ) :
-    """
+    r"""
     A finite dimensional module of graded expansions within an ambient.
     
     SEE:
@@ -645,7 +645,7 @@ class GradedExpansionSubmodule_generic ( GradedExpansionSubmodule_abstract, Expa
     """
     
     def __init__(self, graded_ambient, basis, degree, **kwds) :
-        """
+        r"""
         INPUT:
             - ``graded_ambient`` -- An instance of :class:~`fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient.GradedExpansionAmbient_abstract`.
             - ``basis``          -- A tuple, list or sequence of elements of the graded ambient.
@@ -678,7 +678,7 @@ class GradedExpansionSubmodule_generic ( GradedExpansionSubmodule_abstract, Expa
         ExpansionModule_generic.__init__(self, self._abstract_basis(), degree, **kwds)
 
     def change_ring(self, R):
-        """
+        r"""
         Return the ambient module of graded expansions over `R` with the same basis as ``self``.
         
         INPUT:
@@ -712,7 +712,7 @@ class GradedExpansionSubmodule_generic ( GradedExpansionSubmodule_abstract, Expa
         raise ValueError( "Associated expansion of graded ambient not defined over %s." % R )
 
     def basis(self) :
-        """
+        r"""
         A basis of ``self``.
         
         OUTPUT:
@@ -738,7 +738,7 @@ class GradedExpansionSubmodule_generic ( GradedExpansionSubmodule_abstract, Expa
         raise NotImplementedError    
 
     def hom(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -778,7 +778,7 @@ class GradedExpansionSubmodule_generic ( GradedExpansionSubmodule_abstract, Expa
 #===============================================================================
 
 def _span( self, gens, base_ring = None, check = True, already_echelonized = False ) :
-    """
+    r"""
     The submodule of graded expansions spanned by ``gens``.
     
     INPUT:
@@ -843,7 +843,7 @@ class GradedExpansionSubmodule_ambient_pid ( GradedExpansionSubmodule_abstract, 
     """
     
     def __init__(self, graded_ambient, basis, _element_class = None, **kwds) :
-        """
+        r"""
         INPUT:
             - ``graded_ambient`` -- An instance of :class:~`fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient.GradedExpansionAmbient_abstract`.
             - ``basis``          -- A list or sequence of (equivariant) monoid power series.
@@ -883,7 +883,7 @@ class GradedExpansionSubmodule_ambient_pid ( GradedExpansionSubmodule_abstract, 
     span = _span
     
     def change_ring(self, R):
-        """
+        r"""
         Return the ambient module of graded expansions over `R` with the
         same basis as ``self``.
         
@@ -918,7 +918,7 @@ class GradedExpansionSubmodule_ambient_pid ( GradedExpansionSubmodule_abstract, 
         raise ValueError( "Associated expansion of graded ambient not defined over %s." % R )
 
     def hom(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -959,12 +959,12 @@ class GradedExpansionSubmodule_ambient_pid ( GradedExpansionSubmodule_abstract, 
 #===============================================================================
 
 class GradedExpansionSubmodule_submodule_pid ( GradedExpansionSubmodule_abstract, ExpansionModule_submodule_pid ) :
-    """
+    r"""
     A submodule of another module of graded expansions over a principal ideal domain.
     """
 
     def __init__(self, ambient, gens, element_class = None, **kwds) :
-        """
+        r"""
         INPUT:
             - ``ambient``       -- An instance of :class:~`.GradedExpansionSubmodule_submodule_pid` :class:~`.GradedExpansionSubmodule_submodule_pid` or .
             - ``gens``          -- A tuple, list or sequence of elements of ``ambient``.
@@ -1004,7 +1004,7 @@ class GradedExpansionSubmodule_submodule_pid ( GradedExpansionSubmodule_abstract
     span = _span
     
     def change_ring(self, R):
-        """
+        r"""
         Return the ambient module of graded expansions over `R` with the
         same basis as ``self``.
         
@@ -1040,7 +1040,7 @@ class GradedExpansionSubmodule_submodule_pid ( GradedExpansionSubmodule_abstract
         raise ValueError( "Associated expansion of graded ambient not defined over %s." % R )
 
     def hom(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1082,12 +1082,12 @@ class GradedExpansionSubmodule_submodule_pid ( GradedExpansionSubmodule_abstract
 #===============================================================================
 
 class GradedExpansionSubmoduleVector_generic ( ExpansionModuleVector_generic ) :
-    """
+    r"""
     A generic implementation of an element in a module of graded expansions.
     """
     
     def __copy__(self) :
-        """
+        r"""
         Return a copy of ``self``.
         
         OUTPUT:
@@ -1113,7 +1113,7 @@ class GradedExpansionSubmoduleVector_generic ( ExpansionModuleVector_generic ) :
 
 
     def polynomial(self) :
-        """
+        r"""
         Return the polynomial associated to ``self`` in the graded ambient
         of its parent.
         

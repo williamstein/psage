@@ -86,6 +86,18 @@ ext_modules = [
 
     Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
               ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),
+    
+    Extension("psage.modform.paramodularforms.siegelmodularformg2_misc_cython",
+              ["psage/modform/paramodularforms/siegelmodularformg2_misc_cython.pyx"]),
+
+    Extension("psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion_cython",
+              ["psage/modform/paramodularforms/siegelmodularformg2_fourierexpansion_cython.pyx"]),
+
+    Extension("psage.modform.paramodularforms.siegelmodularformg2vv_fegenerators_cython",
+              ["psage/modform/paramodularforms/siegelmodularformg2vv_fegenerators_cython.pyx"]),
+
+    Extension("psage.modform.paramodularforms.paramodularformd2_fourierexpansion_cython",
+              ["psage/modform/paramodularforms/paramodularformd2_fourierexpansion_cython.pyx"]),
 
     Extension("psage.modform.siegel.fastmult",
               ["psage/modform/siegel/fastmult.pyx"]),

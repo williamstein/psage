@@ -37,7 +37,7 @@ from sage.rings.ring import Ring
 #===============================================================================
 
 def MonoidPowerSeries( parent, coefficients, precision, cleanup_coefficients = False) :
-    """
+    r"""
     Create a monoid power series within a given parent.
     
     INPUT:
@@ -77,13 +77,13 @@ def MonoidPowerSeries( parent, coefficients, precision, cleanup_coefficients = F
 #===============================================================================
 
 class MonoidPowerSeries_abstract :
-    """
+    r"""
     An element of the monoid power series ring or module up to
     given precision.
     """
     
     def __init__(self, parent, precision) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``precision``    -- A filter associated to the parent's monoid.
@@ -98,7 +98,7 @@ class MonoidPowerSeries_abstract :
         self.__precision = parent.monoid().filter(precision)
         
     def precision(self) :
-        """
+        r"""
         The series' precision.
         
         OUTPUT:
@@ -115,7 +115,7 @@ class MonoidPowerSeries_abstract :
         return self.__precision
 
     def _set_precision(self, precision) :
-        """
+        r"""
         Set the series' precision.
         
         INPUT:
@@ -138,7 +138,7 @@ class MonoidPowerSeries_abstract :
         self.__precision = self.parent().monoid().filter(precision)
 
     def _bounding_precision(self) :
-        """
+        r"""
         If ``self.precision()`` is an infinite filter,  return a filter
         which contains all non zero coefficients of this series. Otherwise,
         return ``self.precision()``
@@ -165,7 +165,7 @@ class MonoidPowerSeries_abstract :
                                                                  [self.parent().monoid().zero_element()] )
 
     def coefficients(self) :
-        """
+        r"""
         The coefficients of ``self``.
         
         OUTPUT:
@@ -185,7 +185,7 @@ class MonoidPowerSeries_abstract :
         raise NotImplementedError
     
     def _truncate_in_place(self, precision) :
-        """
+        r"""
         Truncate ``self`` modifying the coefficient dictionary directly.
         
         INPUT:
@@ -208,7 +208,7 @@ class MonoidPowerSeries_abstract :
         raise NotImplementedError
     
     def truncate(self, precision) :
-        """
+        r"""
         Truncate a copy of ``self``.
 
         INPUT:
@@ -231,7 +231,7 @@ class MonoidPowerSeries_abstract :
         raise NotImplementedError
     
     def _add_(left, right) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -258,7 +258,7 @@ class MonoidPowerSeries_abstract :
         return MonoidPowerSeries(left.parent(), d, prec)
     
     def _mul_(left, right, switch_factors = False) :
-        """
+        r"""
         NOTE:
             This function has to accept algebra and module elements and will
             also compute the action of the base ring (which might be a monoid power series)
@@ -300,7 +300,7 @@ class MonoidPowerSeries_abstract :
         return MonoidPowerSeries(left.parent(), d, prec)
     
     def _lmul_(self, c) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -333,7 +333,7 @@ class MonoidPowerSeries_abstract :
             return MonoidPowerSeries(self.parent(), d, self.precision())
     
     def _rmul_(self, c) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -367,7 +367,7 @@ class MonoidPowerSeries_abstract :
             return MonoidPowerSeries(self.parent(), d, self.precision())
 
     def __contains__(self, k) :
-        """
+        r"""
         Check whether `k` is below the series' precision.
         
         INPUT:
@@ -389,7 +389,7 @@ class MonoidPowerSeries_abstract :
         return k in self.precision()
 
     def __getitem__(self, s) :
-        """
+        r"""
         Return the `k`-th coefficient if it below the series' precision.
         
         INPUT:
@@ -411,7 +411,7 @@ class MonoidPowerSeries_abstract :
         raise NotImplementedError
         
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -444,7 +444,7 @@ class MonoidPowerSeries_abstract :
         return 0
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -456,28 +456,28 @@ class MonoidPowerSeries_abstract :
         return "Monoid power series in %s" % self.parent()
     
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: mps = MonoidPowerSeriesRing(QQ, NNMonoid(False))
             sage: latex(mps.one_element()) # indirect doctest
-            Monoid power series in %sRing of monoid power series over $\NN$
+            \text{Monoid power series in } \text{Ring of monoid power series over }\Bold{N}
         """
-        return "Monoid power series in %s" + latex(self.parent())
+        return r"\text{Monoid power series in }" + latex(self.parent())
 
 #===============================================================================
 # MonoidPowerSeries_abstract_nonlazy
 #===============================================================================
 
 class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
-    """
+    r"""
     A abstract implementation of monoid power series that store their coefficients.
     """
         
     def __init__(self, parent, coefficients, precision, cleanup_coefficients) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``coefficients`` -- A dictionary with keys in the parent's monoid and values
@@ -501,7 +501,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
         self.__coefficients = coefficients
     
     def coefficients(self) :
-        """
+        r"""
         The coefficients of ``self``.
         
         OUTPUT:
@@ -523,7 +523,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
         return self.__coefficients
     
     def _cleanup_coefficients(self, coefficients = None, in_place = True) :
-        """
+        r"""
         Remove zero entries and entries not below ``self.precision()`` from a coefficient dictionary.
         
         INPUT:
@@ -578,7 +578,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
             return ncoefficients
 
     def _truncate_in_place(self, precision) :
-        """
+        r"""
         Truncate ``self`` modifying the coefficient dictionary directly.
         
         INPUT:
@@ -614,7 +614,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
         self._set_precision(nprec)
     
     def truncate(self, precision) :
-        """
+        r"""
         Truncate a copy of ``self``.
         
         INPUT:
@@ -641,7 +641,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
         return MonoidPowerSeries( self.parent(), ncoefficients, nprec, cleanup_coefficients = True )
     
     def __getitem__(self, s) :
-        """
+        r"""
         Return the `k`-th coefficient if it below the series' precision.
         
         INPUT:
@@ -668,12 +668,12 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
 #===============================================================================
 
 class MonoidPowerSeries_moduleelement ( MonoidPowerSeries_abstract_nonlazy, ModuleElement ) :
-    """
+    r"""
     An element of a module of monoid power series.
     """
 
     def __init__(self, parent, coefficients, precision, cleanup_coefficients) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``coefficients`` -- A dictionary with keys in the parent's monoid and values
@@ -697,12 +697,12 @@ class MonoidPowerSeries_moduleelement ( MonoidPowerSeries_abstract_nonlazy, Modu
 #===============================================================================
 
 class MonoidPowerSeries_algebraelement ( MonoidPowerSeries_abstract_nonlazy, AlgebraElement ) :
-    """
+    r"""
     An element of a algebra of monoid power series.
     """
     
     def __init__(self, parent, coefficients, precision, cleanup_coefficients) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- An instance of :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient.MonoidPowerSeriesAmbient_abstract`.
             - ``coefficients`` -- A dictionary with keys in the parent's monoid and values
@@ -727,7 +727,7 @@ class MonoidPowerSeries_algebraelement ( MonoidPowerSeries_abstract_nonlazy, Alg
 
 def EquivariantMonoidPowerSeries( parent, coefficients, precision, symmetrise = False,
                                   cleanup_coefficients = False) :
-    """
+    r"""
     Create an equivariant monoid power series within a given parent.
     
     INPUT:
@@ -772,13 +772,13 @@ def EquivariantMonoidPowerSeries( parent, coefficients, precision, symmetrise = 
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_abstract :
-    """
+    r"""
     An abstract element of an equivariant monoid power series ring up to
     given precision.
     """
     
     def __init__( self, parent, precision ) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- A ring or module of equivariant monoid power series.
             - ``precision``    -- A filter for the parent's action.
@@ -793,7 +793,7 @@ class EquivariantMonoidPowerSeries_abstract :
         self.__precision = parent.action().filter(precision)
 
     def precision(self) :
-        """
+        r"""
         The series' precision.
         
         OUTPUT:
@@ -810,7 +810,7 @@ class EquivariantMonoidPowerSeries_abstract :
         return self.__precision
     
     def _set_precision(self, precision) :
-        """
+        r"""
         Set the series' precision.
     
         INPUT:
@@ -832,7 +832,7 @@ class EquivariantMonoidPowerSeries_abstract :
         self.__precision = self.parent().action().filter(precision)
 
     def non_zero_components(self) :
-        """
+        r"""
         Return all those characters  which are not guaranteed to have only
         vanishing coefficients associated to.
         
@@ -857,7 +857,7 @@ class EquivariantMonoidPowerSeries_abstract :
         return list(self.parent().characters())
     
     def _bounding_precision(self) :
-        """
+        r"""
         If ``self.precision()`` is an infinite filter,  return a filter
         which contains all non zero coefficients of this series. Otherwise,
         return ``self.precision()``
@@ -888,7 +888,7 @@ class EquivariantMonoidPowerSeries_abstract :
         return m
     
     def coefficients(self, force_characters = False) :
-        """
+        r"""
         The coefficients of ``self``. 
 
         INPUT:
@@ -917,7 +917,7 @@ class EquivariantMonoidPowerSeries_abstract :
         raise NotImplementedError
         
     def _truncate_in_place(self, precision) :
-        """
+        r"""
         Truncate ``self`` modifying the coefficient dictionary directly.
         
         INPUT:
@@ -941,7 +941,7 @@ class EquivariantMonoidPowerSeries_abstract :
         raise NotImplementedError
         
     def truncate(self, precision) :
-        """
+        r"""
         Truncate a copy of ``self``.
 
         INPUT:
@@ -964,7 +964,7 @@ class EquivariantMonoidPowerSeries_abstract :
         raise NotImplementedError
     
     def _add_(left, right) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1009,7 +1009,7 @@ class EquivariantMonoidPowerSeries_abstract :
                 coefficients, prec)
     
     def _mul_(left, right, switch_factors = False) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1070,7 +1070,7 @@ class EquivariantMonoidPowerSeries_abstract :
         return EquivariantMonoidPowerSeries( left.parent(), coefficients, prec )
 
     def _lmul_(self, c) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1115,7 +1115,7 @@ class EquivariantMonoidPowerSeries_abstract :
                                                 coefficients, self.precision())
             
     def _rmul_(self, c) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1160,7 +1160,7 @@ class EquivariantMonoidPowerSeries_abstract :
                                                 coefficients, self.precision())
 
     def __contains__(self, k) :
-        """
+        r"""
         Check whether an index or a pair of character and index
         is containted in the precision.
         
@@ -1187,7 +1187,7 @@ class EquivariantMonoidPowerSeries_abstract :
         return k in self.precision()
 
     def __getitem__(self, k) :
-        """
+        r"""
         Return the `k`-th coefficient if it below the series' precision. If no character is contained
         in the key ``self`` must have only one nonvanishing component.
         
@@ -1211,7 +1211,7 @@ class EquivariantMonoidPowerSeries_abstract :
         raise NotImplementedError
 
     def __cmp__(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1261,7 +1261,7 @@ class EquivariantMonoidPowerSeries_abstract :
         return 0
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
@@ -1273,29 +1273,29 @@ class EquivariantMonoidPowerSeries_abstract :
         return "Equivariant monoid power series in %s" % (self.parent(),)
     
     def _latex_(self) :
-        """
+        r"""
         EXAMPLES:
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: emps = EquivariantMonoidPowerSeriesRing( NNMonoid(), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", QQ) )
             sage: latex( EquivariantMonoidPowerSeries(emps, {emps.characters().one_element() : { 1 : 1 }}, emps.action().zero_filter()) )
-            Equivariant monoid power series in Ring of equivariant monoid power series over $\NN$
+            \text{Equivariant monoid power series in }\text{Ring of equivariant monoid power series over }\Bold{N}
         """
-        return "Equivariant monoid power series in %s" % latex(self.parent())
+        return r"\text{Equivariant monoid power series in }%s" % latex(self.parent())
 
 #===============================================================================
 # EquivariantMonoidPowerSeries_abstract_nonlazy
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeries_abstract ) :
-    """
+    r"""
     A abstract implementation of equiavariant monoid power series that store their coefficients.
     """
     
     def __init__( self, parent, coefficients, precision, symmetrise,
                   cleanup_coefficients ) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- A ring or module of equivariant monoid power series.
             - ``coefficients`` -- A dictionary with keys in the parent's monoid and values
@@ -1350,7 +1350,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             self.__coefficients = ncoefficients
 
     def non_zero_components(self) :
-        """
+        r"""
         Return all those characters  which are not guaranteed to have only
         vanishing coefficients associated to.
         
@@ -1377,7 +1377,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
         return self.__coefficients.keys()
     
     def coefficients(self, force_characters = False) :
-        """
+        r"""
         The coefficients of ``self``. 
 
         INPUT:
@@ -1415,7 +1415,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             return self.__coefficients
 
     def _cleanup_coefficients(self, coefficients = None, in_place = True) :
-        """
+        r"""
         Remove zero entries and entries not below ``self.precision()`` from a coefficient dictionary.
         
         INPUT:
@@ -1483,7 +1483,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             return ncoefficients
 
     def _truncate_in_place(self, precision) :
-        """
+        r"""
         Truncate ``self`` modifying the coefficient dictionary directly.
 
         INPUT:
@@ -1520,7 +1520,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             self._set_precision(nprec)
     
     def truncate(self, precision) :
-        """
+        r"""
         Truncate a copy of ``self``.
 
         INPUT:
@@ -1550,7 +1550,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
                  ncoefficients, nprec, cleanup_coefficients = True )
 
     def __getitem__(self, k) :
-        """
+        r"""
         Return the `k`-th coefficient if it below the series' precision. If no character is contained
         in the key ``self`` must have only one nonvanishing component.
         
@@ -1619,13 +1619,13 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_moduleelement ( EquivariantMonoidPowerSeries_abstract_nonlazy, ModuleElement ) :
-    """
+    r"""
     An element of a module of equivariant monoid power series.
     """
 
     def __init__(self, parent, coefficients, precision, symmetrise,
                  cleanup_coefficients ) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- A ring or module of equivariant monoid power series.
             - ``coefficients`` -- A dictionary with keys in the parent's monoid and values
@@ -1652,13 +1652,13 @@ class EquivariantMonoidPowerSeries_moduleelement ( EquivariantMonoidPowerSeries_
 #===============================================================================
 
 class EquivariantMonoidPowerSeries_algebraelement ( EquivariantMonoidPowerSeries_abstract_nonlazy, AlgebraElement ) :
-    """
+    r"""
     An element of an algebra of equivariant monoid power series.
     """
 
     def __init__(self, parent, coefficients, precision, symmetrise,
                  cleanup_coefficients ) :
-        """
+        r"""
         INPUT:
             - ``parent``       -- A ring or module of equivariant monoid power series.
             - ``coefficients`` -- A dictionary with keys in the parent's monoid and values

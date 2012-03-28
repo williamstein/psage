@@ -1,4 +1,4 @@
-"""
+r"""
 Rings of monoid power series and rings of equivariant monoid power series.
 
 AUTHOR :
@@ -26,8 +26,6 @@ AUTHOR :
 
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import MonoidPowerSeriesAmbient_abstract, \
                                       EquivariantMonoidPowerSeriesAmbient_abstract
-from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import MonoidPowerSeriesBaseRingInjection,\
-    EquivariantMonoidPowerSeriesFunctor, MonoidPowerSeriesFunctor
 from sage.algebras.algebra import Algebra
 from sage.rings.all import Integer
 from sage.structure.element import Element
@@ -40,7 +38,7 @@ from sage.structure.parent import Parent
 _monoidpowerseries_ring_cache = dict()
 
 def MonoidPowerSeriesRing(A, S) :
-    """
+    r"""
     Return the globally unique monoid power series ring with indices
     over the filtered monoid `S` and coefficients in `A`.
     
@@ -74,7 +72,7 @@ def MonoidPowerSeriesRing(A, S) :
 #===============================================================================
 
 class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra ) :
-    """
+    r"""
     Given some `K` algebra `A` and a monoid `S` filtered over
     a net `\Lambda` construct a ring of monoid power series.
     
@@ -84,7 +82,7 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
     """
     
     def __init__(self, A, S) :
-        """
+        r"""
         INPUT:
             - `A` -- A ring.
             - `S` -- A monoid as implemented in :class:~`fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids.NNMonoid`.
@@ -93,6 +91,11 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
             sage: mps = MonoidPowerSeriesRing_generic(QQ, NNMonoid(False))
+            sage: mps = MonoidPowerSeriesRing_generic(ZZ, NNMonoid(False))
+            sage: mps.base_ring()
+            Integer Ring
+            sage: (1 / 2) * mps.0
+            Monoid power series in Ring of monoid power series over NN
         """
         Algebra.__init__(self, A)        
         MonoidPowerSeriesAmbient_abstract.__init__(self, A, S)
@@ -102,12 +105,14 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
                                     self.monoid().filter_all() )
             for s in S.gens() ]
     
+        from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import MonoidPowerSeriesBaseRingInjection
+
         self._populate_coercion_lists_(
           coerce_list = [MonoidPowerSeriesBaseRingInjection(self.base_ring(), self)] + \
                         ([S] if isinstance(S, Parent) else []) )
     
     def ngens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
@@ -118,7 +123,7 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
         return len(self.__monoid_gens)
 
     def gen(self, i = 0) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
@@ -129,7 +134,7 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
         return self.gens()[i]
     
     def gens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
@@ -140,21 +145,23 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
         return self.__monoid_gens
     
     def construction(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
             sage: mps = MonoidPowerSeriesRing_generic(QQ, NNMonoid(False))
             sage: (f, a) = mps.construction()
             sage: (f, a)
-            (MonoidPowerSeriesFunctor, Rational Field)
+            (MonoidPowerSeriesRingFunctor, Rational Field)
             sage: f(a) == mps
             True
         """
-        return MonoidPowerSeriesFunctor(self.monoid()), self.coefficient_domain()
+        from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import MonoidPowerSeriesRingFunctor
+
+        return MonoidPowerSeriesRingFunctor(self.monoid()), self.coefficient_domain()
     
     def _element_constructor_(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
@@ -186,7 +193,7 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
         return MonoidPowerSeriesAmbient_abstract._element_constructor_(self, x)
     
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
@@ -196,14 +203,14 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
         return "Ring of monoid power series over " + self.monoid()._repr_()
 
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing_generic
             sage: latex(MonoidPowerSeriesRing_generic(QQ, NNMonoid(False)))
-            Ring of monoid power series over $\NN$
+            \text{Ring of monoid power series over }\Bold{N}
         """
-        return "Ring of monoid power series over " + self.monoid()._latex_()
+        return r"\text{Ring of monoid power series over }" + self.monoid()._latex_()
     
 ###############################################################################
 ###############################################################################
@@ -216,7 +223,7 @@ class MonoidPowerSeriesRing_generic ( MonoidPowerSeriesAmbient_abstract, Algebra
 _equivariantmonoidpowerseries_ring_cache = dict()
 
 def EquivariantMonoidPowerSeriesRing(O, C, R) :
-    """
+    r"""
     Return the globally unique ring of equivariant monoid power
     over the monoid with action `O` with coefficients in the codomain `R`
     with a representation and a set of virtual characters `C`.
@@ -270,7 +277,7 @@ def EquivariantMonoidPowerSeriesRing(O, C, R) :
 #===============================================================================
 
 class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmbient_abstract, Algebra ) :
-    """
+    r"""
     Given some ring `A`, a monoid `S` filtered over some originated
     net `\Lambda` such that all induced submonoids are finite, a group `G`, a
     semigroup `C` with a map `c \rightarrow \mathrm{Hom}(G, Aut_K(A))`, a
@@ -289,7 +296,7 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
     """
         
     def __init__(self, O, C, R) :
-        """
+        r"""
         INPUT:
             - `O` -- A monoid with an action of a group; As implemented in
                      :class:~`fourier_expansion_framework.monoidpowerseries.NNMonoid`.
@@ -301,6 +308,11 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
             sage: emps = EquivariantMonoidPowerSeriesRing_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", QQ)) # indirect doctest
+            sage: emps = EquivariantMonoidPowerSeriesRing_generic(NNMonoid(True), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", ZZ)) # indirect doctest
+            sage: emps.base_ring()
+            Integer Ring
+            sage: (1 / 2) * emps.0
+            Equivariant monoid power series in Ring of equivariant monoid power series over NN
         """
         
         Algebra.__init__(self, R.base_ring())
@@ -322,12 +334,14 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
             self.monoid().filter_all() )
            for g in self.coefficient_domain().gens()]
         
+        from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import MonoidPowerSeriesBaseRingInjection
+
         self._populate_coercion_lists_(
           coerce_list = [MonoidPowerSeriesBaseRingInjection(R.codomain(), self)] ,
           convert_list = ([O.monoid()] if isinstance(O.monoid(), Parent) else []) )
 
     def ngens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
@@ -338,7 +352,7 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
         return len(self.__monoid_gens) + len(self.__character_gens) + len(self.__coefficient_gens)
     
     def gen(self, i = 0) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
@@ -349,7 +363,7 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
         return self.gens()[i]
   
     def gens(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
@@ -360,22 +374,24 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
         return self.__monoid_gens + self.__character_gens + self.__coefficient_gens
 
     def construction(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
             sage: emps = EquivariantMonoidPowerSeriesRing_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", QQ))
             sage: (f, a) = emps.construction()
             sage: (f, a)
-            (EquivariantMonoidPowerSeriesFunctor, Rational Field)
+            (EquivariantMonoidPowerSeriesRingFunctor, Rational Field)
             sage: f(a) == emps
             True
         """
-        return EquivariantMonoidPowerSeriesFunctor(self.action(), self.characters(), self.representation()), \
+        from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_functor import EquivariantMonoidPowerSeriesRingFunctor
+
+        return EquivariantMonoidPowerSeriesRingFunctor(self.action(), self.characters(), self.representation()), \
                self.coefficient_domain()
 
     def _element_constructor_(self, x) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
@@ -414,7 +430,7 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
         return EquivariantMonoidPowerSeriesAmbient_abstract._element_constructor_(self, x)
 
     def _cmp_(self, other) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import MonoidPowerSeriesRing
@@ -435,7 +451,7 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
         return c
 
     def _repr_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
@@ -445,11 +461,11 @@ class EquivariantMonoidPowerSeriesRing_generic ( EquivariantMonoidPowerSeriesAmb
         return "Ring of equivariant monoid power series over " + self.monoid()._repr_()
 
     def _latex_(self) :
-        """
+        r"""
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
             sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing_generic
             sage: latex(EquivariantMonoidPowerSeriesRing_generic(NNMonoid(True), TrivialCharacterMonoid("1", QQ), TrivialRepresentation("1", QQ)))
-            Ring of equivariant monoid power series over $\NN$
+            \text{Ring of equivariant monoid power series over }\Bold{N}
         """
-        return "Ring of equivariant monoid power series over " + self.monoid()._latex_()
+        return r"\text{Ring of equivariant monoid power series over }" + self.monoid()._latex_()

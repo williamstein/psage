@@ -21,7 +21,7 @@
 #include "sage/ext/gmp.pxi"
 #include "sage/rings/mpc.pxi"
 
-  
+
 ## For multiprecision support
 from sage.libs.mpfr cimport *
 cdef mpc_rnd_t rnd
@@ -109,7 +109,7 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
 
     We use Gamma(0,x)=-Ei(-x) for x>0
     """
-    cdef RealNumber summa,tmp,tmp2,fak 
+    cdef RealNumber summa,tmp,tmp2,fak
     cdef RealField_class RF
     cdef int nn,k,prec
     if n > 0:
@@ -123,23 +123,23 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
         mpfr_set(tmp.value,x,rnd_re)
         raise ValueError, "ERROR: we assume that x>0. Got:{0}".format(tmp)
     nn=-n
-    #!! Make the Ei -sum here
-    #tmp=Ei_ml_c(-x) = Ei(-x) - ln|x|
-    mpfr_neg(tmp.value,x,rnd_re)
     if verbose>0:
         print "-n=",nn
         print "-x=",tmp
-    Ei_ml_c(tmp.value,tmp.value) # = Ei(x) - ln|x|
-    #mpfr_eint(tmp.value,tmp.value,rnd_re)
-    if verbose>0:
-        print "Ei(-x)-ln(|x|)=",tmp
     if n==0:
         ## Gamma(0,x)=-Ei(-x)
+        mpfr_neg(tmp.value,x,rnd_re)
+        if verbose>0:
+            print "n=0"
         mpfr_neg(res,tmp.value,rnd_re)
-        mpfr_log(tmp.value,x,rnd_re)
-        #mpfr_neg(tmp.value,tmp.value,rnd_re)
-        mpfr_sub(res,res,tmp.value,rnd_re)
-        return 
+        #mpfr_sub(res,res,tmp.value,rnd_re)
+        return
+    Ei_ml_c(tmp.value,tmp.value) # = Ei(x) - ln|x|
+    #!! Make the Ei -sum here
+    #tmp=Ei_ml_c(-x) = Ei(-x) - ln|x|
+    #
+    if verbose>0:
+        print "Ei(-x)-ln(|x|)=",tmp
     raise NotImplementedError,"Doesn't work right now..."
     #tmp2=(x**n*RF(nn))**-1
     mpfr_pow_si(tmp2.value,x,n,rnd_re)
@@ -172,9 +172,93 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     if verbose>0:
         print "fak=",fak
         print "res=",tmp
-    #tmp2=tmp*fak/tmp2   
+    #tmp2=tmp*fak/tmp2
     #print 'Gamma(',n,',',x,')=',tmp2
     #return tmp2
+
+## cdef ei(mpfr_t res, mpfr_t x):
+##     cdef mprf_t absx
+##     cdef double eps
+##     cdef mpfr_t ASYMP_CONV
+##     prec = mpfr_get_prec(x)
+##     RF = RealField(prec)
+##     tmp=RF(1); summa=RF(0)
+##     eps = 2.0**-(prec+1)
+##     ASYMP_CONV = 40
+##     if mpfr_cmp_d(absx,ASYMP_CONV):
+##         return ei_asymp(x)
+##     elif absz <= 2.0 or (typez is float and z > 0.0):
+##         return ei_taylor(z, _e1)
+##     # Integrate, starting from whichever is smaller of a Taylor
+##     # series value or an asymptotic series value
+##     if typez is complex and z.real > 0.0:
+##         zref = z / absz
+##         ref = ei_taylor(zref, _e1)
+##     else:
+##         zref = EI_ASYMP_CONVERGENCE_RADIUS * z / absz
+##         ref = ei_asymp(zref, _e1)
+##     C = (zref-z)*0.5
+##     D = (zref+z)*0.5
+##     s = 0.0
+##     if type(z) is complex:
+##         _exp = cmath.exp
+##     else:
+##         _exp = math.exp
+##     for x,w in gauss42:
+##         t = C*x+D
+##         s += w*_exp(t)/t
+##     ref -= C*s
+##     return ref
+
+cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
+    r"""
+    Compute the exponential integral of x via asymptotic formula
+    """
+    cdef RealNumber res
+    res = x.parent()(0)
+    ei_asymp_c(res.value,x.value,verbose)
+    return res
+
+cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
+    cdef RealNumber tmp,tmp2,summa,r
+    cdef double eps
+    cdef int k,prec
+    cdef RealField_class RF
+    prec = mpfr_get_prec(x)
+    RF = RealField(prec)
+    tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
+    eps = 2.0**-(prec+1)
+    if verbose>0:
+        print "eps = ", eps
+    mpfr_set(summa.value,tmp.value,rnd_re)
+    mpfr_div(r.value,tmp.value,x,rnd_re)
+    mpfr_exp(tmp2.value,x,rnd_re)
+    mpfr_mul(tmp2.value,tmp2.value,r.value,rnd_re)
+    eps=abs(eps/tmp2)
+    ## if verbose>0:
+    ##     print "r = 1/x = ", r
+    ##     print "eps = ", eps
+    ##     print "exp(x)/x = ", tmp2
+    ##     print "tmp = ", tmp
+    for k in range(1,nmax+1): #from 1 <= k <= nmax:
+        mpfr_mul_ui(tmp.value,tmp.value,k,rnd_re)
+        mpfr_mul(tmp.value,tmp.value,r.value,rnd_re)
+        mpfr_add(summa.value,summa.value,tmp.value,rnd_re)
+        ## if verbose>0:
+        ##     print "k = ", k
+        ##     print "r = ", r
+        ##     print "tmp = ", tmp
+        ##     print "summa = ", summa
+        if mpfr_cmp_d(tmp.value,eps)<0 and mpfr_cmp_d(tmp.value,-eps)>0:
+            # if  abs(tmp) < eps:
+            ## if verbose>0:
+            ##     print 'break at k=', k
+            break
+    #if k>= nmax:
+    #    mpfr_set(summa.value,x,rnd_re)
+    #    raise ArithmeticError,"k>nmax! in Ei(x)!, error of order {0} for x={1}".format(tmp,summa)
+    mpfr_mul(res,summa.value,tmp2.value,rnd_re)
+    return
 
     #!! Ei(x)-ln(|x|)  for real x
 cpdef RealNumber Ei_ml(RealNumber x):
@@ -185,7 +269,7 @@ cpdef RealNumber Ei_ml(RealNumber x):
     res = x.parent()(0)
     Ei_ml_c(res.value,x.value)
     return res
-        
+
 cdef Ei_ml_c(mpfr_t res,mpfr_t x):
     r"""
     Compute the exponential integral of x  - ln|x|
@@ -236,7 +320,7 @@ cpdef RealNumber incgamma_hint(int n,RealNumber x,int verbose=0):
     -`n` -- integer
     -`x` -- real number
     -`verbose` -- integer
-    
+
     """
     cdef RealNumber res
     res = x.parent()(0)
@@ -245,7 +329,7 @@ cpdef RealNumber incgamma_hint(int n,RealNumber x,int verbose=0):
     #cdef RealField_class RF
     #if n > 0:
     #    return incgamma_phint(n,x)
-    #elif n<0: 
+    #elif n<0:
     #    return incgamma_nhint(-n,x)
     #else:
     #   RF=x._parent
@@ -258,7 +342,7 @@ cdef incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     if n > 0:
         #return
         incgamma_phint_c(res,n,x,verbose)
-    elif n<0: 
+    elif n<0:
         incgamma_nhint_c(res,-n,x,verbose)
     else:
         prec = mpfr_get_prec(x)
@@ -269,7 +353,7 @@ cdef incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
         mpfr_sqrt(sqx,x,rnd_re)
         mpfr_erfc(res,sqx,rnd_re)
         mpfr_mul(res,res,sqpi,rnd_re)
-    
+
 
 ### sqrt(pi)* erfc(sqrt(x))  is used at several places
 
@@ -345,10 +429,10 @@ cdef void incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     mpfr_exp(tmp2,tmp2,rnd_re)
     mpfr_mul(tmp2,tmp2,sqx,rnd_re)
     #tmp2=(-x).exp()*x.sqrt()
-    if n % 2 ==0: #( mod(n,2).eq.0) then 
+    if n % 2 ==0: #( mod(n,2).eq.0) then
         mpfr_neg(tmp2,tmp2,rnd_re) #-(-x).exp()*x.sqrt()
     mpfr_mul(tmp2,tmp2,summa,rnd_re)
-    #tmp2=tmp2*summa      
+    #tmp2=tmp2*summa
     mpfr_add(tmp2,tmp2,tmp,rnd_re)
     #tmp=tmp+tmp2
     mpfr_set(res,tmp2,rnd_re)
@@ -366,7 +450,7 @@ cpdef RealNumber incgamma_nhint(int n,RealNumber x,int verbose=0):
     res = x.parent()(1)
     incgamma_nhint_c(res.value,n,x.value,verbose)
     return res
-    
+
 #!!  incgamma(-n+1/2,x)
 #      !! for integer n>0 and real x>0
 cdef void incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
@@ -396,7 +480,7 @@ cdef void incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     mpfr_pow(tmp,x,half_m_n,rnd_re)
 
     # half_m_n = 1/2 - n
-    # !! do the sum first     
+    # !! do the sum first
     for j from 0 <= j <=n-1:
         _mppochammer_mpfr(tmp2,half_m_n,j+1)
         mpfr_div(tmp2,tmp,tmp2,rnd_re)
@@ -428,8 +512,8 @@ cdef void incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     if verbose>0:
         mpfr_set(tmpr.value,tmp3,rnd_re)
         print "tmp2=",tmpr
-        
-    mpfr_add(tmp2,tmp2,tmp3,rnd_re)     
+
+    mpfr_add(tmp2,tmp2,tmp3,rnd_re)
     #print 'incG(',n,'+0.5,',x,'=',tmp
     mpfr_set(res,tmp2,rnd_re)
     mpfr_clear(tmp)
@@ -439,14 +523,14 @@ cdef void incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     mpfr_clear(half)
     mpfr_clear(lnx)
     mpfr_clear(half_m_n)
-    
+
     #return tmp2
 
 
 def incgamma_nhint_test(n,x,verbose=0):
     #RF=RealField(53)
     RF = RealField(x.parent().prec())
-    #RF = 
+    #RF =
     #prec = RF.prec()
     tmp = RF(1)
     summa=RF(0)
@@ -482,7 +566,7 @@ def incgamma_nhint_test(n,x,verbose=0):
     return tmp - tmp2
 
 cpdef RealNumber pochammer(RealNumber a,int k):
-    cdef RealNumber res 
+    cdef RealNumber res
     res = a._parent(0)
     _mppochammer_mpfr(res.value,a.value, k)
     return res
@@ -507,5 +591,5 @@ cdef void _mppochammer_mpfr(mpfr_t res, mpfr_t a,int k):
     mpfr_clear(tmp)
 
 
-      
-        
+
+

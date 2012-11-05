@@ -1,3 +1,4 @@
+# cython: profile=False
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #ö  Copyright (C) 2010  Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -13,14 +14,15 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-
-
 include "sage/ext/cdefs.pxi"
 include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
 include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
 
+import cython
+
 r"""
-Low-precision algorithms for the K-Bessel function.
+Low-precision (fast) algorithms for the K-Bessel function.
+Also algorithms for incomplete gamma function.
 
     AUTHOR:
     
@@ -66,6 +68,7 @@ cdef extern from "math.h":
     double exp(double)
     double cos(double)
     double sin(double)
+    double atan(double)
     double sinh(double)
     double fabs(double)
     int ceil(double)
@@ -75,7 +78,7 @@ cdef extern from "math.h":
     double cimag(double complex)
     double creal(double complex)
     double carg(double complex)
-
+    
 #cdef from sage.functions.special:
 #    double log_gamma(double)
 
@@ -92,7 +95,7 @@ cdef double complex c_one =<double complex> 1.0
 cdef double complex c_zero =<double complex> 0.0
 
 
-def besselk_dp(double R,double x,double prec=1e-14,int pref=0):  
+cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):  
     r"""
     Modified K-Bessel function in double precision. Chooses the most appropriate algorithm.
 
@@ -124,14 +127,19 @@ def besselk_dp(double R,double x,double prec=1e-14,int pref=0):
         sage: besselk_dp_rec(10.0,3.0,pref=1)
         -0.42308698672505796
     """
-    if(R<0):
+    if R<0:
         RR=-R
     else:
         RR=R
-    if(x<0):
+    if x<=0:
         raise ValueError," Need x>0! Got x=%s" % x
-
-    if(x<R*0.7):
+    cdef double xc,xcral,S
+    xc = sqrt((x+R)*(x-R))
+    S=R/x
+    xcral=xc+R*2.0*atan(S/(1.0+(xc/x)))
+    if (R*pihalf-xcral < -125.0):
+        return 0.0
+    if x<R*0.7:
         try:
             res=besselk_dp_pow(RR,x,prec,pref)
         except ValueError:
@@ -140,7 +148,56 @@ def besselk_dp(double R,double x,double prec=1e-14,int pref=0):
         res=besselk_dp_rec(RR,x,prec,pref)
     return res
 
-def besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # |r| <<1000, x >> 0 !
+cdef void besselk_dp_c(double *kbes,double R,double x,double prec,int pref): #double prec=1e-14,int pref=0):  
+    r"""
+    Modified K-Bessel function in double precision. Chooses the most appropriate algorithm.
+
+    INPUT:
+
+       - `R` -- parameter (double)
+
+        - `x` -- argument (double)
+
+        - `prec` -- precision (default 1E-14, double)
+
+        - `pref` -- use prefactor (integer, default 0) 
+
+               = 1 => computes K_iR(x)*exp(pi*R/2)
+
+               = 0 => computes K_iR(x)
+
+    OUTPUT:
+    
+     - exp(Pi*R/2)*K_{i*R}(x)  -- double
+
+    EXAMPLES::
+
+
+        sage: besselk_dp_rec(10.0,5.0)
+        -0.7183327166568183
+        sage: besselk_dp_rec(10.0,3.0)
+        -6.3759939798738967e-08
+        sage: besselk_dp_rec(10.0,3.0,pref=1)
+        -0.42308698672505796
+    """
+    if R<0:
+        RR=-R
+    else:
+        RR=R
+    if x<0:
+        raise ValueError," Need x>0! Got x=%s" % x
+
+    if x<R*0.7:
+        try:
+            kbes[0]=besselk_dp_pow(RR,x,prec,pref)
+        except ValueError:
+            kbes[0]=besselk_dp_rec(RR,x,prec,pref)
+    else:
+        kbes[0]=besselk_dp_rec(RR,x,prec,pref)
+
+
+@cython.cdivision(True) 
+cdef double besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # |r| <<1000, x >> 0 !
     r"""
     Modified K-Bessel function in double precision using the backwards Miller-recursion algorithm. 
 
@@ -193,13 +250,14 @@ def besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # |r| <<10
     cdef double t=0.0 #/*arbitrary*/
     cdef double k=d_one #/*arbitrary*/;
     cdef double err=d_one
-    cdef int NMAX=5000
-    cdef int n_start=1 #128
+    cdef int NMAX=10000
+    cdef int n_start=40 #128
     cdef double ef1=log(d_two*x/cppi)
     cdef double mr
     cdef int n=n_start
     cdef double tmp,tmp2,ef,nr,mr_p1,mr_m1,efarg
     cdef int nn
+    cdef double den
     for nn from 1 <= nn <= NMAX:
         err=fabs(t-k)
         if(err < prec):
@@ -214,12 +272,13 @@ def besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # |r| <<10
         nr=<double> n
         if(tmp>1300.0):
             return 0.0
-        ef = exp((ef1 + tmp)/(d_two*nr))
+        ef = exp((ef1 + tmp)/((<double>2.0) *nr))
         mr_p1=<double> n+1   # m+1
         mr=<double> n        # m 
         for m from n >=m>=1:
             mr_m1=<double> m-1 # m-1
-            y=(mr_m1+p/mr)/(q+(mr_p1)*(d_two-y))
+            den = (q+(mr_p1)*(d_two-y))
+            y=(mr_m1+p/mr)/den
             k=ef*(d+y*k)
             d=d*ef
             mr_p1=mr
@@ -240,8 +299,8 @@ def besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # |r| <<10
     else:
         return k*exp(-cppi*R/d_two)
 
-
-def besselk_dp_pow(double R,double x,prec=1E-12,pref=0):
+@cython.cdivision(True) 
+cdef double besselk_dp_pow(double R,double x,double prec=1E-12,int pref=0):
     r"""
     Computes the modified K-Bessel function: K_iR(x) using power series.
 
@@ -311,6 +370,7 @@ def besselk_dp_pow(double R,double x,prec=1E-12,pref=0):
     rk1=r1
     cdef double rk2=r0
     cdef double ck1=ck
+    cdef double test
     cdef int N_max=1000
     cdef int k
     for k from  2<=k<=N_max:
@@ -320,14 +380,16 @@ def besselk_dp_pow(double R,double x,prec=1E-12,pref=0):
         rk=((d_two*kk-d_one)*rk1-rk2)/den
         ck=xh2*ck1/kk
         summa=summa+ck*fk
-        if(fabs(ck*fk/summa*exp_Pih_R)<prec):
+        test = ck*fk/summa*exp_Pih_R
+        test = fabs(test)
+        if test < prec:
             break
         fk1=fk
         rk2=rk1
         rk1=rk
         ck1=ck
     if(k>=N_max):
-        s="Maximum numbber of iterations reached x,R=%s,%s val=%s"
+        s="Maximum number of iterations reached x,R=%s,%s val=%s"
         raise ValueError,s%(x,R,summa)
         stat=1  #! We reached end of loop
     if(pref==1):
@@ -393,8 +455,8 @@ Ber[ 48 ]= -5.1539291620653213901946552121717171770391159e69
 Ber[ 49 ]= 1.1906210230890226457684816176871380462750227e72
 Ber[ 50 ]= -2.8668938960296673696226420541900772462913819e74
 
-
-def  my_lngamma(double x,double R,double prec=1E-16):
+@cython.cdivision(True) 
+cdef  double complex my_lngamma(double x,double R,double prec=1E-16):
     r"""
     Logarithm of Gamma function for the argument x+i*R
     (using principal branch of the logarithm)

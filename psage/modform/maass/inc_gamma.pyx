@@ -1,7 +1,11 @@
 # -*- coding=utf-8 -*-
 #*****************************************************************************
-#ö  Copyright (C) 2010  Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
+#  Copyright (C) 2012
 #
+#  Authors:
+#  Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
+#  Stephan Ehlen <ehlen@mathematik.tu-darmstadt.de>
+#  
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
 #    This code is distributed in the hope that it will be useful,
@@ -55,6 +59,8 @@ cpdef RealNumber incgamma_int(int n,RealNumber x,int verbose=0):
     res = x.parent()(0)
     if n>0:
         incgamma_pint_c(res.value,n,x.value,verbose)
+    elif n==0:
+        return -ei(-x,verbose)
     else:
         incgamma_nint_c(res.value,n,x.value,verbose)
     return res
@@ -109,6 +115,7 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
 
     We use Gamma(0,x)=-Ei(-x) for x>0
     """
+    raise NotImplementedError,"Doesn't work right now..."
     cdef RealNumber summa,tmp,tmp2,fak
     cdef RealField_class RF
     cdef int nn,k,prec

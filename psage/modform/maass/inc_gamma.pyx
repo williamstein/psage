@@ -214,20 +214,24 @@ cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     Compute the exponential integral of x via asymptotic formula.
     Only valid for x <= -40.
     """
-    cdef RealNumber tmp,tmp2,summa,r
-    cdef double eps
+    cdef RealNumber tmp,tmp2,summa,r,eps
     cdef int k,prec
     cdef RealField_class RF
     prec = mpfr_get_prec(x)
     RF = RealField(prec)
     tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
-    eps = 2.**-(prec+1)
+    eps = RF(2.**-(prec+1))
     if verbose>0:
         print "prec = ", prec
     mpfr_set(summa.value,tmp.value,rnd_re)
     mpfr_div(r.value,tmp.value,x,rnd_re)
     mpfr_exp(tmp2.value,x,rnd_re)
     mpfr_mul(tmp2.value,tmp2.value,r.value,rnd_re)
+    if verbose>0:
+        print "tmp2 =", tmp2
+    #if abs(tmp2)<eps:
+    #    mpfr_set(res,tmp2.value,rnd_re)
+    #    return
     eps=abs(eps/tmp2)
     if verbose>0:
         print "r = 1/x = ", r
@@ -243,7 +247,7 @@ cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
             print "r = ", r
             print "tmp = ", tmp
             print "summa = ", summa
-        if mpfr_cmp_d(tmp.value,eps)<0 and mpfr_cmp_d(tmp.value,-eps)>0:
+        if abs(tmp)<eps:
             # if  abs(tmp) < eps:
             if verbose>0:
                 print 'break at k=', k

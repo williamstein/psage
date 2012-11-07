@@ -59,8 +59,6 @@ cpdef RealNumber incgamma_int(int n,RealNumber x,int verbose=0):
     res = x.parent()(0)
     if n>0:
         incgamma_pint_c(res.value,n,x.value,verbose)
-    elif n==0:
-        return -ei(-x,verbose)
     else:
         incgamma_nint_c(res.value,n,x.value,verbose)
     return res
@@ -112,76 +110,36 @@ cdef incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
 cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     r"""
     Incomplete Gamma, Gamma(n,x) with n negative integer.
-
     We use Gamma(0,x)=-Ei(-x) for x>0
     """
-    raise NotImplementedError,"Doesn't work right now..."
-    cdef RealNumber summa,tmp,tmp2,fak
-    cdef RealField_class RF
-    cdef int nn,k,prec
-    if n > 0:
-        raise ValueError, "ERROR: n<=0 in this function!"
-    if verbose>0:
-        print "In incgamma_nint_c with n={0}".format(n)
-    prec = mpfr_get_prec(x)
-    RF = RealField(prec)
-    summa=RF(0); tmp=RF(1); tmp2=RF(1); fak=RF(1)
-    if mpfr_cmp_si(x,0)<0:
-        mpfr_set(tmp.value,x,rnd_re)
-        raise ValueError, "ERROR: we assume that x>0. Got:{0}".format(tmp)
-    nn=-n
-    if verbose>0:
-        print "-n=",nn
-        print "-x=",tmp
-    if n==0:
-        ## Gamma(0,x)=-Ei(-x)
-        mpfr_neg(tmp.value,x,rnd_re)
+    if n!=0:
+        raise NotImplementedError,"Doesn't work right now..."
+    cdef int prec = mpfr_get_prec(x)
+    cdef int wp = prec + 20
+    cdef mpfr_t xabs_t
+    mpfr_init2(xabs_t, prec)
+    mpfr_abs(xabs_t,x,rnd_re)
+    cdef int xabs = mpfr_get_ui(xabs_t,rnd_re)
+    cdef mpfr_t xnew
+    cdef int rh = ceil(wp*0.693) + 10
+    if xabs > rh:
         if verbose>0:
-            print "n=0"
-        mpfr_neg(res,tmp.value,rnd_re)
-        #mpfr_sub(res,res,tmp.value,rnd_re)
-        return
-    Ei_ml_c(tmp.value,tmp.value) # = Ei(x) - ln|x|
-    #!! Make the Ei -sum here
-    #tmp=Ei_ml_c(-x) = Ei(-x) - ln|x|
-    #
-    if verbose>0:
-        print "Ei(-x)-ln(|x|)=",tmp
-    raise NotImplementedError,"Doesn't work right now..."
-    #tmp2=(x**n*RF(nn))**-1
-    mpfr_pow_si(tmp2.value,x,n,rnd_re)
-    mpfr_mul_si(tmp2.value,tmp2.value,nn,rnd_re)
-    mpfr_pow_si(tmp2.value,tmp2.value,-1,rnd_re)
-    #  write(*,*) 'here2!'
-    mpfr_set(summa.value,tmp2.value,rnd_re)
-    if verbose>0:
-        print "Summa1=",summa
-    for k in range(1,nn+1): #from 1 <= k <= -n:
-        #write(*,*) 'here! k=',k
-        mpfr_set_si(fak.value,k-1-n,rnd_re)
-        # fak=RF(-n+k-1)
-        #tmp2=tmp2*x/fak
-        mpfr_mul(tmp2.value,tmp2.value,x,rnd_re)
-        mpfr_div(tmp2.value,tmp2.value,fak.value,rnd_re)
-        #summa=summa+tmp2
-        mpfr_add(summa.value,summa.value,tmp2.value,rnd_re)
-        # write(*,*) 'summa:',dble(summa)
-    #fak=RF( (-1)**(n-1))
-    if verbose>0:
-        print "Summa2=",summa
-    if n-1 % 2 == 0:
-        mpfr_set_si(fak.value,1,rnd_re)
+            print "can use asymptotic"
+        mpfr_init2(xnew,wp)
+        mpfr_neg(xnew,x,rnd_re)
+        ei_asymp_c(res,xnew,verbose)
     else:
-        mpfr_set_si(fak.value,-1,rnd_re)
-    mpfr_fac_ui(tmp2.value,nn,rnd_re)  #=RF.factorial(nn) #gamma(n+1)
-    mpfr_div(res,fak.value,tmp2.value,rnd_re)
-    mpfr_mul(res,res,tmp.value,rnd_re)
+        if verbose>0:
+            print "can NOT use asymptotic"
+        mpfr_init2(xnew,wp+2*xabs)
+        mpfr_neg(xnew,x,rnd_re)
+        if verbose>0:
+            print mpfr_get_d(xnew,rnd_re)
+        ei_taylor_c(res,xnew,verbose)
     if verbose>0:
-        print "fak=",fak
-        print "res=",tmp
-    #tmp2=tmp*fak/tmp2
-    #print 'Gamma(',n,',',x,')=',tmp2
-    #return tmp2
+        print mpfr_get_d(res,rnd_re)
+    mpfr_neg(res,res,rnd_re)
+    return
 
 cpdef RealNumber ei(RealNumber x, int verbose=0):
     cdef int wp = x.prec() + 20
@@ -212,7 +170,6 @@ cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
 cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     r"""
     Compute the exponential integral of x via asymptotic formula.
-    Only valid for x <= -40.
     """
     cdef RealNumber tmp,tmp2,summa,r,eps
     cdef int k,prec
@@ -220,15 +177,12 @@ cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     prec = mpfr_get_prec(x)
     RF = RealField(prec)
     tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
+    cdef RealNumber zero = RF(0)
     eps = RF(2.**-(prec+1))
-    if verbose>0:
-        print "prec = ", prec
     mpfr_set(summa.value,tmp.value,rnd_re)
     mpfr_div(r.value,tmp.value,x,rnd_re)
     mpfr_exp(tmp2.value,x,rnd_re)
     mpfr_mul(tmp2.value,tmp2.value,r.value,rnd_re)
-    if verbose>0:
-        print "tmp2 =", tmp2
     #if abs(tmp2)<eps:
     #    mpfr_set(res,tmp2.value,rnd_re)
     #    return
@@ -247,7 +201,7 @@ cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
             print "r = ", r
             print "tmp = ", tmp
             print "summa = ", summa
-        if abs(tmp)<eps:
+        if tmp==zero:
             # if  abs(tmp) < eps:
             if verbose>0:
                 print 'break at k=', k
@@ -268,30 +222,29 @@ cpdef RealNumber Ei_ml(RealNumber x):
     Ei_ml_c(res.value,x.value)
     return res
 
+cdef ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
+    cdef mpfr_t lnx
+    cdef int prec = mpfr_get_prec(x)
+    mpfr_init2(lnx, prec)
+    Ei_ml_c(res, x)
+    if mpfr_cmp_si(x,0) < 0:
+        mpfr_neg(x,x,rnd_re)
+    mpfr_log(lnx,x,rnd_re)
+    mpfr_add(res,res,lnx,rnd_re)
+    return
+
 cpdef RealNumber ei_taylor(RealNumber x, int verbose=0):
     r"""
     Compute the exponential integral of x  - ln|x|
     """
     cdef RealNumber res
-    cdef mpfr_t lnx
-    cdef int prec=x.prec()
-    mpfr_init2(lnx,prec)
     res = x.parent()(0)
-    Ei_ml_c(res.value,x.value)
-    if verbose>0:
-        print "Ei(-x)-ln|x| = ", res
-    if x<0:
-        x=-x
-    mpfr_log(lnx,x.value,rnd_re)
-    if verbose>0:
-        print "ln|x| = ", x
-    mpfr_add(res.value,res.value,lnx,rnd_re)
+    ei_taylor_c(res.value,x.value,verbose)
     return res
 
 cdef Ei_ml_c(mpfr_t res,mpfr_t x):
     r"""
     Compute the exponential integral of x  - ln|x|
-    Only good for x>-40.
     """
     cdef RealNumber tmp,summa
     cdef double eps
@@ -315,8 +268,7 @@ cdef Ei_ml_c(mpfr_t res,mpfr_t x):
 
         mpfr_mul(tmp.value,tmp.value,x,rnd_re)
         mpfr_add(summa.value,summa.value,tmp.value,rnd_re)
-        if mpfr_cmp_d(tmp.value,eps)<0 and mpfr_cmp_d(tmp.value,-eps)>0:
-            # if  abs(tmp) < eps:
+        if  abs(tmp) < eps:
             break
     if k>= nmax:
         mpfr_set(summa.value,x,rnd_re)

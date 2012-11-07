@@ -63,7 +63,8 @@ from sage.all import SageObject,copy,deepcopy
 from pullback_algorithms import pullback_pts_mpc,j_fak_int_mpfr,pullback_pts_mp,pullback_pts_mpmath
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
-from pullback_algorithms cimport pullback_pts_mpc_new_c,pullback_pts_mpc_new_c_sym
+from pullback_algorithms cimport pullback_pts_mpc_new_c
+from pullback_algorithms cimport pullback_pts_mpc_new_c_sym
 
 def get_Y_and_M_for_hwmf(G,PP,weight,ndig):
     r"""

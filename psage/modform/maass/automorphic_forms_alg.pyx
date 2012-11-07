@@ -544,6 +544,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
             ef1[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
             for n in range(Ml):
                 ef1[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+                for j in range(Ql):
+                    mpfr_init2(ef1[icusp][jcusp][n][j],prec)
     cdef mpfr_t **** besv=NULL
     besv = <mpfr_t****> sage_malloc( sizeof(ef2) * nc )
     for icusp in range(nc):
@@ -552,7 +554,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
             besv[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
             for n in range(Ml):
                 besv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
-                
+                for j in range(Ql):
+                    mpfr_init2(besv[icusp][jcusp][n][j],prec)
     cdef double eps
     eps = 2.0**float(1-H._dprec)
     cdef int not_holom = int(not H._holomorphic)
@@ -573,6 +576,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
             #nrfourpi=nr*fourpi
             for icusp in range(nc):
                 for j in range(Ql):
+                    if verbose>1:
+                        print "icusp,jcusp,j=",n,icusp,jcusp,j
                     ## ef1 contains -Xpb*l
                     #mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
                     if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
@@ -584,7 +589,13 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                     mpfr_mul(tmpr_t,twopi.value,Ypb[icusp][jcusp][j],rnd_re)
                     mpfr_mul(tmpr_t,tmpr_t,nr.value,rnd_re)
                     mpfr_neg(tmpr_t,tmpr_t,rnd_re)
+                    if verbose>1:
+                        mpfr_set(tmpr.value,tmpr_t,rnd_re)
+                        print "arg=",tmpr
                     mpfr_exp(besv[icusp][jcusp][n][j],tmpr_t,rnd_re)
+                    if verbose>1:
+                        mpfr_set(tmpr.value,besv[icusp][jcusp][n][j],rnd_re)
+                        print "exp(arg)=",tmpr
                     if mpfr_cmp_d(nr.value,eps)>0:
                         pass
                     elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:

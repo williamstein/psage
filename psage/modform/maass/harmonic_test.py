@@ -2,7 +2,7 @@ from sage.all import *
 from psage import *
 import mpmath
 from psage.matrix import Matrix_complex_dense
-from psage.modform.maass.pullback_algorithms import pullback_pts_mp,pullback_pts_mp_sym
+from psage.modform.maass.pullback_algorithms import pullback_pts_mp #,pullback_pts_mp_sym
 from psage.modform.maass.automorphic_forms_alg import check_principal_parts
 from psage.modform.maass.automorphic_forms import solve_system_for_harmonic_weak_Maass_waveforms,smallest_inf_norm
 
@@ -23,8 +23,8 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0):
     xm = pb['xm']; xpb=pb['xpb']; ypb=pb['ypb']; cvec=pb['cvec']
     verbose = S._verbose
     if S._verbose>0:
-        print "Cvec[0,1,0]=",cvec[0][1][0]    
-        print "Ypb[0,1,0]=",ypb[0][1][0]
+        print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,{})    
+        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,{})    
     sz = (2*M0+1)*S.group().ncusps()
     V = Matrix_complex_dense(MatrixSpace(CF,sz,sz),0)
     RHS = Matrix_complex_dense(MatrixSpace(CF,sz,1),0)
@@ -66,6 +66,7 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0):
                 for j in range(Q0,Q1):
                     if ypb[icusp][jcusp][j]==0:
                         continue
+                    #print "ypb=",icusp,jcusp,j,":",ypb[icusp][jcusp][j]
                     f11 = CF(1)
                     if lr>0:
                         f11 = (-twopi*lr*ypb[icusp][jcusp][j]).exp()
@@ -580,15 +581,15 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
     X = S.multiplier()
     RF = RealField(prec)
     CF = MPComplexField(prec)
-    pb = pullback_pts_mp_sym(S,1,Q,Y)
+    pb = pullback_pts_mp(S,1-Q,Q,Y)
     if ret_pb==1:        
         return pb
     xm = pb['xm']; xpb=pb['xpb']; ypb=pb['ypb']; cvec=pb['cvec']
     assert S.group().ncusps()==2
     verbose = S._verbose
     if S._verbose>0:
-        print "Cvec[0,1,0]=",cvec[0][1][0]    
-        print "Ypb[0,1,0]=",ypb[0][1][0]
+        print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,0)
+        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,0)
     sz = (2*M0+1)*S.group().ncusps()
     V = Matrix_complex_dense(MatrixSpace(CF,sz,sz),0)
     RHS = Matrix_complex_dense(MatrixSpace(CF,sz,1),0)
@@ -650,18 +651,27 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                     f1 = -S.weight()
                 else:
                     f1 = S.weight()
-                f2= S.multiplier().character()(-1)
-                if ypb[icusp][jcusp][j] >Y:
-                    f3 = S.weight()
+                if S.multiplier().character()(-1)==1:
+                    f2= 0
                 else:
-                    f3 = 0
-                sgnv[icusp][jcusp][j] = (f1 + f2 + f3) % 2
-                c2 = c2.conjugate()*RF(f2*(-1)**(f1+f3))
-                
+                    f2 = 1
+                #z=G.pullback(xm[j],Y)
+                #w=z[0]+I*z[1]
+                #if abs(w-xm[j]-I*Y)>1e-8:
+                #if ypb[icusp][jcusp][j] >Y:
+                f3 = S.weight()
+                #else:
+                #    f3 = 0
+                sgnv[icusp][jcusp][j] = (f1 + f2 +  f3) % 2
+                c2 = c2.conjugate()*RF((-1)**(f1+f2+f3))
+                if j==14 and icusp==0 and jcusp==1:
+                    print "ypb=",ypb[icusp][jcusp][j]
+                    print "sgnv=",sgnv[icusp][jcusp][j],
+                    print "f1,f2,f3=",f1 ,f2 , f3
                 #print "xm[j]-xm[1-j]=",xm[j]+xm[2*Q-1-j]
                 #print "|x1-x2|=",abs(x2+x1)
                 #print "|y1-y2|=",abs(y2-y1)
-                if verbose>0:
+                if verbose>2:
                     print "cv[j]=",c1
                     print "cv[1-j]=",c2
                 #print "|cv1-cv2|=",abs((c1+c2).imag())
@@ -678,6 +688,7 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                 #    return 
                 if abs(x2+x1)>xdmax:
                     xdmax = abs(x2+x1)
+#    return
     if verbose>0:
         print "xdmax=",xdmax
         print "cvmax=",cvmax
@@ -768,14 +779,17 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                         #if abs(vtmp)<2.**(1-prec):
                         #    print "vtm=",f1,":",f2,":",bes
                         V[ni,lj]+=vtmp
-                        if S._verbose>2 and ni==0 and lj==11:
+                        if S._verbose>0 and ni==0 and lj==11:
                             print "-------------------"
+                            print "n=",n
                             print "V[1,1](",j,")=",V[ni,lj]
                             print "ef1(",j,")=",f1
                             print "ef2(",2*Q-j-1,")=",f2
+                            print "sgn[v]=",sgnv[icusp][jcusp][j]
                             print "vtmp=",vtmp
                             #print "cv(",j,")=",cv
                             #print "ef2(",j,")=",f2d[n][icusp][j]
+                            print "fd2[{0}][{1}][{2}]={3}".format(n,icusp,j,f2d[n][icusp][j])
 #    if use_sym ==1:
 #        Qfak = RF(1)/RF(Q)
 #    else:
@@ -939,3 +953,396 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
     
     C=solve_system_for_harmonic_weak_Maass_waveforms(W,N)
     return C
+
+
+def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
+    r"""
+    MxM system for Harmonic weak Maass forms at Y=Y with weight k
+    """
+    Q = M0+10; Qs=1; Qf = Q
+    Ql = Qf-Qs + 1
+    prec = Y.parent().prec()
+    mpmath.mp.prec=prec
+    X = S.multiplier()
+    RF = RealField(prec)
+    CF = MPComplexField(prec)
+    pb = pullback_pts_mp(S,1,Q,Y)
+    if ret_pb==1:        
+        return pb
+    xm = pb['xm']; xpb=pb['xpb']; ypb=pb['ypb']; cvec=pb['cvec']
+    assert S.group().ncusps()==2
+    verbose = S._verbose
+    if S._verbose>0:
+        print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,0)
+        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,0)
+    sz = (2*M0+1)*S.group().ncusps()
+    V = Matrix_complex_dense(MatrixSpace(CF,sz,sz),0)
+    RHS = Matrix_complex_dense(MatrixSpace(CF,sz,1),0)
+    nc = S.group().ncusps()
+    k = S.weight()
+    km1 = 1-k
+    twopi=RF.pi()*RF(2)
+    pp_info = check_principal_parts(H,[pp])
+    if S._holomorphic==1:
+        Ms=0; Mf=M0
+    else:
+        Ms=-M0; Mf=M0
+    Ml=Mf-Ms+1
+    f1d = {}
+    f2d = {}
+    for l in range(Ms,Mf+1):
+        f2d[l]={}
+        #f1d[l]={}
+        for icusp in range(nc):
+            #f1d[l][icusp]={};
+            f2d[l][icusp]={}
+            lr = RF(l + S.alpha(icusp)[0])
+            for j in range(Q):
+                #f2d[l][icusp][j]=(-xm[j] + RF.pi())*lr
+                f2d[l][icusp][j]=-xm[j]*lr
+                #for jcusp in range(nc):
+                #    f1d[l][icusp][jcusp]={}
+                #    for j in range(Ql):
+                #        f1d[l][icusp][jcusp][j]=CF(0,lr*xpb[icusp][jcusp][j]).exp()
+    ymax = 0
+    xdmax=0
+    cvmax= 0
+    sgnv={}
+    for icusp in range(nc):
+        sgnv[icusp]={}
+        for jcusp in range(nc):
+            sgnv[icusp][jcusp]={}
+            if verbose>0:
+                print "i,j:",icusp,jcusp
+            for j in range(Q):
+                sgnv[icusp][jcusp][j]={}
+                if ypb[icusp][jcusp][j] > ymax:
+                    ymax = ypb[icusp][jcusp][j]
+            #if verbose>0:
+            #    print "icusp,jcusp=",icusp,jcusp
+            # for j in range(Q+1):
+            #     if verbose>1:
+            #         print "j=",j
+            #         print "2Q-1-j=",2*Q-1-j
+            #     x1 = xpb[icusp][jcusp][j]
+            #     x2 = xpb[icusp][jcusp][2*Q-1-j]
+            #     y1 = ypb[icusp][jcusp][j]
+            #     y2 = ypb[icusp][jcusp][2*Q-1-j]
+            #     c1 = cvec[icusp][jcusp][j]
+            #     c2 = cvec[icusp][jcusp][2*Q-1-j]
+            #     ## Calculate the factor
+            #     if icusp==jcusp:
+            #         f1 = 0
+            #     elif icusp==1 and jcusp==0:
+            #         f1 = -S.weight()
+            #     else:
+            #         f1 = S.weight()
+            #     f2= S.multiplier().character()(-1)
+            #     if ypb[icusp][jcusp][j] >Y:
+            #         f3 = S.weight()
+            #     else:
+            #         f3 = 0
+            #     sgnv[icusp][jcusp][j] = (f1 + f2 + f3) % 2
+            #     c2 = c2.conjugate()*RF(f2*(-1)**(f1+f3))
+                
+            #     #print "xm[j]-xm[1-j]=",xm[j]+xm[2*Q-1-j]
+            #     #print "|x1-x2|=",abs(x2+x1)
+            #     #print "|y1-y2|=",abs(y2-y1)
+            #     if verbose>0:
+            #         print "cv[j]=",c1
+            #         print "cv[1-j]=",c2
+            #     #print "|cv1-cv2|=",abs((c1+c2).imag())
+            #     if abs(c1-c2)>cvmax:
+            #         cvmax = abs(c1-c2)
+            #         #if abs(c1-c2)>0.01:
+            #         if verbose>0:
+            #             print "CV diff=",cvmax
+            #     if abs(y1-y2)>0.01:
+            #         print "Y diff=",abs(y1-y2)
+            #     if abs(x1+x2)>0.01:
+            #         print "X diff=",abs(x1+x2)
+            #     #if cvmax > 1:
+            #     #    return 
+            #     if abs(x2+x1)>xdmax:
+            #         xdmax = abs(x2+x1)
+    if verbose>0:
+        print "xdmax=",xdmax
+        print "cvmax=",cvmax
+    if max(xdmax,cvmax) <= 2.**(8-Y.prec()):
+        use_sym = 1
+        if verbose>0:
+            print "Use symmetry!"
+    else:
+        raise ArithmeticError,"Could not use symmetry!"
+        use_sym = 0
+#    return 
+#    if use_sym==1:
+    Q0 = 1; Q1 = Q+1
+#    else:
+#        Q0 = 1; Q1 = Q+1
+    for l in range(Ms,Mf+1):
+        for jcusp in range(nc):
+            lj = l-Ms+jcusp*Ml
+            lr = RF(l + S.alpha(jcusp)[0])
+            if lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==0 and int(pp_info['variable_a0_minus'][0][jcusp])==0:
+                continue
+            for icusp in range(nc):
+                for j in range(Q):
+                    if ypb[icusp][jcusp][j]==0:
+                        continue
+                    y = ypb[icusp][jcusp][j]
+                    f11 = CF(1)
+                    if lr>0:
+                        f11 = (-twopi*lr*y).exp()
+                        bes = CF(1)
+                    elif lr<0:
+                        f11 = (-twopi*lr*y).exp()
+                        arg = RF.pi()*RF(4)*abs(lr)*y
+                        bes = RF(mpmath.mp.gammainc(km1,arg))
+                        if S._verbose>3 and icusp == 1 and l==Ms:
+                            print "arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,arg)
+                    elif lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
+                        bes = RF(1)
+                    elif lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1:
+                        if k==1:
+                            bes = y.log()
+                        else:
+                            bes = y**RF(1-k)
+                    else:
+                        ## In this case we should have simply skipped this
+                        bes = RF(0)
+                    #f1 = f1d[l][icusp][jcusp][j]*cvec[icusp][jcusp][j]
+                    #f1 = f1*cvec[icusp][jcusp][j]
+                    #if use_sym == 0: 
+                    #    f1 = CF(0,lr*xpb[icusp][jcusp][j]).exp()
+                    #    cv = cvec[icusp][jcusp][j]
+                    #else:
+                    if icusp==jcusp:
+                        a1 = 0
+                    elif icusp==1 and jcusp==0:
+                        a1 = -S.weight()
+                    else:
+                        a1 = S.weight()
+                    if  S.multiplier().character()(-1)==1:
+                        a2 = 0
+                    else:
+                        a2 = 1
+                    if ypb[icusp][jcusp][j] >Y:
+                        a3 = S.weight()
+                    else:
+                        a3 = 0
+                    ep = a1 + a2 + a3
+                    #ar1 = lr*xpb[icusp][jcusp][j] + cvec[icusp][jcusp][j][1]
+                    #bes = bes * cvec[icusp][jcusp][j][0]
+                    ar1 = lr*xpb[icusp][jcusp][j] + cvec[icusp][jcusp][j][1]
+                    bes = bes * cvec[icusp][jcusp][j][0]
+                    #if is_odd(ep):                        
+                    #c2 = c2.conjugate()*RF(f2*(-1)**(f1+f3))
+                    #cv = cvec[icusp][jcusp][j]+cvec[icusp][jcusp][2*Q-1-j]
+                    if S._verbose>3 and icusp == 1 and l==Ms:
+                        print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,f1*f11)
+                        print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,bes)
+                    bes = bes*f11  
+                    for n in range(Ms,Mf+1):
+                        nr = RF(n)+S.alpha(icusp)[0]
+                        #f2 = CF(0,-xm[j]*nr).exp()
+                        ni = n-Ms+icusp*(2*M0+1)
+                        if (cvec[icusp][jcusp][j][2] % 2)==1:
+                            f1 = CF(0,2)*(ar1 + f2d[n][icusp][j]).sin()
+                        elif (cvec[icusp][jcusp][j][2] % 2)==0:
+                            f1 = RF(2)*(ar1 + f2d[n][icusp][j]).cos()
+                        else:
+                            raise ArithmeticError,"need cos or sine!!"
+                        #f1 = CF(0,lr*xpb[icusp][jcusp][j]+f2d[n][icusp][j]).exp()*cvec[icusp][jcusp][j]
+                        vtmp = f1*bes #*f2d[n][icusp][j]
+                        #f2 = CF(0,lr*xpb[icusp][jcusp][2*Q-1-j]+f2d[n][icusp][2*Q-j-1]).exp()*cvec[icusp][jcusp][2*Q-j-1]
+                        #vtmp +=f2*bes #*f2d[n][icusp][j]                        
+                        #if abs(vtmp)<2.**(1-prec):
+                        #    print "vtm=",f1,":",f2,":",bes
+                        V[ni,lj]+=vtmp
+                        if S._verbose>0 and ni==0 and lj==11:
+                            print "-------------------"
+                            print "n=",n
+                            print "V[1,1](",j,")=",V[ni,lj]
+                            print "ef1(",j,")=",f1
+                            print "sgn[v]=",cvec[icusp][jcusp][j][2]
+                            #print "ef2(",2*Q-j-1,")=",f2
+                            print "vtmp=",vtmp
+                            #print "cv(",j,")=",cv
+                            #print "ef2(",j,")=",f2d[n][icusp][j]
+                            print "fd2[{0}][{1}][{2}]={3}".format(n,icusp,j,f2d[n][icusp][j])
+#    if use_sym ==1:
+#        Qfak = RF(1)/RF(Q)
+#    else:
+    Qfak = RF(1)/RF(2*Q)
+    if verbose>0:
+        print "V[0,0]0=",V[0,0]
+        print "V[1,0]0=",V[1,0]
+        print "V[0,1]0=",V[0,1]
+        print "V[1,1]0=",V[1,1]
+        if V.nrows()>11:
+            print "V[0,11] 1=",V[0,11]
+        if V.nrows()>16:
+            print "V[16,16] 1=",V[16,16]
+        print "Y=",Y
+        print "Q=",Q
+    for n in range(V.nrows()):
+        for l in range(V.ncols()):
+            V[n,l]=V[n,l]*Qfak
+            #print "V[0,11] 1=",V[0,11]
+    if verbose>0:
+        print "V[0,0]1=",V[0,0]
+        print "V[1,0]1=",V[1,0]
+        print "V[0,1]1=",V[0,1]
+        print "V[1,1]1=",V[1,1]
+        print "pp_info=",pp_info
+    ## Setting up the right hand side and subtracting left-hand side
+    pp_plus = pp_info['PPplus'][0]
+    pp_minus = pp_info['PPminus'][0]
+    for n in range(Ms,Mf+1):
+        for icusp in range(nc):
+            #print "n,icusp=",n,icusp
+            nr = RF(n)+S.alpha(icusp)[0]
+            ni = n -Ms + icusp*(2*M0+1)
+            if nr>0:
+                bes = RF(-Y*twopi*nr).exp()
+            elif nr<0:
+                arg = RF.pi()*RF(4)*abs(nr)*Y
+                bes = RF(-Y*twopi*nr).exp()
+                bes = bes*RF(mpmath.mp.gammainc(km1,arg))
+                #bes = RF(bes)
+                #bes = incomplete_gamma(km1,arg)
+            elif nr==0 and int(pp_info['variable_a0_plus'][0][icusp])==1:
+                bes = RF(1)
+            elif nr==0 and int(pp_info['variable_a0_minus'][0][icusp])==1:
+                if k==1:
+                    bes = Y.log()
+                else:
+                    bes = Y**RF(1-k)
+            else:
+                bes = 0
+            #if ni==1 or ni==16 and S._verbose>0:
+            #    print "ni=",ni
+            #    print "nr=",nr
+            #    print "bes(1)=",bes
+            V[ni,ni]-=bes
+                #raise ArithmeticError,"a0 not correct set!"
+            if verbose>1:
+                print "n=",n
+            for jcusp,l in pp_plus.keys():
+                ppc = CF(pp_plus[(jcusp,l)])
+                lr = RF(l)+S.alpha(jcusp)[0]
+                if verbose>1:
+                    print "l=",l
+                summa = CF(0)
+                if lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
+                    continue
+                #print "MAking RHS! with l,jcusp=",l,jcusp
+                for j in range(0,Q):
+                    #print "ypb=",ypb[icusp][jcusp][j]
+                    if ypb[icusp][jcusp][j]==0:
+                        continue
+                    y = ypb[icusp][jcusp][j]
+                    if lr<0:
+                        bes = RF(-y*twopi*lr).exp()
+                    elif lr==0:
+                        bes = RF(1)
+                    else:
+                        raise ArithmeticError,"This princpal part should be holomorphic!"
+                    z = cvec[icusp][jcusp][j][1]
+                    arg = lr*xpb[icusp][jcusp][j] - nr*xm[j] + z
+                    ab1 = z.abs()
+                    #f2 = CF(0,arg).exp()
+                    if (cvec[icusp][jcusp][j][2] % 2)==1: #if sgnv[icusp][jcusp][j]==1:
+                        f2 = CF(0,2)*arg.sin()
+                    else:
+                        f2 = RF(2)*arg.cos()
+                    tmpc = bes*f2*ab1
+                    if verbose>3:
+                        print "tmpc = (",j,")",y,bes,"*",f2,"*",cvec[icusp][jcusp][j],"=",tmpc
+                    summa = summa + tmpc
+                if verbose>1:
+                    print "MAking RHS! summma = ",summa
+                summa = summa*Qfak
+                RHS[ni,0] = RHS[ni,0] + summa*ppc
+                if l==n and icusp==jcusp:
+                    if verbose>0:
+                        print "Subtract! ni,n,nr=",ni,n,nr
+                        print "ppc=",ppc
+                    if nr<0:
+                        bes = RF(-Y*twopi*nr).exp()
+                        RHS[ni,0] = RHS[ni,0] - bes*ppc
+                    else:
+                        if nr==0 and pp_info['variable_a0_plus'][0][icusp]==0:
+                            bes = RF(1)
+                            RHS[ni,0] = RHS[ni,0] - bes*ppc
+            # Set the non-holomorphic principal part
+            for jcusp,l in pp_minus.keys():
+                ppc = pp_minus[(jcusp,l)]
+                lr = RF(l)+S.alpha(jcusp)[0]
+                summa = 0
+                if ppc==0:
+                    continue
+                if lr==0 and int(pp_info['variable_a0_minus'][0][icusp])==1:
+                    continue
+                if lr<>0:
+                    raise NotImplementedError,"Only implemented n=0 in non-holom. principal part!"
+                for j in range(0,Q):
+                    if ypb[icusp][jcusp][j]==0:
+                        continue
+                    y = ypb[icusp][jcusp][j]
+                    if k==1:
+                        bes = y.log()
+                    else:
+                        bes = y**RF(1-k)
+
+                    z = cvec[icusp][jcusp][j]
+                    arg = lr*xpb[icusp][jcusp][j] - nr*xm[j] + z.argument()
+                    ab1 = z.abs()
+                    if (cvec[icusp][jcusp][j][2] % 2)==1: #if sgnv[icusp][jcusp][j]==1:
+                        #if sgnv[icusp][jcusp][j]==1:
+                        f2 = CF(0,2)*arg.sin()
+                    else:
+                        f2 = RF(2)*arg.sin()
+                    tmpc = bes*f2*ab1 #*cvec[icusp][jcusp][j]
+                    summa += tmpc
+                summa = summa*ppc*Qfak
+                RHS[ni,0] +=summa                                
+                if l==n and icusp==jcusp:
+                    if k==1:
+                        bes = Y.log()
+                    else:
+                        bes = Y**RF(1-k)
+                    RHS[ni,0] -= bes*ppc
+    if verbose>0:
+        print "ymax = ",ymax
+
+    if setc==None:
+        return V,RHS
+    W={}
+    W['V']=V
+    W['RHS']=RHS
+    W['space']=S
+    W['Ms']=-M0;    W['Mf']=M0
+    W['Ml']=2*M0+1
+    W['rdim']=1
+    W['pp']=pp
+    W['nc']=S.group().ncusps()
+    W['var_a+']=pp_info['variable_a0_plus']
+    W['var_a-']=pp_info['variable_a0_minus']
+ 
+    N = S.set_normalization([setc])
+    
+    C=solve_system_for_harmonic_weak_Maass_waveforms(W,N)
+    return C
+
+
+m=TrivialMultiplier(Gamma0(23),dchar=(23,-1))
+H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=1,do_mpmath=1,prec=53)
+# attach "/scratch/fredstro/git_test/psage/psage/modform/maass/harmonic_test.py"
+RF=RealField(H._prec)
+Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)
+pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
+
+H._verbose=2
+V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])

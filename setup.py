@@ -192,6 +192,7 @@ my_extensions = [
     Extension('psage.modform.maass.mysubgroups_alg',
               ['psage/modform/maass/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
+
     Extension('psage.modform.maass.permutation_alg',
               ['psage/modform/maass/permutation_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),

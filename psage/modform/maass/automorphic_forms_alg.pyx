@@ -630,7 +630,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         else:
                             ## If none of them are variables this means
                             ## that they are both set in the principal parts
-                            mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
+                            mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
+                            #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
                             #ef1[j,icusp,jcusp,n]=one
                         #if verbose>1:
                         #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
@@ -670,7 +671,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         #tmp2=tmp1*ef2[n,j,icusp]
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
                         #V[ni,lj]=V[ni,lj]+tmp1*
-                        if verbose > 1 and ni==12 and lj==12:
+                        if verbose > 1 and ni==0 and lj==10:
                             print "-------------------"
                             print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj]) #CC(V[ni,lj].real(),V[ni,lj].imag())
                             mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
@@ -708,6 +709,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     lr = RF(0); arg=RF(0);nrY2pi=RF(0); kbes=RF(0)
     f1 = CF(0); f2=CF(0); ppc=CF(0); summa=CF(0)
     ppc_minus = CF(0); summa_minus=CF(0)
+    #verbose=3
     for n in range(Ml):
         for icusp in range(nc):
             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
@@ -817,7 +819,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                             print "f1(",j,")=",f1
                             print "arg=",lr,"*",xpb,"-",nr,"*",Xm[j],"=",arg
                             print "f2(",j,")=",f2
-                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) == 0:
+                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
                             mpfr_cos(tmpar1,tmpar,rnd_re)
                             mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
                             mpc_set_fr(tmp2.value,tmpar1,rnd)                                     
@@ -836,6 +838,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         print "summa=",RR(summa.real()),RR(summa.imag())
                     #RHS[ni,k]=RHS[ni,k]+summa/Qfak
                     mpc_div_ui(summa.value,summa.value,Qfaki,rnd)
+                    mpc_mul(summa.value,summa.value,ppc.value,rnd)
                     mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa.value,rnd)
                 if verbose>2:
                     print "RHS0[",ni,k,"]=",RHS[ni][k]
@@ -1480,7 +1483,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         #tmp2=tmp1*ef2[n,j,icusp]
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
                         #V[ni,lj]=V[ni,lj]+tmp1*
-                        if verbose > 1 and ni==12 and lj==12:
+                        if verbose > 1 and ni==0 and lj==10:
                             print "-------------------"
                             #print "V[1,1](",j,")=",V[ni,lj] #CC(V[ni,lj].real(),V[ni,lj].imag())
                             print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj])

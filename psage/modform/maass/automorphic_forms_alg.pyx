@@ -373,7 +373,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     Qfaki=2*Q
     # Pullpack points
     if verbose>0:
-        print "In setup_matrix_for_harmonic_Maass_waveforms_sv"
+        print "In setup_matrix_for_harmonic_Maass_waveforms_sym"
         print "Qs,Qf=",Qs,Qf
     cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab
     cdef mpc_t iargpb_t,tmpc_t

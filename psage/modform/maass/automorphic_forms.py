@@ -899,7 +899,7 @@ class AutomorphicFormSpace(Parent):
     ##     D=solve_system_for_harmonic_weak_Maass_waveforms(V,N,deb=True)
     ##     F._coeffs=D
     ##     return F
-    def _get_element(self,principal_part,digs=10,dbase_prec=None,SetC=None,SetY=None,SetM=None,SetQ=None,do_mpmath=0,get_mat=False,get_c=False,gr=0,version=0):
+    def _get_element(self,principal_part,digs=10,dbase_prec=None,SetC=None,SetY=None,SetM=None,SetQ=None,do_mpmath=0,get_mat=False,use_sym=1,get_c=False,gr=0,version=0):
         r"""
         INPUT:
         
@@ -1023,7 +1023,7 @@ class AutomorphicFormSpace(Parent):
                 Ymp = mpmath.mp.mpf(Ymp)
                 V=setup_matrix_for_harmonic_Maass_waveforms_sv_bak_22(self,Ymp,M,Q,ppart)
             elif (version==0 or gr==1):
-                V=setup_matrix_for_harmonic_Maass_waveforms_sv(self,Ymp,M,Q,ppart)
+                V=setup_matrix_for_harmonic_Maass_waveforms(self,Ymp,M,Q,ppart,use_sym=use_sym)
             else:
                 C = setup_and_solve_for_harmonic_Maass_waveforms(self,Ymp,M,Q,ppart,cset=setc)
         else:
@@ -1534,7 +1534,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         Q = M + 10
         if self._verbose>0:
             print "M,Q,Y=",M,Q,Y
-        V=setup_matrix_for_harmonic_Maass_waveforms_sv(self,Y,M,Q,pp)
+        V=setup_matrix_for_harmonic_Maass_waveforms(self,Y,M,Q,pp)
         # Fix normalizations
         if self._verbose>1:
             print "pp=",pp

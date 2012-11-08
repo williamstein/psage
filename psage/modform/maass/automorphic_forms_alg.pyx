@@ -269,6 +269,12 @@ def err_est_hwmf_neg(Y,M,k,K0,K1):
     #fak=f2mpmath.mp.exp(-two*pi*M*y)
     return mpmath.mpf(K1)*fak
 
+cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1):
+    if H.group().ncusps()<=2 and use_sym==1:
+        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version)
+    else:
+        return setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,M,Q,principal_parts,version)
+
 cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal_parts,version=1):
     r"""
 
@@ -628,7 +634,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                             #ef1[j,icusp,jcusp,n]=one
                         #if verbose>1:
                         #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
-                    if verbose > 3 and n-Ms==1:
+                    if verbose > 1 and n-Ms==1:
                         mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
                         print "ef1[",n,j,icusp,"]=",tmpr
     for n in range(s):
@@ -652,10 +658,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         ni=Ml*icusp+n
                         mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
                         #mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
-                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) == 0:
+                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
                             mpfr_cos(tmpar1,tmpar1,rnd_re)
                             mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
-                            mpc_mul_fr(tmp2.value,tmp2.value,tmpar,rnd)                                     
+                            mpc_set_fr(tmp2.value,tmpar1,rnd)                                     
                         else:
                             mpfr_sin(tmpar1,tmpar1,rnd_re)
                             mpc_set_si_si(tmp2.value,0,2,rnd)
@@ -664,10 +670,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         #tmp2=tmp1*ef2[n,j,icusp]
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
                         #V[ni,lj]=V[ni,lj]+tmp1*
-                        if verbose > 1 and ni==0 and lj==23:
+                        if verbose > 1 and ni==12 and lj==12:
                             print "-------------------"
-                            print "V[1,1](",j,")=",V[ni,lj] #CC(V[ni,lj].real(),V[ni,lj].imag())
+                            print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj]) #CC(V[ni,lj].real(),V[ni,lj].imag())
                             mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
+                            print "tmp2=",tmp2 #CC(tmpc.real(),tmpc.imag())
+                            print "sym=",mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re)
                             print "ef1(",j,")=",tmpr #CC(tmpc.real(),tmpc.imag())
                             #mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
                             #print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
@@ -1073,8 +1081,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     return W
 
 
+### Version to use when we can not use symmetry
 
-cpdef setup_matrix_for_harmonic_Maass_waveforms_sv(H,Y_in,int M,int Q,principal_parts,version=1):
+cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,principal_parts,version=1):
     r"""
 
     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
@@ -1471,9 +1480,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sv(H,Y_in,int M,int Q,principal_
                         #tmp2=tmp1*ef2[n,j,icusp]
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
                         #V[ni,lj]=V[ni,lj]+tmp1*
-                        if verbose > 1 and ni==0 and lj==23:
+                        if verbose > 1 and ni==12 and lj==12:
                             print "-------------------"
-                            print "V[1,1](",j,")=",V[ni,lj] #CC(V[ni,lj].real(),V[ni,lj].imag())
+                            #print "V[1,1](",j,")=",V[ni,lj] #CC(V[ni,lj].real(),V[ni,lj].imag())
+                            print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj])
+                            print "tmp1=",tmp1
+                            print "tmp2=",tmp2
                             mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
                             print "ef1(",j,")=",tmpc #CC(tmpc.real(),tmpc.imag())
                             mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)

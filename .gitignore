@@ -5,6 +5,7 @@ build/
 push
 dist
 #
+#.*
 ascent.egg-info
 MANIFEST
 *.c

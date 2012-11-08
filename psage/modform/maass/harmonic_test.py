@@ -1345,4 +1345,4 @@ Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091
 pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
 
 H._verbose=2
-V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])
+#V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])

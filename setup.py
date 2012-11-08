@@ -103,10 +103,13 @@ ext_modules = [
               ["psage/modform/siegel/fastmult.pyx"]),
 
     Extension('psage.modform.maass.mysubgroups_alg',
-              ['psage/modform/maass/mysubgroups_alg.pyx']),
+              ['psage/modform/maass/mysubgroups_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
+              include_dirs = numpy_include_dirs),
 
     Extension('psage.modform.maass.maass_forms_alg',
               ['psage/modform/maass/maass_forms_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs),
 
     Extension('psage.modform.maass.lpkbessel',
@@ -189,6 +192,7 @@ my_extensions = [
     Extension('psage.modform.maass.mysubgroups_alg',
               ['psage/modform/maass/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
+
     Extension('psage.modform.maass.permutation_alg',
               ['psage/modform/maass/permutation_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),

@@ -1480,13 +1480,20 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
     return pb
 
 cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
+    r"""
+    Pullback the horocycle at height Y.
+    If Qs=1 and Qf =Q then we use symmetry, otherwise not.
+    """
     cdef Vector_real_mpfr_dense Xm_t
     cdef mpfr_t*** Xpb_t=NULL
     cdef mpfr_t*** Ypb_t=NULL
     cdef mpc_t*** Cvec_t=NULL
-    cdef int Ql,i,j,n,nc,prec
+    cdef mpfr_t**** RCvec_t=NULL
+    cdef int Ql,i,j,k,n,nc,prec
     cdef RealField_class RF
     cdef RealNumber weight
+#    cdef RealNumber rtmp
+    cdef list l
     nc= S.group().ncusps()
     Ql=Qf-Qs+1
     prec=Y.prec()
@@ -1495,6 +1502,7 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
         print "prec=",prec
     RF = RealField(prec)
     CF = MPComplexField(prec)
+#    rtmp=RF(0)
     weight = RF(S._weight)
     Xm_t=Vector_real_mpfr_dense(vector(RF,Ql).parent(),0)
     Xpb_t = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
@@ -1517,50 +1525,105 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
                 mpfr_set_si(Xpb_t[i][j][n],0,rnd_re)
                 mpfr_set_si(Ypb_t[i][j][n],0,rnd_re)
                 #Ypb_t[i][j][n]=<double>0
-    Cvec_t = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
-    if Cvec_t==NULL: raise MemoryError
-    for i from 0<=i<nc:
-        Cvec_t[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
-        if Cvec_t[i]==NULL:
-            raise MemoryError
-        for j from 0<=j<nc:
-            Cvec_t[i][j] = <mpc_t*>sage_malloc(sizeof(mpc_t) * Ql )
-            if Cvec_t[i][j]==NULL:
+    if Qs<0:
+        Cvec_t = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
+        if Cvec_t==NULL: raise MemoryError
+        for i from 0<=i<nc:
+            Cvec_t[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
+            if Cvec_t[i]==NULL:
                 raise MemoryError
-            for n from 0<=n<Ql:
-                mpc_init2(Cvec_t[i][j][n],prec)
-                mpc_set_si(Cvec_t[i][j][n],0,rnd)
+            for j from 0<=j<nc:
+                Cvec_t[i][j] = <mpc_t*>sage_malloc(sizeof(mpc_t) * Ql )
+                if Cvec_t[i][j]==NULL:
+                    raise MemoryError
+                for n from 0<=n<Ql:
+                    mpc_init2(Cvec_t[i][j][n],prec)
+                    mpc_set_si(Cvec_t[i][j][n],0,rnd)
+    else:
+        RCvec_t = <mpfr_t****>sage_malloc(sizeof( Xpb_t) * nc )
+        if RCvec_t==NULL: raise MemoryError
+        for i from 0<=i<nc:
+            RCvec_t[i] = <mpfr_t***>sage_malloc(sizeof(mpfr_t**) * nc )
+            if RCvec_t[i]==NULL:
+                raise MemoryError
+            for j from 0<=j<nc:
+                RCvec_t[i][j] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * Ql )
+                if RCvec_t[i][j]==NULL:
+                    raise MemoryError
+                for n from 0<=n<Ql:
+                    RCvec_t[i][j][n] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * 3 )
+                    mpfr_init2(RCvec_t[i][j][n][0],prec)
+                    mpfr_init2(RCvec_t[i][j][n][1],prec)
+                    mpfr_init2(RCvec_t[i][j][n][2],prec)
+                    
+                    mpfr_set_si(RCvec_t[i][j][n][0],1,rnd_re)
+                    mpfr_set_si(RCvec_t[i][j][n][1],0,rnd_re)
+                    mpfr_set_si(RCvec_t[i][j][n][2],0,rnd_re)
                 #Cvec_t[i][j][n]=<double complex>0
     G=S._group
-    cdef int is_hecke = 0 
+    cdef int is_hecke = 0
     if is_Hecke_triangle_group(G):
         pullback_pts_hecke_triangle_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
     else:
-        pullback_pts_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+        if Qs<0:
+            pullback_pts_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+        else:
+            pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,RCvec_t)
     cdef dict Xm,Xpb,Ypb,Cvec,pb
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
+    RCvec=dict()
     cdef MPComplexNumber ctmp
-    cdef RealNumber rtmp,one
+    cdef RealNumber rtmp,rtmp1,rtmp2,one
     one=RF(1)
-    rtmp = RF(0)
+    rtmp = RF(0);rtmp1 = RF(1); rtmp2 = RF(0)
     ctmp = CF(0)
     for n in range(Ql):
         Xm[n]=Xm_t[n]
     for i in range(nc):
-        Cvec[i]=dict();Xpb[i]=dict();Ypb[i]=dict()
+        Xpb[i]=dict();Ypb[i]=dict()
         for j in range(nc):
-            Cvec[i][j]=dict();Xpb[i][j]=dict();Ypb[i][j]=dict()
+            Xpb[i][j]=dict();Ypb[i][j]=dict()
             for n in range(Ql):
-                mpc_set(ctmp.value,Cvec_t[i][j][n],rnd)
-                Cvec[i][j][n]=ctmp*one
                 mpfr_set(rtmp.value,Xpb_t[i][j][n],rnd_re)
                 Xpb[i][j][n]=rtmp*one
                 mpfr_set(rtmp.value,Ypb_t[i][j][n],rnd_re)
                 Ypb[i][j][n]=rtmp*one
-
     pb=dict()
-    pb['xm']=Xm; pb['xpb']=Xpb; pb['ypb']=Ypb; pb['cvec']=Cvec
+    pb['xm']=Xm; pb['xpb']=Xpb; pb['ypb']=Ypb 
+    if Qs<0:
+        for i in range(nc):
+            Cvec[i]=dict()
+            for j in range(nc):
+                Cvec[i][j]=dict()
+                for n in range(Ql):
+                    mpc_set(ctmp.value,Cvec_t[i][j][n],rnd)
+                    Cvec[i][j][n]=ctmp*one
+        pb['cvec']=Cvec
+    else:
+        for i in range(nc):
+            RCvec[i]=dict()
+            for j in range(nc):
+                RCvec[i][j]=dict()
+                for n in range(Ql):
+                    #RCvec[i][j][n]=[]
+                    #print "RCvec0=",RCvec[i][j][n]
+                    rtmp1=RF(1);rtmp2=RF(0)
+                    mpfr_set(rtmp1.value,RCvec_t[i][j][n][0],rnd_re)
+                    mpfr_set(rtmp2.value,RCvec_t[i][j][n][1],rnd_re)
+                    k = mpfr_get_si(RCvec_t[i][j][n][2],rnd_re)
+                    #if S._verbose>1:
+                    #    print "abs(cvec)=",rtmp1
+                    #    print "arg(cvec)=",rtmp2                    
+                    #l = [rtmp1,rtmp2,k]
+                    #if S._verbose>1:
+                    #    print "Rcvec[{0}][{1}][{2}]={3}".format(i,j,n,l)
+                    RCvec[i][j][n]={0:rtmp1,1:rtmp2,2:k}
+                    #if S._verbose>1:
+                    #    print "Rcvec[{0}][{1}][{2}]={3}".format(i,j,n,RCvec[i][j][n])
+        pb['cvec']=RCvec
+    #if S._verbose>1:
+    #    print "Rcvec[{0}][{1}][{2}]={3}".format(1,1,8,RCvec[1][1][8])
     if Ypb_t<>NULL:
         for i in range(nc):
             if Ypb_t[i]<>NULL:
@@ -1585,6 +1648,21 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
                         sage_free(Cvec_t[i][j])
                 sage_free(Cvec_t[i])
         sage_free(Cvec_t)
+    if RCvec_t<>NULL:
+        for i in range(nc):
+            if RCvec_t[i]<>NULL:
+                for j in range(nc):
+                    if RCvec_t[i][j]<>NULL:
+                        for n in range(Ql):
+                            if RCvec_t[i][j][n]<>NULL:
+                                mpfr_clear(RCvec_t[i][j][n][0])
+                                mpfr_clear(RCvec_t[i][j][n][1])
+                                mpfr_clear(RCvec_t[i][j][n][2])
+                                sage_free(RCvec_t[i][j][n])
+                        sage_free(RCvec_t[i][j])
+                sage_free(RCvec_t[i])
+        sage_free(RCvec_t)
+    
     return pb
 
 @cython.cdivision(True)
@@ -1947,6 +2025,430 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
     mpfr_clear(x0);  mpfr_clear(y0)
     mpfr_clear(YY)
 
+@cython.cdivision(True)
+cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec):
+
+    r""" Computes a whole array of pullbacked points-
+         using MPFR/MPC types.
+    INPUT:
+
+    - ``S``  -- AutomorphicFormSpace
+    - ``Qs`` -- integer
+    - ``Qf`` -- integer
+    - ``Y``  -- real >0
+    - ``deb``    -- (False) logical
+
+    
+    OUTPUT:
+
+    - ``pb`` -- dictonary with entries:
+       - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
+       - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
+       - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
+       - 'cvec' -- Real[0:nc,0:nc,Qf-Qs+1,0:2] : arg, abs and
+       - 'sign' -- integer [0:nc,0:nc,Qf-Qs+1] : determines if we use cos or sine
+
+    EXAMPLES::
+
+
+        sage: G=MySubgroup(Gamma0(2))
+        sage: [Xm,Xpb,Ypb,Cv]=pullback_pts(G,1,3,0.1)   
+
+    Note that we need to have $Y<Y_{0}$ so that all pullbacked points
+    are higher up than Y.
+
+        sage: pullback_pts(G,1,10,0.44)
+        Traceback (most recent call last):
+        ...
+        ArithmeticError: Need smaller value of Y
+
+    
+    """
+    # WE let the input determine the precision
+    #print "pullback mpc!"
+    cdef int prec=Y.parent().prec()
+    CF=MPComplexField(prec)
+    RF=RealField(prec)
+    cdef RealNumber x1,y1,x2,y2,x3,y3,one,weight,rtmp
+    x1=RF(1)
+    x2=RF(1)
+    x3=RF(1)
+    y1=RF(1)
+    y2=RF(1)
+    y3=RF(1)
+    if S._verbose>1:
+        print "Y in pb =",Y
+        print "prec=",prec
+    cdef int a,b,c,d,v0,v1,itmp,i,j,ui,Ql,k,ch_m1
+    cdef mpfr_t swj,swi,x0,y0,YY,tmpab1,tmpar1,tmpab2,tmpar2,tmpab3,tmpar3,tmpar,tmpab,weight_t
+    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0
+    cdef MPComplexNumber ctmp,m1,m2,m3
+    
+    m1=CF(1); m2=CF(1); m3=CF(1)
+    ar=RF(1); br=RF(0); cr=RF(0); dr=RF(1)
+    rtmp = RF(0)
+    mpfr_init2(swi,prec)
+    mpfr_init2(swj,prec)
+    mpfr_init2(x0,prec)
+    mpfr_init2(y0,prec)
+    mpfr_init2(YY,prec)
+    mpfr_set(YY,Y.value,rnd_re)
+    mpfr_init2(tmpab,prec); mpfr_init2(tmpar,prec)
+    mpfr_init2(tmpab1,prec); mpfr_init2(tmpar1,prec)
+    mpfr_init2(tmpab2,prec); mpfr_init2(tmpar2,prec)
+    mpfr_init2(tmpab3,prec); mpfr_init2(tmpar3,prec)
+    mpfr_init2(weight_t,prec)
+    #mpfr_init2(x1,prec)
+    #mpfr_init2(y1,prec)
+    Ql = Qf - Qs + 1
+    ui = S._unitary_action
+    weight = RF(S.weight())
+    k = int(weight)
+    if abs(k-weight)>1e-10:
+        raise ValueError,"Only use this routine for integer weight! (for now)"
+    mpfr_set(weight_t,weight.value,rnd_re)
+    G = S.group()
+    multiplier = S.multiplier()
+    if weight<>0 or not multiplier.is_trivial():
+        non_trivial=True
+    else:
+        non_trivial=False
+    if multiplier.character()(-1)==1:
+        ch_m1=0
+    else:
+        ch_m1=1
+    trivial_mult = multiplier.is_trivial()
+    cdef mpfr_t mppi
+    mpfr_init2(mppi,prec)
+    twopi=RF.pi()
+    mpfr_set(mppi,twopi.value,rnd_re)
+    twopi=RF(2)*twopi
+    twopii=CF(0,twopi)
+    mp_i=CF(0,1)
+    ctmp= CF(0)
+    one=RF(1)
+    ep0=RF(1E-10)
+    #Xm=vector(RF,Qf-Qs+1)
+    #VS = vector(RF,Qf-Qs+1).parent()
+    #Xm = Vector_real_mpfr_dense(VS,0)
+    #cdef mpc_t ***Cvec
+    
+    if S._holomorphic and not S._weak and weight==0:
+        raise Exception,"Must support a non-zero weight for non-weak holomorphic forms!"
+    verbose = S._verbose
+    if Qs<0:
+        Qfak = 2*(Qf-Qs+1)
+        for j from Qs <= j <= Qf:
+            mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
+            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+    else:
+        Qfak = 4*(Qf-Qs+1)
+        for j from Qs <= j <= Qf:
+            mpfr_set_si(Xm._entries[j-Qs],2*(j-Qf)-1,rnd_re)
+            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+    cdef int ci,cj
+    cdef int cia,cib,cja,cjb,ciindex,cjindex
+    cdef int nc=G._ncusps
+    cdef int nv=G._nvertices
+    #nc = len(G._cusps)
+    #cdef RealNumber swi
+    cdef int is_Gamma0,nreps
+    is_Gamma0=<int>G._is_Gamma0
+    cdef int*** reps=NULL
+    cdef int N
+    if is_Gamma0==1:
+        nreps=G._index
+        N=G._level
+        reps= <int ***> sage_malloc(sizeof(int**) * nreps)
+        for j from 0 <=j<nreps:
+            reps[j]=NULL
+            reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
+            if reps[j]==NULL:
+                raise MemoryError
+            reps[j][0]=NULL;reps[j][1]=NULL
+            reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
+            if reps[j][0]==NULL:
+                raise MemoryError
+            reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
+            if reps[j][1]==NULL:
+                raise MemoryError
+            reps[j][0][0]=G._coset_reps[j][0]
+            reps[j][0][1]=G._coset_reps[j][1]
+            reps[j][1][0]=G._coset_reps[j][2]
+            reps[j][1][1]=G._coset_reps[j][3]
+    
+    #if verbose>2:
+    #    print "nc=",nc
+    if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
+        use_int=0
+    cdef int** normalizers=NULL
+    cdef int** cusp_maps=NULL
+    normalizers=<int**>sage_malloc(sizeof(int*)*nc)
+    if normalizers==NULL: raise MemoryError
+    for i from 0<=i<nc:
+        normalizers[i]=<int*>sage_malloc(sizeof(int)*4)
+        a,b,c,d=G._cusp_data[i]['normalizer']
+        normalizers[i][0]=a
+        normalizers[i][1]=b
+        normalizers[i][2]=c
+        normalizers[i][3]=d
+        if i>0 and d<>0:
+            raise ArithmeticError,"Can not use this symmetrized version of the algorithm!"
+        if verbose>2:
+            print "Normalizer[",i,"]=",a,b,c,d
+    vertex_maps=<int**>sage_malloc(sizeof(int*)*nv)
+    if vertex_maps==NULL: raise MemoryError
+    cusp_maps=<int**>sage_malloc(sizeof(int*)*nv)
+    if cusp_maps==NULL: raise MemoryError
+    vertex_widths=<double*>sage_malloc(sizeof(double)*nv)
+    if vertex_widths==NULL: raise MemoryError
+    vertex_cusp=<int*>sage_malloc(sizeof(int)*nv)    
+    if vertex_cusp==NULL: raise MemoryError
+    if cusp_maps==NULL: raise MemoryError
+    cdef int delta
+    delta = 0
+    for i from 0<=i<nv:
+        cusp_maps[i]=<int*>sage_malloc(sizeof(int)*4)
+        cusp_maps[i][0]=G._cusp_maps[i][0]
+        cusp_maps[i][1]=G._cusp_maps[i][1]
+        cusp_maps[i][2]=G._cusp_maps[i][2]
+        cusp_maps[i][3]=G._cusp_maps[i][3]
+        vertex_maps[i]=<int*>sage_malloc(sizeof(int)*4)
+        vertex_maps[i][0]=<int>G._vertex_maps[i].a()
+        vertex_maps[i][1]=<int>G._vertex_maps[i].b()
+        vertex_maps[i][2]=<int>G._vertex_maps[i].c()
+        vertex_maps[i][3]=<int>G._vertex_maps[i].d()
+        vertex_widths[i]=<double>G._vertex_widths[i]
+        vertex_cusp[i]=<int>G._vertex_data[i]['cusp']
+    cdef double* widths
+    widths=<double*>sage_malloc(sizeof(double)*nc)
+    for i in range(nc):
+        if verbose>3:
+            print "width[",i,"]=",G._cusp_data[i]['width'],type(G._cusp_data[i]['width'])
+        widths[i]=<double>G._cusp_data[i]['width']
+    cdef int wi,wj,vi,vj
+    cdef SL2Z_elt A,Tj
+    cdef double dp_x,dp_y
+    #print "Y={0}".format(Y)
+    for ci in range(nc):
+        wi = <int>widths[ci] #G._cusp_data[ci]['width'] #(ci)
+        if verbose>1:
+            print "cusp =",ci
+        if wi<>1:
+            mpfr_set_ui(swi,wi,rnd_re)
+            mpfr_sqrt(swi,swi,rnd_re)
+        else:
+            mpfr_set_ui(swi,1,rnd_re)
+        for j in range(Ql): #Qs,Qf+1): #from Qs<= j <= Qf:
+            #if ciindex==0:
+            mpfr_set(x0,Xm._entries[j],rnd_re)
+            mpfr_set(y0,YY,rnd_re)
+            mpfr_set(y1.value,YY,rnd_re)
+            #print "Xm[j]={0}, Y={1}".format(Xm[j],y1)
+            if ci<>0:
+                a=normalizers[ci][0]; b=normalizers[ci][1]
+                c=normalizers[ci][2]; d=normalizers[ci][3]
+                _normalize_point_to_cusp_mpfr(x0,y0,a,b,c,d,wi)
+            if verbose > 2:
+                mpfr_set(x1.value,x0,rnd_re)
+                mpfr_set(y1.value,y0,rnd_re)
+                print "x1={0},y1={1}".format(x1,y1)
+            pullback_to_Gamma0N_mpfr_c(G,x1.value,y1.value,x0,y0,&a,&b,&c,&d)
+            Tj=SL2Z_elt(a,b,c,d)
+            if verbose > 2:
+                print "pull back of {0},{1} is {2},{3}".format(Xm[j],Y,x1,y1)
+                print "map:",a,b,c,d
+            #dp_x=mpfr_get_Ad(x1,rnd_re)
+            dp_x = float(x1); dp_y = float(y1)
+            #dp_y=mpfr_get_d(y1,rnd_re)
+            vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&dp_x,&dp_y)
+            cj = vertex_cusp[vj]
+            #cj,vj= G.closest_cusp(x1,y1,vertex=1)
+            #cja,cjb= G.closest_cusp(x1,y1) #G._vertex_data[G._vertices[vi]]['cusp'] 
+            #cjindex=G._cusps.index((cja,cjb))
+            wj=<int>widths[cj] #G._cusp_data[cj]['width']
+            if wj<>1:
+                mpfr_set_ui(swj,wj,rnd_re)
+                mpfr_sqrt(swj,swj,rnd_re)
+            else:
+                mpfr_set_ui(swj,1,rnd_re)
+                #swj=sqrt(<double>wj)
+            #wj = G._cusp_data[(cja,cjb)]['width']
+            a = cusp_maps[vj][0]   #a,b,c,d=G._vertex_data[cj]['cusp_map'] #[v]
+            b = cusp_maps[vj][1]
+            c = cusp_maps[vj][2]
+            d = cusp_maps[vj][3]  #U = G._vertex_data[vj]['cusp_map']
+            mpfr_set(x2.value,x1.value,rnd_re)
+            mpfr_set(y2.value,y1.value,rnd_re)
+            #x2=x1; y2=y1
+            if a<>1 or b<>0 or c<>0 or d<>1: #U<>SL2Z_elt(1,0,0,1):
+                _apply_sl2z_map_mpfr(x2.value,y2.value,a,b,c,d) #U[0,0],U[0,1],U[1,0],U[1,1])
+            if cj>0:
+                mpfr_set(x3.value,x2.value,rnd_re)
+                mpfr_set(y3.value,y2.value,rnd_re)
+                #x3=x2; y3=y2
+                a=normalizers[cj][3]; b=-normalizers[cj][1]
+                c=-normalizers[cj][2]; d=normalizers[cj][0]
+                if verbose>2:
+                    print "Normalizer: a,b,c,d=",a,b,c,d
+                _normalize_point_to_cusp_mpfr(x3.value,y3.value,a,b,c,d,wj,1)
+            else:
+                mpfr_set(x3.value,x2.value,rnd_re)
+                mpfr_set(y3.value,y2.value,rnd_re)
+                #x3=x2; y3=y2
+            #x3 = x3*twopi
+            mpfr_set(Xpb[ci][cj][j],x3.value,rnd_re)
+            mpfr_mul(Xpb[ci][cj][j],Xpb[ci][cj][j],twopi.value,rnd_re)
+            # Recall that Ypb must be greater than Y otherwise we need a better Y
+            if y3>=Y-ep0:
+                mpfr_set(Ypb[ci][cj][j],y3.value,rnd_re)
+            else:
+                if verbose > 0:
+                    print "ci,cj=",ci,cj
+                    print "Xm=",Xm[j]
+                    #print "x,y=",x0,"\n",y0
+                    print "x1,y1=",x1,"\n",y1
+                    print "x2,y2=",x2,"\n",y2
+                    print "x3,y3=",x3,"\n",y3
+                    print "Xpb=",mpfr_get_d(Xpb[ci][cj][j],rnd_re)
+                    print "Ypb=",mpfr_get_d(Ypb[ci][cj][j],rnd_re)
+                raise ArithmeticError,"Need smaller value of Y" 
+            if verbose > 2:
+                print "ci,cj=",ci,cj
+                print "Xm=",Xm[j]
+                print "x,y=",mpfr_get_d(x0,rnd_re),"\n",mpfr_get_d(y0,rnd_re)
+                print "x1,y1=",x1,"\n",y1
+                print "x2,y2=",x2,"\n",y2
+                print "x3,y3=",x3,"\n",y3
+                print "Xpb=",mpfr_get_d(Xpb[ci][cj][j],rnd_re)
+                print "Ypb=",mpfr_get_d(Ypb[ci][cj][j],rnd_re)
+            # We also get the multiplier if we need it
+            if(non_trivial):
+                delta = ch_m1
+                if verbose>2:
+                    print "delta0=",delta
+
+                if weight<>0:
+                    c = normalizers[ci][2]
+                    d = normalizers[ci][3]
+                    mpfr_mul_si(cr.value,swi,c,rnd_re)
+                    mpfr_set_si(dr.value,d,rnd_re)
+                    mpfr_div(dr.value,dr.value,swi,rnd_re)
+                    #m1=j_fak_mpc(cr,dr,Xm[j],Y,-weight,ui)
+                    j_fak_mpc_c(cr.value,dr.value,Xm._entries[j],YY,weight_t,ui,tmpab1,tmpar1)
+                    if c<>0:  ## 
+                        delta -= k
+                    if verbose>2:
+                        print "delta1=",delta
+                    c = normalizers[cj][2]
+                    d = normalizers[cj][3]
+                    if c<>0:  ## 
+                        delta += k
+                    #else:
+                    #    delta += 0
+                    if verbose>2:
+                        print "delta2=",delta
+                    if verbose>2:
+                        print "c=",c
+                        print "d=",d
+                        print "weight=",weight
+                    mpfr_mul_si(cr.value,swj,c,rnd_re)
+                    mpfr_set_si(dr.value,d,rnd_re)
+                    mpfr_div(dr.value,dr.value,swj,rnd_re)
+                    if verbose>2:
+                        print "cr=",cr
+                        print "dr=",dr
+                        print "x3,y3=",x3,y3
+                        print "weight=",weight
+                        print "ui=",ui
+                    #m2=j_fak_mpc(cr,dr,x3,y3,weight,ui)
+                    j_fak_mpc_c(cr.value,dr.value,x3.value,y3.value,weight_t,ui,tmpab2,tmpar2)
+                    if verbose>2:
+                        print "m2=",m2
+                    A = G._vertex_data[vj]['cusp_map']*Tj
+                    c = -A.c(); d= A.a()
+                    #if c<>0:  ## 
+                    delta += k
+                    if verbose>2:
+                        print "delta3=",delta
+                    #else:
+                    #    delta += 0
+                    cr=RF(c); dr=RF(d)
+                    j_fak_mpc_c(cr.value,dr.value,x2.value,y2.value,weight_t,ui,tmpab3,tmpar3)
+                    #m3=j_fak_mpc(cr,dr,x2,y2,weight,ui)
+                    #ctmp=m1*m2*m3
+                    mpfr_sub(tmpar,tmpar2,tmpar1,rnd_re)
+                    mpfr_add(tmpar,tmpar,tmpar3,rnd_re)
+                    mpfr_div(tmpab,tmpab2,tmpab1,rnd_re)
+                    mpfr_mul(tmpab,tmpab,tmpab3,rnd_re)                    
+                    #if verbose>2:
+                    #    #mpfr_set(m1.value,)
+                    #    print "m1=",m1
+                    #    print "m2=",m2
+                    #    print "m3=",m3
+                else:
+                    #A=U.matrix()*Tj
+                    if not trivial_mult :
+                        A = G._vertex_data[vj]['cusp_map']*Tj
+                    #print "A:",A,type(A)
+                    #ctmp=CF(1)
+                    mpfr_set_si(tmpar,0,rnd_re)
+                    mpfr_set_si(tmpab,1,rnd_re)
+                if not trivial_mult :
+                    #if multiplier<>None and not multiplier.is_trivial():
+                    AA=A**-1
+                    #v = S.character(AA[1,1]).complex_embedding(CF.prec())
+                    mA = multiplier(AA)
+                    if hasattr(mA,"complex_embedding"):
+                        v = CF(mA.complex_embedding(CF.prec()))
+                        rtmp = v.argument()
+                        mpfr_add(tmpar,tmpar,rtmp.value,rnd_re)
+                        rtmp = v.abs()
+                        mpfr_mul(tmpab,tmpab,rtmp.value,rnd_re)
+                    else: ## v is 1 or -1
+                        if mA==-1:
+                            mpfr_add(tmpar,tmpar,mppi,rnd_re)
+                        #v = CF(mA)
+                    #v=CF(v)
+                    if verbose>2:
+                        print "icusp,jcusp,j=",ci,cj,":",j
+                        print "Tj=",Tj
+                        print "mA=",mA
+                        print "ctmp=",ctmp
+                        print "delta=",delta
+                        mpfr_set(rtmp.value,tmpab,rnd_re)
+                        print "|v|=",rtmp
+                        mpfr_set(rtmp.value,tmpar,rnd_re)
+                        print "arg(v)=",rtmp
+                        print "Y=",Y
+                    #ctmp = ctmp*v
+                delta = delta % 2
+                mpfr_set(RCvec[ci][cj][j][0],tmpab,rnd_re)
+                mpfr_set(RCvec[ci][cj][j][1],tmpar,rnd_re)
+                mpfr_set_si(RCvec[ci][cj][j][2],delta,rnd_re)                
+            else:
+                mpfr_set_ui(RCvec[ci][cj][j][0],1,rnd_re)
+                mpfr_set_si(RCvec[ci][cj][j][1],0,rnd_re)
+                mpfr_set_si(RCvec[ci][cj][j][2],0,rnd_re)                
+
+    for j in range(Ql):
+        mpfr_mul(Xm._entries[j],Xm._entries[j],twopi.value,rnd_re)
+    if normalizers<>NULL:
+        for i from 0 <= i < nc:
+            if  normalizers[i]<>NULL:
+                sage_free(normalizers[i])
+        sage_free(normalizers)
+    mpfr_clear(weight_t)
+    mpfr_clear(tmpar);    mpfr_clear(tmpab)
+    mpfr_clear(tmpar1);    mpfr_clear(tmpab1)
+    mpfr_clear(tmpar2);    mpfr_clear(tmpab2)
+    mpfr_clear(tmpar3);    mpfr_clear(tmpab3)
+    mpfr_clear(mppi)
+    mpfr_clear(swi); mpfr_clear(swj)
+    mpfr_clear(x0);  mpfr_clear(y0)
+    mpfr_clear(YY)
+
+    
 
 
 
@@ -2428,12 +2930,19 @@ cpdef j_fak_mpc(RealNumber c,RealNumber d,RealNumber x,RealNumber y,RealNumber k
         mpfr_clear(tmparg)
         # print "res=",res
         return res
-    else:
+    elif unitary==1:
         tmpar=x.parent()(1)
         mpfr_set(tmpar.value,tmparg,rnd_re)
         mpfr_clear(tmpabs)
         mpfr_clear(tmparg)
         return tmpar
+    elif unitary==2:
+        tmpar=x.parent()(1); tmpab=x.parent()(1)
+        mpfr_set(tmpar.value,tmparg,rnd_re)
+        mpfr_set(tmpab.value,tmpabs,rnd_re)
+        mpfr_clear(tmpabs)
+        mpfr_clear(tmparg)
+        return tmpab,tmpar
     #res = tmpab*CF(0,tmpar).exp()
     #return res
     # return tmpab,tmpar       
@@ -2471,6 +2980,9 @@ cdef void j_fak_mpc_c(mpfr_t c,mpfr_t d,mpfr_t x,mpfr_t y,mpfr_t k,int unitary,m
     """
     cdef int prec = mpfr_get_prec(x)
     cdef mpc_t tmp
+    cdef mpfr_t xx,yy
+    mpfr_init2(xx,prec)
+    mpfr_init2(yy,prec)
     mpc_init2(tmp,prec)
     if (mpfr_zero_p(c)<>0 and mpfr_cmp_ui(d,1)==0) or (mpfr_zero_p(k)<>0):
             mpfr_set_ui(tmparg,0,rnd_re)
@@ -2480,16 +2992,16 @@ cdef void j_fak_mpc_c(mpfr_t c,mpfr_t d,mpfr_t x,mpfr_t y,mpfr_t k,int unitary,m
         mpfr_mul(tmparg,tmparg,k,rnd_re)
         mpfr_set_ui(tmpabs,1,rnd_re)
     else:
-        mpfr_mul(x,x,c,rnd_re)
-        mpfr_add(x,x,d,rnd_re)
-        mpfr_mul(y,y,c,rnd_re)
-        mpc_set_fr_fr(tmp,x,y,rnd)
+        mpfr_mul(xx,x,c,rnd_re)
+        mpfr_add(xx,xx,d,rnd_re)
+        mpfr_mul(yy,y,c,rnd_re)
+        mpc_set_fr_fr(tmp,xx,yy,rnd)
         mpc_arg(tmparg,tmp,rnd_re)
         mpfr_mul(tmparg,tmparg,k,rnd_re)
         if unitary==0:
             mpc_abs(tmpabs,tmp,rnd_re)
             mpfr_pow(tmpabs,tmpabs,k,rnd_re)
-    mpc_clear(tmp)
+    mpc_clear(tmp); mpfr_clear(xx); mpfr_clear(yy)
 
 cpdef j_fak_int_mpfr(int c,int d,RealNumber x,RealNumber y,RealNumber k,int unitary=0):
     cdef mpfr_t tmpabs,tmparg

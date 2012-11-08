@@ -1299,6 +1299,8 @@ cpdef closest_vertex(in_vertex_maps, wids,int nv_in,double x,double y,int verbos
     cdef double xx,yy,a,b,c,d
     cdef int vmax
     cdef int nv=int(nv_in)
+    if y<=0:
+        raise ArithmeticError,"Can not have y<=0! Got y={0}".format(y)
     vertex_maps=<int**>sage_malloc(sizeof(int*)*nv)
     if vertex_maps==NULL: raise MemoryError
     for i from 0<=i<nv:

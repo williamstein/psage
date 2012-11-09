@@ -5,7 +5,7 @@ from psage.matrix import Matrix_complex_dense
 from psage.modform.maass.pullback_algorithms import pullback_pts_mp #,pullback_pts_mp_sym
 from psage.modform.maass.automorphic_forms_alg import check_principal_parts
 from psage.modform.maass.automorphic_forms import solve_system_for_harmonic_weak_Maass_waveforms,smallest_inf_norm
-
+import pstats, cProfile
 def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0):
     r"""
     MxM system for Harmonic weak Maass forms at Y=Y with weight k
@@ -1338,11 +1338,11 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
 
 
 m=TrivialMultiplier(Gamma0(23),dchar=(23,-1))
-H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=1,do_mpmath=0,prec=53)
+H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=0,do_mpmath=0,prec=53)
 # attach "/scratch/fredstro/git_test/psage/psage/modform/maass/harmonic_test.py"
 RF=RealField(H._prec)
 Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)
 pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
 
-H._verbose=2
+#H._verbose=2
 #V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])

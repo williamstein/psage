@@ -284,6 +284,13 @@ cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,i
     mpc_clear(ctemp)
     mpfr_clear(tabs); mpfr_clear(rtemp)
 
+# def testing_new_solve(W,N):
+
+#     A,B = solve_system_for_harmonic_weak_Maass_waveforms_mp(N, W['V'],W['RHS'],gr=1)
+#     setc=N['SetCs']
+#     D = test_lin_solve(A,B,setc):
+#     return D
+
 cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
     cdef mpc_t** U=NULL,**C=NULL,**values=NULL
     cdef int* setc
@@ -301,12 +308,9 @@ cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
         raise ArithmeticError,"Incompatible RHS and LHS!"
     setc = <int*>sage_malloc(sizeof(int)*nset)    
     U = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrow)
-    C = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrow)
+    C = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
     values = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
     for i in range(nrow):
-        C[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*(nset))
-        for j in range(nset):
-            mpc_init2(C[i][j],prec)
         U[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*(ncol+nrhs))
         for j in range(ncol):
             mpc_init2(U[i][j],prec)
@@ -316,13 +320,25 @@ cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
             mpc_set(U[i][j],RHS._matrix[i][j],rnd)
 
     for i in range(nrhs):
+        C[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*nrow)
+        for j in range(nrow):
+            mpc_init2(C[i][j],prec)
+            
         values[i] = <mpc_t *>sage_malloc(sizeof(mpc_t)*nset)
         for j in range(nset):
             c,n = setC[i].keys()[j]
             setc[j]=n                
             tmpc = CF(setC[i]((c,n)))
             mpc_set(values[i][j],tmpc.value,rnd)
-    #    SMAT_mpc(U,N,num_rhs,num_set,C,values,setc)
+    SMAT_mpc(U,nrow,nrhs,nset,C,values,setc)
+    cdef Matrix_complex_dense Cret
+    CF = MPComplexField(prec)
+#    Cret = Matrix_complex_dense(vector(CF,nrows).parent(),0)
+    Cret = Matrix_complex_dense(MatrixSpace(CF,nrhs,nrow),0)
+    cdef int in_list
+    for i in range(nrhs):
+        for k in range(nrow):
+            mpc_set(Cret._matrix[i][j],C[i][j],rnd)     
     if U<>NULL:
         for i in range(nrow):
             if U[i]<>NULL:
@@ -330,6 +346,23 @@ cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
                     mpc_clear(U[i][j])
                 sage_free(U[i])
         sage_free(U)
+    if C<>NULL:
+        for i in range(nrow):
+            if C[i]<>NULL:
+                for j in range(ncol+nrhs):
+                    mpc_clear(C[i][j])
+                sage_free(C[i])
+        sage_free(C)
+
+    if values<>NULL:
+        for i in range(nrhs):
+            if values[i]<>NULL:
+                for j in range(nset):
+                    mpc_clear(values[i][j])
+                sage_free(values[i])
+        sage_free(values)
+    sage_free(setc)
+    return Cret
         
 
 #cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,int* setc):

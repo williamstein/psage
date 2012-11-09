@@ -258,6 +258,7 @@ cdef Ei_ml_c(mpfr_t res,mpfr_t x):
         mpfr_div_ui(tmp.value,tmp.value,k*k,rnd_re)
         mpfr_mul(tmp.value,tmp.value,x,rnd_re)
         mpfr_add(summa.value,summa.value,tmp.value,rnd_re)
+        #print "tmp=",tmp
         if mpfr_cmpabs(tmp.value,eps.value)<0:
             break
     if k>= nmax:

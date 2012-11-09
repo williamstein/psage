@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding: utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -1177,7 +1177,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     cdef int do_mpmath = 1
     if hasattr(H,"_do_mpmath"):
          if H._do_mpmath<-1:     
-             do_mpmath=0  ## By default we want to use mpmath for now... 
+             do_mpmath=0  ## By default we want to use mpmath for now...
+             if verbose>0:
+                 print 'NOT using mpmath for incgamma'
     cdef int Qfaki
     Qfaki=2*Q
     # Pullpack points
@@ -1968,7 +1970,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sv_orig(H,Y_in,int M,int Q,princ
     Qfaki=2*Q
     # Pullpack points
     if verbose>0:
-        print "In setup_matrix_for_harmonic_Maass_waveforms_sv"
+        print "In setup_matrix_for_harmonic_Maass_waveforms_sv_orig"
         print "Qs,Qf=",Qs,Qf
     cdef mpfr_t tmpr_t
     cdef mpc_t iargpb_t,tmpc_t

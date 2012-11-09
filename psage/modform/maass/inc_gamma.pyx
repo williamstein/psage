@@ -1,3 +1,5 @@
+# encoding: utf-8
+# cython: profile=True
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2012
@@ -116,8 +118,8 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     cdef int prec = mpfr_get_prec(x)
     cdef int wp = prec + 20
     cdef mpfr_t xabs_t, wp_t
-    mpfr_init2(xabs_t, prec)
-    mpfr_init2(wp_t, prec)
+    mpfr_init2(xabs_t, wp)
+    mpfr_init2(wp_t, wp)
     mpfr_abs(xabs_t, x, rnd_re)
     #cdef int xabs = mpfr_get_ui(xabs_t,rnd_re)
     cdef mpfr_t xnew
@@ -131,7 +133,10 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
         mpfr_mul_ui(xabs_t,xabs_t,2,rnd_re)
         mpfr_add(wp_t,wp_t,xabs_t,rnd_re)
         mpfr_init2(xnew,mpfr_get_ui(wp_t,rnd_re))
+        mpfr_set_prec(res,mpfr_get_ui(wp_t,rnd_re))
         mpfr_neg(xnew,x,rnd_re)
+        if verbose >0:
+            print "wp={0}".format(mpfr_get_ui(wp_t,rnd_re))
         ei_taylor_c(res,xnew,verbose)
     mpfr_neg(res,res,rnd_re)
     return
@@ -172,7 +177,7 @@ cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     prec = mpfr_get_prec(x)
     RF = RealField(prec)
     tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
-    eps = RF(2.**-(prec+1))
+    eps = RF((2.**-(prec+1)))
     mpfr_set(summa.value,tmp.value,rnd_re)
     mpfr_div(r.value,tmp.value,x,rnd_re)
     mpfr_exp(tmp2.value,x,rnd_re)
@@ -220,8 +225,12 @@ cdef ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
     cdef int prec = mpfr_get_prec(x)
     mpfr_init2(lnx, prec)
     Ei_ml_c(res, x)
+    #if verbose>0:
+    #    print  "Ei(x)-log(x)={0}, prec={1}".format(mpfr_get_ld(res,rnd_re), prec)
     mpfr_abs(x,x,rnd_re)
     mpfr_log(lnx,x,rnd_re)
+    #if verbose>0:
+    #    print  "ln(x)={0}, prec={1}".format(mpfr_get_ld(lnx,rnd_re), prec)
     mpfr_add(res,res,lnx,rnd_re)
     return
 
@@ -246,7 +255,8 @@ cdef Ei_ml_c(mpfr_t res,mpfr_t x):
     mpfr_init2(ec,prec)
     RF = RealField(prec)
     tmp=RF(1); summa=RF(0)
-    eps = RF(2.0**-(prec+1))
+    eps = RF(2.0**-((prec+20)))
+    #print "eps={0}, prec={1}".format(eps, prec)
     #call set_eulergamma()
     mpfr_set(tmp.value,x,rnd_re)
     #summa=tmp

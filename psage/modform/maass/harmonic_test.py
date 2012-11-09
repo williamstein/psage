@@ -1338,7 +1338,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
 
 
 m=TrivialMultiplier(Gamma0(23),dchar=(23,-1))
-H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=1,do_mpmath=1,prec=53)
+H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=1,do_mpmath=0,prec=53)
 # attach "/scratch/fredstro/git_test/psage/psage/modform/maass/harmonic_test.py"
 RF=RealField(H._prec)
 Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)

@@ -126,10 +126,9 @@ def err_est_holo(Y,M,weight):
     res=2*res*mpmath.mp.gammainc(wt,arg*mm)
     return res
     
-def get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
+cpdef get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
     r""" Computes truncation point for Harmonic Maass waveform.
     """
-    
     ## Use low precision
     dold=mpmath.mp.dps
     #mpmath.mp.dps=int(mpmath.ceil(abs(mpmath.log10(eps))))+5
@@ -139,25 +138,61 @@ def get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
     # an extra two for the accumulation of errors
     eps=mpmath.mpf(10)**mpmath.mpf(-ndig)
     minm=mpmath.ceil(10)
+    do_hint = 0;do_int = 0
+
+    if hasattr(Y,"parent"):        
+        RF = RealField(Y.parent().prec())
+    else:
+        RF = RealField(mpmath.mp.prec)
+    YY = RF(Y); 
+    if floor(weight)==ceil(weight):
+        do_int = 1
+        wt = int(weight)-1 
+    elif floor(weight-0.5)==ceil(weight-0.5):
+        do_hint = 1
+        wt = int(weight-0.5) 
     if(len(PP.values())==0):
         Cmax=1
         Kmax=0        
     else:
         Kmax=0        
-        Cmax=max(PP.values())
+        Cmax=RF(max(PP.values()))
         for (c,l) in PP.keys():
             if(abs(l)>Kmax):
                 Kmax=abs(l)
+    rweight = RF(weight)
+    reps = RF(eps)
     if verbose>0:
         print "Kmax,cmax=",Kmax,Cmax
+        print "do_int=",do_int
+        print "do_hint=",do_hint
+        print "eps=",eps
     try:
-        for m in range(minm,10000):
-            errest1=err_est_hwmf_pos(Y,m,weight,Kmax,Cmax)
-            errest2=err_est_hwmf_neg(Y,m,weight,Kmax,Cmax)
-            #print "e1=",errest1
-            #print "e2=",errest2
-            if(max(errest1,errest2)<eps):
-                raise StopIteration()
+        if do_int==1:
+            for m in range(minm,10000,5):
+                errest1=err_est_hwmf_pos(YY,m,rweight,Kmax,Cmax)
+                #if verbose>0:
+                #    print "e1=",errest1
+                errest2=err_est_hwmf_neg_int(YY,m,wt,Kmax,Cmax)
+                #if verbose>0:
+                #     print "e2=",errest2
+                if max(abs(errest1),abs(errest2))<reps:
+                    raise StopIteration()
+        elif do_hint==1:
+            for m in range(minm,10000):
+                errest1=err_est_hwmf_pos(YY,m,rweight,Kmax,Cmax)
+                errest2=err_est_hwmf_neg_hint(YY,m,wt,Kmax,Cmax)
+                #if verbose>0:
+                #     print "e1=",errest1
+                #     print "e2=",errest2
+                if(max(errest1,errest2)<eps):
+                    raise StopIteration()
+        else:
+            for m in range(minm,10000):
+                errest1=err_est_hwmf_pos_mpmath(YY,m,weight,Kmax,Cmax)
+                errest2=err_est_hwmf_mpmath(YY,m,weight,Kmax,Cmax)
+                if(max(errest1,errest2)<eps):
+                    raise StopIteration()
     except StopIteration:
         if verbose>0:
             print "er +=",errest1
@@ -167,7 +202,130 @@ def get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
         return m
     
 
-def err_est_hwmf_pos(Y,M,k,K0,K1):
+cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
+    r"""
+    Estimate the positive part of the truncated series
+
+    CAVEATS:
+    - we assume the Ramanujan bound for the coefficients $a(n)$, i.e. $|a(n)|\le2$.
+    - error estimate holds for 2piMY >> R
+
+    INPUT:
+
+    - ``Y`` -- real > 0
+    - ``M``  -- integer <>0
+    - ``k``  -- real
+    - ``K0``  -- real (-smallest degree of princ. part)
+    - ``K1``  -- real (largest coeff. of princ. part)
+
+    OUTPUT:
+
+    - ``r``  -- error estimate:
+
+    EXAMPLES::
+
+
+        sage: err_est_hwmf_pos(0.85,20,0.5,1)
+        mpf('6.0466581020500474e-23')
+        sage: err_est_hwmf_pos(0.85,20,0.5,2) 
+        mpf('2.5677901894222784e-13')
+        sage: err_est_hwmf_pos(0.5,20,0.5,1) 
+        mpf('4.3209202868264023e-6')
+        sage: err_est_hwmf_pos(0.85,100,0.5,1)
+        mpf('2.4812998619046392e-178')
+        sage: err_est_hwmf_pos(0.85,20,2.5,2)
+        mpf('3.8398588394365332e-14')
+
+
+    """
+    cdef RealNumber YY,res
+    cdef int prec = Y.parent().prec()
+    cdef mpfr_t pi,f1,sqM,sqK,B,Bsq,sqrt2pi,sqpiY,f2,f3
+    #mpfr_init2(t,prec);
+    #mpfr_init2(c,prec)
+    mpfr_init2(pi,prec); mpfr_init2(sqrt2pi,prec)
+    mpfr_init2(f1,prec); mpfr_init2(sqM,prec)
+    mpfr_init2(sqK,prec); mpfr_init2(B,prec)
+    mpfr_init2(Bsq,prec);mpfr_init2(f2,prec)
+    mpfr_init2(sqpiY,prec);mpfr_init2(f3,prec)
+    RF = RealField(prec)
+    YY = RF(Y); res = RF(0)
+    #mpfr_set_ui(c,1,rnd_re) ## Should be some "true" bound
+    mpfr_const_pi(pi,rnd_re)
+    mpfr_mul_ui(sqrt2pi,pi,2,rnd_re)
+    mpfr_sqrt(sqrt2pi,sqrt2pi,rnd_re)
+    mpfr_mul(sqpiY,pi,YY.value,rnd_re)
+    mpfr_sqrt(sqpiY,sqpiY,rnd_re)
+    #mpfr_set_pi=mpmath.mp.pi()
+    mpfr_mul_si(f1,pi,2,rnd_re)
+    mpfr_mul_si(f1,f1,K0,rnd_re)
+    mpfr_div(f1,f1,YY.value,rnd_re)
+    mpfr_exp(f1,f2,rnd_re)
+    #f1=mpmath.mp.exp(2.0*pi*K0/Y)
+    mpfr_sqrt_ui(sqM,M,rnd_re)
+    #sqM=mpmath.mp.sqrt(mpmath.mp.mpf(M))
+    mpfr_set_si(sqK,K0,rnd_re)
+    mpfr_sqrt(sqK,sqK,rnd_re)
+    #sqK=mpmath.mp.sqrt(mpmath.mp.mpf(K0))
+    mpfr_div(B,sqK,YY.value,rnd_re)
+    mpfr_neg(B,B,rnd_re)
+    mpfr_add(B,B,sqM,rnd_re)
+    mpfr_mul(B,B,sqrt2pi,rnd_re)
+    mpfr_mul(Bsq,B,B,rnd_re)
+    mpfr_neg(Bsq,Bsq,rnd_re)
+    #B=mpmath.mp.sqrt(2*pi)*(sqM-sqK/Y)
+    #Bsq=B*B
+    mpfr_exp(f2,Bsq,rnd_re)
+    mpfr_mul(f2,f2,f2,rnd_re)
+    #f2=f1*mpmath.mp.exp(-Bsq)
+    if k<=2:
+        mpfr_set_d(B,<double>1.5-<double>k,rnd_re)
+        mpfr_pow(f3,YY.value,B,rnd_re)
+        mpfr_mul(f3,f3,f2,rnd_re)
+        #f3=f2*mpmath.mp.power(Y,mpmath.mpf(1.5)-k)
+        if K0>0:
+            mpfr_set_d(B,<double>(0.5*k-1.0),rnd_re)
+            mpfr_set_si(f2,K0,rnd_re)
+            mpfr_pow(f2,f2,B,rnd_re)
+            mpfr_mul(f3,f3,f2,rnd_re)
+            #fak=f3*mpmath.mp.power(K0,mpmath.mpf(0.5)*k-mpmath.mpf(1))
+        #else
+        #mpfr_set(fak,f3,rnd_re)
+        #print "f2=",f2,"f3=",f3,
+
+    else:
+        mpfr_set_d(B,<double>(k-2.5),rnd_re)
+        mpfr_set_d(Bsq,<double>(2),rnd_re)
+        mpfr_pow(f3,Bsq,B,rnd_re)
+        mpfr_mul(f3,f3,f2,rnd_re)
+        #f3=f2*mpmath.mp.power(mpmath.mpf(2),k-mpmath.mpf(2.5))
+        mpfr_set_si(B,k-1,rnd_re)
+        mpfr_mul(f3,f3,B,rnd_re)
+        mpfr_div_si(f3,f3,2,rnd_re)
+        #f4=f3*mpmath.mp.mpf(k-1)/mpmath.mp.mpf(2)
+        mpfr_div(B,sqK,YY.value,rnd_re)
+        mpfr_neg(B,B,rnd_re)
+        mpfr_add(B,B,sqM,rnd_re)
+        #B=(sqM-sqK/Y)
+        mpfr_set_d(Bsq,<double>(k-3),rnd_re)
+        mpfr_pow(B,B,Bsq,rnd_re)
+        mpfr_mul(f3,f3,B,rnd_re)
+        #f5=f4*mpmath.mp.power(B,k-3)
+        mpfr_div(f3,f3,sqpiY,rnd_re)
+        #fak=f5/mpmath.sqrt(pi*Y)
+    mpfr_set(res.value,f3,rnd_re)
+    res = res*RF(K1)
+    #mpfr_clear(c)
+    mpfr_clear(pi); mpfr_clear(sqrt2pi)
+    mpfr_clear(f1); mpfr_clear(sqM)
+    mpfr_clear(sqK); mpfr_clear(B)
+    mpfr_clear(Bsq);mpfr_clear(f2)
+    mpfr_clear(sqpiY); mpfr_clear(f3)
+    return res
+    #return mpmath.mpf(K1)*fak
+
+
+def err_est_hwmf_pos_mpmath(Y,M,k,K0,K1):
     r"""
     Estimate the positive part of the truncated series
 
@@ -227,7 +385,7 @@ def err_est_hwmf_pos(Y,M,k,K0,K1):
         fak=f5/mpmath.sqrt(pi*Y)
     return mpmath.mpf(K1)*fak
 
-def err_est_hwmf_neg(Y,M,k,K0,K1):
+def err_est_hwmf_neg_mpmath(Y,M,k,K0,K1):
     r"""
     Estimate the negative part of the truncated series.
 
@@ -269,6 +427,142 @@ def err_est_hwmf_neg(Y,M,k,K0,K1):
     #fak=f2mpmath.mp.exp(-two*pi*M*y)
     return mpmath.mpf(K1)*fak
 
+cpdef err_est_hwmf_neg_int(RealNumber Y,int M,int km1,int K0,RealNumber K1):
+    r"""
+    Estimate the negative part of the truncated series.
+
+    CAVEATS:
+    - we assume the Ramanujan bound for the coefficients $a(n)$, i.e. $|a(n)|\le2$.
+    - error estimate holds for 2piMY >> R
+
+    INPUT:
+
+    - ``Y`` -- real > 0
+    - ``M``  -- integer <>0
+    - ``N``  -- integer <>0
+    - ``k``  -- real
+    - ``K0``  -- real (-smallest degree of princ. part)
+    - ``K1``  -- real (largest coeff. of princ. part)
+
+    OUTPUT:
+
+    - ``r``  -- error estimate
+
+    EXAMPLES::
+
+
+ 
+
+
+    """
+    cdef mpfr_t pi,f1,X,ig
+    cdef RealNumber res
+    cdef int prec = Y.parent().prec()
+    RF = RealField(prec)
+    res = RF(1)
+    #c=mpmath.mp.mpf(1) ## Should be some "true" boun
+    mpfr_init2(pi,prec);    mpfr_init2(X,prec)
+    mpfr_init2(f1,prec);    mpfr_init2(ig,prec)
+    mpfr_const_pi(pi,rnd_re)
+    #pi=mpmath.mp.pi()
+    #two=mpmath.mp.mpf(2)
+    #mpfr_add_ui(f1,k,1,rnd_re)
+    #mpfr_neg(f1,f1,rnd_re)
+    #mpfr_exp2(f1,f1,rnd_re)
+    mpfr_set_si_2exp(f1,1,-km1-2,rnd_re)
+  
+    #f1=mpmath.power(two,-k-mpmath.mpf(1))
+    mpfr_div(f1,f1,Y.value,rnd_re)
+    mpfr_div(f1,f1,pi,rnd_re)
+    #f2=f1/pi/Y
+    mpfr_mul(X,Y.value,pi,rnd_re)
+    mpfr_mul_si(X,X,2*M,rnd_re)
+    #X=mpmath.mpf(2*M)*Y*pi
+    cdef int ok = 1
+    if km1>0:
+        ok = incgamma_pint_c(ig,km1,X)
+    else:
+        ok = incgamma_nint_c(ig,km1,X)
+    mpfr_set(res.value,ig,rnd_re)
+    mpfr_mul(res.value,res.value,f1,rnd_re)
+    mpfr_mul(res.value,res.value,K1.value,rnd_re)
+    mpfr_clear(pi);    mpfr_clear(X)
+    mpfr_clear(f1);    mpfr_clear(ig)
+    return res
+    #fak=f2*mpmath.gammainc(k-1,X)
+    #if(k>=0):
+    ##    fak=f1*mpmath.power(X,-k)*mpmath.exp(-X)
+    #äelse:
+    #    fak=f1*mpmath.power(X,-k)*mpmath.exp(-X)
+    #fak=f2mpmath.mp.exp(-two*pi*M*y)
+    #return mpmath.mpf(K1)*fak
+
+
+cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
+    r"""
+    Estimate the negative part of the truncated series.
+    km1 = k - 1/2 is an integer  
+    CAVEATS:
+    - we assume the Ramanujan bound for the coefficients $a(n)$, i.e. $|a(n)|\le2$.
+    - error estimate holds for 2piMY >> R
+
+    INPUT:
+
+    - ``Y`` -- real > 0
+    - ``M``  -- integer <>0
+    - ``N``  -- integer <>0
+    - ``k``  -- real
+    - ``K0``  -- real (-smallest degree of princ. part)
+    - ``K1``  -- real (largest coeff. of princ. part)
+
+    OUTPUT:
+
+    - ``r``  -- error estimate
+
+    EXAMPLES::
+
+
+ 
+
+
+    """
+    cdef mpfr_t pi,f1,X,ig
+    cdef int prec = Y.parent().prec()
+    cdef RealNumber res
+    #c=mpmath.mp.mpf(1) ## Should be some "true" boun
+    RF = RealField(prec)
+    res = RF(1)
+    mpfr_init2(pi,prec);    mpfr_init2(X,prec)
+    mpfr_init2(f1,prec);    mpfr_init2(ig,prec)
+    mpfr_const_pi(pi,rnd_re)
+
+    mpfr_set_d(f1,kmh+0.5,rnd_re)
+    mpfr_neg(f1,f1,rnd_re)
+    mpfr_exp2(f1,f1,rnd_re)
+    #mpfr_set_si_2exp(f1,1,-k-0.5,rnd_re)
+    #f1=mpmath.power(two,-k-mpmath.mpf(1))
+    mpfr_div(f1,f1,Y.value,rnd_re)
+    mpfr_div(f1,f1,pi,rnd_re)
+    #f2=f1/pi/Y
+    mpfr_mul(X,Y.value,pi,rnd_re)
+    mpfr_mul_si(X,X,2*M,rnd_re)
+    #X=mpmath.mpf(2*M)*Y*pi
+    cdef int ok = 1
+    ok = incgamma_hint_c(ig,kmh,X)
+    mpfr_set(res.value,ig,rnd_re)
+    mpfr_mul(res.value,res.value,f1,rnd_re)
+    mpfr_mul(res.value,res.value,K1.value,rnd_re)
+    mpfr_clear(pi);    mpfr_clear(X)
+    mpfr_clear(f1);    mpfr_clear(ig)
+    return res
+    #fak=f2*mpmath.gammainc(k-1,X)
+    #if(k>=0):
+    ##    fak=f1*mpmath.power(X,-k)*mpmath.exp(-X)
+    #äelse:
+    #    fak=f1*mpmath.power(X,-k)*mpmath.exp(-X)
+    #fak=f2mpmath.mp.exp(-two*pi*M*y)
+    #return mpmath.mpf(K1)*fak
+
 cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1):
     if H.group().ncusps()<=2 and use_sym==1:
         return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version)
@@ -306,7 +600,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     
 
     """
-    cdef int l,i,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
+    cdef int l,i,jj,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
     cdef int prec 
     prec = <int>H._prec
     #cdef mpc_t tmpc
@@ -365,12 +659,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
         Ms=-M; Mf=M; Ml=Mf-Ms+1
     Qs=1; Qf=Q; Ql=Qf-Qs+1
     Qfak=RF(2*Q)
-    cdef int do_mpmath = 1
+    cdef int do_mpmath = 0
     if hasattr(H,"_do_mpmath"):
-         if H._do_mpmath<-1:     
-             do_mpmath=0  ## By default we want to use mpmath for now...
-             if verbose>0:
-                 print 'NOT using mpmath for incgamma'
+        #if H._do_mpmath<-1:     
+        do_mpmath=int(H._do_mpmath) ## By default we want to use mpmath for now...
+        if verbose>0:
+            print 'NOT using mpmath for incgamma'
     cdef int Qfaki
     Qfaki=2*Q
     # Pullpack points
@@ -481,7 +775,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     if PPplus_values==NULL: raise MemoryError
     PPplus_lal = <mpfr_t**>sage_malloc(d*sizeof(mpfr_t*))
     if PPplus_lal==NULL: raise MemoryError
-    cdef int jj
     for j in range(d):
         PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
         PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
@@ -532,9 +825,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     alpha_tmp = RF(0)
     for icusp in range(nc):
         nvec[icusp]=<mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ml )
+        alpha_tmp = RF(H.alpha(icusp)[0])
         for l in range(Ml):
             mpfr_init2(nvec[icusp][l],prec)
-            alpha_tmp = RF(H.alpha(icusp)[0])
             mpfr_set(tmpr.value,alpha_tmp.value,rnd_re)
             mpfr_set_si(nvec[icusp][l],l+Ms,rnd_re)
             mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr.value,rnd_re)
@@ -569,7 +862,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     eps = 2.0**float(1-H._dprec)
     cdef int not_holom = int(not H._holomorphic)
     cdef int is_weak = int(H._weak)
-
+    cdef int ok = 1
     for n in range(Ml): 
         for icusp in range(nc):
             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
@@ -610,18 +903,21 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                     elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
                         mpfr_abs(tmpr.value,nrfourpi.value,rnd_re)
                         mpfr_mul(tmpr.value,tmpr.value,Ypb[icusp][jcusp][j],rnd_re)
+                        ok = 1
                         if (is_int==1 or is_half_int==1) and do_mpmath==0:
-                            try:
-                                if is_int==1:
-                                    if kinti>0:
-                                        incgamma_pint_c(tmpr2.value,kinti,tmpr.value)
-                                    else:
-                                        incgamma_nint_c(tmpr2.value,kinti,tmpr.value)
-                                elif is_half_int==1:
-                                    incgamma_hint_c(tmpr2.value,kinti,tmpr.value)                                
-                            except ArithmeticError: ## In case we can not achieve the required error
-                                tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                        else:
+                            #try:
+                            if is_int==1:
+                                if kinti>0:
+                                    ok = incgamma_pint_c(tmpr2.value,kinti,tmpr.value,verbose)
+                                else:
+                                    ok = incgamma_nint_c(tmpr2.value,kinti,tmpr.value,verbose)
+                            elif is_half_int==1:
+                                ok = incgamma_hint_c(tmpr2.value,kinti,tmpr.value)                                
+                                #except ArithmeticError: ## In case we can not achieve the required error
+                                #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+                        if (verbose>0 and ok<>0) or verbose>2:
+                            print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,tmpr,tmpr2,do_mpmath)
+                        if ok <> 0:
                             tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         if verbose>1 and icusp==1 and n==0:
                             #print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)
@@ -636,7 +932,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                             mpfr_set_si(besv[icusp][jcusp][n][j],1,rnd_re)
                         elif variable_a0_minus[0][jcusp]==1:
                             mpfr_set(besv[icusp][jcusp][n][j],Ypb[icusp][jcusp][j],rnd_re)
-                            if kint==0:
+                            if kinti==0:
                                 mpfr_log(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],rnd_re)
                             else:
                                 mpfr_pow(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],kint.value,rnd_re)
@@ -739,18 +1035,22 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                 #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()                
                 mpfr_mul(tmpr.value,nr.value,fourpiY.value,rnd_re)
                 mpfr_abs(tmpr.value,tmpr.value,rnd_re)
-                if is_int==1 or is_half_int==1 and  do_mpmath==0:
-                    try:
-                        if is_int==1:
-                            if kinti>0:
-                                incgamma_pint_c(kbes.value,kinti,tmpr.value)
-                            else:
-                                incgamma_nint_c(kbes.value,kinti,tmpr.value)
-                        elif is_half_int==1:
-                            incgamma_hint_c(kbes.value,kinti,tmpr.value)                                
-                    except ArithmeticError: ## In case we can not achieve the required error
-                        kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                else:
+                ok = 1
+                if (is_int==1 or is_half_int==1) and  do_mpmath==0:
+                    #try:
+                    if is_int==1:
+                        if kinti>0:
+                            ok = incgamma_pint_c(kbes.value,kinti,tmpr.value)
+                        else:
+                            ok = incgamma_nint_c(kbes.value,kinti,tmpr.value)
+                    elif is_half_int==1:
+                        ok = incgamma_hint_c(kbes.value,kinti,tmpr.value)                                
+                    #except ArithmeticError: ## In case we can not achieve the required error
+                    #    kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+                if (verbose>0 and ok<>0) or verbose>2:
+                    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,tmpr,kbes,do_mpmath)
+                    #print "ok={0}, tmpr={1}".format(ok,tmpr)
+                if ok <> 0:
                     kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
 
                 mpfr_abs(tmpr2.value,nrY2pi.value,rnd_re)
@@ -769,7 +1069,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                 if variable_a0_plus[0][icusp]==1:
                     mpfr_set_ui(kbes.value,1,rnd_re) #=one
                 elif variable_a0_minus[0][icusp]==1:
-                    if kint<>0:
+                    if kinti<>0:
                         mpfr_pow(kbes.value,Y.value,kint.value,rnd_re)
                     else:
                         mpfr_log(kbes.value,Y.value,rnd_re)
@@ -1889,773 +2189,773 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     W['rdim']=H._rdim
     return W
 
-cpdef setup_matrix_for_harmonic_Maass_waveforms_sv_orig(H,Y_in,int M,int Q,principal_parts,version=1):
-    r"""
+## cpdef setup_matrix_for_harmonic_Maass_waveforms_sv_orig(H,Y_in,int M,int Q,principal_parts,version=1):
+##     r"""
 
-    Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
+##     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
-    INPUT:
+##     INPUT:
     
-        - ``H`` -- Space of harmonic weak Maass forms
-        - ``Y`` -- height of horocycle used for sampling (mpmath real)
-        - ``k`` -- weight (mpmath real) 
-        - ``M`` -- integer
-        - ``Q`` -- integer > M
-        - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
+##         - ``H`` -- Space of harmonic weak Maass forms
+##         - ``Y`` -- height of horocycle used for sampling (mpmath real)
+##         - ``k`` -- weight (mpmath real) 
+##         - ``M`` -- integer
+##         - ``Q`` -- integer > M
+##         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
-    OUTPUT:
+##     OUTPUT:
     
-        - ``W`` -- dictionary
-        - ``W['Mf']`` -- M start
-        - ``W['nc']`` -- number of cusps
-        - ``W['Ms']`` -- M stop
-        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
-        - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
+##         - ``W`` -- dictionary
+##         - ``W['Mf']`` -- M start
+##         - ``W['nc']`` -- number of cusps
+##         - ``W['Ms']`` -- M stop
+##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+##         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
     
     
-    EXAMPLES::
+##     EXAMPLES::
 
-        sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
+##         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
     
 
-    """
-    cdef int l,i,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
-    cdef int prec 
-    prec = <int>H._prec
-    #cdef mpc_t tmpc
-    cdef MPComplexNumber tmp1,tmp2,iargpb,iargm,iargpb2
-    cdef RealNumber nr,tmpr,nrfourpi,Y,tmpr2
-    cdef RealField_class RF
-    cdef MPComplexField_class CF
-    RF = RealField_class(prec)
-    CF = MPComplexField_class(prec)
-    nr = RF(0); tmpr=RF(0); nrfourpi=RF(0); tmpr2=RF(0)
-    iargpb=CF(0);iargm=CF(0); tmp1=CF(0); tmp2=CF(0)
-    iargpb2=CF(0)
-    Y = RF(Y_in)
-    weight=RF(H._weight)
-    cdef RealNumber pi,one,two,zero,twopi,fourpi,twopiY,fourpiY,p,kint,Qfak,ypb,xpb
-    cdef int kinti
-    cdef Matrix_complex_dense V
-    cdef MPComplexNumber tmpc,ch
-    cdef int verbose=int(H._verbose)
-    pi=RF.pi() #mpmath_ctx.pi()
-    one=RF(1) #mpmath_ctx.mpf(1)
-    two=RF(2) #mpmath_ctx.mpf(2)
-    zero=RF(0) #mpmath_ctx.mpf(0)
-    ypb=RF(0); xpb=RF(0); ch=CF(0); tmpc=CF(0)
-    twopi=two*pi
-    fourpi=two*twopi
-    twopiY=twopi*Y
-    fourpiY=two*twopiY
-    p=(weight-one)/two
-    kint=one-weight
-    cdef int is_int=0
-    cdef int is_half_int=0
-    ## Test if the weight is integral
-    if floor(kint)==pceil(kint):
-        kinti = int(kint); is_int = 1
-    if verbose>0:
-        print "is_int=",is_int
-        print "kint=",kint
-        print "kinti=",kinti
-    if is_int==0:
-        ## Check if kint is half-integral.
-        if floor(2*kint)==pceil(2*kint):
-            is_half_int = 1
-            kinti = int(kint-RF(0.5))
-    cdef MPComplexNumber ckint
-    ckint = CF(kint)
-    #print "kint=",kint
-    nc=int(H._group.ncusps())
-    if Q<M:
-        Q=M+20
-    if H._holomorphic:
-        Ms=0; Mf=M; Ml=Mf-Ms+1
-    else:
-        Ms=-M; Mf=M; Ml=Mf-Ms+1
-    Qs=1-Q; Qf=Q; Ql=Qf-Qs+1
-    Qfak=RF(2*Q)
-    cdef int do_mpmath = 0
-    if hasattr(H,"_do_mpmath"):
-        do_mpmath=H._do_mpmath
-    cdef int Qfaki
-    Qfaki=2*Q
-    # Pullpack points
-    if verbose>0:
-        print "In setup_matrix_for_harmonic_Maass_waveforms_sv_orig"
-        print "Qs,Qf=",Qs,Qf
-    cdef mpfr_t tmpr_t
-    cdef mpc_t iargpb_t,tmpc_t
-    mpfr_init2(tmpr_t,prec)
-    mpc_init2(iargpb_t,prec)
-    mpc_init2(tmpc_t,prec)
-    cdef Vector_real_mpfr_dense Xm
-    cdef mpfr_t*** Xpb=NULL
-    cdef mpfr_t*** Ypb=NULL
-    cdef mpc_t*** Cvec=NULL
-    Xm=Vector_real_mpfr_dense(vector(RF,Ql).parent(),0)
-    Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
-    if Xpb==NULL: raise MemoryError
-    Ypb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
-    if Ypb==NULL: raise MemoryError
-    for i in range(nc):
-        Xpb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
-        Ypb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
-        if Ypb[i]==NULL or Xpb[i]==NULL:
-            raise MemoryError
-        for j in range(nc):
-            Xpb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
-            Ypb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
-            if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
-                raise MemoryError
-            for n in range(Ql):
-                mpfr_init2(Xpb[i][j][n],prec) 
-                mpfr_init2(Ypb[i][j][n],prec) 
-                mpfr_set_si(Xpb[i][j][n],0,rnd_re)
-                mpfr_set_si(Ypb[i][j][n],0,rnd_re)
-                #Ypb[i][j][n]=<double>0
-    Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
-    if Cvec==NULL: raise MemoryError
-    for i from 0<=i<nc:                        #if verbose>1:
-                        #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                        #    print "ypb[{0}][{1}{2}={3}".format(icusp,jcusp,j,ypb)
-                        #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                        #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
+##     """
+##     cdef int l,i,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
+##     cdef int prec 
+##     prec = <int>H._prec
+##     #cdef mpc_t tmpc
+##     cdef MPComplexNumber tmp1,tmp2,iargpb,iargm,iargpb2
+##     cdef RealNumber nr,tmpr,nrfourpi,Y,tmpr2
+##     cdef RealField_class RF
+##     cdef MPComplexField_class CF
+##     RF = RealField_class(prec)
+##     CF = MPComplexField_class(prec)
+##     nr = RF(0); tmpr=RF(0); nrfourpi=RF(0); tmpr2=RF(0)
+##     iargpb=CF(0);iargm=CF(0); tmp1=CF(0); tmp2=CF(0)
+##     iargpb2=CF(0)
+##     Y = RF(Y_in)
+##     weight=RF(H._weight)
+##     cdef RealNumber pi,one,two,zero,twopi,fourpi,twopiY,fourpiY,p,kint,Qfak,ypb,xpb
+##     cdef int kinti
+##     cdef Matrix_complex_dense V
+##     cdef MPComplexNumber tmpc,ch
+##     cdef int verbose=int(H._verbose)
+##     pi=RF.pi() #mpmath_ctx.pi()
+##     one=RF(1) #mpmath_ctx.mpf(1)
+##     two=RF(2) #mpmath_ctx.mpf(2)
+##     zero=RF(0) #mpmath_ctx.mpf(0)
+##     ypb=RF(0); xpb=RF(0); ch=CF(0); tmpc=CF(0)
+##     twopi=two*pi
+##     fourpi=two*twopi
+##     twopiY=twopi*Y
+##     fourpiY=two*twopiY
+##     p=(weight-one)/two
+##     kint=one-weight
+##     cdef int is_int=0
+##     cdef int is_half_int=0
+##     ## Test if the weight is integral
+##     if floor(kint)==pceil(kint):
+##         kinti = int(kint); is_int = 1
+##     if verbose>0:
+##         print "is_int=",is_int
+##         print "kint=",kint
+##         print "kinti=",kinti
+##     if is_int==0:
+##         ## Check if kint is half-integral.
+##         if floor(2*kint)==pceil(2*kint):
+##             is_half_int = 1
+##             kinti = int(kint-RF(0.5))
+##     cdef MPComplexNumber ckint
+##     ckint = CF(kint)
+##     #print "kint=",kint
+##     nc=int(H._group.ncusps())
+##     if Q<M:
+##         Q=M+20
+##     if H._holomorphic:
+##         Ms=0; Mf=M; Ml=Mf-Ms+1
+##     else:
+##         Ms=-M; Mf=M; Ml=Mf-Ms+1
+##     Qs=1-Q; Qf=Q; Ql=Qf-Qs+1
+##     Qfak=RF(2*Q)
+##     cdef int do_mpmath = 0
+##     if hasattr(H,"_do_mpmath"):
+##         do_mpmath=H._do_mpmath
+##     cdef int Qfaki
+##     Qfaki=2*Q
+##     # Pullpack points
+##     if verbose>0:
+##         print "In setup_matrix_for_harmonic_Maass_waveforms_sv_orig"
+##         print "Qs,Qf=",Qs,Qf
+##     cdef mpfr_t tmpr_t
+##     cdef mpc_t iargpb_t,tmpc_t
+##     mpfr_init2(tmpr_t,prec)
+##     mpc_init2(iargpb_t,prec)
+##     mpc_init2(tmpc_t,prec)
+##     cdef Vector_real_mpfr_dense Xm
+##     cdef mpfr_t*** Xpb=NULL
+##     cdef mpfr_t*** Ypb=NULL
+##     cdef mpc_t*** Cvec=NULL
+##     Xm=Vector_real_mpfr_dense(vector(RF,Ql).parent(),0)
+##     Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+##     if Xpb==NULL: raise MemoryError
+##     Ypb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+##     if Ypb==NULL: raise MemoryError
+##     for i in range(nc):
+##         Xpb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
+##         Ypb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
+##         if Ypb[i]==NULL or Xpb[i]==NULL:
+##             raise MemoryError
+##         for j in range(nc):
+##             Xpb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
+##             Ypb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
+##             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
+##                 raise MemoryError
+##             for n in range(Ql):
+##                 mpfr_init2(Xpb[i][j][n],prec) 
+##                 mpfr_init2(Ypb[i][j][n],prec) 
+##                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
+##                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
+##                 #Ypb[i][j][n]=<double>0
+##     Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
+##     if Cvec==NULL: raise MemoryError
+##     for i from 0<=i<nc:                        #if verbose>1:
+##                         #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
+##                         #    print "ypb[{0}][{1}{2}={3}".format(icusp,jcusp,j,ypb)
+##                         #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
+##                         #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
 
-        Cvec[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
-        if Cvec[i]==NULL:
-            raise MemoryError
-        for j from 0<=j<nc:
-            Cvec[i][j] = <mpc_t*>sage_malloc(sizeof(mpc_t) * Ql )
-            if Cvec[i][j]==NULL:
-                raise MemoryError
-            for n from 0<=n<Ql:
-                mpc_init2(Cvec[i][j][n],prec)
-                mpc_set_si(Cvec[i][j][n],0,rnd)
-                #Cvec[i][j][n]=<double complex>0
-    pullback_pts_mpc_new_c(H,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
-    #pb=pullback_pts_mp(H,Qs,Qf,Y,weight)
-    #Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
-    s=nc*Ml
-    MS = MatrixSpace(CF,s,s)
-    V = Matrix_complex_dense(MS,0,True,True)
-    cdef list PPplus,PPminus
-    cdef dict pp_info
-    pp_info = check_principal_parts(H,principal_parts)    
-    if verbose>0:
-        print "pp_info=",pp_info
-    PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
-    cdef int d = len(PPplus)
-    cdef int **variable_a0_plus,**variable_a0_minus
-    variable_a0_plus = <int**> sage_malloc(d*sizeof(int*))
-    variable_a0_minus = <int**> sage_malloc(d*sizeof(int*))
-    for j in range(d):
-        variable_a0_plus[j] = <int*> sage_malloc(nc*sizeof(int))
-        variable_a0_minus[j] = <int*> sage_malloc(nc*sizeof(int))
-        for l in range(nc):
-            variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'][j][l])
-            variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'][j][l])
-    cdef int **PPplus_cusp=NULL , **PPplus_n=NULL,**PPminus_cusp=NULL , **PPminus_n=NULL
-    cdef mpc_t **PPplus_values=NULL,**PPminus_values=NULL
-    cdef mpfr_t **PPplus_lal=NULL
-    cdef int num_ppplus = len(pp_info['PPplus'][0])
-    cdef int num_ppminus = len(pp_info['PPminus'][0])
-    PPplus_cusp = <int **>sage_malloc(d*sizeof(int*))
-    if PPplus_cusp==NULL: raise MemoryError
-    PPplus_n = <int **>sage_malloc(d*sizeof(int*))
-    if PPplus_n==NULL: raise MemoryError
-    PPminus_cusp = <int **>sage_malloc(d*sizeof(int*))
-    if PPminus_cusp==NULL: raise MemoryError
-    PPminus_n = <int **>sage_malloc(d*sizeof(int*))
-    if PPminus_n==NULL: raise MemoryError
-    PPminus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
-    if PPminus_values==NULL: raise MemoryError
-    PPplus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
-    if PPplus_values==NULL: raise MemoryError
-    PPplus_lal = <mpfr_t**>sage_malloc(d*sizeof(mpfr_t*))
-    if PPplus_lal==NULL: raise MemoryError
-    cdef int jj
-    for j in range(d):
-        PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
-        PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
-        PPplus_cusp[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
-        if PPplus_cusp[j]==NULL: raise MemoryError
-        PPplus_n[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
-        if PPplus_n[j]==NULL: raise MemoryError
-        PPminus_cusp[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
-        if PPminus_cusp[j]==NULL: raise MemoryError
-        PPminus_n[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
-        if PPplus_n[j]==NULL: raise MemoryError
-        PPminus_values[j] = <mpc_t*>sage_malloc(num_ppminus*sizeof(mpc_t))
-        if PPminus_values[j]==NULL: raise MemoryError
-        PPplus_values[j] = <mpc_t*>sage_malloc(num_ppplus*sizeof(mpc_t))
-        if PPplus_values[j]==NULL: raise MemoryError
-        PPplus_lal[j] =  <mpfr_t*>sage_malloc(num_ppplus*sizeof(mpfr_t))
-        if PPplus_lal[j]==NULL: raise MemoryError
-        l = 0
-        for i,jj in pp_info['PPplus'][j].keys():
-            tmpc = CF(pp_info['PPplus'][j][(i,jj)])        
-            PPplus_cusp[j][l]=int(i)
-            PPplus_n[j][l]=int(jj)
-            mpc_init2(PPplus_values[j][l],prec)
-            mpc_set(PPplus_values[j][l],tmpc.value,rnd)
-            tmpr = RF(jj)+RF(H.alpha(i)[0])
-            #print "tmpr=",tmpr
-            mpfr_init2(PPplus_lal[j][l],prec)
-            mpfr_set(PPplus_lal[j][l],tmpr.value,rnd_re)
-            #print "tmpr=",tmpr
-            l+=1
-        l = 0
-        for i,jj in pp_info['PPminus'][j].keys():
-            PPminus_cusp[j][l]=int(i)
-            PPminus_n[j][l]=int(jj)
-            tmpc = CF(pp_info['PPminus'][j][(i,jj)])
-            mpc_init2(PPminus_values[j][l],prec)
-            mpc_set(PPminus_values[j][l],tmpc.value,rnd)
-            l+=1
+##         Cvec[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
+##         if Cvec[i]==NULL:
+##             raise MemoryError
+##         for j from 0<=j<nc:
+##             Cvec[i][j] = <mpc_t*>sage_malloc(sizeof(mpc_t) * Ql )
+##             if Cvec[i][j]==NULL:
+##                 raise MemoryError
+##             for n from 0<=n<Ql:
+##                 mpc_init2(Cvec[i][j][n],prec)
+##                 mpc_set_si(Cvec[i][j][n],0,rnd)
+##                 #Cvec[i][j][n]=<double complex>0
+##     pullback_pts_mpc_new_c(H,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+##     #pb=pullback_pts_mp(H,Qs,Qf,Y,weight)
+##     #Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
+##     s=nc*Ml
+##     MS = MatrixSpace(CF,s,s)
+##     V = Matrix_complex_dense(MS,0,True,True)
+##     cdef list PPplus,PPminus
+##     cdef dict pp_info
+##     pp_info = check_principal_parts(H,principal_parts)    
+##     if verbose>0:
+##         print "pp_info=",pp_info
+##     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
+##     cdef int d = len(PPplus)
+##     cdef int **variable_a0_plus,**variable_a0_minus
+##     variable_a0_plus = <int**> sage_malloc(d*sizeof(int*))
+##     variable_a0_minus = <int**> sage_malloc(d*sizeof(int*))
+##     for j in range(d):
+##         variable_a0_plus[j] = <int*> sage_malloc(nc*sizeof(int))
+##         variable_a0_minus[j] = <int*> sage_malloc(nc*sizeof(int))
+##         for l in range(nc):
+##             variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'][j][l])
+##             variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'][j][l])
+##     cdef int **PPplus_cusp=NULL , **PPplus_n=NULL,**PPminus_cusp=NULL , **PPminus_n=NULL
+##     cdef mpc_t **PPplus_values=NULL,**PPminus_values=NULL
+##     cdef mpfr_t **PPplus_lal=NULL
+##     cdef int num_ppplus = len(pp_info['PPplus'][0])
+##     cdef int num_ppminus = len(pp_info['PPminus'][0])
+##     PPplus_cusp = <int **>sage_malloc(d*sizeof(int*))
+##     if PPplus_cusp==NULL: raise MemoryError
+##     PPplus_n = <int **>sage_malloc(d*sizeof(int*))
+##     if PPplus_n==NULL: raise MemoryError
+##     PPminus_cusp = <int **>sage_malloc(d*sizeof(int*))
+##     if PPminus_cusp==NULL: raise MemoryError
+##     PPminus_n = <int **>sage_malloc(d*sizeof(int*))
+##     if PPminus_n==NULL: raise MemoryError
+##     PPminus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+##     if PPminus_values==NULL: raise MemoryError
+##     PPplus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+##     if PPplus_values==NULL: raise MemoryError
+##     PPplus_lal = <mpfr_t**>sage_malloc(d*sizeof(mpfr_t*))
+##     if PPplus_lal==NULL: raise MemoryError
+##     cdef int jj
+##     for j in range(d):
+##         PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
+##         PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
+##         PPplus_cusp[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+##         if PPplus_cusp[j]==NULL: raise MemoryError
+##         PPplus_n[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+##         if PPplus_n[j]==NULL: raise MemoryError
+##         PPminus_cusp[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+##         if PPminus_cusp[j]==NULL: raise MemoryError
+##         PPminus_n[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+##         if PPplus_n[j]==NULL: raise MemoryError
+##         PPminus_values[j] = <mpc_t*>sage_malloc(num_ppminus*sizeof(mpc_t))
+##         if PPminus_values[j]==NULL: raise MemoryError
+##         PPplus_values[j] = <mpc_t*>sage_malloc(num_ppplus*sizeof(mpc_t))
+##         if PPplus_values[j]==NULL: raise MemoryError
+##         PPplus_lal[j] =  <mpfr_t*>sage_malloc(num_ppplus*sizeof(mpfr_t))
+##         if PPplus_lal[j]==NULL: raise MemoryError
+##         l = 0
+##         for i,jj in pp_info['PPplus'][j].keys():
+##             tmpc = CF(pp_info['PPplus'][j][(i,jj)])        
+##             PPplus_cusp[j][l]=int(i)
+##             PPplus_n[j][l]=int(jj)
+##             mpc_init2(PPplus_values[j][l],prec)
+##             mpc_set(PPplus_values[j][l],tmpc.value,rnd)
+##             tmpr = RF(jj)+RF(H.alpha(i)[0])
+##             #print "tmpr=",tmpr
+##             mpfr_init2(PPplus_lal[j][l],prec)
+##             mpfr_set(PPplus_lal[j][l],tmpr.value,rnd_re)
+##             #print "tmpr=",tmpr
+##             l+=1
+##         l = 0
+##         for i,jj in pp_info['PPminus'][j].keys():
+##             PPminus_cusp[j][l]=int(i)
+##             PPminus_n[j][l]=int(jj)
+##             tmpc = CF(pp_info['PPminus'][j][(i,jj)])
+##             mpc_init2(PPminus_values[j][l],prec)
+##             mpc_set(PPminus_values[j][l],tmpc.value,rnd)
+##             l+=1
 
 
-    cdef int has_key = 0
-    MSRHS = MatrixSpace(CF,s,d)
-    RHS = Matrix_complex_dense(MSRHS,0,True,True)
+##     cdef int has_key = 0
+##     MSRHS = MatrixSpace(CF,s,d)
+##     RHS = Matrix_complex_dense(MSRHS,0,True,True)
 
-    cdef mpfr_t **nvec=NULL
-    nvec = <mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * nc )
-    cdef RealNumber alpha_tmp
-    alpha_tmp = RF(0)
-    for icusp in range(nc):
-        nvec[icusp]=<mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ml )
-        for l in range(Ml):
-            mpfr_init2(nvec[icusp][l],prec)
-            alpha_tmp = RF(H.alpha(icusp)[0])
-            mpfr_set(tmpr.value,alpha_tmp.value,rnd_re)
-            mpfr_set_si(nvec[icusp][l],l+Ms,rnd_re)
-            mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr.value,rnd_re)
-    cdef mpc_t ***ef2=NULL
-    ef2 = <mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
-    for icusp in range(nc):
-        ef2[icusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
-        for n in range(Ml):
-            ef2[icusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
+##     cdef mpfr_t **nvec=NULL
+##     nvec = <mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * nc )
+##     cdef RealNumber alpha_tmp
+##     alpha_tmp = RF(0)
+##     for icusp in range(nc):
+##         nvec[icusp]=<mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ml )
+##         for l in range(Ml):
+##             mpfr_init2(nvec[icusp][l],prec)
+##             alpha_tmp = RF(H.alpha(icusp)[0])
+##             mpfr_set(tmpr.value,alpha_tmp.value,rnd_re)
+##             mpfr_set_si(nvec[icusp][l],l+Ms,rnd_re)
+##             mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr.value,rnd_re)
+##     cdef mpc_t ***ef2=NULL
+##     ef2 = <mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
+##     for icusp in range(nc):
+##         ef2[icusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
+##         for n in range(Ml):
+##             ef2[icusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
             
-    cdef mpc_t ****ef1=NULL
-    #ef1 = <mpc_t****> sage_malloc( sizeof(mpc_t*** ) * nc )
-    ef1 = <mpc_t****> sage_malloc( sizeof(ef2) * nc )
-    for icusp in range(nc):
-        ef1[icusp]=<mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
-        for jcusp in range(nc):
-            ef1[icusp][jcusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
-            for n in range(Ml):
-                ef1[icusp][jcusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
+##     cdef mpc_t ****ef1=NULL
+##     #ef1 = <mpc_t****> sage_malloc( sizeof(mpc_t*** ) * nc )
+##     ef1 = <mpc_t****> sage_malloc( sizeof(ef2) * nc )
+##     for icusp in range(nc):
+##         ef1[icusp]=<mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
+##         for jcusp in range(nc):
+##             ef1[icusp][jcusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
+##             for n in range(Ml):
+##                 ef1[icusp][jcusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
                 
-    cdef double eps
-    eps = 2.0**float(1-H._dprec)
-    cdef int not_holom = int(not H._holomorphic)
-    cdef int is_weak = int(H._weak)
+##     cdef double eps
+##     eps = 2.0**float(1-H._dprec)
+##     cdef int not_holom = int(not H._holomorphic)
+##     cdef int is_weak = int(H._weak)
 
-    for n in range(Ml): 
-        for icusp in range(nc):
-            mpfr_set(nr.value,nvec[icusp][n],rnd_re)
-            for j in range(Ql):
-                mpfr_mul(tmpr.value,Xm._entries[j],nr.value,rnd_re)
-                mpfr_neg(tmpr.value,tmpr.value,rnd_re)
-                mpc_set_fr(iargm.value,tmpr.value,rnd)
-                mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))
-                mpc_exp(iargm.value,iargm.value,rnd)
-                #iargm=-inr*Xm[j]
-                mpc_init2(ef2[icusp][n][j],prec)
-                mpc_set(ef2[icusp][n][j],iargm.value,rnd)
-                #ef2[n,j,icusp]=one*iargm #iargm.exp() #mpmath_ctx.exp(-iargm)
-        for jcusp in range(nc):
-            mpfr_set(nr.value,nvec[jcusp][n],rnd_re)
-            #nr=nvec[n,jcusp]
-            mpfr_mul(nrfourpi.value,nr.value,fourpi.value,rnd_re)
-            #nrfourpi=nr*fourpi
-            for icusp in range(nc):
-                for j in range(Ql): 
-                    mpc_init2(ef1[icusp][jcusp][n][j],prec)
-                    mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
-                    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                    if mpfr_zero_p(ypb.value)<>0:
-                        continue
-                    mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
-                    mpfr_mul(tmpr_t,twopi.value,ypb.value,rnd_re)
-                    mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                    mpc_set_fr_fr(iargpb_t,tmpr_t,Xpb[icusp][jcusp][j],rnd)                    
-                    mpc_mul_fr(iargpb_t,iargpb_t,nr.value,rnd)
-                    mpc_exp(iargpb_t,iargpb_t,rnd)
-                    mpc_set(iargpb.value,iargpb_t,rnd)
-                    #iargpb=(nr*CF(-twopi*ypb,xpb)).exp()
-                    #iargpb=iargpb.exp()
+##     for n in range(Ml): 
+##         for icusp in range(nc):
+##             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
+##             for j in range(Ql):
+##                 mpfr_mul(tmpr.value,Xm._entries[j],nr.value,rnd_re)
+##                 mpfr_neg(tmpr.value,tmpr.value,rnd_re)
+##                 mpc_set_fr(iargm.value,tmpr.value,rnd)
+##                 mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))
+##                 mpc_exp(iargm.value,iargm.value,rnd)
+##                 #iargm=-inr*Xm[j]
+##                 mpc_init2(ef2[icusp][n][j],prec)
+##                 mpc_set(ef2[icusp][n][j],iargm.value,rnd)
+##                 #ef2[n,j,icusp]=one*iargm #iargm.exp() #mpmath_ctx.exp(-iargm)
+##         for jcusp in range(nc):
+##             mpfr_set(nr.value,nvec[jcusp][n],rnd_re)
+##             #nr=nvec[n,jcusp]
+##             mpfr_mul(nrfourpi.value,nr.value,fourpi.value,rnd_re)
+##             #nrfourpi=nr*fourpi
+##             for icusp in range(nc):
+##                 for j in range(Ql): 
+##                     mpc_init2(ef1[icusp][jcusp][n][j],prec)
+##                     mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
+##                     mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
+##                     if mpfr_zero_p(ypb.value)<>0:
+##                         continue
+##                     mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
+##                     mpfr_mul(tmpr_t,twopi.value,ypb.value,rnd_re)
+##                     mpfr_neg(tmpr_t,tmpr_t,rnd_re)
+##                     mpc_set_fr_fr(iargpb_t,tmpr_t,Xpb[icusp][jcusp][j],rnd)                    
+##                     mpc_mul_fr(iargpb_t,iargpb_t,nr.value,rnd)
+##                     mpc_exp(iargpb_t,iargpb_t,rnd)
+##                     mpc_set(iargpb.value,iargpb_t,rnd)
+##                     #iargpb=(nr*CF(-twopi*ypb,xpb)).exp()
+##                     #iargpb=iargpb.exp()
 
-                    if mpfr_cmp_d(nr.value,eps)>0:
-                        mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd)
-                        #ef1[j,icusp,jcusp,n]=one*iargpb
-                    #elif mpfr_cmp_d(nr,-eps)<0 and (not H._holomorphic) and H._weak:
-                    elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
-                        mpfr_abs(tmpr.value,nrfourpi.value,rnd_re)
-                        mpfr_mul(tmpr.value,tmpr.value,ypb.value,rnd_re)
-                        #tmpr=abs(nrfourpi)*ypb
-                        #tmp2=iargpb
-                        # pari: iargpb=iargpb*ckint.gamma_inc(tmpr)
-                        #iargpb=iargpb*ckint.gamma_inc(tmpr)
-                        #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
-                        #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
-                        if is_int==1 or is_half_int==1 and do_mpmath==0:
-                            #print "tmpr=",tmpr                            
-                            try:
-                                if is_int==1:
-                                    if kinti>0:
-                                        incgamma_pint_c(tmpr2.value,kinti,tmpr.value)
-                                    else:
-                                        incgamma_nint_c(tmpr2.value,kinti,tmpr.value)
-                                        # print "incgamma_{0}:{1}={2}".format(is_int,kinti,tmpr2)
-                                elif is_half_int==1:
-                                    incgamma_hint_c(tmpr2.value,kinti,tmpr.value)
-                            except ArithmeticError: ## In case we can not achieve the required error
-                                tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
-                        else:
-                            tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
-                            #tmpr = RF(mpmath.mp.gammainc(kint,tmpr).real)
-                        #if tmpr2<>tmpr:
-                        #    print "is_int=",is_int
-                        #    print "is_half_int=",is_half_int
-                        #    print "mpmath.gammainc {0}={1}".format(kint,tmpr2)
-                        #    raise ArithmeticError
+##                     if mpfr_cmp_d(nr.value,eps)>0:
+##                         mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd)
+##                         #ef1[j,icusp,jcusp,n]=one*iargpb
+##                     #elif mpfr_cmp_d(nr,-eps)<0 and (not H._holomorphic) and H._weak:
+##                     elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
+##                         mpfr_abs(tmpr.value,nrfourpi.value,rnd_re)
+##                         mpfr_mul(tmpr.value,tmpr.value,ypb.value,rnd_re)
+##                         #tmpr=abs(nrfourpi)*ypb
+##                         #tmp2=iargpb
+##                         # pari: iargpb=iargpb*ckint.gamma_inc(tmpr)
+##                         #iargpb=iargpb*ckint.gamma_inc(tmpr)
+##                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
+##                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
+##                         if is_int==1 or is_half_int==1 and do_mpmath==0:
+##                             #print "tmpr=",tmpr                            
+##                             try:
+##                                 if is_int==1:
+##                                     if kinti>0:
+##                                         incgamma_pint_c(tmpr2.value,kinti,tmpr.value)
+##                                     else:
+##                                         incgamma_nint_c(tmpr2.value,kinti,tmpr.value)
+##                                         # print "incgamma_{0}:{1}={2}".format(is_int,kinti,tmpr2)
+##                                 elif is_half_int==1:
+##                                     incgamma_hint_c(tmpr2.value,kinti,tmpr.value)
+##                             except ArithmeticError: ## In case we can not achieve the required error
+##                                 tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
+##                         else:
+##                             tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
+##                             #tmpr = RF(mpmath.mp.gammainc(kint,tmpr).real)
+##                         #if tmpr2<>tmpr:
+##                         #    print "is_int=",is_int
+##                         #    print "is_half_int=",is_half_int
+##                         #    print "mpmath.gammainc {0}={1}".format(kint,tmpr2)
+##                         #    raise ArithmeticError
                         
                         
-                        mpc_mul_fr(iargpb.value,iargpb.value,tmpr2.value,rnd)
-                        #mpmath: iargpb=iargpb*RF(mpmath.mp.gammainc(kint,tmpr).real)
-                        #ef1[j,icusp,jcusp,n]=iargpb*ckint.gamma_inc(tmpr)
-                        mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd)
-                    elif mpfr_cmp_d(nr.value,-eps)<0:
-                        mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
-                    else:
-                        ## Note that principal parts have to be determined
-                        ## and will appear in the right hand side
-                        #print "n+alpha=0 (jcusp,n)=",jcusp,n
-                        if variable_a0_plus[0][jcusp]==1:
-                            mpc_set_si(ef1[icusp][jcusp][n][j],1,rnd)
-                            #ef1[j,icusp,jcusp,n]=one
-                        elif variable_a0_minus[0][jcusp]==1:
-                            #mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
-                            mpc_set_fr(ef1[icusp][jcusp][n][j],Ypb[icusp][jcusp][j],rnd)
-                            if kint==0:
-                                mpc_log(ef1[icusp][jcusp][n][j],ef1[icusp][jcusp][n][j],rnd)
-                            else:
-                                mpc_pow_fr(ef1[icusp][jcusp][n][j],ef1[icusp][jcusp][n][j],kint.value,rnd)
-                            #ef1[j,icusp,jcusp,n]=ypb**kint
-                        else:
-                            ## If none of them are variables this means
-                            ## that they are both set in the principal parts
-                            mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
-                            #ef1[j,icusp,jcusp,n]=one
-                        #if verbose>1:
-                        #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
-                    if verbose > 3 and n-Ms==1:
-                        mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
-                        print "ef1[",n,j,icusp,"]=",CC(tmpc.real(),tmpc.imag())
-    for n in range(s):
-        for l in range(s):        
-            mpc_set_ui(V._matrix[n][l],0,rnd)
-    for l in range(Ml): 
-        for jcusp in range(nc):
-            lj=Ml*jcusp+l
-            for icusp in range(nc):
-                for j in range(Ql): 
+##                         mpc_mul_fr(iargpb.value,iargpb.value,tmpr2.value,rnd)
+##                         #mpmath: iargpb=iargpb*RF(mpmath.mp.gammainc(kint,tmpr).real)
+##                         #ef1[j,icusp,jcusp,n]=iargpb*ckint.gamma_inc(tmpr)
+##                         mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd)
+##                     elif mpfr_cmp_d(nr.value,-eps)<0:
+##                         mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
+##                     else:
+##                         ## Note that principal parts have to be determined
+##                         ## and will appear in the right hand side
+##                         #print "n+alpha=0 (jcusp,n)=",jcusp,n
+##                         if variable_a0_plus[0][jcusp]==1:
+##                             mpc_set_si(ef1[icusp][jcusp][n][j],1,rnd)
+##                             #ef1[j,icusp,jcusp,n]=one
+##                         elif variable_a0_minus[0][jcusp]==1:
+##                             #mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
+##                             mpc_set_fr(ef1[icusp][jcusp][n][j],Ypb[icusp][jcusp][j],rnd)
+##                             if kint==0:
+##                                 mpc_log(ef1[icusp][jcusp][n][j],ef1[icusp][jcusp][n][j],rnd)
+##                             else:
+##                                 mpc_pow_fr(ef1[icusp][jcusp][n][j],ef1[icusp][jcusp][n][j],kint.value,rnd)
+##                             #ef1[j,icusp,jcusp,n]=ypb**kint
+##                         else:
+##                             ## If none of them are variables this means
+##                             ## that they are both set in the principal parts
+##                             mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
+##                             #ef1[j,icusp,jcusp,n]=one
+##                         #if verbose>1:
+##                         #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
+##                     if verbose > 3 and n-Ms==1:
+##                         mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
+##                         print "ef1[",n,j,icusp,"]=",CC(tmpc.real(),tmpc.imag())
+##     for n in range(s):
+##         for l in range(s):        
+##             mpc_set_ui(V._matrix[n][l],0,rnd)
+##     for l in range(Ml): 
+##         for jcusp in range(nc):
+##             lj=Ml*jcusp+l
+##             for icusp in range(nc):
+##                 for j in range(Ql): 
 
-                    if mpfr_zero_p(mpc_realref(Cvec[icusp][jcusp][j]))<>0 and mpfr_zero_p(mpc_imagref(Cvec[icusp][jcusp][j]))<>0:
-                        continue
-                    #if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                    #    continue                        
-                    #mpc_set(tmp1.value,rnd)
-                    mpc_mul(tmp1.value,ef1[icusp][jcusp][l][j],Cvec[icusp][jcusp][j],rnd)
-                    #tmp1=ef1[j,icusp,jcusp,l]*ch
-                    for n in range(Ml): 
-                        ni=Ml*icusp+n
-                        mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
-                        #tmp2=tmp1*ef2[n,j,icusp]
-                        mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
-                        #V[ni,lj]=V[ni,lj]+tmp1*
-                        if verbose > 2 and ni==1 and lj==1:
-                            print "-------------------"
-                            print "V[1,1](",j,")=",CC(V[ni,lj].real(),V[ni,lj].imag())
-                            mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
-                            print "ef1(",j,")=",CC(tmpc.real(),tmpc.imag())
-                            mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                            print "cv(",j,")=",CC(ch.real(),ch.imag())
-                            mpc_set(tmpc.value,ef2[icusp][n][j],rnd)
-                            print "ef2(",j,")=",tmpc
+##                     if mpfr_zero_p(mpc_realref(Cvec[icusp][jcusp][j]))<>0 and mpfr_zero_p(mpc_imagref(Cvec[icusp][jcusp][j]))<>0:
+##                         continue
+##                     #if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+##                     #    continue                        
+##                     #mpc_set(tmp1.value,rnd)
+##                     mpc_mul(tmp1.value,ef1[icusp][jcusp][l][j],Cvec[icusp][jcusp][j],rnd)
+##                     #tmp1=ef1[j,icusp,jcusp,l]*ch
+##                     for n in range(Ml): 
+##                         ni=Ml*icusp+n
+##                         mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
+##                         #tmp2=tmp1*ef2[n,j,icusp]
+##                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
+##                         #V[ni,lj]=V[ni,lj]+tmp1*
+##                         if verbose > 2 and ni==1 and lj==1:
+##                             print "-------------------"
+##                             print "V[1,1](",j,")=",CC(V[ni,lj].real(),V[ni,lj].imag())
+##                             mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
+##                             print "ef1(",j,")=",CC(tmpc.real(),tmpc.imag())
+##                             mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
+##                             print "cv(",j,")=",CC(ch.real(),ch.imag())
+##                             mpc_set(tmpc.value,ef2[icusp][n][j],rnd)
+##                             print "ef2(",j,")=",tmpc
                         
-    if verbose>1:
-        print "Mi,Ms=",Ms,Mf
-        print "V1(",0,0,")=",V[0,0]
-        print "V1(",1,0,")=",V[1,0]
-        print "V1(",0,1,")=",V[0,1]
-        print "V1(",1,1,")=",V[1,1]
-    cdef int nrows,ncols
-    nrows = int(V.nrows()); ncols = int(V.ncols())
-    for n in range(nrows):
-        for l in range(ncols):        
-            mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)
-            #V[n,l]=V[n,l]/Qfak
-    if verbose>1: 
-        print "V1(",0,0,")=",V[0,0]
-        print "V1(",1,0,")=",V[1,0]            
-        print "V1(",0,1,")=",V[0,1]
-        print "V1(",1,1,")=",V[1,1]
-    cdef MPComplexNumber f1,f2,ppc,summa,ppc_minus,summa_minus
-    cdef RealNumber lr,arg,nrY2pi,kbes
-    lr = RF(0); arg=RF(0);nrY2pi=RF(0); kbes=RF(0)
-    f1 = CF(0); f2=CF(0); ppc=CF(0); summa=CF(0)
-    ppc_minus = CF(0); summa_minus=CF(0)
-    for n in range(Ml):
-        for icusp in range(nc):
-            mpfr_set(nr.value,nvec[icusp][n],rnd_re)
-            mpfr_mul(nrY2pi.value,nr.value,twopiY.value,rnd_re)
-            #nrY2pi=nr*twopiY
-            ni=Ml*icusp+n
-            if mpfr_cmp_d(nr.value,eps)>0:
-                mpfr_neg(kbes.value,nrY2pi.value,rnd_re)
-                mpfr_exp(kbes.value,kbes.value,rnd_re)
-                #kbes=(-nrY2pi).exp()
-            elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
-                #kbes=RF(mpmath.mp.gammainc(kint,abs(nr)*fourpiY))
-                #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()                
-                mpfr_mul(tmpr.value,nr.value,fourpiY.value,rnd_re)
-                mpfr_abs(tmpr.value,tmpr.value,rnd_re)
-                if is_int==1 or is_half_int==1 and  do_mpmath==0:
-                    try:
-                        if is_int==1:
-                            if kinti>0:
-                                incgamma_pint_c(kbes.value,kinti,tmpr.value)
-                            else:
-                                incgamma_nint_c(kbes.value,kinti,tmpr.value)
-                        elif is_half_int==1:
-                            incgamma_hint_c(kbes.value,kinti,tmpr.value)                                
-                    except ArithmeticError: ## In case we can not achieve the required error
-                        kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                else:
-                    kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
+##     if verbose>1:
+##         print "Mi,Ms=",Ms,Mf
+##         print "V1(",0,0,")=",V[0,0]
+##         print "V1(",1,0,")=",V[1,0]
+##         print "V1(",0,1,")=",V[0,1]
+##         print "V1(",1,1,")=",V[1,1]
+##     cdef int nrows,ncols
+##     nrows = int(V.nrows()); ncols = int(V.ncols())
+##     for n in range(nrows):
+##         for l in range(ncols):        
+##             mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)
+##             #V[n,l]=V[n,l]/Qfak
+##     if verbose>1: 
+##         print "V1(",0,0,")=",V[0,0]
+##         print "V1(",1,0,")=",V[1,0]            
+##         print "V1(",0,1,")=",V[0,1]
+##         print "V1(",1,1,")=",V[1,1]
+##     cdef MPComplexNumber f1,f2,ppc,summa,ppc_minus,summa_minus
+##     cdef RealNumber lr,arg,nrY2pi,kbes
+##     lr = RF(0); arg=RF(0);nrY2pi=RF(0); kbes=RF(0)
+##     f1 = CF(0); f2=CF(0); ppc=CF(0); summa=CF(0)
+##     ppc_minus = CF(0); summa_minus=CF(0)
+##     for n in range(Ml):
+##         for icusp in range(nc):
+##             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
+##             mpfr_mul(nrY2pi.value,nr.value,twopiY.value,rnd_re)
+##             #nrY2pi=nr*twopiY
+##             ni=Ml*icusp+n
+##             if mpfr_cmp_d(nr.value,eps)>0:
+##                 mpfr_neg(kbes.value,nrY2pi.value,rnd_re)
+##                 mpfr_exp(kbes.value,kbes.value,rnd_re)
+##                 #kbes=(-nrY2pi).exp()
+##             elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
+##                 #kbes=RF(mpmath.mp.gammainc(kint,abs(nr)*fourpiY))
+##                 #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()                
+##                 mpfr_mul(tmpr.value,nr.value,fourpiY.value,rnd_re)
+##                 mpfr_abs(tmpr.value,tmpr.value,rnd_re)
+##                 if is_int==1 or is_half_int==1 and  do_mpmath==0:
+##                     try:
+##                         if is_int==1:
+##                             if kinti>0:
+##                                 incgamma_pint_c(kbes.value,kinti,tmpr.value)
+##                             else:
+##                                 incgamma_nint_c(kbes.value,kinti,tmpr.value)
+##                         elif is_half_int==1:
+##                             incgamma_hint_c(kbes.value,kinti,tmpr.value)                                
+##                     except ArithmeticError: ## In case we can not achieve the required error
+##                         kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+##                 else:
+##                     kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
 
-                mpfr_abs(tmpr2.value,nrY2pi.value,rnd_re)
-                mpfr_exp(tmpr2.value,tmpr2.value,rnd_re)
-                if verbose>1 and ni==0:
-                    print "Arg=",tmpr
-                    print "Igamma(",kinti,",Arg)=",kbes
-                mpfr_mul(kbes.value,kbes.value,tmpr2.value,rnd_re)
-                if verbose>1 and ni==0:
-                    print "expfax=",tmpr2
-                    print "Igamma(",kinti,",Arg)*exp()=",kbes
-                #kbes=kbes*(-nrY2pi).exp()
-            elif mpfr_cmp_d(nr.value,-eps)<0:
-                mpfr_set_ui(kbes.value,0,rnd_re) #=zero
-            else:
-                if variable_a0_plus[0][icusp]==1:
-                    mpfr_set_ui(kbes.value,1,rnd_re) #=one
-                elif variable_a0_minus[0][icusp]==1:
-                    if kint<>0:
-                        mpfr_pow(kbes.value,Y.value,kint.value,rnd_re)
-                    else:
-                        mpfr_log(kbes.value,Y.value,rnd_re)
-                    #kbes=Y**kint
-                else:
-                    #kbes=one
-                    #raise ValueError,"Need to specify at least one of the n=0 terms!"
-                    mpfr_set_ui(kbes.value,0,rnd_re)
-                    #kbes=zero
-            mpc_sub_fr(V._matrix[ni][ni],V._matrix[ni][ni],kbes.value,rnd)
-            if verbose>1:
-                if ni==0:
-                    print "Arg=",tmpr
-                    print "kbes(",0,")=",kbes
-                    print "V[1,1]=",V[0,0]
-                if ni==1:
-                    print "nr=",nr
-                    print "kint,kinti=",kint,kinti
-                    print "Arg=",tmpr
-                    print "kbes(",1,")=",kbes
-                    print "V[1,1]=",V[1,1]
-            # setting the right hand side of the system
-            for k in range(d):
-                mpc_set_ui(RHS._matrix[ni][k],0,rnd) #=CF(0)
-                for i in range(num_ppplus):
-                #for (jcusp,l) in PPplus[k].keys():
-                    mpc_set(ppc.value,PPplus_values[k][i],rnd)
-                    jcusp = PPplus_cusp[k][i]
-                    l = PPplus_n[k][i]
-                    #ppc=CF(PPplus[k][(jcusp,l)])
-                    #mpfr_set(lr.value,nvec[jcusp][l],rnd_re)
-                    #lr=RF(l+H.alpha(jcusp)[0])
-                    #if(abs(lr) <= mpmath.eps()):
-                    #    continue
-                    ### Note: The constant term is treated below
-                    if mpc_is_zero(ppc.value)==1: #==zero or PPplus[k][(jcusp,l)]==0:
-                        continue
-                    mpc_set_ui(summa.value,0,rnd) #=CF(0)
-                    if verbose>2:
-                        mpfr_set(lr.value,PPplus_lal[k][i],rnd_re)
-                        print "l=",lr
-                        print "icusp,jcusp=",icusp,jcusp
-                        print "alpha(",jcusp,")=",H.alpha(jcusp)[0]
-                        print "n=",n,nr," n=",n+Ms
-                        print "ppc=",ppc
-                    for j in range(Ql):   
-                        if mpc_is_zero(Cvec[icusp][jcusp][j])==1:
-                            continue
-                        if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                            continue
-                        mpfr_mul(tmpr_t,Ypb[icusp][jcusp][j],twopi.value,rnd_re)
-                        if verbose>3:
-                            mpfr_set(tmpr.value,Ypb[icusp][jcusp][j],rnd_re)
-                            print "ypb=",tmpr
-                            print "lr=",lr
-                            print "twopi=",twopi
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_mul(tmpr_t,tmpr_t,PPplus_lal[k][i],rnd_re)
-                        mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                        # tmpr_t = exp(-2pi*l*ypb)
-                        if verbose>2:
-                            mpfr_set(tmpr.value,tmpr_t,rnd_re)
-                            print "-2pi*l*ypb=",tmpr
-                        mpc_set_fr(f1.value,tmpr_t,rnd)
-                        mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
-                        #arg = lr*xpb-nr*Xm[j]
-                        mpfr_mul(tmpr_t,PPplus_lal[k][i],Xpb[icusp][jcusp][j],rnd_re)
-                        mpfr_mul(arg.value,nr.value,Xm._entries[j],rnd_re)
-                        mpfr_sub(arg.value,tmpr_t,arg.value,rnd_re)
-                        mpc_set_fr_fr(iargpb_t,zero.value,arg.value,rnd)
-                        mpc_exp(f2.value,iargpb_t,rnd)
-                        #f2 = CF(0,arg).exp()
-                        if verbose>3:
-                            print "f1(",j,")=",f1
-                            print "arg=",lr,"*",xpb,"-",nr,"*",Xm[j],"=",arg
-                            print "f2(",j,")=",f2
-                        mpc_mul(tmpc.value,f1.value,f2.value,rnd)
-                        mpc_mul(tmpc.value,tmpc.value,ppc.value,rnd)
-                        mpc_mul(tmpc.value,tmpc.value,Cvec[icusp][jcusp][j],rnd)
-                        mpc_add(summa.value,summa.value,tmpc.value,rnd)
-                        if verbose>3:
-                            print "tmpc=",tmpc
-                            print "summa=",summa                 
-#                        summa=summa+ch*tmpc
-                    if verbose>2:
-                        print "summa=",RR(summa.real()),RR(summa.imag())
-                    #RHS[ni,k]=RHS[ni,k]+summa/Qfak
-                    mpc_div_ui(summa.value,summa.value,Qfaki,rnd)
-                    mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa.value,rnd)
-                if verbose>2:
-                    print "RHS0[",ni,k,"]=",RHS[ni][k]
-                    print "icusp,n+Ms=",icusp,n+Ms
-                    print "PPplus.keys=",PPplus[k].keys()
-                has_key = 0
-                for j in range(num_ppplus):
-                    if PPplus_cusp[k][j]==icusp and PPplus_n[k][j]==n+Ms:
-                        has_key = 1
-                        mpc_set(ppc.value,PPplus_values[k][j],rnd)
-                        break
-                if has_key==1:
-                    #if PPplus[k].has_key((icusp,n+Ms)):
-                    #if( abs(nr) > mpmath.eps()):
-                    #ppc=CF(PPplus[k][icusp,n+Ms])
-                    mpfr_abs(tmpr_t,nrY2pi.value,rnd_re)
-                    mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                    mpc_mul_fr(tmpc_t,ppc.value,tmpr_t,rnd)
-                    mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],tmpc_t,rnd)
-                    if verbose>2:
-                        print "n=",n
-                        print "icusp=",icusp
-                        print "ppc=",ppc
-                        print "nrY2pi=",nrY2pi
-                    #RHS[ni,k]=RHS[ni,k]-ppc*(-nrY2pi).exp()
-                if verbose>2:
-                    print "RHS1[",ni,k,"]=",RHS[ni][k]
-                for i in range(num_ppminus):
-                    #for (jcusp,l) in PPminus[k].keys():
-                    jcusp = PPminus_cusp[k][i]
-                    l = PPminus_n[k][i]
-                    mpc_set(ppc_minus.value,PPminus_values[k][i],rnd)
-                    #ppc_minus = CF(PPminus[k][(jcusp,l)])
-                    #if ppc_minus==zero or PPminus[k][(jcusp,l)]==0:
-                    if mpc_is_zero(ppc_minus.value)==1:
-                        continue
-                    if verbose>2:
-                        print "ppart_minus=",ppc_minus
-                    mpc_set_ui(summa_minus.value,0,rnd) #=zero #summa_minus
-                    for j in range(Ql):
-                        #if mpfr_zero_p(mpc_realref(Cvec[icusp][jcusp][j]))<>0 and mpfr_zero_p(mpc_imagref(Cvec[icusp][jcusp][j]))<>0:
-                        if mpc_is_zero(Cvec[icusp][jcusp][j])==1:
-                            continue
-                        if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                            continue
-                        mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                        mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                        if kint==0:
-                            mpfr_log(tmpr.value,ypb.value,rnd_re)
-                        else:
-                            mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
-                        mpc_set_fr(tmpc_t,tmpr.value,rnd) #ypb**kint
+##                 mpfr_abs(tmpr2.value,nrY2pi.value,rnd_re)
+##                 mpfr_exp(tmpr2.value,tmpr2.value,rnd_re)
+##                 if verbose>1 and ni==0:
+##                     print "Arg=",tmpr
+##                     print "Igamma(",kinti,",Arg)=",kbes
+##                 mpfr_mul(kbes.value,kbes.value,tmpr2.value,rnd_re)
+##                 if verbose>1 and ni==0:
+##                     print "expfax=",tmpr2
+##                     print "Igamma(",kinti,",Arg)*exp()=",kbes
+##                 #kbes=kbes*(-nrY2pi).exp()
+##             elif mpfr_cmp_d(nr.value,-eps)<0:
+##                 mpfr_set_ui(kbes.value,0,rnd_re) #=zero
+##             else:
+##                 if variable_a0_plus[0][icusp]==1:
+##                     mpfr_set_ui(kbes.value,1,rnd_re) #=one
+##                 elif variable_a0_minus[0][icusp]==1:
+##                     if kint<>0:
+##                         mpfr_pow(kbes.value,Y.value,kint.value,rnd_re)
+##                     else:
+##                         mpfr_log(kbes.value,Y.value,rnd_re)
+##                     #kbes=Y**kint
+##                 else:
+##                     #kbes=one
+##                     #raise ValueError,"Need to specify at least one of the n=0 terms!"
+##                     mpfr_set_ui(kbes.value,0,rnd_re)
+##                     #kbes=zero
+##             mpc_sub_fr(V._matrix[ni][ni],V._matrix[ni][ni],kbes.value,rnd)
+##             if verbose>1:
+##                 if ni==0:
+##                     print "Arg=",tmpr
+##                     print "kbes(",0,")=",kbes
+##                     print "V[1,1]=",V[0,0]
+##                 if ni==1:
+##                     print "nr=",nr
+##                     print "kint,kinti=",kint,kinti
+##                     print "Arg=",tmpr
+##                     print "kbes(",1,")=",kbes
+##                     print "V[1,1]=",V[1,1]
+##             # setting the right hand side of the system
+##             for k in range(d):
+##                 mpc_set_ui(RHS._matrix[ni][k],0,rnd) #=CF(0)
+##                 for i in range(num_ppplus):
+##                 #for (jcusp,l) in PPplus[k].keys():
+##                     mpc_set(ppc.value,PPplus_values[k][i],rnd)
+##                     jcusp = PPplus_cusp[k][i]
+##                     l = PPplus_n[k][i]
+##                     #ppc=CF(PPplus[k][(jcusp,l)])
+##                     #mpfr_set(lr.value,nvec[jcusp][l],rnd_re)
+##                     #lr=RF(l+H.alpha(jcusp)[0])
+##                     #if(abs(lr) <= mpmath.eps()):
+##                     #    continue
+##                     ### Note: The constant term is treated below
+##                     if mpc_is_zero(ppc.value)==1: #==zero or PPplus[k][(jcusp,l)]==0:
+##                         continue
+##                     mpc_set_ui(summa.value,0,rnd) #=CF(0)
+##                     if verbose>2:
+##                         mpfr_set(lr.value,PPplus_lal[k][i],rnd_re)
+##                         print "l=",lr
+##                         print "icusp,jcusp=",icusp,jcusp
+##                         print "alpha(",jcusp,")=",H.alpha(jcusp)[0]
+##                         print "n=",n,nr," n=",n+Ms
+##                         print "ppc=",ppc
+##                     for j in range(Ql):   
+##                         if mpc_is_zero(Cvec[icusp][jcusp][j])==1:
+##                             continue
+##                         if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+##                             continue
+##                         mpfr_mul(tmpr_t,Ypb[icusp][jcusp][j],twopi.value,rnd_re)
+##                         if verbose>3:
+##                             mpfr_set(tmpr.value,Ypb[icusp][jcusp][j],rnd_re)
+##                             print "ypb=",tmpr
+##                             print "lr=",lr
+##                             print "twopi=",twopi
+##                         mpfr_neg(tmpr_t,tmpr_t,rnd_re)
+##                         mpfr_mul(tmpr_t,tmpr_t,PPplus_lal[k][i],rnd_re)
+##                         mpfr_exp(tmpr_t,tmpr_t,rnd_re)
+##                         # tmpr_t = exp(-2pi*l*ypb)
+##                         if verbose>2:
+##                             mpfr_set(tmpr.value,tmpr_t,rnd_re)
+##                             print "-2pi*l*ypb=",tmpr
+##                         mpc_set_fr(f1.value,tmpr_t,rnd)
+##                         mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
+##                         #arg = lr*xpb-nr*Xm[j]
+##                         mpfr_mul(tmpr_t,PPplus_lal[k][i],Xpb[icusp][jcusp][j],rnd_re)
+##                         mpfr_mul(arg.value,nr.value,Xm._entries[j],rnd_re)
+##                         mpfr_sub(arg.value,tmpr_t,arg.value,rnd_re)
+##                         mpc_set_fr_fr(iargpb_t,zero.value,arg.value,rnd)
+##                         mpc_exp(f2.value,iargpb_t,rnd)
+##                         #f2 = CF(0,arg).exp()
+##                         if verbose>3:
+##                             print "f1(",j,")=",f1
+##                             print "arg=",lr,"*",xpb,"-",nr,"*",Xm[j],"=",arg
+##                             print "f2(",j,")=",f2
+##                         mpc_mul(tmpc.value,f1.value,f2.value,rnd)
+##                         mpc_mul(tmpc.value,tmpc.value,ppc.value,rnd)
+##                         mpc_mul(tmpc.value,tmpc.value,Cvec[icusp][jcusp][j],rnd)
+##                         mpc_add(summa.value,summa.value,tmpc.value,rnd)
+##                         if verbose>3:
+##                             print "tmpc=",tmpc
+##                             print "summa=",summa                 
+## #                        summa=summa+ch*tmpc
+##                     if verbose>2:
+##                         print "summa=",RR(summa.real()),RR(summa.imag())
+##                     #RHS[ni,k]=RHS[ni,k]+summa/Qfak
+##                     mpc_div_ui(summa.value,summa.value,Qfaki,rnd)
+##                     mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa.value,rnd)
+##                 if verbose>2:
+##                     print "RHS0[",ni,k,"]=",RHS[ni][k]
+##                     print "icusp,n+Ms=",icusp,n+Ms
+##                     print "PPplus.keys=",PPplus[k].keys()
+##                 has_key = 0
+##                 for j in range(num_ppplus):
+##                     if PPplus_cusp[k][j]==icusp and PPplus_n[k][j]==n+Ms:
+##                         has_key = 1
+##                         mpc_set(ppc.value,PPplus_values[k][j],rnd)
+##                         break
+##                 if has_key==1:
+##                     #if PPplus[k].has_key((icusp,n+Ms)):
+##                     #if( abs(nr) > mpmath.eps()):
+##                     #ppc=CF(PPplus[k][icusp,n+Ms])
+##                     mpfr_abs(tmpr_t,nrY2pi.value,rnd_re)
+##                     mpfr_exp(tmpr_t,tmpr_t,rnd_re)
+##                     mpc_mul_fr(tmpc_t,ppc.value,tmpr_t,rnd)
+##                     mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],tmpc_t,rnd)
+##                     if verbose>2:
+##                         print "n=",n
+##                         print "icusp=",icusp
+##                         print "ppc=",ppc
+##                         print "nrY2pi=",nrY2pi
+##                     #RHS[ni,k]=RHS[ni,k]-ppc*(-nrY2pi).exp()
+##                 if verbose>2:
+##                     print "RHS1[",ni,k,"]=",RHS[ni][k]
+##                 for i in range(num_ppminus):
+##                     #for (jcusp,l) in PPminus[k].keys():
+##                     jcusp = PPminus_cusp[k][i]
+##                     l = PPminus_n[k][i]
+##                     mpc_set(ppc_minus.value,PPminus_values[k][i],rnd)
+##                     #ppc_minus = CF(PPminus[k][(jcusp,l)])
+##                     #if ppc_minus==zero or PPminus[k][(jcusp,l)]==0:
+##                     if mpc_is_zero(ppc_minus.value)==1:
+##                         continue
+##                     if verbose>2:
+##                         print "ppart_minus=",ppc_minus
+##                     mpc_set_ui(summa_minus.value,0,rnd) #=zero #summa_minus
+##                     for j in range(Ql):
+##                         #if mpfr_zero_p(mpc_realref(Cvec[icusp][jcusp][j]))<>0 and mpfr_zero_p(mpc_imagref(Cvec[icusp][jcusp][j]))<>0:
+##                         if mpc_is_zero(Cvec[icusp][jcusp][j])==1:
+##                             continue
+##                         if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+##                             continue
+##                         mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
+##                         mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
+##                         if kint==0:
+##                             mpfr_log(tmpr.value,ypb.value,rnd_re)
+##                         else:
+##                             mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
+##                         mpc_set_fr(tmpc_t,tmpr.value,rnd) #ypb**kint
 
-                        mpfr_mul(tmpr.value,nr.value,Xm._entries[j],rnd_re)
-                        mpfr_neg(tmpr.value,tmpr.value,rnd_re)
-                        mpc_set_fr(iargm.value,tmpr.value,rnd)
-                        mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))
-                        mpc_exp(iargm.value,iargm.value,rnd)
-                        mpc_mul(tmpc.value,tmpc_t,iargm.value,rnd)
-                        #tmpc=tmpc_minus*CF(0,-nr*Xm[j]).exp()
-                        mpc_mul(tmpc.value,tmpc.value,ch.value,rnd)
-                        mpc_add(summa_minus.value,summa_minus.value,tmpc.value,rnd)
-                        #summa_minus=summa_minus+ch*tmpc
-                        #summa=summa+ef2[n(2):,j,icusp]*tmpc*ch*ppc
-                        if verbose>2:
-                            print "j=",j
-                            print "ypb=",ypb
-                            print "ch=",ch
-                            #print "tmpc_minus=",tmpc_minus
-                            print "tmpc=",tmpc
-                            print "summa-(",j,")=",summa_minus
-                    if verbose>2:
-                        print "Summa-(",ni,")=",summa_minus
-                    mpc_div_ui(summa_minus.value,summa_minus.value,Qfaki,rnd)
-                    mpc_mul(summa_minus.value,summa_minus.value,ppc_minus.value,rnd)
-                    mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa_minus.value,rnd)
-                    #RHS[ni,k]=RHS[ni,k]+ppc_minus*summa_minus/Qfak
-                #print "summa(",ni,")=",RHS[ni,k]
-                if verbose>2:
-                    print "RHS2[{0},{1}]={2}".format(ni,k,RHS[ni,k])
-                has_key = 0
-                for j in range(num_ppminus):
-                    if PPminus_cusp[k][j]==icusp and PPminus_n[k][j]==n+Ms:
-                        has_key = 1
-                        mpc_set(ppc_minus.value,PPminus_values[k][j],rnd)
-                        break
-                if has_key==1:
-                    #if PPminus[k].has_key((icusp,n+Ms)):
-                    #ppc_minus = CF(PPminus[k][(icusp,n+Ms)])
-                    if kinti==0:
-                        mpfr_log(tmpr.value,Y.value,rnd_re)
-                    else:
-                        mpfr_pow(tmpr.value,Y.value,kint.value,rnd_re)
-                    mpc_mul_fr(ppc_minus.value,ppc_minus.value,tmpr.value,rnd)
-                    mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],ppc_minus.value,rnd)
-                    #RHS[ni,k]=RHS[ni,k]-ppc_minus*Y**kint
-                    #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
-                if verbose>2:
-                    print "RHS3[{0},{1}]={2}".format(ni,k,RHS[ni,k])
-                    #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-    if verbose>1: 
-        for n in range(2):
-            print "V2(",n,n,")=",V[n,n]
-    # Clearing up allocated variables
+##                         mpfr_mul(tmpr.value,nr.value,Xm._entries[j],rnd_re)
+##                         mpfr_neg(tmpr.value,tmpr.value,rnd_re)
+##                         mpc_set_fr(iargm.value,tmpr.value,rnd)
+##                         mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))
+##                         mpc_exp(iargm.value,iargm.value,rnd)
+##                         mpc_mul(tmpc.value,tmpc_t,iargm.value,rnd)
+##                         #tmpc=tmpc_minus*CF(0,-nr*Xm[j]).exp()
+##                         mpc_mul(tmpc.value,tmpc.value,ch.value,rnd)
+##                         mpc_add(summa_minus.value,summa_minus.value,tmpc.value,rnd)
+##                         #summa_minus=summa_minus+ch*tmpc
+##                         #summa=summa+ef2[n(2):,j,icusp]*tmpc*ch*ppc
+##                         if verbose>2:
+##                             print "j=",j
+##                             print "ypb=",ypb
+##                             print "ch=",ch
+##                             #print "tmpc_minus=",tmpc_minus
+##                             print "tmpc=",tmpc
+##                             print "summa-(",j,")=",summa_minus
+##                     if verbose>2:
+##                         print "Summa-(",ni,")=",summa_minus
+##                     mpc_div_ui(summa_minus.value,summa_minus.value,Qfaki,rnd)
+##                     mpc_mul(summa_minus.value,summa_minus.value,ppc_minus.value,rnd)
+##                     mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa_minus.value,rnd)
+##                     #RHS[ni,k]=RHS[ni,k]+ppc_minus*summa_minus/Qfak
+##                 #print "summa(",ni,")=",RHS[ni,k]
+##                 if verbose>2:
+##                     print "RHS2[{0},{1}]={2}".format(ni,k,RHS[ni,k])
+##                 has_key = 0
+##                 for j in range(num_ppminus):
+##                     if PPminus_cusp[k][j]==icusp and PPminus_n[k][j]==n+Ms:
+##                         has_key = 1
+##                         mpc_set(ppc_minus.value,PPminus_values[k][j],rnd)
+##                         break
+##                 if has_key==1:
+##                     #if PPminus[k].has_key((icusp,n+Ms)):
+##                     #ppc_minus = CF(PPminus[k][(icusp,n+Ms)])
+##                     if kinti==0:
+##                         mpfr_log(tmpr.value,Y.value,rnd_re)
+##                     else:
+##                         mpfr_pow(tmpr.value,Y.value,kint.value,rnd_re)
+##                     mpc_mul_fr(ppc_minus.value,ppc_minus.value,tmpr.value,rnd)
+##                     mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],ppc_minus.value,rnd)
+##                     #RHS[ni,k]=RHS[ni,k]-ppc_minus*Y**kint
+##                     #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
+##                 if verbose>2:
+##                     print "RHS3[{0},{1}]={2}".format(ni,k,RHS[ni,k])
+##                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
+##     if verbose>1: 
+##         for n in range(2):
+##             print "V2(",n,n,")=",V[n,n]
+##     # Clearing up allocated variables
 
-    for j in range(d):
-        sage_free(variable_a0_minus[j])
-        sage_free(variable_a0_plus[j])        
-        sage_free(PPplus_cusp[j])
-        sage_free(PPplus_n[j])
-        sage_free(PPminus_cusp[j])
-        sage_free(PPminus_n[j])
-        for l in range(num_ppplus):
-            mpc_clear(PPplus_values[j][l])
-            mpfr_clear(PPplus_lal[j][l])
-        sage_free(PPplus_lal[j])
-        sage_free(PPplus_values[j])
-        for l in range(num_ppminus):
-            mpc_clear(PPminus_values[j][l])
-        sage_free(PPminus_values[j])
+##     for j in range(d):
+##         sage_free(variable_a0_minus[j])
+##         sage_free(variable_a0_plus[j])        
+##         sage_free(PPplus_cusp[j])
+##         sage_free(PPplus_n[j])
+##         sage_free(PPminus_cusp[j])
+##         sage_free(PPminus_n[j])
+##         for l in range(num_ppplus):
+##             mpc_clear(PPplus_values[j][l])
+##             mpfr_clear(PPplus_lal[j][l])
+##         sage_free(PPplus_lal[j])
+##         sage_free(PPplus_values[j])
+##         for l in range(num_ppminus):
+##             mpc_clear(PPminus_values[j][l])
+##         sage_free(PPminus_values[j])
         
-    sage_free(PPplus_lal)
-    sage_free(PPplus_cusp)
-    sage_free(PPplus_n)
-    sage_free(PPplus_values)
-    sage_free(PPminus_cusp)
-    sage_free(PPminus_n)
-    sage_free(PPminus_values)
+##     sage_free(PPplus_lal)
+##     sage_free(PPplus_cusp)
+##     sage_free(PPplus_n)
+##     sage_free(PPplus_values)
+##     sage_free(PPminus_cusp)
+##     sage_free(PPminus_n)
+##     sage_free(PPminus_values)
 
-    sage_free(variable_a0_minus)
-    sage_free(variable_a0_plus)
-
-
+##     sage_free(variable_a0_minus)
+##     sage_free(variable_a0_plus)
 
 
-    if Ypb<>NULL:
-        for i in range(nc):
-            if Ypb[i]<>NULL:
-                for j in range(nc):
-                    if Ypb[i][j]<>NULL:
-                        sage_free(Ypb[i][j])
-                sage_free(Ypb[i])
-        sage_free(Ypb)
-    if Xpb<>NULL:
-        for i in range(nc):
-            if Xpb[i]<>NULL:
-                for j in range(nc):
-                    if Xpb[i][j]<>NULL:
-                        sage_free(Xpb[i][j])
-                sage_free(Xpb[i])
-        sage_free(Xpb)
-    if Cvec<>NULL:
-        for i in range(nc):
-            if Cvec[i]<>NULL:
-                for j in range(nc):
-                    if Cvec[i][j]<>NULL:
-                        sage_free(Cvec[i][j])
-                sage_free(Cvec[i])
-        sage_free(Cvec)
-    if nvec<>NULL:
-        for i in range(nc):
-            if nvec[i]<>NULL:
-                for l in range(Ml):
-                    mpfr_clear(nvec[i][l])
-                sage_free(nvec[i])
-        sage_free(nvec)
-    if ef2<>NULL:
-        for icusp in range(nc):
-            if ef2[icusp]<>NULL:
-                for n in range(Ml):
-                    if ef2[icusp][n]<>NULL:
-                        for j in range(Ql):
-                            mpc_clear(ef2[icusp][n][j])
-                        sage_free(ef2[icusp][n])
-                sage_free(ef2[icusp])
-        sage_free(ef2)
-    if ef1<>NULL:
-        for icusp in range(nc):
-            if ef1[icusp]<>NULL:
-                for jcusp in range(nc):
-                    if ef1[icusp][jcusp]<>NULL:
-                        for n in range(Ml):
-                            if ef1[icusp][jcusp][n]<>NULL:
-                                for j in range(Ql):
-                                    mpc_clear(ef1[icusp][jcusp][n][j])
-                                sage_free(ef1[icusp][jcusp][n])
-                        sage_free(ef1[icusp][jcusp])                        
-                sage_free(ef1[icusp])
-        sage_free(ef1)
+
+
+##     if Ypb<>NULL:
+##         for i in range(nc):
+##             if Ypb[i]<>NULL:
+##                 for j in range(nc):
+##                     if Ypb[i][j]<>NULL:
+##                         sage_free(Ypb[i][j])
+##                 sage_free(Ypb[i])
+##         sage_free(Ypb)
+##     if Xpb<>NULL:
+##         for i in range(nc):
+##             if Xpb[i]<>NULL:
+##                 for j in range(nc):
+##                     if Xpb[i][j]<>NULL:
+##                         sage_free(Xpb[i][j])
+##                 sage_free(Xpb[i])
+##         sage_free(Xpb)
+##     if Cvec<>NULL:
+##         for i in range(nc):
+##             if Cvec[i]<>NULL:
+##                 for j in range(nc):
+##                     if Cvec[i][j]<>NULL:
+##                         sage_free(Cvec[i][j])
+##                 sage_free(Cvec[i])
+##         sage_free(Cvec)
+##     if nvec<>NULL:
+##         for i in range(nc):
+##             if nvec[i]<>NULL:
+##                 for l in range(Ml):
+##                     mpfr_clear(nvec[i][l])
+##                 sage_free(nvec[i])
+##         sage_free(nvec)
+##     if ef2<>NULL:
+##         for icusp in range(nc):
+##             if ef2[icusp]<>NULL:
+##                 for n in range(Ml):
+##                     if ef2[icusp][n]<>NULL:
+##                         for j in range(Ql):
+##                             mpc_clear(ef2[icusp][n][j])
+##                         sage_free(ef2[icusp][n])
+##                 sage_free(ef2[icusp])
+##         sage_free(ef2)
+##     if ef1<>NULL:
+##         for icusp in range(nc):
+##             if ef1[icusp]<>NULL:
+##                 for jcusp in range(nc):
+##                     if ef1[icusp][jcusp]<>NULL:
+##                         for n in range(Ml):
+##                             if ef1[icusp][jcusp][n]<>NULL:
+##                                 for j in range(Ql):
+##                                     mpc_clear(ef1[icusp][jcusp][n][j])
+##                                 sage_free(ef1[icusp][jcusp][n])
+##                         sage_free(ef1[icusp][jcusp])                        
+##                 sage_free(ef1[icusp])
+##         sage_free(ef1)
         
-        #    print "V2(",44,n,")=",V[V.rows-1,n]
-    mpc_clear(iargpb_t)
-    mpc_clear(tmpc_t)
-    mpfr_clear(tmpr_t)
-    W=dict()
-    W['var_a+']=pp_info['variable_a0_plus']
-    W['var_a-']=pp_info['variable_a0_minus']
-    #if H._verbose>0:
-    #    print "alphas=",H.alphas()
-    W['alphas']=H.alphas()
-    W['V']=V
-    #W['cv']=Cv
-    W['RHS']=RHS
-    W['Ms']=Ms
-    W['Mf']=Mf
-    W['Ml']=Ml
-    W['nc']=nc
-    W['PP']=principal_parts
-    W['space']=H
-    W['rdim']=H._rdim
-    return W
+##         #    print "V2(",44,n,")=",V[V.rows-1,n]
+##     mpc_clear(iargpb_t)
+##     mpc_clear(tmpc_t)
+##     mpfr_clear(tmpr_t)
+##     W=dict()
+##     W['var_a+']=pp_info['variable_a0_plus']
+##     W['var_a-']=pp_info['variable_a0_minus']
+##     #if H._verbose>0:
+##     #    print "alphas=",H.alphas()
+##     W['alphas']=H.alphas()
+##     W['V']=V
+##     #W['cv']=Cv
+##     W['RHS']=RHS
+##     W['Ms']=Ms
+##     W['Mf']=Mf
+##     W['Ml']=Ml
+##     W['nc']=nc
+##     W['PP']=principal_parts
+##     W['space']=H
+##     W['rdim']=H._rdim
+##     return W
 
 from sage.all import RR
 cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
@@ -2904,640 +3204,640 @@ def solve_for_sl2z(W):
 
 ### The oldest backup...
 
-def setup_matrix_for_harmonic_Maass_waveforms_sv_bak_22(H,Y_in,int M,int Q,principal_parts):
-    r"""
+## def setup_matrix_for_harmonic_Maass_waveforms_sv_bak_22(H,Y_in,int M,int Q,principal_parts):
+##     r"""
 
-    Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
+##     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
-    INPUT:
+##     INPUT:
     
-        - ``H`` -- Space of harmonic weak Maass forms
-        - ``Y`` -- height of horocycle used for sampling (mpmath real)
-        - ``k`` -- weight (mpmath real) 
-        - ``M`` -- integer
-        - ``Q`` -- integer > M
-        - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
+##         - ``H`` -- Space of harmonic weak Maass forms
+##         - ``Y`` -- height of horocycle used for sampling (mpmath real)
+##         - ``k`` -- weight (mpmath real) 
+##         - ``M`` -- integer
+##         - ``Q`` -- integer > M
+##         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
-    OUTPUT:
+##     OUTPUT:
     
-        - ``W`` -- dictionary
-        - ``W['Mf']`` -- M start
-        - ``W['nc']`` -- number of cusps
-        - ``W['Ms']`` -- M stop
-        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
-        - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
+##         - ``W`` -- dictionary
+##         - ``W['Mf']`` -- M start
+##         - ``W['nc']`` -- number of cusps
+##         - ``W['Ms']`` -- M stop
+##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+##         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
     
     
-    EXAMPLES::
+##     EXAMPLES::
 
-        sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
+##         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
     
 
-    """
-    cdef int l,j,icusp,jcusp,n,ni,li,iMl,iMs,iMf,iQs,iQf,iQl,s,nc
-    cdef double RR,YY
-    mpmath_ctx=H._mp_ctx
-    mpmath_ctx=mpmath.mp
-    #if( not test_ctx(Y,mpmath_ctx)):
-    #    raise TypeError," Need Mpmath reals as input!"
-    #GG=H._G
-    if(not isinstance(Y_in,type(mpmath_ctx.mpf(1.0)))):        
-        Y = mpmath_ctx.mpf(Y_in)
-    else:
-        Y = Y_in
-    weight=H._weight
-    pi=mpmath_ctx.pi()
-    one=mpmath_ctx.mpf(1)
-    two=mpmath_ctx.mpf(2)
-    zero=mpmath_ctx.mpf(0)
-    twopi=two*pi
-    fourpi=two*twopi
-    twopiY=twopi*Y
-    fourpiY=two*twopiY
-    p=(weight-mpmath_ctx.mpf(1))/mpmath_ctx.mpf(2)
-    kint=mpmath_ctx.mpf(1)-weight
-    #print "kint=",kint
-    nc=int(H._group.ncusps())
-    if(Q<M):
-        Q=M+20
-    if(H._holomorphic):
-        Ms=0; Mf=M; Ml=Mf-Ms+1
-    else:
-        Ms=-M; Mf=M; Ml=Mf-Ms+1
-    Qs=1-Q; Qf=Q
-    Qfak=mpmath_ctx.mpf(2*Q)
-    iMl=int(Ml); iMs=int(Ms); iMf=int(Mf)
-    iQf=int(Qf); iQs=int(Qs); iQl=int(Qf-Qs+1)
-    # Pullpack points
-    pb=pullback_pts_mpmath(H,Qs,Qf,Y)
-    Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
-    #[Xm,Xpb,Ypb,Cv]=pullback_pts_hw(H,Qs,Qf,Y)
-    s=int(nc*iMl)
-    #print "Q=",Q
-    #print "kint=",kint
-    V=mpmath_ctx.matrix(int(s),int(s))
+##     """
+##     cdef int l,j,icusp,jcusp,n,ni,li,iMl,iMs,iMf,iQs,iQf,iQl,s,nc
+##     cdef double RR,YY
+##     mpmath_ctx=H._mp_ctx
+##     mpmath_ctx=mpmath.mp
+##     #if( not test_ctx(Y,mpmath_ctx)):
+##     #    raise TypeError," Need Mpmath reals as input!"
+##     #GG=H._G
+##     if(not isinstance(Y_in,type(mpmath_ctx.mpf(1.0)))):        
+##         Y = mpmath_ctx.mpf(Y_in)
+##     else:
+##         Y = Y_in
+##     weight=H._weight
+##     pi=mpmath_ctx.pi()
+##     one=mpmath_ctx.mpf(1)
+##     two=mpmath_ctx.mpf(2)
+##     zero=mpmath_ctx.mpf(0)
+##     twopi=two*pi
+##     fourpi=two*twopi
+##     twopiY=twopi*Y
+##     fourpiY=two*twopiY
+##     p=(weight-mpmath_ctx.mpf(1))/mpmath_ctx.mpf(2)
+##     kint=mpmath_ctx.mpf(1)-weight
+##     #print "kint=",kint
+##     nc=int(H._group.ncusps())
+##     if(Q<M):
+##         Q=M+20
+##     if(H._holomorphic):
+##         Ms=0; Mf=M; Ml=Mf-Ms+1
+##     else:
+##         Ms=-M; Mf=M; Ml=Mf-Ms+1
+##     Qs=1-Q; Qf=Q
+##     Qfak=mpmath_ctx.mpf(2*Q)
+##     iMl=int(Ml); iMs=int(Ms); iMf=int(Mf)
+##     iQf=int(Qf); iQs=int(Qs); iQl=int(Qf-Qs+1)
+##     # Pullpack points
+##     pb=pullback_pts_mpmath(H,Qs,Qf,Y)
+##     Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
+##     #[Xm,Xpb,Ypb,Cv]=pullback_pts_hw(H,Qs,Qf,Y)
+##     s=int(nc*iMl)
+##     #print "Q=",Q
+##     #print "kint=",kint
+##     V=mpmath_ctx.matrix(int(s),int(s))
 
-    PPplus = list(); PPminus = list()
-    for pp in principal_parts:
-        PPplus.append(pp['+'])
-        PPminus.append(pp['-'])
-    # cehcking correctness of porincipal parts
-    for pp in PPplus:
-        for icusp,n in pp:
-            if((icusp not in range(nc)) or n>0):
-                raise ValueError,"Principal parts are in wrong format!"
-    for pp in PPminus:
-        for icusp,n in pp:
-            if((icusp not in range(nc)) or n>0):
-                raise ValueError,"Principal parts are in wrong format!"            
+##     PPplus = list(); PPminus = list()
+##     for pp in principal_parts:
+##         PPplus.append(pp['+'])
+##         PPminus.append(pp['-'])
+##     # cehcking correctness of porincipal parts
+##     for pp in PPplus:
+##         for icusp,n in pp:
+##             if((icusp not in range(nc)) or n>0):
+##                 raise ValueError,"Principal parts are in wrong format!"
+##     for pp in PPminus:
+##         for icusp,n in pp:
+##             if((icusp not in range(nc)) or n>0):
+##                 raise ValueError,"Principal parts are in wrong format!"            
 
-    # if we have a holomorphic function we  don't want any non-holomorphic principal parts
-    if(H._holomorphic):
-        for i in range(len(PPminus)):
-            for j in range(0,nc):
-                PPminus[i][(j,0)]=0
+##     # if we have a holomorphic function we  don't want any non-holomorphic principal parts
+##     if(H._holomorphic):
+##         for i in range(len(PPminus)):
+##             for j in range(0,nc):
+##                 PPminus[i][(j,0)]=0
 
 
-    #if(principal_parts.has_key('+')):
-    #    PP = principal_parts['+']
-    #else:
-    #    PP = [{}]
-    #if(principal_parts.has_key('-')):
-    #    PPminus = principal_parts['-']
-    #else:
-    #    PPminus = [{}] 
-    if(not isinstance(PPplus,list)):
-        raise ValueError,"Need a list of (+) principal parts!"
-    if(not isinstance(PPminus,list)):
-        raise ValueError,"Need a list of (-) principal parts!"
-    if(len(PPminus)<>len(PPplus)):
-        raise ValueError," Need equal number of holomorphic and non-holomorphic principal parts! Got:%s" % principal_parts
-    d = len(PPplus)
-    if(H._verbose>0): 
-        print "PPplus=",PPplus
-        print "PPminus=",PPminus
-    variable_a0_plus=dict()
-    variable_a0_minus=dict()
-    for j in range(nc):
-        if(H.alpha(j)[1]<>1):
-            #variable_a0_plus[j]=False
-            #variable_a0_minus[j]=False
-            continue
-        variable_a0_plus[j]=True
-        variable_a0_minus[j]=True
-        if(PPplus[0].has_key((j,0))):
-            variable_a0_plus[j]=False
-        if(PPminus[0].has_key((j,0))):
-            variable_a0_minus[j]=False        
-        ## They can not both be variable...
-        if(variable_a0_minus[j] and variable_a0_plus[j]):
-            print "Variables a(0)^+=",variable_a0_plus
-            print "Variables a(0)^-=",variable_a0_minus
-            raise ValueError,"Need to specify constant terms of the principal parts! Got: %s" % principal_parts
+##     #if(principal_parts.has_key('+')):
+##     #    PP = principal_parts['+']
+##     #else:
+##     #    PP = [{}]
+##     #if(principal_parts.has_key('-')):
+##     #    PPminus = principal_parts['-']
+##     #else:
+##     #    PPminus = [{}] 
+##     if(not isinstance(PPplus,list)):
+##         raise ValueError,"Need a list of (+) principal parts!"
+##     if(not isinstance(PPminus,list)):
+##         raise ValueError,"Need a list of (-) principal parts!"
+##     if(len(PPminus)<>len(PPplus)):
+##         raise ValueError," Need equal number of holomorphic and non-holomorphic principal parts! Got:%s" % principal_parts
+##     d = len(PPplus)
+##     if(H._verbose>0): 
+##         print "PPplus=",PPplus
+##         print "PPminus=",PPminus
+##     variable_a0_plus=dict()
+##     variable_a0_minus=dict()
+##     for j in range(nc):
+##         if(H.alpha(j)[1]<>1):
+##             #variable_a0_plus[j]=False
+##             #variable_a0_minus[j]=False
+##             continue
+##         variable_a0_plus[j]=True
+##         variable_a0_minus[j]=True
+##         if(PPplus[0].has_key((j,0))):
+##             variable_a0_plus[j]=False
+##         if(PPminus[0].has_key((j,0))):
+##             variable_a0_minus[j]=False        
+##         ## They can not both be variable...
+##         if(variable_a0_minus[j] and variable_a0_plus[j]):
+##             print "Variables a(0)^+=",variable_a0_plus
+##             print "Variables a(0)^-=",variable_a0_minus
+##             raise ValueError,"Need to specify constant terms of the principal parts! Got: %s" % principal_parts
 
-    if(H._verbose>0): 
-        print "Variables a(0)^+=",variable_a0_plus
-        print "Variables a(0)^-=",variable_a0_minus
-    RHS=mpmath_ctx.matrix(int(s),int(d))
-    nvec=dict()
-    for icusp from int(0)<=icusp<nc:
-        for l in range(iMs,iMf+1):
-            nvec[l,icusp]=mpmath_ctx.mpf(l)+H.alpha(icusp)[0]
-        #print "nvec(",icusp,0,")=",nvec[0,icusp]
-    ef1=dict(); ef2=dict()
+##     if(H._verbose>0): 
+##         print "Variables a(0)^+=",variable_a0_plus
+##         print "Variables a(0)^-=",variable_a0_minus
+##     RHS=mpmath_ctx.matrix(int(s),int(d))
+##     nvec=dict()
+##     for icusp from int(0)<=icusp<nc:
+##         for l in range(iMs,iMf+1):
+##             nvec[l,icusp]=mpmath_ctx.mpf(l)+H.alpha(icusp)[0]
+##         #print "nvec(",icusp,0,")=",nvec[0,icusp]
+##     ef1=dict(); ef2=dict()
     
-    for n from iMs <=n <= iMf:        
-        for icusp in range(nc):
-            inr=mpmath_ctx.mpc(0,nvec[n,icusp])
-            for j from iQs <= j <= iQf:
-                iargm=inr*Xm[j]
-                ef2[n,j,icusp]=mpmath_ctx.exp(-iargm)
-        for jcusp in range(nc):
-            nr=nvec[n,jcusp]
-            nrfourpi=nr*fourpi
-            for icusp in range(nc):
-                for j from iQs <= j <= iQf:
-                    if(not Xpb.has_key((icusp,jcusp,j))):
-                        continue
-                    iargpb=nr*mpmath_ctx.mpc(-twopi*Ypb[icusp,jcusp,j],Xpb[icusp,jcusp,j])
-                    if(nr>mpmath_ctx.eps()):
-                        ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)
-                    elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):
-                        tmp=abs(nrfourpi)*Ypb[icusp,jcusp,j]
-                        tmp2=mpmath_ctx.exp(iargpb)
-                        ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)*mpmath_ctx.gammainc(kint,tmp)
-                    elif(nr<-mpmath_ctx.eps()):
-                        #print "here!"
-                        ef1[j,icusp,jcusp,n]=mpmath_ctx.mpf(0)
-                    else:
-                        ## here nr = 0
-                        if(variable_a0_plus[jcusp]):
-                            ef1[j,icusp,jcusp,n]=mpmath_ctx.mpf(1)
-                        elif(variable_a0_minus[jcusp]):
-                            ef1[j,icusp,jcusp,n]=mpmath.mp.power(Ypb[icusp,jcusp,j],kint)
-                        else:
-                            ef1[j,icusp,jcusp,n]=mpmath_ctx.mpf(0)
+##     for n from iMs <=n <= iMf:        
+##         for icusp in range(nc):
+##             inr=mpmath_ctx.mpc(0,nvec[n,icusp])
+##             for j from iQs <= j <= iQf:
+##                 iargm=inr*Xm[j]
+##                 ef2[n,j,icusp]=mpmath_ctx.exp(-iargm)
+##         for jcusp in range(nc):
+##             nr=nvec[n,jcusp]
+##             nrfourpi=nr*fourpi
+##             for icusp in range(nc):
+##                 for j from iQs <= j <= iQf:
+##                     if(not Xpb.has_key((icusp,jcusp,j))):
+##                         continue
+##                     iargpb=nr*mpmath_ctx.mpc(-twopi*Ypb[icusp,jcusp,j],Xpb[icusp,jcusp,j])
+##                     if(nr>mpmath_ctx.eps()):
+##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)
+##                     elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):
+##                         tmp=abs(nrfourpi)*Ypb[icusp,jcusp,j]
+##                         tmp2=mpmath_ctx.exp(iargpb)
+##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)*mpmath_ctx.gammainc(kint,tmp)
+##                     elif(nr<-mpmath_ctx.eps()):
+##                         #print "here!"
+##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.mpf(0)
+##                     else:
+##                         ## here nr = 0
+##                         if(variable_a0_plus[jcusp]):
+##                             ef1[j,icusp,jcusp,n]=mpmath_ctx.mpf(1)
+##                         elif(variable_a0_minus[jcusp]):
+##                             ef1[j,icusp,jcusp,n]=mpmath.mp.power(Ypb[icusp,jcusp,j],kint)
+##                         else:
+##                             ef1[j,icusp,jcusp,n]=mpmath_ctx.mpf(0)
 
-    for l from  iMs <= l <= iMf:
-        for j from iQs <= j <= iQf:
-            for jcusp from int(0) <= jcusp < int(nc):
-                lj=iMl*jcusp+l-iMs
-                for icusp from int(0) <= icusp < int(nc):
-                    if(not Cv.has_key((icusp,jcusp,j))):
-                        continue
-                    ch= Cv[icusp,jcusp,j]  #    continue
-                    tmp1=ef1[j,icusp,jcusp,l]*ch
-                    for n from iMs <= n <= iMf:
-                        ni=iMl*icusp+n-iMs
-                        V[ni,lj]=V[ni,lj]+tmp1*ef2[n,j,icusp]
-                        if(H._verbose > 2 and n==0 and l==0):
-                            print "-------------------"
-                            print "ni,lj=",ni,lj
-                            print "icusp,jcusp=",icusp,jcusp
-                            print "V[0,0](",j,")=",V[ni,lj]
-                            print "xpb=",Xpb[icusp,jcusp,j]
-                            print "ef1(",j,")=",ef1[j,icusp,jcusp,l]
-                            print "cv(",j,")=",Cv[icusp,jcusp,j] 
-                            print "ef2(",j,")=",ef2[n,j,icusp]
-                        #if(ni==44):
-                        #    print l,j,tmp1,ef2[n,j,icusp]
-                        #    print V[ni,lj]
+##     for l from  iMs <= l <= iMf:
+##         for j from iQs <= j <= iQf:
+##             for jcusp from int(0) <= jcusp < int(nc):
+##                 lj=iMl*jcusp+l-iMs
+##                 for icusp from int(0) <= icusp < int(nc):
+##                     if(not Cv.has_key((icusp,jcusp,j))):
+##                         continue
+##                     ch= Cv[icusp,jcusp,j]  #    continue
+##                     tmp1=ef1[j,icusp,jcusp,l]*ch
+##                     for n from iMs <= n <= iMf:
+##                         ni=iMl*icusp+n-iMs
+##                         V[ni,lj]=V[ni,lj]+tmp1*ef2[n,j,icusp]
+##                         if(H._verbose > 2 and n==0 and l==0):
+##                             print "-------------------"
+##                             print "ni,lj=",ni,lj
+##                             print "icusp,jcusp=",icusp,jcusp
+##                             print "V[0,0](",j,")=",V[ni,lj]
+##                             print "xpb=",Xpb[icusp,jcusp,j]
+##                             print "ef1(",j,")=",ef1[j,icusp,jcusp,l]
+##                             print "cv(",j,")=",Cv[icusp,jcusp,j] 
+##                             print "ef2(",j,")=",ef2[n,j,icusp]
+##                         #if(ni==44):
+##                         #    print l,j,tmp1,ef2[n,j,icusp]
+##                         #    print V[ni,lj]
 
-    if(H._verbose>1):
-        print "Mi,Ms=",iMs,iMf
-        print "V1(",0,0,")=",V[0,0]
-    for n from 0<=n< V.rows:
-        for l from 0 <= l < V.cols:        
-            V[n,l]=V[n,l]/Qfak
-    if(H._verbose>2): 
-        for n from 0<=n< V.rows:   
-            print "V1(",n,n,")=",V[n,n]
+##     if(H._verbose>1):
+##         print "Mi,Ms=",iMs,iMf
+##         print "V1(",0,0,")=",V[0,0]
+##     for n from 0<=n< V.rows:
+##         for l from 0 <= l < V.cols:        
+##             V[n,l]=V[n,l]/Qfak
+##     if(H._verbose>2): 
+##         for n from 0<=n< V.rows:   
+##             print "V1(",n,n,")=",V[n,n]
             
-    for n from iMs<=n <=iMf:
-        for icusp from int(0)<=icusp<nc:
-            nr=nvec[n,icusp]
-            #nr=mpmath_ctx.mpf(n)
-            nrY2pi=nr*twopiY
-            ni=iMl*icusp+n-iMs
-            if(nr>mpmath_ctx.eps()):
-                kbes=mpmath_ctx.exp(-nrY2pi)
-            elif(nr<-mpmath_ctx.eps() and (not H._holomorphic) and H._weak):
-                kbes=mpmath_ctx.gammainc(kint,abs(nr)*fourpiY)*mpmath_ctx.exp(-nrY2pi)
-            elif(nr<-mpmath_ctx.eps()):
-                kbes=mpmath_ctx.mpf(0)
-            else:
-                #print "n,icusp=",n,icusp
-                #kbes=mpmath_ctx.mpf(1)
-                if(variable_a0_plus[icusp]):
-                    #print "1"
-                    kbes=mpmath_ctx.mpf(1)
-                elif(variable_a0_minus[icusp]):
-                    #print "2"
-                    kbes=mpmath.mp.power(Y,kint)
-                else:
-                    #print "3"
-                    kbes=mpmath_ctx.mpf(0)
-            V[ni,ni]=V[ni,ni]-kbes
-            # setting the right hand side of the system
-            for k in range(d):
-                RHS[ni,k]=zero
-                for (jcusp,l) in PPplus[k].keys():
-                    ppc=mpmath_ctx.mpc(PPplus[k][(jcusp,l)])
-                    #print "ppart_plus=",PP[k][jcusp,l]
-                    lr=mpmath_ctx.mpf(l+H.alpha(jcusp)[0])
-                    #if(abs(lr) <= mpmath.eps()):
-                    #    continue
-                    ### Note: The constant term is treated below
-                    if (ppc.ae(0)):
-                        continue
-                    summa=mpmath.mpf(0)
-                    for j from Qs <= j <= Qf:
-                        if(not Ypb.has_key((icusp,jcusp,j))):
-                            continue
-                        ch=Cv[icusp,jcusp,j]
-                        tmp=mpmath_ctx.mpc(-twopi*lr*Ypb[icusp,jcusp,j],lr*Xpb[icusp,jcusp,j]-nr*Xm[j])
-                        tmpc=ppc*mpmath_ctx.exp(tmp)
-                        summa=summa+ch*tmpc
-                    RHS[ni,k]=RHS[ni,k]+summa/Qfak
-                if(PPplus[k].has_key((icusp,n))):
-                    #if( abs(nr) > mpmath.eps()):
-                    ppc=mpmath_ctx.mpc(PPplus[k][icusp,n])
-                    RHS[ni,k]=RHS[ni,k]-ppc*mpmath_ctx.exp(-nrY2pi)
-                for (jcusp,l) in PPminus[k].keys():
-                    ppc_minus = mpmath_ctx.mpc(PPminus[k][(jcusp,l)])
-                    if(ppc_minus.ae(0)):
-                        continue
-                    #print "ppart_minus=",PPminus[k][jcusp,l]
-                    summa_minus=zero #summa_minus
-                    for j from Qs <= j <= Qf:
-                        if(not Ypb.has_key((icusp,jcusp,j))):
-                            continue
-                        ch=Cv[icusp,jcusp,j]
-                        tmpc_minus=mpmath.mp.power(Ypb[icusp,jcusp,j],kint)
-                        tmpc=tmpc_minus*mpmath_ctx.exp(mpmath_ctx.mpc(0,-nr*Xm[j]))
-                        summa_minus=summa_minus+ch*tmpc
-                        #summa=summa+ef2[n,j,icusp]*tmpc*ch*ppc
-                    #print "summa-(",ni,")=",summa_minus
-                    RHS[ni,k]=RHS[ni,k]+ppc_minus*summa_minus/Qfak
-                #print "summa(",ni,")=",RHS[ni,k]
-                if(PPminus[k].has_key((icusp,n))):
-                    ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,n)])
-                    RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.mp.power(Y,kint)
-                    #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
-                    #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-    if(H._verbose>2): 
-        for n from 0<=n< V.rows:   
-            print "V2(",n,n,")=",V[n,n]
-    #for n from 0<=n< V.rows:   
-    #    print "V2(",44,n,")=",V[V.rows-1,n]
-    W=dict()
-    W['var_a+']=variable_a0_plus
-    W['var_a-']=variable_a0_minus
-    W['alphas']=H.alphas()
-    W['V']=V
-    W['space']=H
-    W['RHS']=RHS
-    W['Ms']=Ms
-    W['Mf']=Mf
-    W['Ml']=Ml
-    W['nc']=nc
-    W['rdim']=H._rdim
-    return W
+##     for n from iMs<=n <=iMf:
+##         for icusp from int(0)<=icusp<nc:
+##             nr=nvec[n,icusp]
+##             #nr=mpmath_ctx.mpf(n)
+##             nrY2pi=nr*twopiY
+##             ni=iMl*icusp+n-iMs
+##             if(nr>mpmath_ctx.eps()):
+##                 kbes=mpmath_ctx.exp(-nrY2pi)
+##             elif(nr<-mpmath_ctx.eps() and (not H._holomorphic) and H._weak):
+##                 kbes=mpmath_ctx.gammainc(kint,abs(nr)*fourpiY)*mpmath_ctx.exp(-nrY2pi)
+##             elif(nr<-mpmath_ctx.eps()):
+##                 kbes=mpmath_ctx.mpf(0)
+##             else:
+##                 #print "n,icusp=",n,icusp
+##                 #kbes=mpmath_ctx.mpf(1)
+##                 if(variable_a0_plus[icusp]):
+##                     #print "1"
+##                     kbes=mpmath_ctx.mpf(1)
+##                 elif(variable_a0_minus[icusp]):
+##                     #print "2"
+##                     kbes=mpmath.mp.power(Y,kint)
+##                 else:
+##                     #print "3"
+##                     kbes=mpmath_ctx.mpf(0)
+##             V[ni,ni]=V[ni,ni]-kbes
+##             # setting the right hand side of the system
+##             for k in range(d):
+##                 RHS[ni,k]=zero
+##                 for (jcusp,l) in PPplus[k].keys():
+##                     ppc=mpmath_ctx.mpc(PPplus[k][(jcusp,l)])
+##                     #print "ppart_plus=",PP[k][jcusp,l]
+##                     lr=mpmath_ctx.mpf(l+H.alpha(jcusp)[0])
+##                     #if(abs(lr) <= mpmath.eps()):
+##                     #    continue
+##                     ### Note: The constant term is treated below
+##                     if (ppc.ae(0)):
+##                         continue
+##                     summa=mpmath.mpf(0)
+##                     for j from Qs <= j <= Qf:
+##                         if(not Ypb.has_key((icusp,jcusp,j))):
+##                             continue
+##                         ch=Cv[icusp,jcusp,j]
+##                         tmp=mpmath_ctx.mpc(-twopi*lr*Ypb[icusp,jcusp,j],lr*Xpb[icusp,jcusp,j]-nr*Xm[j])
+##                         tmpc=ppc*mpmath_ctx.exp(tmp)
+##                         summa=summa+ch*tmpc
+##                     RHS[ni,k]=RHS[ni,k]+summa/Qfak
+##                 if(PPplus[k].has_key((icusp,n))):
+##                     #if( abs(nr) > mpmath.eps()):
+##                     ppc=mpmath_ctx.mpc(PPplus[k][icusp,n])
+##                     RHS[ni,k]=RHS[ni,k]-ppc*mpmath_ctx.exp(-nrY2pi)
+##                 for (jcusp,l) in PPminus[k].keys():
+##                     ppc_minus = mpmath_ctx.mpc(PPminus[k][(jcusp,l)])
+##                     if(ppc_minus.ae(0)):
+##                         continue
+##                     #print "ppart_minus=",PPminus[k][jcusp,l]
+##                     summa_minus=zero #summa_minus
+##                     for j from Qs <= j <= Qf:
+##                         if(not Ypb.has_key((icusp,jcusp,j))):
+##                             continue
+##                         ch=Cv[icusp,jcusp,j]
+##                         tmpc_minus=mpmath.mp.power(Ypb[icusp,jcusp,j],kint)
+##                         tmpc=tmpc_minus*mpmath_ctx.exp(mpmath_ctx.mpc(0,-nr*Xm[j]))
+##                         summa_minus=summa_minus+ch*tmpc
+##                         #summa=summa+ef2[n,j,icusp]*tmpc*ch*ppc
+##                     #print "summa-(",ni,")=",summa_minus
+##                     RHS[ni,k]=RHS[ni,k]+ppc_minus*summa_minus/Qfak
+##                 #print "summa(",ni,")=",RHS[ni,k]
+##                 if(PPminus[k].has_key((icusp,n))):
+##                     ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,n)])
+##                     RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.mp.power(Y,kint)
+##                     #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
+##                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
+##     if(H._verbose>2): 
+##         for n from 0<=n< V.rows:   
+##             print "V2(",n,n,")=",V[n,n]
+##     #for n from 0<=n< V.rows:   
+##     #    print "V2(",44,n,")=",V[V.rows-1,n]
+##     W=dict()
+##     W['var_a+']=variable_a0_plus
+##     W['var_a-']=variable_a0_minus
+##     W['alphas']=H.alphas()
+##     W['V']=V
+##     W['space']=H
+##     W['RHS']=RHS
+##     W['Ms']=Ms
+##     W['Mf']=Mf
+##     W['Ml']=Ml
+##     W['nc']=nc
+##     W['rdim']=H._rdim
+##     return W
 
 
 
 
 
-def setup_matrix_for_harmonic_Maass_waveforms_sv_bak(H,Y,int M,int Q,principal_parts):
-    r"""
+## def setup_matrix_for_harmonic_Maass_waveforms_sv_bak(H,Y,int M,int Q,principal_parts):
+##     r"""
 
-    Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
+##     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
-    INPUT:
+##     INPUT:
     
-        - ``H`` -- Space of harmonic weak Maass forms
-        - ``Y`` -- height of horocycle used for sampling (mpmath real)
-        - ``k`` -- weight (mpmath real) 
-        - ``M`` -- integer
-        - ``Q`` -- integer > M
-        - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
+##         - ``H`` -- Space of harmonic weak Maass forms
+##         - ``Y`` -- height of horocycle used for sampling (mpmath real)
+##         - ``k`` -- weight (mpmath real) 
+##         - ``M`` -- integer
+##         - ``Q`` -- integer > M
+##         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
-    OUTPUT:
+##     OUTPUT:
     
-        - ``W`` -- dictionary
-        - ``W['Mf']`` -- M start
-        - ``W['nc']`` -- number of cusps
-        - ``W['Ms']`` -- M stop
-        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
-        - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
+##         - ``W`` -- dictionary
+##         - ``W['Mf']`` -- M start
+##         - ``W['nc']`` -- number of cusps
+##         - ``W['Ms']`` -- M stop
+##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+##         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
     
     
-    EXAMPLES::
+##     EXAMPLES::
 
-        sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
+##         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
     
 
-    """
-    cdef int l,j,icusp,jcusp,n,ni,li,iMl,iMs,iMf,iQs,iQf,iQl,s,nc
-    cdef double RR,YY
-    mpmath_ctx=H._mp_ctx
-    mpmath_ctx=mpmath.mp
-    #if( not test_ctx(Y,mpmath_ctx)):
-    #    raise TypeError," Need Mpmath reals as input!"
-    #GG=H._G
-    weight=H._weight
-    pi=mpmath_ctx.pi()
-    one=mpmath_ctx.mpf(1)
-    two=mpmath_ctx.mpf(2)
-    zero=mpmath_ctx.mpf(0)
-    twopi=two*pi
-    fourpi=two*twopi
-    twopiY=twopi*Y
-    fourpiY=two*twopiY
-    p=(weight-mpmath_ctx.mpf(1))/mpmath_ctx.mpf(2)
-    kint=mpmath_ctx.mpf(1)-weight
-    nc=int(H._group.ncusps())
-    two_const_terms=False
-    #if(H._weak and not H._holomorphic and not H.two_constant_terms):
-    #   
-    two_const_terms=True
-    if(Q<M):
-        Q=M+20
-    if(H._holomorphic):
-        Ms=0; Mf=M; Ml=Mf-Ms+1
-    else:
-        ## In general we have two zero-terms in the weak harmonic forms
-        if(two_const_terms):
-            Ms=-M; Mf=M; Ml=Mf-Ms+1
-        else:
-            Ms=-M; Mf=M; Ml=Mf-Ms+1
-    Qs=1-Q; Qf=Q
-    Qfak=mpmath_ctx.mpf(2*Q)
-    iMl=int(Ml); iMs=int(Ms); iMf=int(Mf)
-    iQf=int(Qf); iQs=int(Qs); iQl=int(Qf-Qs+1)
-    # Pullpack points
-    RF=RealField(mpmath.mp.prec)
-    pb=pullback_pts_mpc_new(H,Qs,Qf,RF(Y))
-    Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
-    #[Xm,Xpb,Ypb,Cv]=pullback_pts_hw(H,Qs,Qf,Y)
-    s=int(nc*iMl)
-    #print "Q=",Q
-    #print "kint=",kint
-    print "s=",s
-    V=mpmath_ctx.matrix(int(s),int(s))
-    if(isinstance(principal_parts,dict)):
-        if(principal_parts.has_key('+')):
-            PP = principal_parts['+']
-        else:
-            PP = [{}]
-        if(principal_parts.has_key('-')):
-            PPminus = principal_parts['-']
-        else:
-            PPminus = list()
-            for i in range(len(PP)):
-                PPminus.append({})
-    else:
-        PP = list()
-        PPminus = list()
-        for i in range(len(principal_parts)):
-            PP.append(principal_parts[i]['+'])
-            PPminus.append(principal_parts[i]['-'])
+##     """
+##     cdef int l,j,icusp,jcusp,n,ni,li,iMl,iMs,iMf,iQs,iQf,iQl,s,nc
+##     cdef double RR,YY
+##     mpmath_ctx=H._mp_ctx
+##     mpmath_ctx=mpmath.mp
+##     #if( not test_ctx(Y,mpmath_ctx)):
+##     #    raise TypeError," Need Mpmath reals as input!"
+##     #GG=H._G
+##     weight=H._weight
+##     pi=mpmath_ctx.pi()
+##     one=mpmath_ctx.mpf(1)
+##     two=mpmath_ctx.mpf(2)
+##     zero=mpmath_ctx.mpf(0)
+##     twopi=two*pi
+##     fourpi=two*twopi
+##     twopiY=twopi*Y
+##     fourpiY=two*twopiY
+##     p=(weight-mpmath_ctx.mpf(1))/mpmath_ctx.mpf(2)
+##     kint=mpmath_ctx.mpf(1)-weight
+##     nc=int(H._group.ncusps())
+##     two_const_terms=False
+##     #if(H._weak and not H._holomorphic and not H.two_constant_terms):
+##     #   
+##     two_const_terms=True
+##     if(Q<M):
+##         Q=M+20
+##     if(H._holomorphic):
+##         Ms=0; Mf=M; Ml=Mf-Ms+1
+##     else:
+##         ## In general we have two zero-terms in the weak harmonic forms
+##         if(two_const_terms):
+##             Ms=-M; Mf=M; Ml=Mf-Ms+1
+##         else:
+##             Ms=-M; Mf=M; Ml=Mf-Ms+1
+##     Qs=1-Q; Qf=Q
+##     Qfak=mpmath_ctx.mpf(2*Q)
+##     iMl=int(Ml); iMs=int(Ms); iMf=int(Mf)
+##     iQf=int(Qf); iQs=int(Qs); iQl=int(Qf-Qs+1)
+##     # Pullpack points
+##     RF=RealField(mpmath.mp.prec)
+##     pb=pullback_pts_mpc_new(H,Qs,Qf,RF(Y))
+##     Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
+##     #[Xm,Xpb,Ypb,Cv]=pullback_pts_hw(H,Qs,Qf,Y)
+##     s=int(nc*iMl)
+##     #print "Q=",Q
+##     #print "kint=",kint
+##     print "s=",s
+##     V=mpmath_ctx.matrix(int(s),int(s))
+##     if(isinstance(principal_parts,dict)):
+##         if(principal_parts.has_key('+')):
+##             PP = principal_parts['+']
+##         else:
+##             PP = [{}]
+##         if(principal_parts.has_key('-')):
+##             PPminus = principal_parts['-']
+##         else:
+##             PPminus = list()
+##             for i in range(len(PP)):
+##                 PPminus.append({})
+##     else:
+##         PP = list()
+##         PPminus = list()
+##         for i in range(len(principal_parts)):
+##             PP.append(principal_parts[i]['+'])
+##             PPminus.append(principal_parts[i]['-'])
             
-            # if we have a holomorphic function we  don't want any non-holomorphic principal parts
-    if(H._holomorphic):
-        print "H is holomorphic!"
-        for i in range(len(PP)):
-            for j in range(0,nc):
-                PPminus[i][(j,0)]=0
+##             # if we have a holomorphic function we  don't want any non-holomorphic principal parts
+##     if(H._holomorphic):
+##         print "H is holomorphic!"
+##         for i in range(len(PP)):
+##             for j in range(0,nc):
+##                 PPminus[i][(j,0)]=0
 
-    if(not isinstance(PP,list)):
-        raise ValueError,"Need a list of (+) principal parts!"
-    if(not isinstance(PPminus,list)):
-        raise ValueError,"Need a list of (-) principal parts!"
-    if(len(PPminus)<>len(PP)):
-        raise ValueError," Need equal number of holomorphic and non-holomorphic principal parts! Got:%s" % principal_parts
-    d = len(PP)
-    if(H._verbose):
-        print "s=",s
-        print "PP=",PP
-        print "PPminus=",PPminus
-    ## From the principal parts we can figure out which of a^+(0) and a^-(0) are unknowns
-    ## Version one: we need to set at least one of them for each cusp.
-    variable_a0_plus=dict()
-    variable_a0_minus=dict()
-    for j in range(nc):
-        if(H.alpha(j)[1]<>1):
-            #variable_a0_plus[j]=False
-            #variable_a0_minus[j]=False
-            continue
-        variable_a0_plus[j]=True
-        variable_a0_minus[j]=True
-        if(PP[0].has_key((j,0))):
-            variable_a0_plus[j]=False
-        if(PPminus[0].has_key((j,0))):
-            variable_a0_minus[j]=False
+##     if(not isinstance(PP,list)):
+##         raise ValueError,"Need a list of (+) principal parts!"
+##     if(not isinstance(PPminus,list)):
+##         raise ValueError,"Need a list of (-) principal parts!"
+##     if(len(PPminus)<>len(PP)):
+##         raise ValueError," Need equal number of holomorphic and non-holomorphic principal parts! Got:%s" % principal_parts
+##     d = len(PP)
+##     if(H._verbose):
+##         print "s=",s
+##         print "PP=",PP
+##         print "PPminus=",PPminus
+##     ## From the principal parts we can figure out which of a^+(0) and a^-(0) are unknowns
+##     ## Version one: we need to set at least one of them for each cusp.
+##     variable_a0_plus=dict()
+##     variable_a0_minus=dict()
+##     for j in range(nc):
+##         if(H.alpha(j)[1]<>1):
+##             #variable_a0_plus[j]=False
+##             #variable_a0_minus[j]=False
+##             continue
+##         variable_a0_plus[j]=True
+##         variable_a0_minus[j]=True
+##         if(PP[0].has_key((j,0))):
+##             variable_a0_plus[j]=False
+##         if(PPminus[0].has_key((j,0))):
+##             variable_a0_minus[j]=False
             
-        ## They can not both be variable...
-        if(variable_a0_minus[j] and variable_a0_plus[j]):
-            print "Variables a(0)^+=",variable_a0_plus
-            print "Variables a(0)^-=",variable_a0_minus
-            raise ValueError,"Need to specify constant terms of the principal parts! Got: %s" % principal_parts
-    if H._verbose>0:
-        print "Variables a(0)^+=",variable_a0_plus
-        print "Variables a(0)^-=",variable_a0_minus
-    RHS=mpmath_ctx.matrix(int(s),int(d))
-    nvec=dict()
-    for icusp from int(0)<=icusp<nc:
-        for l in range(iMs,iMf+1):
-            nvec[l,icusp]=mpmath_ctx.mpf(l)+H.alpha(icusp)[0]
-            #print "nvec(",icusp,0,")=",nvec[0,icusp]
-    ef1=dict() #; ef1m=dict();
-    ef2=dict() #; ef2m=dict()
+##         ## They can not both be variable...
+##         if(variable_a0_minus[j] and variable_a0_plus[j]):
+##             print "Variables a(0)^+=",variable_a0_plus
+##             print "Variables a(0)^-=",variable_a0_minus
+##             raise ValueError,"Need to specify constant terms of the principal parts! Got: %s" % principal_parts
+##     if H._verbose>0:
+##         print "Variables a(0)^+=",variable_a0_plus
+##         print "Variables a(0)^-=",variable_a0_minus
+##     RHS=mpmath_ctx.matrix(int(s),int(d))
+##     nvec=dict()
+##     for icusp from int(0)<=icusp<nc:
+##         for l in range(iMs,iMf+1):
+##             nvec[l,icusp]=mpmath_ctx.mpf(l)+H.alpha(icusp)[0]
+##             #print "nvec(",icusp,0,")=",nvec[0,icusp]
+##     ef1=dict() #; ef1m=dict();
+##     ef2=dict() #; ef2m=dict()
     
-    for n from iMs <=n <= iMf:        
-        for icusp in range(nc):
-            inr=mpmath_ctx.mpc(0,nvec[n,icusp])
-            for j from iQs <= j <= iQf:
-                iargm=inr*Xm[j]
-                ef2[n,j,icusp]=mpmath_ctx.exp(-iargm)
-        for jcusp in range(nc):
-            nr=nvec[n,jcusp]
-            nrfourpi=nr*fourpi
-            for icusp in range(nc):
-                for j from iQs <= j <= iQf:
-                    if(not Xpb.has_key((icusp,jcusp,j))):
-                        continue
-                    iargpb=nr*mpmath_ctx.mpc(-twopi*Ypb[icusp,jcusp,j],Xpb[icusp,jcusp,j])
-                    if(nr>mpmath_ctx.eps()):
-                        ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)
-                    elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):
-                        tmp=abs(nrfourpi)*Ypb[icusp,jcusp,j]                        
-                        ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)*mpmath_ctx.gammainc(kint,tmp)
-                    elif(nr<-mpmath_ctx.eps()):
-                        ef1[j,icusp,jcusp,n]=zero
-                    else: # nr = 0 
-                        ## WAs commented out
-                        if(variable_a0_plus[jcusp]):
-                            ef1[j,icusp,jcusp,n]=one
-                        elif(variable_a0_minus[jcusp]):
-                            ef1[j,icusp,jcusp,n]=mpmath_ctx.power(Ypb[icusp,jcusp,j],kint)
-                        else:
-                            ef1[j,icusp,jcusp,n]=zero #one #zero
+##     for n from iMs <=n <= iMf:        
+##         for icusp in range(nc):
+##             inr=mpmath_ctx.mpc(0,nvec[n,icusp])
+##             for j from iQs <= j <= iQf:
+##                 iargm=inr*Xm[j]
+##                 ef2[n,j,icusp]=mpmath_ctx.exp(-iargm)
+##         for jcusp in range(nc):
+##             nr=nvec[n,jcusp]
+##             nrfourpi=nr*fourpi
+##             for icusp in range(nc):
+##                 for j from iQs <= j <= iQf:
+##                     if(not Xpb.has_key((icusp,jcusp,j))):
+##                         continue
+##                     iargpb=nr*mpmath_ctx.mpc(-twopi*Ypb[icusp,jcusp,j],Xpb[icusp,jcusp,j])
+##                     if(nr>mpmath_ctx.eps()):
+##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)
+##                     elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):
+##                         tmp=abs(nrfourpi)*Ypb[icusp,jcusp,j]                        
+##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)*mpmath_ctx.gammainc(kint,tmp)
+##                     elif(nr<-mpmath_ctx.eps()):
+##                         ef1[j,icusp,jcusp,n]=zero
+##                     else: # nr = 0 
+##                         ## WAs commented out
+##                         if(variable_a0_plus[jcusp]):
+##                             ef1[j,icusp,jcusp,n]=one
+##                         elif(variable_a0_minus[jcusp]):
+##                             ef1[j,icusp,jcusp,n]=mpmath_ctx.power(Ypb[icusp,jcusp,j],kint)
+##                         else:
+##                             ef1[j,icusp,jcusp,n]=zero #one #zero
 
-    for l from  iMs <= l <= iMf:
-        for j from iQs <= j <= iQf:
-            for jcusp from int(0) <= jcusp < int(nc):
-                lj = iMl*jcusp+iMf+l
-                #print "lj_m,lj_p=",lj_m,lj_p
-                for icusp from int(0) <= icusp < int(nc):
-                    if(not Cv.has_key((icusp,jcusp,j))):
-                        continue
-                    ch= mpmath.mp.mpc(Cv[icusp,jcusp,j].real(),Cv[icusp,jcusp,j].imag())
-                    if ch==0:
-                        continue
-                    tmp1=ef1[j,icusp,jcusp,l]*ch
-                    if(tmp1.ae(zero)):
-                        continue
-                    for n from iMs <= n <= iMf:                        
-                        ni=iMl*icusp+iMf+n #-iMs
-                        V[ni,lj] = V[ni,lj] + tmp1*ef2[n,j,icusp]
-                        if(H._verbose > 1 and ((n==0 and icusp==2) or (l==0 and  jcusp==2)) and (j>0 and j<5)):
-                            print "-------------------"
-                            print "ni,lj=",ni,lj
-                            print "nrp=",nvec[n,jcusp]
-                            #print "nrm=",nvec[-n,jcusp]
-                            print "icusp,jcusp=",icusp,jcusp
-                            print "V[0,0](",j,")=",V[ni,lj]
-                            #print "xpb=",Xpb[icusp,jcusp,j]
-                            print "tmp1(",j,")=",tmp1
-                            #print "tmp1p(",j,")=",tmp1p
-                            print "cv(",j,")=",Cv[icusp,jcusp,j] 
-                            print "ef2(",j,")=",ef2[n,j,icusp]
-                            #print "ef2p",j,")=",ef2[n,j,icusp]
-                        #if(ni==44):
-                        #    print l,j,tmp1,ef2[n,j,icusp]
-                        #    print V[ni,lj]
-    if H._verbose>0:
-        print "Mi,Ms=",iMs,iMf
-    if(H._verbose>1): 
-        print "V1(",0,0,")=",V[0,0]
-    for n from 0<=n< V.rows:
-        for l from 0 <= l < V.cols:        
-            V[n,l]=V[n,l]/Qfak
-    if(H._verbose>2): 
-        for n from 0<=n< V.rows:   
-            print "V1(",n,n,")=",V[n,n]
+##     for l from  iMs <= l <= iMf:
+##         for j from iQs <= j <= iQf:
+##             for jcusp from int(0) <= jcusp < int(nc):
+##                 lj = iMl*jcusp+iMf+l
+##                 #print "lj_m,lj_p=",lj_m,lj_p
+##                 for icusp from int(0) <= icusp < int(nc):
+##                     if(not Cv.has_key((icusp,jcusp,j))):
+##                         continue
+##                     ch= mpmath.mp.mpc(Cv[icusp,jcusp,j].real(),Cv[icusp,jcusp,j].imag())
+##                     if ch==0:
+##                         continue
+##                     tmp1=ef1[j,icusp,jcusp,l]*ch
+##                     if(tmp1.ae(zero)):
+##                         continue
+##                     for n from iMs <= n <= iMf:                        
+##                         ni=iMl*icusp+iMf+n #-iMs
+##                         V[ni,lj] = V[ni,lj] + tmp1*ef2[n,j,icusp]
+##                         if(H._verbose > 1 and ((n==0 and icusp==2) or (l==0 and  jcusp==2)) and (j>0 and j<5)):
+##                             print "-------------------"
+##                             print "ni,lj=",ni,lj
+##                             print "nrp=",nvec[n,jcusp]
+##                             #print "nrm=",nvec[-n,jcusp]
+##                             print "icusp,jcusp=",icusp,jcusp
+##                             print "V[0,0](",j,")=",V[ni,lj]
+##                             #print "xpb=",Xpb[icusp,jcusp,j]
+##                             print "tmp1(",j,")=",tmp1
+##                             #print "tmp1p(",j,")=",tmp1p
+##                             print "cv(",j,")=",Cv[icusp,jcusp,j] 
+##                             print "ef2(",j,")=",ef2[n,j,icusp]
+##                             #print "ef2p",j,")=",ef2[n,j,icusp]
+##                         #if(ni==44):
+##                         #    print l,j,tmp1,ef2[n,j,icusp]
+##                         #    print V[ni,lj]
+##     if H._verbose>0:
+##         print "Mi,Ms=",iMs,iMf
+##     if(H._verbose>1): 
+##         print "V1(",0,0,")=",V[0,0]
+##     for n from 0<=n< V.rows:
+##         for l from 0 <= l < V.cols:        
+##             V[n,l]=V[n,l]/Qfak
+##     if(H._verbose>2): 
+##         for n from 0<=n< V.rows:   
+##             print "V1(",n,n,")=",V[n,n]
             
-    for n from iMs<= n <=iMf:
-        for icusp from int(0)<=icusp<nc:
-            nr=nvec[n,icusp]
-            nrY2pi=nr*twopiY
-            ni=iMl*icusp+iMf+n #-iMs
-            if(nr>mpmath_ctx.eps()):
-                kbes=mpmath_ctx.exp(-nrY2pi)
-            elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):                
-                kbes=mpmath_ctx.gammainc(kint,abs(nr)*fourpiY)*mpmath_ctx.exp(-nrY2pi)
-            elif(nr<-mpmath_ctx.eps()):
-                kbes=zero
-            else: # nr = 0
-                if(variable_a0_plus[icusp]):
-                    kbes=one
-                elif(variable_a0_minus[icusp]):
-                    kbes=mpmath.power(Y,kint)
-                else:
-                    kbes=zero
-            V[ni,ni]=V[ni,ni]-kbes
-            #V[ni_p,ni_p]=V[ni_p,ni_p]-kbes_p
-            ## Now we have to add the principal part, including any non-variable a^+(0) and a^-(0)
-            for k in range(d):
-                RHS[ni,k]=zero
-                summa=zero
-                for (jcusp,l) in PP[k].keys():
-                    ppc=mpmath_ctx.mpc(PP[k][(jcusp,l)])
-                    lr=mpmath_ctx.mpf(l+H.alpha(jcusp)[0])
-                    if(ppc.ae(0)):
-                        continue
-                    for j from Qs <= j <= Qf:
-                        if(not Ypb.has_key((icusp,jcusp,j))):
-                            continue
-                        ch=Cv[icusp,jcusp,j]
-                        tmp=mpmath_ctx.mpc(-twopi*lr*Ypb[icusp,jcusp,j],lr*Xpb[icusp,jcusp,j]-nr*Xm[j])
-                        summa=summa+ch*ppc*mpmath_ctx.exp(tmp)
-                RHS[ni,k]=RHS[ni,k]+summa/Qfak
-                if(PP[k].has_key((icusp,n))):
-                    if( abs(nr) > mpmath.eps()):
-                        ppc=mpmath_ctx.mpc(PP[k][icusp,n])
-                        RHS[ni,k]=RHS[ni,k]-ppc*mpmath_ctx.exp(-nrY2pi)
-                ## Was commented out
-                summa=zero
-                for jcusp in range(nc):
-                    if(H.alpha(jcusp)[1]<>1):
-                        continue
-                    ppc_minus = zero                    
-                    ppc_plus  = zero                    
-                    if( (not variable_a0_minus[jcusp]) and PPminus[k].has_key((jcusp,0))):
-                        ppc_minus = mpmath_ctx.mpc(PPminus[k][(jcusp,0)])
-                        if(not ppc_minus.ae(zero)):
-                            summa_minus=zero
-                            for j from Qs <= j <= Qf:
-                                if(not Ypb.has_key((icusp,jcusp,j))):
-                                    continue
-                                ch=mpmath.mp.mpc(Cv[icusp,jcusp,j].real(),Cv[icusp,jcusp,j].imag())
-                                tmpc_minus=mpmath.power(Ypb[icusp,jcusp,j],kint)
-                                tmpc=tmpc_minus*mpmath_ctx.exp(mpmath_ctx.mpc(0,-nr*Xm[j]))
-                                summa_minus=summa_minus+ch*tmpc
-                            summa=summa+summa_minus*ppc_minus
-                    if( (not variable_a0_plus[jcusp]) and PP[k].has_key((jcusp,0))):
-                        ppc_plus = mpmath_ctx.mpc(PP[k][(jcusp,0)])                            
-                        summa_plus=zero
-                        if(not ppc_plus.ae(zero)):
-                            for j from Qs <= j <= Qf:
-                                if(not Ypb.has_key((icusp,jcusp,j))):
-                                    continue
-                                ch=Cv[icusp,jcusp,j]
-                                tmpc=mpmath_ctx.exp(mpmath_ctx.mpc(0,-nr*Xm[j]))
-                                summa_plus=summa_plus+ch*tmpc
-                            summa=summa+summa_plus*ppc_plus
-                         #summa=summa+ef2[n,j,icusp]*tmpc*ch*ppc
-                RHS[ni,k]=RHS[ni,k]+summa/Qfak
-                if(n==0 and H.alpha(icusp)[1]==1):
-                    if(not variable_a0_plus[icusp]):
-                        if(PP[k].has_key((icusp,0))):
-                            RHS[ni,k]=RHS[ni,k]-mpmath_ctx.mpc(PP[k][(icusp,0)])
-                    if(not variable_a0_minus[icusp]):
-                        if(PPminus[k].has_key((icusp,0))):
-                            ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,0)])
-                            RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.power(Y,kint)
+##     for n from iMs<= n <=iMf:
+##         for icusp from int(0)<=icusp<nc:
+##             nr=nvec[n,icusp]
+##             nrY2pi=nr*twopiY
+##             ni=iMl*icusp+iMf+n #-iMs
+##             if(nr>mpmath_ctx.eps()):
+##                 kbes=mpmath_ctx.exp(-nrY2pi)
+##             elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):                
+##                 kbes=mpmath_ctx.gammainc(kint,abs(nr)*fourpiY)*mpmath_ctx.exp(-nrY2pi)
+##             elif(nr<-mpmath_ctx.eps()):
+##                 kbes=zero
+##             else: # nr = 0
+##                 if(variable_a0_plus[icusp]):
+##                     kbes=one
+##                 elif(variable_a0_minus[icusp]):
+##                     kbes=mpmath.power(Y,kint)
+##                 else:
+##                     kbes=zero
+##             V[ni,ni]=V[ni,ni]-kbes
+##             #V[ni_p,ni_p]=V[ni_p,ni_p]-kbes_p
+##             ## Now we have to add the principal part, including any non-variable a^+(0) and a^-(0)
+##             for k in range(d):
+##                 RHS[ni,k]=zero
+##                 summa=zero
+##                 for (jcusp,l) in PP[k].keys():
+##                     ppc=mpmath_ctx.mpc(PP[k][(jcusp,l)])
+##                     lr=mpmath_ctx.mpf(l+H.alpha(jcusp)[0])
+##                     if(ppc.ae(0)):
+##                         continue
+##                     for j from Qs <= j <= Qf:
+##                         if(not Ypb.has_key((icusp,jcusp,j))):
+##                             continue
+##                         ch=Cv[icusp,jcusp,j]
+##                         tmp=mpmath_ctx.mpc(-twopi*lr*Ypb[icusp,jcusp,j],lr*Xpb[icusp,jcusp,j]-nr*Xm[j])
+##                         summa=summa+ch*ppc*mpmath_ctx.exp(tmp)
+##                 RHS[ni,k]=RHS[ni,k]+summa/Qfak
+##                 if(PP[k].has_key((icusp,n))):
+##                     if( abs(nr) > mpmath.eps()):
+##                         ppc=mpmath_ctx.mpc(PP[k][icusp,n])
+##                         RHS[ni,k]=RHS[ni,k]-ppc*mpmath_ctx.exp(-nrY2pi)
+##                 ## Was commented out
+##                 summa=zero
+##                 for jcusp in range(nc):
+##                     if(H.alpha(jcusp)[1]<>1):
+##                         continue
+##                     ppc_minus = zero                    
+##                     ppc_plus  = zero                    
+##                     if( (not variable_a0_minus[jcusp]) and PPminus[k].has_key((jcusp,0))):
+##                         ppc_minus = mpmath_ctx.mpc(PPminus[k][(jcusp,0)])
+##                         if(not ppc_minus.ae(zero)):
+##                             summa_minus=zero
+##                             for j from Qs <= j <= Qf:
+##                                 if(not Ypb.has_key((icusp,jcusp,j))):
+##                                     continue
+##                                 ch=mpmath.mp.mpc(Cv[icusp,jcusp,j].real(),Cv[icusp,jcusp,j].imag())
+##                                 tmpc_minus=mpmath.power(Ypb[icusp,jcusp,j],kint)
+##                                 tmpc=tmpc_minus*mpmath_ctx.exp(mpmath_ctx.mpc(0,-nr*Xm[j]))
+##                                 summa_minus=summa_minus+ch*tmpc
+##                             summa=summa+summa_minus*ppc_minus
+##                     if( (not variable_a0_plus[jcusp]) and PP[k].has_key((jcusp,0))):
+##                         ppc_plus = mpmath_ctx.mpc(PP[k][(jcusp,0)])                            
+##                         summa_plus=zero
+##                         if(not ppc_plus.ae(zero)):
+##                             for j from Qs <= j <= Qf:
+##                                 if(not Ypb.has_key((icusp,jcusp,j))):
+##                                     continue
+##                                 ch=Cv[icusp,jcusp,j]
+##                                 tmpc=mpmath_ctx.exp(mpmath_ctx.mpc(0,-nr*Xm[j]))
+##                                 summa_plus=summa_plus+ch*tmpc
+##                             summa=summa+summa_plus*ppc_plus
+##                          #summa=summa+ef2[n,j,icusp]*tmpc*ch*ppc
+##                 RHS[ni,k]=RHS[ni,k]+summa/Qfak
+##                 if(n==0 and H.alpha(icusp)[1]==1):
+##                     if(not variable_a0_plus[icusp]):
+##                         if(PP[k].has_key((icusp,0))):
+##                             RHS[ni,k]=RHS[ni,k]-mpmath_ctx.mpc(PP[k][(icusp,0)])
+##                     if(not variable_a0_minus[icusp]):
+##                         if(PPminus[k].has_key((icusp,0))):
+##                             ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,0)])
+##                             RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.power(Y,kint)
 
 
                         
-                # print "summa(",ni,")=",RHS[ni,k]
-    if(PPminus[k].has_key((icusp,n))):
-                    ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,n)])
-                    RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.power(Y,kint)
-                    print "subtracting:",ppc_minus*mpmath.power(Y,kint)
-                    #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-                ## until here
-    if(H._verbose>2): 
-        for n from 0<=n< V.rows:   
-            print "V2(",n,n,")=",V[n,n]
-    #for n from 0<=n< V.rows:   
-    #    print "V2(",44,n,")=",V[V.rows-1,n]
-    W=dict()
-    W['space']=H
-    W['var_a+']=variable_a0_plus
-    W['var_a-']=variable_a0_minus
-    W['alphas']=H.alphas()
-    W['V']=V
-    W['RHS']=RHS
-    W['Ms']=Ms 
-    W['Mf']=Mf
-    W['Ml']=Ml
-    W['nc']=nc
-    W['rdim']=H._rdim
-    return W
+##                 # print "summa(",ni,")=",RHS[ni,k]
+##     if(PPminus[k].has_key((icusp,n))):
+##                     ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,n)])
+##                     RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.power(Y,kint)
+##                     print "subtracting:",ppc_minus*mpmath.power(Y,kint)
+##                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
+##                 ## until here
+##     if(H._verbose>2): 
+##         for n from 0<=n< V.rows:   
+##             print "V2(",n,n,")=",V[n,n]
+##     #for n from 0<=n< V.rows:   
+##     #    print "V2(",44,n,")=",V[V.rows-1,n]
+##     W=dict()
+##     W['space']=H
+##     W['var_a+']=variable_a0_plus
+##     W['var_a-']=variable_a0_minus
+##     W['alphas']=H.alphas()
+##     W['V']=V
+##     W['RHS']=RHS
+##     W['Ms']=Ms 
+##     W['Mf']=Mf
+##     W['Ml']=Ml
+##     W['nc']=nc
+##     W['rdim']=H._rdim
+##     return W
 
 cpdef check_principal_parts(H,principal_parts):
     r"""

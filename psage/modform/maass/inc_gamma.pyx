@@ -71,9 +71,15 @@ cpdef RealNumber incgamma_int(int n,RealNumber x,int verbose=0):
     cdef int ok = 1
     res = x.parent()(0)
     if n>0:
+        if verbose>0:
+            print "In incgamma_int! Calling pint!"
         ok = incgamma_pint_c(res.value,n,x.value,verbose)
     else:
+        if verbose>0:
+            print "In incgamma_int! Calling nint!"
         ok = incgamma_nint_c(res.value,n,x.value,verbose)
+    if verbose>0:
+        print "Got ok={0}!".format(ok)
     if ok == 0:
         return res
     else:
@@ -237,6 +243,8 @@ cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
             print "wp={0}".format(mpfr_get_ui(wp_t,rnd_re))
         ok = ei_taylor_c(res,xnew,verbose)
     mpfr_neg(res,res,rnd_re)
+    if verbose>0:
+        print "incgama_nint_c: ok={0}".format(ok)
     return ok
 
 
@@ -252,13 +260,14 @@ cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     prec = mpfr_get_prec(x)
     #RF = RealField(prec)
     #tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
+    mpfr_init2(eps,prec)
     mpfr_init2(tmp,prec)
     mpfr_set_ui(tmp,1,rnd_re)
     mpfr_init2(summa,prec)
     mpfr_init2(r,prec)
     mpfr_init2(tmp2,prec)
     #eps = RF((2.**-(prec+1)))
-    mpfr_set_ui_2exp(eps,1,-prec-1,rnd_re)
+    mpfr_set_si_2exp(eps,1,-prec-1,rnd_re)
     mpfr_set(summa,tmp,rnd_re)
     mpfr_div(r,tmp,x,rnd_re)
     mpfr_exp(tmp2,x,rnd_re)
@@ -331,7 +340,7 @@ cdef int Ei_ml_c(mpfr_t res,mpfr_t x):
     mpfr_init2(eps,prec)
     mpfr_init2(summa,prec)
     mpfr_set_si(summa,0,rnd_re)
-    mpfr_set_ui_2exp(eps,1,-prec-20,rnd_re)
+    mpfr_set_si_2exp(eps,1,-prec-20,rnd_re)
     #eps = RF(2.0**-((prec+20)))
     #print "eps={0}, prec={1}".format(eps, prec)
     #call set_eulergamma()
@@ -363,7 +372,6 @@ cdef int Ei_ml_c(mpfr_t res,mpfr_t x):
     #summa=summa+RF.euler_constant()
     #print 'Ei(',x,')=',summa
     return ok
-
 
 cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     cdef RealField_class RF

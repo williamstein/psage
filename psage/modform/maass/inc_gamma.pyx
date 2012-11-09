@@ -185,7 +185,7 @@ cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     #if abs(tmp2)<eps:
     #    mpfr_set(res,tmp2.value,rnd_re)
     #    return
-    #eps=abs(eps/tmp2)
+    eps=abs(eps/tmp2)
     #if verbose>0:
     #    print "r = 1/x = ", r
     #    print "eps = ", eps
@@ -255,7 +255,7 @@ cdef Ei_ml_c(mpfr_t res,mpfr_t x):
     mpfr_init2(ec,prec)
     RF = RealField(prec)
     tmp=RF(1); summa=RF(0)
-    eps = RF(2.0**-(3*(prec+1)))
+    eps = RF(2.0**-((prec+20)))
     #print "eps={0}, prec={1}".format(eps, prec)
     #call set_eulergamma()
     mpfr_set(tmp.value,x,rnd_re)

@@ -19,7 +19,17 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
+r"""
+Algorithms for computing the incomplete gamma function (and related functions)
 
+
+
+Conventions for return codes:
+ '0' - success
+ '1' - failure of reaching precision
+ '-1'- error in input parameters
+ 
+"""
 
 #include "sage/ext/cdefs.pxi"
 #include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
@@ -52,24 +62,112 @@ cdef extern from "math.h":
 import cython
 
 ####
+####
 #### The incomplete Gamma function of integer parameter
-
+####
 
 cpdef RealNumber incgamma_int(int n,RealNumber x,int verbose=0):
     cdef RealNumber res
+    cdef int ok = 1
     res = x.parent()(0)
     if n>0:
-        incgamma_pint_c(res.value,n,x.value,verbose)
+        ok = incgamma_pint_c(res.value,n,x.value,verbose)
     else:
-        incgamma_nint_c(res.value,n,x.value,verbose)
-    return res
-## Integer a=n>=0
-## Very crude implementations...
+        ok = incgamma_nint_c(res.value,n,x.value,verbose)
+    if ok == 0:
+        return res
+    else:
+        raise ArithmeticError,"Incomplete Gamma failed with code:{0}".format(ok)
+    
+####  The incomplete gamma function of half-integral parameter
+cpdef RealNumber incgamma_hint(int n,RealNumber x,int verbose=0):
+    r"""
+    Incomplete Gamma function of half-integer parameter, Gamma(n+1/2,x).
 
+    INPUT:
+    -`n` -- integer
+    -`x` -- real number
+    -`verbose` -- integer
+
+    """
+    cdef RealNumber res
+    cdef int ok = 1
+    res = x.parent()(0)
+    ok = incgamma_hint_c(res.value,n,x.value)
+    if ok == 0:        
+        return res
+    else:
+        raise ArithmeticError,"Incomplete Gamma failed with code:{0}".format(ok)
+    
+## The exponential integral
+cpdef RealNumber Ei_ml(RealNumber x):
+    r"""
+    Compute Ei(x)-ln|x| where Ei(x) is the exponential integral of x.    
+    """
+    cdef RealNumber res
+    cdef int ok = 1
+    res = x.parent()(0)
+    ok = Ei_ml_c(res.value,x.value)
+    if ok == 0:        
+        return res
+    else:
+        raise ArithmeticError,"Exponential integral failed with code:{0}".format(ok)
+
+cpdef RealNumber ei(RealNumber x, int verbose=0):
+    cdef int wp = x.prec() + 20
+    cdef int xabs= abs(x.integer_part())
+    cdef RealField_class RF_orig = x.parent()
+    cdef RealField_class RF
+    cdef int rh = RF_orig(wp*0.693).integer_part() + 10
+    cdef int ok = 1
+    if xabs > rh:
+        if verbose>0:
+            print "can use asymptotic"
+        RF=RealField(wp)
+        return RF_orig(ei_asymp(RF(x),verbose))
+    else:
+        if verbose>0:
+            print "can NOT use asymptotic"
+        RF=RealField(wp+2*xabs)
+        return RF_orig(ei_taylor(RF(x), verbose))
+
+cpdef RealNumber ei_taylor(RealNumber x, int verbose=0):
+    r"""
+    Compute the exponential integral of x  - ln|x|
+    """
+    cdef RealNumber res
+    cdef int ok = 1
+    res = x.parent()(0)
+    ok = ei_taylor_c(res.value,x.value,verbose)
+    if ok == 0:
+        return res
+    else:
+        raise ArithmeticError,"Taylor expansion method for exponential integral failed with code:{0}".format(ok)
+    
+cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
+    r"""
+    Compute the exponential integral of x via asymptotic formula
+    """
+    cdef RealNumber res
+    cdef ok = 1
+    res = x.parent()(0)
+    ok = ei_asymp_c(res.value,x.value,verbose)
+    if ok == 0:
+        return res
+    else:
+        raise ArithmeticError,"Asymptotic method for the exponential integral failed with code:{0}".format(ok)
+    
+###
+###  cdef'd functions
+### 
 #cdef RealNumber incgamma_pint(int n,RealNumber x):
-cdef incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
+## Changed that these return 1 on success and 0 on fail (to avoid try -- catch clauses)
+cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     r"""
     Incomplete Gamma, Gamma(n,x) with n positive integer.
+    Uses the formula:
+    Gamma(n,x)=(n-1)!e^(-x) \sum_{k=0}^{n-1} x^k/k!
+    This is just a finite sum so the only error should come from precision of the mpfr-functions and operations.
     """
     cdef mpfr_t tmp,tmp2,tmp_fak
     cdef int j,prec
@@ -104,11 +202,10 @@ cdef incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     mpfr_clear(tmp)
     mpfr_clear(tmp2)
     mpfr_clear(tmp_fak)
-    #return res
+    return 0
 
 ## Gamma(n,x) with n<0 and real x>0
-#cpdef RealNumber incgamma_nint(int n,RealNumber x):
-cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
+cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     r"""
     Incomplete Gamma, Gamma(n,x) with n negative integer.
     We use Gamma(0,x)=-Ei(-x) for x>0
@@ -117,6 +214,7 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
         raise NotImplementedError,"Doesn't work right now..."
     cdef int prec = mpfr_get_prec(x)
     cdef int wp = prec + 20
+    cdef int ok = 1
     cdef mpfr_t xabs_t, wp_t
     mpfr_init2(xabs_t, wp)
     mpfr_init2(wp_t, wp)
@@ -127,7 +225,7 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     if mpfr_cmp_ui(xabs_t,rh) > 0:
         mpfr_init2(xnew,wp)
         mpfr_neg(xnew,x,rnd_re)
-        ei_asymp_c(res,xnew,verbose)
+        ok = ei_asymp_c(res,xnew,verbose)
     else:
         mpfr_set_ui(wp_t,wp,rnd_re)
         mpfr_mul_ui(xabs_t,xabs_t,2,rnd_re)
@@ -137,94 +235,75 @@ cdef incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
         mpfr_neg(xnew,x,rnd_re)
         if verbose >0:
             print "wp={0}".format(mpfr_get_ui(wp_t,rnd_re))
-        ei_taylor_c(res,xnew,verbose)
+        ok = ei_taylor_c(res,xnew,verbose)
     mpfr_neg(res,res,rnd_re)
-    return
+    return ok
 
-cpdef RealNumber ei(RealNumber x, int verbose=0):
-    cdef int wp = x.prec() + 20
-    cdef int xabs= abs(x.integer_part())
-    cdef RealField_class RF_orig = x.parent()
-    cdef RealField_class RF
-    cdef int rh = RF_orig(wp*0.693).integer_part() + 10
-    if xabs > rh:
-        if verbose>0:
-            print "can use asymptotic"
-        RF=RealField(wp)
-        return RF_orig(ei_asymp(RF(x),verbose))
-    else:
-        if verbose>0:
-            print "can NOT use asymptotic"
-        RF=RealField(wp+2*xabs)
-        return RF_orig(ei_taylor(RF(x), verbose))
 
-cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
-    r"""
-    Compute the exponential integral of x via asymptotic formula
-    """
-    cdef RealNumber res
-    res = x.parent()(0)
-    ei_asymp_c(res.value,x.value,verbose)
-    return res
 
-cdef ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
+cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     r"""
     Compute the exponential integral of x via asymptotic formula.
     """
-    cdef RealNumber tmp,tmp2,summa,r,eps
+    cdef mpfr_t tmp,tmp2,summa,r,eps
     cdef int k,prec
-    cdef RealField_class RF
+    #cdef RealField_class RF
+    cdef int ok = 1
     prec = mpfr_get_prec(x)
-    RF = RealField(prec)
-    tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
-    eps = RF((2.**-(prec+1)))
-    mpfr_set(summa.value,tmp.value,rnd_re)
-    mpfr_div(r.value,tmp.value,x,rnd_re)
-    mpfr_exp(tmp2.value,x,rnd_re)
-    mpfr_mul(tmp2.value,tmp2.value,r.value,rnd_re)
+    #RF = RealField(prec)
+    #tmp=RF(1); summa=RF(1); r=RF(1); tmp2=RF(0)
+    mpfr_init2(tmp,prec)
+    mpfr_set_ui(tmp,1,rnd_re)
+    mpfr_init2(summa,prec)
+    mpfr_init2(r,prec)
+    mpfr_init2(tmp2,prec)
+    #eps = RF((2.**-(prec+1)))
+    mpfr_set_ui_2exp(eps,1,-prec-1,rnd_re)
+    mpfr_set(summa,tmp,rnd_re)
+    mpfr_div(r,tmp,x,rnd_re)
+    mpfr_exp(tmp2,x,rnd_re)
+    mpfr_mul(tmp2,tmp2,r,rnd_re)
     #if abs(tmp2)<eps:
     #    mpfr_set(res,tmp2.value,rnd_re)
     #    return
-    eps=abs(eps/tmp2)
+    mpfr_div(eps,eps,tmp2,rnd_re)
+    mpfr_abs(eps,eps,rnd_re)
     #if verbose>0:
     #    print "r = 1/x = ", r
     #    print "eps = ", eps
     #    print "exp(x)/x = ", tmp2
     #    print "tmp = ", tmp
     for k in range(1,nmax): #from 1 <= k <= nmax:
-        mpfr_mul_ui(tmp.value,tmp.value,k,rnd_re)
-        mpfr_mul(tmp.value,tmp.value,r.value,rnd_re)
-        mpfr_add(summa.value,summa.value,tmp.value,rnd_re)
+        mpfr_mul_ui(tmp,tmp,k,rnd_re)
+        mpfr_mul(tmp,tmp,r,rnd_re)
+        mpfr_add(summa,summa,tmp,rnd_re)
         #if verbose>0:
         #    print "k = ", k
         #    print "r = ", r
         #    print "tmp = ", tmp
         #    print "summa = ", summa
-        if  mpfr_cmpabs(tmp.value,eps.value)<0:
+        if  mpfr_cmpabs(tmp,eps)<0:
             #if verbose>0:
             #    print 'break at k=', k
             break
     if k>= nmax:
-        mpfr_set(summa.value,x,rnd_re)
-        raise ArithmeticError,"k>nmax! in Ei(x)!, error of order {0} for x={1}".format(tmp,summa)
-    mpfr_mul(res,summa.value,tmp2.value,rnd_re)
-    return
+        mpfr_set(summa,x,rnd_re)
+    else:
+        ok = 0
+        #raise ArithmeticError,"k>nmax! in Ei(x)!, error of order {0} for x={1}".format(tmp,summa)
+    mpfr_mul(res,summa,tmp2,rnd_re)
+    mpfr_clear(tmp);mpfr_clear(tmp2)
+    mpfr_clear(summa);mpfr_clear(r)
+    mpfr_clear(eps)
+    return ok
 
-    #!! Ei(x)-ln(|x|)  for real x
-cpdef RealNumber Ei_ml(RealNumber x):
-    r"""
-    Compute the exponential integral of x  - ln|x|
-    """
-    cdef RealNumber res
-    res = x.parent()(0)
-    Ei_ml_c(res.value,x.value)
-    return res
 
-cdef ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
+cdef int ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
+    cdef int ok=1
     cdef mpfr_t lnx
     cdef int prec = mpfr_get_prec(x)
     mpfr_init2(lnx, prec)
-    Ei_ml_c(res, x)
+    ok = Ei_ml_c(res, x)
     #if verbose>0:
     #    print  "Ei(x)-log(x)={0}, prec={1}".format(mpfr_get_ld(res,rnd_re), prec)
     mpfr_abs(x,x,rnd_re)
@@ -232,90 +311,69 @@ cdef ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
     #if verbose>0:
     #    print  "ln(x)={0}, prec={1}".format(mpfr_get_ld(lnx,rnd_re), prec)
     mpfr_add(res,res,lnx,rnd_re)
-    return
+    return ok
 
-cpdef RealNumber ei_taylor(RealNumber x, int verbose=0):
+
+cdef int Ei_ml_c(mpfr_t res,mpfr_t x):
     r"""
     Compute the exponential integral of x  - ln|x|
     """
-    cdef RealNumber res
-    res = x.parent()(0)
-    ei_taylor_c(res.value,x.value,verbose)
-    return res
-
-cdef Ei_ml_c(mpfr_t res,mpfr_t x):
-    r"""
-    Compute the exponential integral of x  - ln|x|
-    """
-    cdef RealNumber tmp,summa,eps
+    cdef mpfr_t tmp,summa,eps
     cdef int k,prec
     cdef RealField_class RF
     cdef mpfr_t ec
+    cdef int ok = 1
     prec=mpfr_get_prec(x)
     mpfr_init2(ec,prec)
-    RF = RealField(prec)
-    tmp=RF(1); summa=RF(0)
-    eps = RF(2.0**-((prec+20)))
+    #RF = RealField(prec)
+    #tmp=RF(1); summa=RF(0)
+    mpfr_init2(tmp,prec)
+    mpfr_init2(eps,prec)
+    mpfr_init2(summa,prec)
+    mpfr_set_si(summa,0,rnd_re)
+    mpfr_set_ui_2exp(eps,1,-prec-20,rnd_re)
+    #eps = RF(2.0**-((prec+20)))
     #print "eps={0}, prec={1}".format(eps, prec)
     #call set_eulergamma()
-    mpfr_set(tmp.value,x,rnd_re)
+    mpfr_set(tmp,x,rnd_re)
     #summa=tmp
-    mpfr_set(summa.value,tmp.value,rnd_re)
+    mpfr_set(summa,tmp,rnd_re)
     for k in range(2,nmax+1): #from 2 <= k <= nmax:
         #kk=RF(k)
         ##tmp=tmp*(kk-RF(1))/kk**2
-        mpfr_mul_ui(tmp.value,tmp.value,k-1,rnd_re)
-        mpfr_div_ui(tmp.value,tmp.value,k*k,rnd_re)
-        mpfr_mul(tmp.value,tmp.value,x,rnd_re)
-        mpfr_add(summa.value,summa.value,tmp.value,rnd_re)
+        mpfr_mul_ui(tmp,tmp,k-1,rnd_re)
+        mpfr_div_ui(tmp,tmp,k*k,rnd_re)
+        mpfr_mul(tmp,tmp,x,rnd_re)
+        mpfr_add(summa,summa,tmp,rnd_re)
         #print "tmp=",tmp
-        if mpfr_cmpabs(tmp.value,eps.value)<0:
+        if mpfr_cmpabs(tmp,eps)<0:
             break
     if k>= nmax:
-        mpfr_set(summa.value,x,rnd_re)
-        raise ArithmeticError,"k>nmax! in Ei(x)!, error of order {0} for x={1}".format(tmp,summa)
+        mpfr_set(summa,x,rnd_re)
+    else:
+        ok = 0 #return 0
+        #raise ArithmeticError,"k>nmax! in Ei(x)!, error of order {0} for x={1}".format(tmp,summa)
     mpfr_const_euler(ec,rnd_re)
-    mpfr_add(summa.value,summa.value,ec,rnd_re)
+    mpfr_add(summa,summa,ec,rnd_re)
+    mpfr_set(res,summa,rnd_re)
     mpfr_clear(ec)
+    mpfr_clear(summa)
+    mpfr_clear(tmp)
+    mpfr_clear(eps)
     #summa=summa+RF.euler_constant()
     #print 'Ei(',x,')=',summa
-    mpfr_set(res,summa.value,rnd_re)
-    #return summa
+    return ok
 
 
-#      !!  incgamma(n+1/2,x) integer n and real x>0
-cpdef RealNumber incgamma_hint(int n,RealNumber x,int verbose=0):
-    r"""
-    Incomplete Gamma function of half-integer parameter, Gamma(n+1/2,x).
-
-    INPUT:
-    -`n` -- integer
-    -`x` -- real number
-    -`verbose` -- integer
-
-    """
-    cdef RealNumber res
-    res = x.parent()(0)
-    incgamma_hint_c(res.value,n,x.value)
-    return res
-    #cdef RealField_class RF
-    #if n > 0:
-    #    return incgamma_phint(n,x)
-    #elif n<0:
-    #    return incgamma_nhint(-n,x)
-    #else:
-    #   RF=x._parent
-    #    return RF.pi().sqrt()*erfc(x.sqrt())
-
-cdef incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
+cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     cdef RealField_class RF
     cdef mpfr_t sqpi,sqx
-    cdef int prec
+    cdef int prec,ok = 1
     if n > 0:
         #return
-        incgamma_phint_c(res,n,x,verbose)
+        ok = incgamma_phint_c(res,n,x,verbose)
     elif n<0:
-        incgamma_nhint_c(res,-n,x,verbose)
+        ok = incgamma_nhint_c(res,-n,x,verbose)
     else:
         prec = mpfr_get_prec(x)
         mpfr_init2(sqpi,prec)
@@ -325,8 +383,8 @@ cdef incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
         mpfr_sqrt(sqx,x,rnd_re)
         mpfr_erfc(res,sqx,rnd_re)
         mpfr_mul(res,res,sqpi,rnd_re)
-
-
+        ok = 0
+    return ok
 ### sqrt(pi)* erfc(sqrt(x))  is used at several places
 
 cdef mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0):
@@ -340,20 +398,16 @@ cdef mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0):
     mpfr_mul(res,res,sqpi,rnd_re)
     mpfr_clear(sqpi)
 
-#    !!  incgamma(n+1/2,x)
-# !! for integer n>=0 and real x>0
-cpdef RealNumber incgamma_phint(int n,RealNumber x,int verbose=0):
-    cdef RealNumber res
-    res = x.parent()(1)
-    incgamma_phint_c(res.value,n,x.value,verbose)
-    return res
 
-cdef void incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
+cdef int incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     cdef RealNumber jj,nn,mm
     cdef RealField_class RF
     cdef int j,m,prec
     cdef mpfr_t half_m_n,summa,tmp,term,tmp2,sqx
-    assert n>=0
+    cdef int ok = 0
+    #assert n>=0
+    if n < 0:
+        return -1
     #RF = x._parent
     prec = mpfr_get_prec(x) #RF.__prec
     #summa=RF(0); tmp=RF(1); term=RF(0)
@@ -413,24 +467,32 @@ cdef void incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     mpfr_clear(tmp)
     mpfr_clear(sqx)
     mpfr_clear(tmp2)
+    return ok
     #print 'incG(',n,'+0.5,',x,'=',tmp
     #return tmp2
 
 #  !!
-cpdef RealNumber incgamma_nhint(int n,RealNumber x,int verbose=0):
-    cdef RealNumber res
-    res = x.parent()(1)
-    incgamma_nhint_c(res.value,n,x.value,verbose)
-    return res
+# cpdef RealNumber incgamma_nhint(int n,RealNumber x,int verbose=0):
+#     cdef RealNumber res
+#     cdef int ok = 1
+#     res = x.parent()(1)
+#     ok = incgamma_nhint_c(res.value,n,x.value,verbose)
+#     if ok == 0:
+#         return res
+#     else:
+#         raise ArithmeticError,"Did not achieve sought precision!"        
 
 #!!  incgamma(-n+1/2,x)
 #      !! for integer n>0 and real x>0
-cdef void incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
+cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     cdef RealNumber tmpr
     cdef int j,prec
     cdef RealField_class RF
     cdef mpfr_t tmp,summa,tmp2,tmp3,half,half_m_n,lnx
-    assert n>=0
+    cdef int ok = 0
+    #assert n>=0
+    if n < 0:
+        return -1
     #write(*,*) 'ERROR: incgamma_nhint for n>0! n=',n
     #RF=x._parent
     prec = mpfr_get_prec(x)
@@ -495,7 +557,7 @@ cdef void incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     mpfr_clear(half)
     mpfr_clear(lnx)
     mpfr_clear(half_m_n)
-
+    return ok
     #return tmp2
 
 

@@ -368,7 +368,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     cdef int do_mpmath = 1
     if hasattr(H,"_do_mpmath"):
          if H._do_mpmath<-1:     
-             do_mpmath=0  ## By default we want to use mpmath for now... 
+             do_mpmath=0  ## By default we want to use mpmath for now...
+             if verbose>0:
+                 print 'NOT using mpmath for incgamma'
     cdef int Qfaki
     Qfaki=2*Q
     # Pullpack points
@@ -608,7 +610,19 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                     elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
                         mpfr_abs(tmpr.value,nrfourpi.value,rnd_re)
                         mpfr_mul(tmpr.value,tmpr.value,Ypb[icusp][jcusp][j],rnd_re)
-                        tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
+                        if (is_int==1 or is_half_int==1) and do_mpmath==0:
+                            try:
+                                if is_int==1:
+                                    if kinti>0:
+                                        incgamma_pint_c(tmpr2.value,kinti,tmpr.value)
+                                    else:
+                                        incgamma_nint_c(tmpr2.value,kinti,tmpr.value)
+                                elif is_half_int==1:
+                                    incgamma_hint_c(tmpr2.value,kinti,tmpr.value)                                
+                            except ArithmeticError: ## In case we can not achieve the required error
+                                tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+                        else:
+                            tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         if verbose>1 and icusp==1 and n==0:
                             #print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)
                             print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,tmpr2)

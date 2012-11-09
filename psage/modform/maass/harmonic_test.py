@@ -1350,5 +1350,5 @@ def testing_new_solve(W,N):
 
     A,B = solve_system_for_harmonic_weak_Maass_waveforms_mp(N, W['V'],W['RHS'],gr=1)
     setc=N['SetCs']
-    D = test_lin_solve(A,B,setc):
+    D = test_lin_solve(A,B,setc)
     return D

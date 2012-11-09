@@ -1344,5 +1344,11 @@ RF=RealField(H._prec)
 Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)
 pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
 
-#H._verbose=2
+H._verbose=2
 #V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])
+def testing_new_solve(W,N):
+
+    A,B = solve_system_for_harmonic_weak_Maass_waveforms_mp(N, W['V'],W['RHS'],gr=1)
+    setc=N['SetCs']
+    D = test_lin_solve(A,B,setc):
+    return D

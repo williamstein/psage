@@ -243,6 +243,9 @@ cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
             print "wp={0}".format(mpfr_get_ui(wp_t,rnd_re))
         ok = ei_taylor_c(res,xnew,verbose)
     mpfr_neg(res,res,rnd_re)
+    mpfr_clear(xabs_t)
+    mpfr_clear(wp_t)
+    mpfr_clear(xnew)
     if verbose>1:
         print "incgama_nint_c: ok={0}".format(ok)
     return ok
@@ -320,6 +323,7 @@ cdef int ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
     #if verbose>0:
     #    print  "ln(x)={0}, prec={1}".format(mpfr_get_ld(lnx,rnd_re), prec)
     mpfr_add(res,res,lnx,rnd_re)
+    mpfr_clear(lnx)
     return ok
 
 

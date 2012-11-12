@@ -63,7 +63,7 @@ class VectorValuedModularForms(SageObject):
     def __init__(self, A):
         self._M = FiniteQuadraticModule(A)
         n2 = self._M.kernel_subgroup(2).order()
-        self._signature = -real(log(self._M.sigma_invariant())/(2*pi*i))*8 % 8
+        self._signature = real(log(self._M.char_invariant(1)[0])/(2*pi*i))*8 % 8
         self._n2 = n2
         m=self._M.order()
         self._m=m
@@ -95,13 +95,18 @@ class VectorValuedModularForms(SageObject):
         alpha3=self._alpha3
         alpha4=self._alpha4
         g1=self._M.char_invariant(1)
-        g1=real(g1[0]*g1[1])
-        g2=self._M.char_invariant(1)
-        g2=real(g2[0]*g2[1])
+        g1=g1[0]*g1[1]
+        #print g1
+        g2=self._M.char_invariant(2)
+        g2=g2[0]*g2[1]
+        #print g2
         g3=self._M.char_invariant(-3)
-        g3=real(g3[0]*g3[1])
-        alpha1 = (d / 4) - (sqrt(m) / (4 * sqrt(m)) * exp(2 * pi * i * (2 * k + s) / 8) * g2)
+        g3=g3[0]*g3[1]
+        #print g3
+        alpha1 = (d / 4) - (sqrt(m) / 4  * exp(2 * pi * i * (2 * k + s) / 8) * g2)
+        #print alpha1
         alpha2 = d /3 + sqrt(m) / (3 * sqrt(3)) * real(exp(2 * pi * i * (4 * k + 3 * s - 10) / 24) * (g1+g3))
+        #print alpha2
         dim = round(real(d + (d * k / 12) - alpha1 - alpha2 - alpha3));
         return dim
 

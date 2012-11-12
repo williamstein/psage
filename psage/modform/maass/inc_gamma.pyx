@@ -1,5 +1,5 @@
 # encoding: utf-8
-# cython: profile=True
+# cython: profile=False
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2012
@@ -71,14 +71,14 @@ cpdef RealNumber incgamma_int(int n,RealNumber x,int verbose=0):
     cdef int ok = 1
     res = x.parent()(0)
     if n>0:
-        if verbose>0:
+        if verbose>2:
             print "In incgamma_int! Calling pint!"
         ok = incgamma_pint_c(res.value,n,x.value,verbose)
     else:
-        if verbose>0:
+        if verbose>2:
             print "In incgamma_int! Calling nint!"
         ok = incgamma_nint_c(res.value,n,x.value,verbose)
-    if verbose>0:
+    if verbose>2:
         print "Got ok={0}!".format(ok)
     if ok == 0:
         return res
@@ -239,11 +239,11 @@ cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
         mpfr_init2(xnew,mpfr_get_ui(wp_t,rnd_re))
         mpfr_set_prec(res,mpfr_get_ui(wp_t,rnd_re))
         mpfr_neg(xnew,x,rnd_re)
-        if verbose >0:
+        if verbose >1:
             print "wp={0}".format(mpfr_get_ui(wp_t,rnd_re))
         ok = ei_taylor_c(res,xnew,verbose)
     mpfr_neg(res,res,rnd_re)
-    if verbose>0:
+    if verbose>1:
         print "incgama_nint_c: ok={0}".format(ok)
     return ok
 

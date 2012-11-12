@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 # -*- coding: utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -671,9 +671,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     if verbose>0:
         print "In setup_matrix_for_harmonic_Maass_waveforms_sym"
         print "Qs,Qf=",Qs,Qf
-    cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab
+    cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab,tmpcos,tmpsin
     cdef mpc_t iargpb_t,tmpc_t
     mpfr_init2(tmpr_t,prec)
+    mpfr_init2(tmpcos,prec)
+    mpfr_init2(tmpsin,prec)
     mpfr_init2(tmpar,prec)
     mpfr_init2(tmpar1,prec)
     mpfr_init2(tmpab,prec)
@@ -706,12 +708,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                 #Ypb[i][j][n]=<double>0
     RCvec = <mpfr_t****>sage_malloc(sizeof(Xpb) * nc )
     if RCvec==NULL: raise MemoryError
-    for i from 0<=i<nc:                        #if verbose>1:
-                        #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                        #    print "ypb[{0}][{1}{2}={3}".format(icusp,jcusp,j,ypb)
-                        #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                        #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
-
+    for i from 0<=i<nc:
         RCvec[i] = <mpfr_t***>sage_malloc(sizeof(mpfr_t**) * nc )
         if RCvec[i]==NULL:
             raise MemoryError
@@ -756,6 +753,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
         for l in range(nc):
             variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
             variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
+#        for l in range(nc):
+#            variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
+#            variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
+  
     cdef int **PPplus_cusp=NULL , **PPplus_n=NULL,**PPminus_cusp=NULL , **PPminus_n=NULL
     cdef mpc_t **PPplus_values=NULL,**PPminus_values=NULL
     cdef mpfr_t **PPplus_lal=NULL
@@ -831,25 +832,31 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
             mpfr_set(tmpr.value,alpha_tmp.value,rnd_re)
             mpfr_set_si(nvec[icusp][l],l+Ms,rnd_re)
             mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr.value,rnd_re)
-    cdef mpfr_t ***ef2=NULL
-    ef2 = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    cdef mpfr_t ***ef2cosv=NULL
+    cdef mpfr_t ***ef2sinv=NULL
+    ef2cosv = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
     for icusp in range(nc):
-        ef2[icusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+        ef2cosv[icusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
         for n in range(Ml):
-            ef2[icusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
-            
-    cdef mpfr_t ****ef1=NULL
-    ef1 = <mpfr_t****> sage_malloc( sizeof(ef2) * nc )
+            ef2cosv[icusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+    ef2sinv = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
     for icusp in range(nc):
-        ef1[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
-        for jcusp in range(nc):
-            ef1[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
-            for n in range(Ml):
-                ef1[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
-                for j in range(Ql):
-                    mpfr_init2(ef1[icusp][jcusp][n][j],prec)
+        ef2sinv[icusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+        for n in range(Ml):
+            ef2sinv[icusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+            
+    # cdef mpfr_t ****ef1=NULL
+    # ef1 = <mpfr_t****> sage_malloc( sizeof(ef2) * nc )
+    # for icusp in range(nc):
+    #     ef1[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    #     for jcusp in range(nc):
+    #         ef1[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+    #         for n in range(Ml):
+    #             ef1[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+    #             for j in range(Ql):
+    #                 mpfr_init2(ef1[icusp][jcusp][n][j],prec)
     cdef mpfr_t **** besv=NULL
-    besv = <mpfr_t****> sage_malloc( sizeof(ef2) * nc )
+    besv = <mpfr_t****> sage_malloc( sizeof(ef2cosv) * nc )
     for icusp in range(nc):
         besv[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
         for jcusp in range(nc):
@@ -858,6 +865,26 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                 besv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
                 for j in range(Ql):
                     mpfr_init2(besv[icusp][jcusp][n][j],prec)
+    cdef mpfr_t **** ef1cosv=NULL
+    cdef mpfr_t **** ef1sinv=NULL
+    ef1cosv = <mpfr_t****> sage_malloc( sizeof(ef2cosv) * nc )
+    for icusp in range(nc):
+        ef1cosv[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+        for jcusp in range(nc):
+            ef1cosv[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+            for n in range(Ml):
+                ef1cosv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+                for j in range(Ql):
+                    mpfr_init2(ef1cosv[icusp][jcusp][n][j],prec)
+    ef1sinv = <mpfr_t****> sage_malloc( sizeof(ef2cosv) * nc )
+    for icusp in range(nc):
+        ef1sinv[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+        for jcusp in range(nc):
+            ef1sinv[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+            for n in range(Ml):
+                ef1sinv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+                for j in range(Ql):
+                    mpfr_init2(ef1sinv[icusp][jcusp][n][j],prec)
     cdef double eps
     eps = 2.0**float(1-H._dprec)
     cdef int not_holom = int(not H._holomorphic)
@@ -867,10 +894,14 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
         for icusp in range(nc):
             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
             for j in range(Ql):
-                mpfr_init2(ef2[icusp][n][j],prec)
-                mpfr_mul(ef2[icusp][n][j],Xm._entries[j],nr.value,rnd_re)
-                mpfr_neg(ef2[icusp][n][j],ef2[icusp][n][j],rnd_re)
+                mpfr_init2(ef2cosv[icusp][n][j],prec)
+                mpfr_init2(ef2sinv[icusp][n][j],prec)
+                mpfr_mul(tmpar,Xm._entries[j],nr.value,rnd_re)
+                mpfr_neg(tmpar,tmpar,rnd_re)
+                mpfr_cos(ef2cosv[icusp][n][j],tmpar,rnd_re)
+                mpfr_sin(ef2sinv[icusp][n][j],tmpar,rnd_re)
                 #ef2[n,j,icusp]=one*iargm #iargm.exp() #mpmath_ctx.exp(-iargm)
+            
         for jcusp in range(nc):
             mpfr_set(nr.value,nvec[jcusp][n],rnd_re)
             #nr=nvec[n,jcusp]
@@ -885,9 +916,17 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                     if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                         #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re) 
                         continue
-                    mpfr_init2(ef1[icusp][jcusp][n][j],prec)
-                    mpfr_mul(ef1[icusp][jcusp][n][j],Xpb[icusp][jcusp][j],nr.value,rnd_re)
+                    mpfr_init2(ef1cosv[icusp][jcusp][n][j],prec)
+                    mpfr_init2(ef1sinv[icusp][jcusp][n][j],prec)
+                    #mpfr_init2(ef1[icusp][jcusp][n][j],prec)
+                    #mpfr_mul(ef1[icusp][jcusp][n][j],Xpb[icusp][jcusp][j],nr.value,rnd_re)
+                    mpfr_mul(tmpar,Xpb[icusp][jcusp][j],nr.value,rnd_re)
+                    mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
+                    #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                    mpfr_cos(ef1cosv[icusp][jcusp][n][j],tmpar,rnd_re)
+                    mpfr_sin(ef1sinv[icusp][jcusp][n][j],tmpar,rnd_re)
 
+                    
                     mpfr_mul(tmpr_t,twopi.value,Ypb[icusp][jcusp][j],rnd_re)
                     mpfr_mul(tmpr_t,tmpr_t,nr.value,rnd_re)
                     mpfr_neg(tmpr_t,tmpr_t,rnd_re)
@@ -946,11 +985,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         #if verbose>1:
                         #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
                     if verbose > 1 and n-Ms==1:
-                        mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
+                        mpfr_set(tmpr.value,ef1cosv[icusp][jcusp][n][j],rnd_re)
                         print "ef1[",n,j,icusp,"]=",tmpr
-    for n in range(s):
-        for l in range(s):        
+    for n in range(nrows):
+        for l in range(ncols):        
             mpc_set_ui(V._matrix[n][l],0,rnd)
+#    for i in range(2):
     for l in range(Ml): 
         for jcusp in range(nc):
             lj=Ml*jcusp+l
@@ -958,40 +998,43 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                 for j in range(Ql): 
                     if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                         continue
-                    #if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                    #    continue                        
-                    #mpc_set(tmp1.value,rnd)
-                    #mpc_mul(tmp1.value,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j],rnd)
-                    #tmp1=ef1[j,icusp,jcusp,l]*ch
-                    mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
+                    #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                    #    mpfr_set(
+                    #mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
                     mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
                     for n in range(Ml): 
                         ni=Ml*icusp+n
-                        mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
+                        #mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
                         #mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
                         if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
-                            mpfr_cos(tmpar1,tmpar1,rnd_re)
+                            #mpfr_cos(tmpar1,tmpar1,rnd_re)
+                            mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_sub(tmpar1,tmpcos,tmpsin,rnd_re)
                             mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
-                            mpc_set_fr(tmp2.value,tmpar1,rnd)                                     
+                            mpc_set_fr(tmpc_t,tmpar1,rnd)                                     
                         else:
-                            mpfr_sin(tmpar1,tmpar1,rnd_re)
-                            mpc_set_si_si(tmp2.value,0,2,rnd)
-                            mpc_mul_fr(tmp2.value,tmp2.value,tmpar1,rnd)
-                        mpc_mul_fr(tmp2.value,tmp2.value,tmpab,rnd)                         
+                            #mpfr_sin(tmpar1,tmpar1,rnd_re)
+                            mpfr_mul(tmpcos,ef2sinv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
+                            mpc_set_si_si(tmpc_t,0,2,rnd)
+                            mpc_mul_fr(tmpc_t,tmpc_t,tmpar1,rnd)             
+                        mpc_mul_fr(tmpc_t,tmpc_t,tmpab,rnd)                         
                         #tmp2=tmp1*ef2[n,j,icusp]
-                        mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmp2.value,rnd)
-                        #V[ni,lj]=V[ni,lj]+tmp1*
-                        if verbose > 1 and ni==0 and lj==10:
-                            print "-------------------"
-                            print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj]) #CC(V[ni,lj].real(),V[ni,lj].imag())
-                            mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
-                            print "tmp2=",tmp2 #CC(tmpc.real(),tmpc.imag())
-                            print "sym=",mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re)
-                            print "ef1(",j,")=",tmpr #CC(tmpc.real(),tmpc.imag())
-                            #mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                            #print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
-                            mpfr_set(tmpr.value,ef2[icusp][n][j],rnd_re)
-                            print "ef2(",j,")=",tmpr
+                        mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmpc_t,rnd)
+                            #V[ni,lj]=V[ni,lj]+tmp1*
+                            # if verbose > 1 and ni==0 and lj==10:
+                            #     print "-------------------"
+                            #     print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj]) #CC(V[ni,lj].real(),V[ni,lj].imag())
+                            #     mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
+                            #     print "tmp2=",tmp2 #CC(tmpc.real(),tmpc.imag())
+                            #     print "sym=",mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re)
+                            #     print "ef1(",j,")=",tmpr #CC(tmpc.real(),tmpc.imag())
+                            #     #mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
+                            #     #print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
+                            #     mpfr_set(tmpr.value,ef2[icusp][n][j],rnd_re)
+                            #     print "ef2(",j,")=",tmpr
                         
     if verbose>1:
         print "Mi,Ms=",Ms,Mf
@@ -1127,7 +1170,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                             print "lr=",lr
                             print "twopi=",twopi
                         mpfr_mul(tmpar,PPplus_lal[k][i],Xpb[icusp][jcusp][j],rnd_re)
-                        mpfr_add(tmpar,tmpar,ef2[icusp][n][j],rnd_re)
+                        mpfr_mul(tmpr_t,nr.value,Xm._entries[j],rnd_re)
+                        mpfr_sub(tmpar,tmpar,tmpr_t,rnd_re)
+                        #mpfr_add(tmpar,tmpar,ef2[icusp][n][j],rnd_re)
                         mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
                         if verbose>3:
                             print "f1(",j,")=",f1
@@ -1198,7 +1243,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         #    continue
                         if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                             continue
-                        mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
+                        #mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
                         mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
                         #mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
                         #mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
@@ -1214,13 +1259,21 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                         #mpc_exp(iargm.value,iargm.value,rnd)
                         #mpc_mul(tmpc.value,tmpc_t,iargm.value,rnd)
                         #tmpc=tmpc_minus*CF(0,-nr*Xm[j]).exp()
-                        mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
+                        #mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
                         if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) == 0:
-                            mpfr_cos(tmpar1,tmpar1,rnd_re)
+                            #mpfr_cos(tmpar1,tmpar1,rnd_re)
+                            mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_sub(tmpar1,tmpcos,tmpsin,rnd_re)
+                    
                             mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
                             mpc_mul_fr(tmp2.value,tmp2.value,tmpar,rnd)                                     
                         else:
                             mpfr_sin(tmpar1,tmpar1,rnd_re)
+                            mpfr_mul(tmpcos,ef2sinv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
+
                             mpc_set_si_si(tmp2.value,0,2,rnd)
                             mpc_mul_fr(tmp2.value,tmp2.value,tmpar1,rnd)
                         mpc_mul_fr(tmp2.value,tmp2.value,tmpab,rnd)
@@ -1337,29 +1390,53 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                     mpfr_clear(nvec[i][l])
                 sage_free(nvec[i])
         sage_free(nvec)
-    if ef2<>NULL:
+    if ef2cosv<>NULL:
         for icusp in range(nc):
-            if ef2[icusp]<>NULL:
+            if ef2cosv[icusp]<>NULL:
                 for n in range(Ml):
-                    if ef2[icusp][n]<>NULL:
+                    if ef2cosv[icusp][n]<>NULL:
                         for j in range(Ql):
-                            mpfr_clear(ef2[icusp][n][j])
-                        sage_free(ef2[icusp][n])
-                sage_free(ef2[icusp])
-        sage_free(ef2)
-    if ef1<>NULL:
+                            mpfr_clear(ef2cosv[icusp][n][j])
+                        sage_free(ef2cosv[icusp][n])
+                sage_free(ef2cosv[icusp])
+        sage_free(ef2cosv)
+    if ef2sinv<>NULL:
         for icusp in range(nc):
-            if ef1[icusp]<>NULL:
+            if ef2sinv[icusp]<>NULL:
+                for n in range(Ml):
+                    if ef2sinv[icusp][n]<>NULL:
+                        for j in range(Ql):
+                            mpfr_clear(ef2sinv[icusp][n][j])
+                        sage_free(ef2sinv[icusp][n])
+                sage_free(ef2sinv[icusp])
+        sage_free(ef2sinv)
+        
+    if ef1cosv<>NULL:
+        for icusp in range(nc):
+            if ef1cosv[icusp]<>NULL:
                 for jcusp in range(nc):
-                    if ef1[icusp][jcusp]<>NULL:
+                    if ef1cosv[icusp][jcusp]<>NULL:
                         for n in range(Ml):
-                            if ef1[icusp][jcusp][n]<>NULL:
+                            if ef1cosv[icusp][jcusp][n]<>NULL:
                                 for j in range(Ql):
-                                    mpfr_clear(ef1[icusp][jcusp][n][j])
-                                sage_free(ef1[icusp][jcusp][n])
-                        sage_free(ef1[icusp][jcusp])                        
-                sage_free(ef1[icusp])
-        sage_free(ef1)
+                                    mpfr_clear(ef1cosv[icusp][jcusp][n][j])
+                                sage_free(ef1cosv[icusp][jcusp][n])
+                        sage_free(ef1cosv[icusp][jcusp])                        
+                sage_free(ef1cosv[icusp])
+        sage_free(ef1cosv)
+    if ef1sinv<>NULL:
+        for icusp in range(nc):
+            if ef1sinv[icusp]<>NULL:
+                for jcusp in range(nc):
+                    if ef1sinv[icusp][jcusp]<>NULL:
+                        for n in range(Ml):
+                            if ef1sinv[icusp][jcusp][n]<>NULL:
+                                for j in range(Ql):
+                                    mpfr_clear(ef1sinv[icusp][jcusp][n][j])
+                                sage_free(ef1sinv[icusp][jcusp][n])
+                        sage_free(ef1sinv[icusp][jcusp])                        
+                sage_free(ef1sinv[icusp])
+        sage_free(ef1sinv)
     if besv<>NULL:
         for icusp in range(nc):
             if besv[icusp]<>NULL:
@@ -1379,6 +1456,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
     mpfr_clear(tmpar)
     mpfr_clear(tmpar1)
     mpfr_clear(tmpab)
+    mpfr_clear(tmpcos)
+    mpfr_clear(tmpsin)
     W=dict()
     W['var_a+']=pp_info['variable_a0_plus']
     W['var_a-']=pp_info['variable_a0_minus']
@@ -3917,7 +3996,7 @@ cdef int mpc_is_zero(mpc_t z):
 
 cpdef setup_and_solve_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,version=1,cset=[]):
     cdef Matrix_complex_dense V1,RHS1
-    W = setup_matrix_for_harmonic_Maass_waveforms_sv(H,Y_in,M,Q,principal_parts,version)
+    W = setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,M,Q,principal_parts,version)
     V1 = W['V']
     RHS1 = W['RHS']
     N = H.set_norm(cset)
@@ -3933,7 +4012,7 @@ cpdef setup_and_solve_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_
     C = solve_system_for_harmonic_weak_Maass_waveforms_mp(N,V1,RHS1) 
     return C
     
-cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_dense V1,Matrix_complex_dense RHS1):
+cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_dense V1,Matrix_complex_dense RHS1,gr=0):
     r"""
     Solve the linear system to obtain the Fourier coefficients of Maass forms
 
@@ -4139,8 +4218,8 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
             #try:
             #tmp = CF(V[r][k])
             mpc_set(LHS._matrix[r-roffs][k-coffs],V1._matrix[r][k],rnd)
-
-    #return LHS,RHS
+    if gr==1:
+        return LHS,RHS
     smin=smallest_inf_norm(LHS)
     if verbose>0:
         print "sminfn=",smin

@@ -3165,7 +3165,7 @@ class JordanDecomposition( SageObject):
             genus = [p, n, r, eps]
             if 2 == p and self.is_type_I(F):
                 t = F.trace()%8
-                if( (not is_square(q)) and (ep==-1 )):
+                if( (not is_square(q)) and (eps==-1 )):
                     k=1 
                 else:
                     k=0

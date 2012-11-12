@@ -1342,9 +1342,10 @@ H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=0,do_mpmath=0,prec=53)
 # attach "/scratch/fredstro/git_test/psage/psage/modform/maass/harmonic_test.py"
 RF=RealField(H._prec)
 Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)
-pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
-
-H._verbose=2
+CF =MPComplexField(H._prec)
+#pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
+pp={'+':{(0,-1):1,(0,0):RF(-1/3),(1,0):CF(0,-1/3)},'-':{(0,0):0,(1,0):0}}
+#H._verbose=2
 #V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])
 def testing_new_solve(W,N):
 

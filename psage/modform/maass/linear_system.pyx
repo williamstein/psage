@@ -192,7 +192,7 @@ cdef class LinearSystem(object):
                             
 ### Efficient solving routine
 @cython.cdivision(True)
-cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,int* setc):
+cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,int* setc_ix,int verbose=0):
     r"""
     Use Gauss elimination to solve a linear system AX=B
     U = (A|B) is a N x (N+num_rhs) double complex matrix 
@@ -200,10 +200,13 @@ cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,i
     """
     cdef int m,maxi,j,k,i
     cdef mpc_t ctemp
+    cdef MPComplexNumber tempc
     cdef int prec
     prec = mpc_get_prec(U[0][0])
     #mpc_init2(TT,prec);
     mpc_init2(ctemp,prec)    
+    if verbose>0:
+        tempc=MPComplexField(prec)(0)
     #cdef double complex **tmpu
     cdef mpfr_t rtemp,tabs
     mpfr_init2(rtemp,prec); mpfr_init2(tabs,prec)
@@ -225,7 +228,9 @@ cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,i
         for j in range(N):
             if used[j]<>0:
                 continue
-            #print "U[",j,m,"]=",U[j][m],abs(U[j][m])
+            if verbose>1:
+                mpc_set(tempc.value,U[j][m],rnd)
+                print "U[",j,m,"]=",tempc,abs(tempc)
             mpc_abs(tabs,U[j][m],rnd_re) 
             #if cabs(U[j][m]) <= temp:
             if mpfr_cmp(tabs,rtemp)<=0:
@@ -241,6 +246,9 @@ cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,i
         used[maxi]=1
         mpc_set(ctemp,U[maxi][m],rnd)
         mpc_abs(rtemp,ctemp,rnd_re)
+        if verbose>1:
+            mpc_set(tempc.value,ctemp,rnd)
+            print "Pivot[{0}] = {1}".format(m,tempc)
         if mpfr_zero_p(rtemp)<>0: #==0.0:
             print 'ERROR: pivot(',m,') == 0, system bad!!!'
             raise ArithmeticError
@@ -259,23 +267,34 @@ cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,i
                 mpc_mul(ctemp,U[maxi][k],U[j][m],rnd)
                 mpc_sub(U[j][k],U[j][k],ctemp,rnd)
                 #U[j][k]=U[j][k]-U[maxi][k]*TT
+        if verbose>1:
+            mpc_set(tempc.value,U[m][N+num_rhs-1],rnd)
+            print "U[{0}][{1}] = {2}".format(m,N+num_rhs-1,tempc)
       #!! now remember we have pivot for x_j at PIV(j) not j
     cdef int do_cont,m_offs
     #print "N+num_rhs=",N+num_rhs
     for i in range(num_rhs):
-        m_offs=0
-        for m in range(N+num_set): #DO M=1,N
+        roffs=0
+        for m in range(N): #DO M=1,N
             do_cont=0
             for j in range(num_set):
-                if setc[j]==m:
+                if setc_ix[j]==m:
                     do_cont=1
+                    roffs+=1
                     break
             if do_cont==1:
-                m_offs=m_offs+1
-                mpc_set(C[i][m],values[i][j],rnd)
-                #continue
+                #if m>num_set:
+                #    raise ValueError,"Set C are not consistent!"
+                if verbose>0:
+                    print "Set C[{0}][{1}] from input! values[{2}][{3}]".format(i,m,i,j)
+                    mpc_set(C[i][m],values[i][j],rnd)
+                continue
             else:
-                mpc_set(C[i][m],U[piv[m-m_offs]][N+i],rnd)
+                mpc_set(C[i][m],U[piv[m-roffs]][N+i],rnd)
+                if verbose>1:
+                    mpc_set(tempc.value,C[i][m],rnd)
+                    print "Set C[{0}] from system to {1}".format(m,tempc)
+
         #print "C0[",m,"]=",C[m]
     if piv<>NULL:
         sage_free(piv)
@@ -291,12 +310,14 @@ cdef SMAT_mpc(mpc_t** U,int N,int num_rhs,int num_set,mpc_t** C,mpc_t** values,i
 #     D = test_lin_solve(A,B,setc):
 #     return D
 
-cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
+cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC,list skipping,int verbose=0):
     cdef mpc_t** U=NULL,**C=NULL,**values=NULL
-    cdef int* setc
-    cdef int m,n,nr,nc
+    cdef int *setc, *setc_ix 
+    cdef int m,n,nr,nc,i,j,c,k
     cdef int nrow,ncol,nrhs,nset,prec
     cdef MPComplexNumber tmpc    
+    cdef Matrix_complex_dense Cret
+    cdef int in_list,ix,jx
     prec = A.prec()
     CF = MPComplexField(prec)
     tmpc = CF(1)
@@ -304,41 +325,87 @@ cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
     ncol = A.ncols()
     nrhs = RHS.ncols()
     nset = len(setC[0].keys())
+    if verbose>0:
+        print "nrows,ncols=",nrow,ncol
+        print "nrhs =",nrhs
+        print "nset=",nset
     if RHS.nrows()<>nrow:
         raise ArithmeticError,"Incompatible RHS and LHS!"
-    setc = <int*>sage_malloc(sizeof(int)*nset)    
+    setc = <int*>sage_malloc(sizeof(int)*nset)
+    cdef int index_to_skip = len(skipping)
+    setc_ix = <int*>sage_malloc(sizeof(int)*index_to_skip)
+    for i in range(index_to_skip):
+        setc_ix[i]=skipping[i]
+    nrow = nrow - index_to_skip
+    ncol = ncol - index_to_skip
+    if verbose>0:
+        print "Real number of rows=",nrow
     U = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrow)
     C = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
     values = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
+    cdef int roffs=0,coffs=0,rcont=0,ccont=0
     for i in range(nrow):
         U[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*(ncol+nrhs))
-        for j in range(ncol):
+        for j in range(ncol+nrhs):
             mpc_init2(U[i][j],prec)
-            mpc_set(U[i][j],A._matrix[i][j],rnd)
+      
+    for i in range(A.nrows()):
+        rcont=0
+        for ix in range(index_to_skip):
+            if setc_ix[ix]==i:
+                roffs+=1
+                rcont=1
+                break
+        if rcont==1:
+            if verbose>2:
+                print "Skipping row:{0}".format(i)
+            continue
+        coffs=0
+        for j in range(A.ncols()):
+            ccont=0
+            for jx in range(index_to_skip):
+                if setc_ix[jx]==j:
+                    coffs+=1
+                    ccont=1
+                    break
+            if ccont==1:
+                if verbose>2:
+                    print "Skipping col:{0}".format(j)
+                continue
+            mpc_set(U[i-roffs][j-coffs],A._matrix[i][j],rnd)
+            if verbose>1:
+                print "Set U[{0}][{1}]=A[{2}][{3}]".format(i-roffs,j-coffs,i,j)
         for j in range(ncol,ncol+nrhs):
-            mpc_init2(U[i][j],prec)
-            mpc_set(U[i][j],RHS._matrix[i][j],rnd)
+            #mpc_init2(U[i-roffs][j-coffs],prec)
+            mpc_set(U[i-roffs][j],RHS._matrix[i][j-ncol],rnd)
+            if verbose>1:
+                print "Set U[{0}][{1}]=RHS[{2}][{3}]".format(i-roffs,j,i,j-ncol)
 
     for i in range(nrhs):
         C[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*nrow)
         for j in range(nrow):
-            mpc_init2(C[i][j],prec)
-            
+            mpc_init2(C[i][j],prec)            
         values[i] = <mpc_t *>sage_malloc(sizeof(mpc_t)*nset)
         for j in range(nset):
             c,n = setC[i].keys()[j]
             setc[j]=n                
-            tmpc = CF(setC[i]((c,n)))
+            tmpc = CF(setC[i][(c,n)])
+            if verbose>1:
+                print "set value[",i,j
+            mpc_init2(values[i][j],prec)
             mpc_set(values[i][j],tmpc.value,rnd)
-    SMAT_mpc(U,nrow,nrhs,nset,C,values,setc)
-    cdef Matrix_complex_dense Cret
+    if verbose>0:
+        print "before!"
+    SMAT_mpc(U,nrow,nrhs,nset,C,values,setc_ix,verbose)
+    if verbose>0:
+        print "after!"
     CF = MPComplexField(prec)
 #    Cret = Matrix_complex_dense(vector(CF,nrows).parent(),0)
     Cret = Matrix_complex_dense(MatrixSpace(CF,nrhs,nrow),0)
-    cdef int in_list
+
     for i in range(nrhs):
         for k in range(nrow):
-            mpc_set(Cret._matrix[i][j],C[i][j],rnd)     
+            mpc_set(Cret._matrix[i][k],C[i][k],rnd)     
     if U<>NULL:
         for i in range(nrow):
             if U[i]<>NULL:
@@ -347,9 +414,9 @@ cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
                 sage_free(U[i])
         sage_free(U)
     if C<>NULL:
-        for i in range(nrow):
+        for i in range(nrhs):
             if C[i]<>NULL:
-                for j in range(ncol+nrhs):
+                for j in range(nrow):
                     mpc_clear(C[i][j])
                 sage_free(C[i])
         sage_free(C)
@@ -358,10 +425,13 @@ cpdef test_lin_solve(Matrix_complex_dense A,Matrix_complex_dense RHS,dict setC):
         for i in range(nrhs):
             if values[i]<>NULL:
                 for j in range(nset):
+                    if verbose>1:
+                        print "clearing value[",i,j
                     mpc_clear(values[i][j])
                 sage_free(values[i])
         sage_free(values)
     sage_free(setc)
+    sage_free(setc_ix)
     return Cret
         
 

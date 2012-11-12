@@ -96,7 +96,7 @@ from sage.structure.sage_object           import SageObject
 from sage.structure.element               import AdditiveGroupElement
 from sage.structure.sequence              import Sequence_generic
 from sage.structure.all                   import Sequence
-from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,CartesianProduct
+from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,CartesianProduct,Zp
 from sage.graphs.graph import DiGraph
 from sage.rings.number_field.number_field_element import NumberFieldElement
 
@@ -3165,8 +3165,12 @@ class JordanDecomposition( SageObject):
             genus = [p, n, r, eps]
             if 2 == p and self.is_type_I(F):
                 t = F.trace()%8
-                #TODO: print F,t what happens for p=2?
-                genus.append( t)
+                if( (not is_square(q)) and (ep==-1 )):
+                    k=1 
+                else:
+                    k=0
+                t = (t + 4*k) % 8
+                genus.append(t)
             jd[q] = ( basis, tuple(genus))
             ol.append( (p,n))
         self.__jd = jd

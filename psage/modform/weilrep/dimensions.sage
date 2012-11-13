@@ -8,20 +8,6 @@ AUTHORS:
 - Stephan Ehlen (2012-11-12): initial version
 ...
 
-EXAMPLES:
-
-    As input we use any input that one can use for a finite quadratic module.
-
-    For instance a genus symbol
-
-    ::
-    
-        sage: V=VectorValuedModularForms('2_7^+1.3^-2')
-        sage: V
-        Vector valued modular forms for the Weil representation corresponding to: 
-        Finite quadratic module in 3 generators:
-        gens: e0, e1, e2
-        form: 3/4*x0^2 + 2/3*x1^2 + 1/3*x2^2    
 """
 
 #*****************************************************************************
@@ -33,6 +19,8 @@ EXAMPLES:
 #*****************************************************************************
 
 from psage.modules.finite_quadratic_module import *
+from sage.all import SageObject
+import sys
 
 class VectorValuedModularForms(SageObject):
     r"""
@@ -69,12 +57,8 @@ class VectorValuedModularForms(SageObject):
         self._m=m
         d= 1/2*(m+n2) # |discriminant group/{+/-1}|
         self._d=d
-        
-        M2=self._M.kernel_subgroup(2).as_ambient()[0]
-        self._alpha3  = sum([(1-a)*m for a,m in M2.values().iteritems() if a != 0])
-        self._alpha3 += sum([(1-a)*m for a,m in self._M.values().iteritems() if a != 0])
-        self._alpha3 = self._alpha3 / 2
-        self._alpha4 = 1/2*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
+        self._alpha3=None
+        self._alpha4=None
 
     def __repr__(self):
         return "Vector valued modular forms for the Weil representation corresponding to: \n" + self._M.__repr__()
@@ -90,22 +74,28 @@ class VectorValuedModularForms(SageObject):
             raise ValueError("k has to be integral or half-integral")
         if (2*k+s)%4 != 0:
             raise NotImplementedError("2k has to be congruent to -signature mod 4")
+        if self._alpha3 == None:
+            M2=self._M.kernel_subgroup(2).as_ambient()[0]
+            self._alpha3  = sum([(1-a)*m for a,m in M2.values().iteritems() if a != 0])
+            self._alpha3 += sum([(1-a)*m for a,m in self._M.values().iteritems() if a != 0])
+            self._alpha3 = self._alpha3 / 2
+            self._alpha4 = 1/2*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
         d=self._d
         m=self._m
         alpha3=self._alpha3
         alpha4=self._alpha4
         g1=self._M.char_invariant(1)
-        g1=g1[0]*g1[1]
+        g1=CC(g1[0]*g1[1])
         #print g1
         g2=self._M.char_invariant(2)
-        g2=g2[0]*g2[1]
+        g2=RR(real(g2[0]*g2[1]))
         #print g2
-        g3=self._M.char_invariant(-3)
-        g3=g3[0]*g3[1]
+        g3=CC(self._M.char_invariant(-3))
+        g3=CC(g3[0]*g3[1])
         #print g3
-        alpha1 = (d / 4) - (sqrt(m) / 4  * exp(2 * pi * i * (2 * k + s) / 8) * g2)
+        alpha1 = RR((d / 4)) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / 8)) * g2)
         #print alpha1
-        alpha2 = d /3 + sqrt(m) / (3 * sqrt(3)) * real(exp(2 * pi * i * (4 * k + 3 * s - 10) / 24) * (g1+g3))
+        alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
         #print alpha2
         dim = round(real(d + (d * k / 12) - alpha1 - alpha2 - alpha3));
         return dim

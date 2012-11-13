@@ -525,6 +525,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         return d
 
 
+    @cached_method
     def char_invariant( self, s, p = None):
         r"""
         If this quadratic module equals $A = (M,Q)$, return

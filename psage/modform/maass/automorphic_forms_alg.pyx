@@ -24,6 +24,9 @@ include "stdsage.pxi"
 include "cdefs.pxi"
 include "sage/rings/mpc.pxi"
 include "mpfr_loc.pxi"
+
+cdef extern from "stdio.h":
+    void printf(char *fmt,...) nogil
     
     
 #from sage.libs.mpfr cimport *
@@ -68,6 +71,10 @@ from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from pullback_algorithms cimport pullback_pts_mpc_new_c
 from pullback_algorithms cimport pullback_pts_mpc_new_c_sym
+
+cimport openmp
+openmp.omp_set_dynamic(0)
+openmp.omp_set_num_threads(2)
 
 def get_Y_and_M_for_hwmf(G,PP,weight,ndig):
     r"""
@@ -603,8 +610,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
 
     """
     cdef int l,i,jj,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
-    cdef int prec 
+    cdef int prec
     prec = <int>H._prec
+    cdef int ret = 0
     #cdef mpc_t tmpc
     cdef MPComplexNumber iargpb,iargm,iargpb2
     #cdef RealField_class RF
@@ -632,6 +640,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     mpfr_init2(Y,prec)
     mpfr_init2(twopiY,prec)
     mpfr_init2(fourpiY,prec)
+    mpfr_init2(nrfourpi, prec)
     mpfr_init2(kint_t,prec)
     mpfr_mul_ui(twopi,pi.value,2,rnd_re)
     mpfr_mul_ui(fourpi,twopi,2,rnd_re)
@@ -679,7 +688,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     if verbose>0:
         print "In setup_matrix_for_harmonic_Maass_waveforms_sym"
         print "Qs,Qf=",Qs,Qf
-    cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab,tmpcos,tmpsin,nr, tmpr, tmpr2
+    cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab,tmpcos,tmpsin, nr, tmpr, tmpr2
     cdef mpc_t iargpb_t,tmpc_t, tmp1, tmp2
     mpc_init2(tmp1,prec)
     mpc_init2(tmp2,prec)
@@ -699,6 +708,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef mpfr_t*** Ypb=NULL
     cdef mpfr_t**** RCvec=NULL
     Xm = <mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ql )
+    if Xm==NULL: raise MemoryError
     for n in range(Ql):
         mpfr_init2(Xm[n],prec)
     Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
@@ -752,7 +762,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     if verbose>0:
         print "pp_info=",pp_info
     #if verbose>1:
-        print "Yin=",Y
+        print "Yin=",mpfr_get_d(Y,rnd_re)
         #mpc_set(ch.value,Cvec[0][1][0],rnd)
         #print "Cvec[0,1,0]=",ch
     #    mpfr_set(tmpr,Ypb[0][1][0],rnd_re)
@@ -906,111 +916,128 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef int not_holom = int(not H._holomorphic)
     cdef int is_weak = int(H._weak)
     cdef int ok = 1
+    if verbose>0:
+        print "Ml, Ql =",Ml, Ql
     for n in range(Ml):
+        print n
         with nogil,parallel():
             for icusp in prange(nc):
                 mpfr_set(nr,nvec[icusp][n],rnd_re)
+                setcossin2(ef2cosv[icusp][n],Xm,nr,Ql,prec)
+                if verbose>0:
+                    printf("done with ef2cosvp[%d][%d]\n",icusp,n)
+        for jcusp in range(nc):
+            if verbose>1:
+                printf("jcusp=%i\n",jcusp)
+            mpfr_set(nr,nvec[jcusp][n],rnd_re)
+            #nr=nvec[n,jcusp]
+            mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
+            #nrfourpi=nr*fourpi
+            for icusp in range(nc):
+                if verbose>1:
+                    printf("icusp=%i\n",jcusp)
                 for j in range(Ql):
-                    mpfr_init2(ef2cosv[icusp][n][j],prec)
-                    mpfr_init2(ef2sinv[icusp][n][j],prec)
-                    mpfr_mul(tmpar,Xm[j],nr,rnd_re)
-                    mpfr_neg(tmpar,tmpar,rnd_re)
-                    mpfr_cos(ef2cosv[icusp][n][j],tmpar,rnd_re)
-                    mpfr_sin(ef2sinv[icusp][n][j],tmpar,rnd_re)
-                    #ef2[n,j,icusp]=one*iargm #iargm.exp() #mpmath_ctx.exp(-iargm)
-            for jcusp in prange(nc):
-                mpfr_set(nr,nvec[jcusp][n],rnd_re)
-                #nr=nvec[n,jcusp]
-                mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
-                #nrfourpi=nr*fourpi
-                for icusp in prange(nc):
-                    for j in range(Ql):
-                        #if verbose>1:
-                        #    print "icusp,jcusp,j=",n,icusp,jcusp,j
-                        ## ef1 contains -Xpb*l
-                        #mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                        if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                            #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re) 
-                            continue
-                        mpfr_init2(ef1cosv[icusp][jcusp][n][j],prec)
-                        mpfr_init2(ef1sinv[icusp][jcusp][n][j],prec)
-                        #mpfr_init2(ef1[icusp][jcusp][n][j],prec)
-                        #mpfr_mul(ef1[icusp][jcusp][n][j],Xpb[icusp][jcusp][j],nr.value,rnd_re)
-                        mpfr_mul(tmpar,Xpb[icusp][jcusp][j],nr,rnd_re)
-                        mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
-                        #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
-                        mpfr_cos(ef1cosv[icusp][jcusp][n][j],tmpar,rnd_re)
-                        mpfr_sin(ef1sinv[icusp][jcusp][n][j],tmpar,rnd_re)
-                        mpfr_mul(tmpr_t,twopi,Ypb[icusp][jcusp][j],rnd_re)
-                        mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re)
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        #if verbose>1:
-                        #    mpfr_set(tmpr,tmpr_t,rnd_re)
-                        #    print "arg=",mpfr_get_d(tmpr,rnd_re)
-                        mpfr_exp(besv[icusp][jcusp][n][j],tmpr_t,rnd_re)
-                        #if verbose>1:
-                        #    mpfr_set(tmpr,besv[icusp][jcusp][n][j],rnd_re)
-                        #    print "exp(arg)=",tmpr
-                        if mpfr_cmp_d(nr,eps)>0:
-                            pass
-                        elif mpfr_cmp_d(nr,-eps)<0 and not_holom==1 and is_weak==1:
-                            mpfr_abs(tmpr,nrfourpi,rnd_re)
-                            mpfr_mul(tmpr,tmpr,Ypb[icusp][jcusp][j],rnd_re)
-                            ok = 1
-                            if (is_int==1 or is_half_int==1) and do_mpmath==0:
-                                #try:
-                                if is_int==1:
-                                    if kinti>0:
-                                        ok = incgamma_pint_c(tmpr2,kinti,tmpr,verbose)
-                                    else:
-                                        ok = incgamma_nint_c(tmpr2,kinti,tmpr,verbose)
-                                elif is_half_int==1:
-                                    ok = incgamma_hint_c(tmpr2,kinti,tmpr)                                
-                                    #except ArithmeticError: ## In case we can not achieve the required error
-                                    #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                            #if (verbose>0 and ok<>0) or verbose>2:
-                            #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath)
-                            if ok <> 0:
-                                #tmpr2 = RF(mpmath.mp.gammainc(kint,mpfr_get_d(tmpr,rnd_re)).real)
-                                return #fix: can't call mpmath here without gil
-                            #if verbose>1 and icusp==1 and n==0:
-                                #print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)
-                            #    print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,mpfr_get_d(tmpr2,rnd_re))
-                            mpfr_mul(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],tmpr2,rnd_re)
-                        elif mpfr_cmp_d(nr,-eps)<0:
-                            mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
-                        else:
-                            ## Note that principal parts have to be determined
-                            ## and will appear in the right hand side
-                            if variable_a0_plus[0][jcusp]==1:
-                                mpfr_set_si(besv[icusp][jcusp][n][j],1,rnd_re)
-                            elif variable_a0_minus[0][jcusp]==1:
-                                mpfr_set(besv[icusp][jcusp][n][j],Ypb[icusp][jcusp][j],rnd_re)
-                                if kinti==0:
-                                    mpfr_log(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],rnd_re)
+                    #if verbose>1:
+                    #    print "icusp,jcusp,j=",n,icusp,jcusp,j
+                    ## ef1 contains -Xpb*l
+                    #mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
+                    if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+                        #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re) 
+                        continue
+                    #mpfr_init2(ef1cosv[icusp][jcusp][n][j],prec)
+                    #mpfr_init2(ef1sinv[icusp][jcusp][n][j],prec)
+                    #mpfr_init2(ef1[icusp][jcusp][n][j],prec)
+                    #mpfr_mul(ef1[icusp][jcusp][n][j],Xpb[icusp][jcusp][j],nr.value,rnd_re)
+                    mpfr_mul(tmpar,Xpb[icusp][jcusp][j],nr,rnd_re)
+                    mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
+                    #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                    mpfr_cos(ef1cosv[icusp][jcusp][n][j],tmpar,rnd_re)
+                    mpfr_sin(ef1sinv[icusp][jcusp][n][j],tmpar,rnd_re)
+                    mpfr_mul(tmpr_t,twopi,Ypb[icusp][jcusp][j],rnd_re)
+                    mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re)
+                    mpfr_neg(tmpr_t,tmpr_t,rnd_re)
+                    #if verbose>1:
+                    #    mpfr_set(tmpr,tmpr_t,rnd_re)
+                    #    print "arg=",mpfr_get_d(tmpr,rnd_re)
+                    mpfr_exp(besv[icusp][jcusp][n][j],tmpr_t,rnd_re)
+                    #if verbose>1:
+                    #    mpfr_set(tmpr,besv[icusp][jcusp][n][j],rnd_re)
+                    #    print "exp(arg)=",tmpr
+                    if mpfr_cmp_d(nr,eps)>0:
+                        pass
+                    elif mpfr_cmp_d(nr,-eps)<0 and not_holom==1 and is_weak==1:
+                        mpfr_abs(tmpr,nrfourpi,rnd_re)
+                        mpfr_mul(tmpr,tmpr,Ypb[icusp][jcusp][j],rnd_re)
+                        ok = 1
+                        if (is_int==1 or is_half_int==1) and do_mpmath==0:
+                            #try:
+                            if is_int==1:
+                                if kinti>0:
+                                    ok = incgamma_pint_c(tmpr2,kinti,tmpr,verbose)
                                 else:
-                                    mpfr_pow(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],kint_t,rnd_re)
-                                #ef1[j,icusp,jcusp,n]=ypb**kint
+                                    ok = incgamma_nint_c(tmpr2,kinti,tmpr,verbose)
+                            elif is_half_int==1:
+                                ok = incgamma_hint_c(tmpr2,kinti,tmpr)                                
+                                #except ArithmeticError: ## In case we can not achieve the required error
+                                #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+                        #if (verbose>0 and ok<>0) or verbose>2:
+                        #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath)
+                        if ok <> 0:
+                            #tmpr2 = RF(mpmath.mp.gammainc(kint,mpfr_get_d(tmpr,rnd_re)).real)
+                            if verbose>0:
+                                printf('return value not good')
+                            ret=-1 #fix: can't call mpmath here without gil
+                            break
+                        #if verbose>1 and icusp==1 and n==0:
+                            #print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)
+                        #    print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,mpfr_get_d(tmpr2,rnd_re))
+                        mpfr_mul(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],tmpr2,rnd_re)
+                    elif mpfr_cmp_d(nr,-eps)<0:
+                        mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
+                    else:
+                        ## Note that principal parts have to be determined
+                        ## and will appear in the right hand side
+                        if variable_a0_plus[0][jcusp]==1:
+                            mpfr_set_si(besv[icusp][jcusp][n][j],1,rnd_re)
+                        elif variable_a0_minus[0][jcusp]==1:
+                            mpfr_set(besv[icusp][jcusp][n][j],Ypb[icusp][jcusp][j],rnd_re)
+                            if kinti==0:
+                                mpfr_log(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],rnd_re)
                             else:
-                                ## If none of them are variables this means
-                                ## that they are both set in the principal parts
-                                mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
-                                #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
-                                #ef1[j,icusp,jcusp,n]=one
-                            #if verbose>1:
-                            #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
-                        if verbose > 1 and n-Ms==1:
-                            mpfr_set(tmpr,ef1cosv[icusp][jcusp][n][j],rnd_re)
-                        #print "ef1[",n,j,icusp,"]=",mpfr_get_d(tmpr,rnd_re)
+                                mpfr_pow(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],kint_t,rnd_re)
+                            #ef1[j,icusp,jcusp,n]=ypb**kint
+                        else:
+                            ## If none of them are variables this means
+                            ## that they are both set in the principal parts
+                            mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
+                            #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
+                            #ef1[j,icusp,jcusp,n]=one
+                        #if verbose>1:
+                        #print "ef(nr=0)[",j,icusp,jcusp,n,"]=",ef1[j,icusp,jcusp,n]
+                    if verbose > 1 and n-Ms==1:
+                        mpfr_set(tmpr,ef1cosv[icusp][jcusp][n][j],rnd_re)
+                    #print "ef1[",n,j,icusp,"]=",mpfr_get_d(tmpr,rnd_re)
+            if verbose>0:
+                printf("done with inner icusp-loop\n")
+    if ret != 0:
+        printf("error return value\n")
+        return ret
+    if verbose>1:
+        printf("HELLO!")
     for n in range(nrows):
-        for l in range(ncols):        
+        printf("n=%d",n)
+        for l in range(ncols):
+            if verbose>1:
+                printf("n,l=%d,%d",n,l)
             mpc_set_ui(V._matrix[n][l],0,rnd)
 #    for i in range(2):
     for l in range(Ml):
         for jcusp in range(nc):
             lj=Ml*jcusp+l
             for icusp in range(nc):
-                for j in range(Ql): 
+                for j in range(Ql):
+                    if verbose>1:
+                        printf("j=%d",j)
                     if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                         continue
                     #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
@@ -1117,7 +1144,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                     #print "ok={0}, tmpr={1}".format(ok,tmpr)
                 if ok <> 0:
                     #kbes = RF(mpmath.mp.gammainc(kint,tmpr).real) #TODO: Fix call (tmpr is mpfr_t now)
-                    return
+                    ret=-1
+                    break
                 mpfr_abs(tmpr2,nrY2pi,rnd_re)
                 mpfr_exp(tmpr2,tmpr2,rnd_re)
                 #if verbose>1 and ni==0:
@@ -1489,6 +1517,19 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     W['rdim']=H._rdim
     return W
 
+cdef void setcossin2(mpfr_t * l,mpfr_t * Xm,mpfr_t nr, int Ql, mpfr_prec_t prec) nogil:
+    cdef int j = 0
+    cdef mpfr_t tmpar
+    mpfr_init2(tmpar,prec)
+    for j in range(Ql):
+        mpfr_init2(l[j],prec)
+        mpfr_init2(l[j],prec)
+        mpfr_mul(tmpar,Xm[j],nr,rnd_re)
+        mpfr_neg(tmpar,tmpar,rnd_re)
+        mpfr_cos(l[j],tmpar,rnd_re)
+        mpfr_sin(l[j],tmpar,rnd_re)
+
+
 
 ### Version to use when we can not use symmetry
 
@@ -1773,7 +1814,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
         for icusp in range(nc):
             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
             for j in range(Ql):
-                mpfr_mul(tmpr.value,Xm._entries[j],nr.value,rnd_re)
+                mpfr_mul(tmpr.value,Xm[j],nr.value,rnd_re)
                 mpfr_neg(tmpr.value,tmpr.value,rnd_re)
                 mpc_set_fr(iargm.value,tmpr.value,rnd)
                 mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))
@@ -2048,14 +2089,14 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
                         #arg = lr*xpb-nr*Xm[j]
                         mpfr_mul(tmpr_t,PPplus_lal[k][i],Xpb[icusp][jcusp][j],rnd_re)
-                        mpfr_mul(arg.value,nr.value,Xm._entries[j],rnd_re)
+                        mpfr_mul(arg.value,nr.value,Xm[j],rnd_re)
                         mpfr_sub(arg.value,tmpr_t,arg.value,rnd_re)
                         mpc_set_fr_fr(iargpb_t,zero.value,arg.value,rnd)
                         mpc_exp(f2.value,iargpb_t,rnd)
                         #f2 = CF(0,arg).exp()
                         if verbose>3:
                             print "f1(",j,")=",f1
-                            print "arg=",lr,"*",xpb,"-",nr,"*",Xm[j],"=",arg
+                            print "arg=",lr,"*",xpb,"-",nr,"*",mpfr_get_d(Xm[j],rnd_re),"=",arg
                             print "f2(",j,")=",f2
                         mpc_mul(tmpc.value,f1.value,f2.value,rnd)
                         mpc_mul(tmpc.value,tmpc.value,ppc.value,rnd)
@@ -2122,7 +2163,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                             mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
                         mpc_set_fr(tmpc_t,tmpr.value,rnd) #ypb**kint
 
-                        mpfr_mul(tmpr.value,nr.value,Xm._entries[j],rnd_re)
+                        mpfr_mul(tmpr.value,nr.value,Xm[j],rnd_re)
                         mpfr_neg(tmpr.value,tmpr.value,rnd_re)
                         mpc_set_fr(iargm.value,tmpr.value,rnd)
                         mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))

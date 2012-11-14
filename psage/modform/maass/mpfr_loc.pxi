@@ -1,6 +1,6 @@
 cdef extern from "mpfr.h" nogil:
-    ctypedef short mpfr_prec_t
-    ctypedef unsigned short mpfr_uprec_t
+    ctypedef int mpfr_prec_t
+    ctypedef unsigned int mpfr_uprec_t
     ctypedef int mpfr_sign_t
     ctypedef short mpfr_exp_t
     ctypedef unsigned short mpfr_uexp
@@ -32,13 +32,11 @@ cdef extern from "mpfr.h" nogil:
     int mpfr_mul_ui (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t)
     int mpfr_sqrt (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t)
     int mpfr_add (mpfr_ptr, mpfr_srcptr,mpfr_srcptr, mpfr_rnd_t)
-    mpfr_prec_t mpfr_get_prec(mpfr_srcptr)
+    int mpfr_get_prec(mpfr_srcptr)
     int mpfr_add_ui (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t)
     void mpfr_set4 (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t, int)
-    ctypedef int mpfr_sign_t
     void mpfr_set (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t)
     unsigned long mpfr_get_ui (mpfr_srcptr, mpfr_rnd_t)
-    int mpfr_set_ui (mpfr_ptr, unsigned long, mpfr_rnd_t)
     int mpfr_set_ui (mpfr_ptr, unsigned long, mpfr_rnd_t)
     int mpfr_cos (mpfr_ptr, mpfr_srcptr,mpfr_rnd_t)
     int mpfr_sin (mpfr_ptr, mpfr_srcptr,mpfr_rnd_t)
@@ -59,11 +57,6 @@ cdef extern from "mpfr.h" nogil:
     int mpfr_cmp_si (mpfr_srcptr, long)
     int mpfr_mul (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t)
     int mpfr_abs (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t)
-    int mpfr_cmp  (mpfr_srcptr, mpfr_srcptr)
-    int mpfr_cmp3 (mpfr_srcptr, mpfr_srcptr, int)
-    int mpfr_cmp_d (mpfr_srcptr, double)
-    int mpfr_cmp_ld (mpfr_srcptr, long double)
-    int mpfr_cmpabs (mpfr_srcptr, mpfr_srcptr)
     int mpfr_neg (mpfr_ptr, mpfr_srcptr, mpfr_rnd_t)
     int mpfr_div_ui (mpfr_ptr, mpfr_srcptr, unsigned long, mpfr_rnd_t)
     int mpfr_set_si_2exp (mpfr_ptr, long, mpfr_exp_t, mpfr_rnd_t)
@@ -78,4 +71,3 @@ cdef extern from "mpfr.h" nogil:
     int mpfr_zero_p (mpfr_srcptr)
     int mpfr_div_si (mpfr_ptr, mpfr_srcptr, long int, mpfr_rnd_t)
     int mpfr_mul_d (mpfr_ptr, mpfr_srcptr,double, mpfr_rnd_t)
-    long mpfr_get_ui (mpfr_srcptr, mpfr_rnd_t)

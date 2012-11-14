@@ -25,7 +25,7 @@ include 'sage/ext/interrupt.pxi'
 #include "sage/ext/gmp.pxi"
 include "sage/rings/mpc.pxi"
 from sage.all import save,incomplete_gamma,load,bessel_K
-import mpmath    
+import mpmath
 from sage.libs.mpfr cimport *
 
 cdef mpc_rnd_t rnd
@@ -49,7 +49,7 @@ from sage.all import log_b
 from numpy import array
 from sage.all import exp,I,CC
 from sage.all import find_root
-## Since I want to import sinand cos from math.h 
+## Since I want to import sinand cos from math.h
 #from sage.all import sin as ssin
 #from sage.all import cos as scos
 #from libc.math cimport sin as dsin
@@ -63,7 +63,7 @@ import cython
 cdef extern from "math.h":
     double fabs(double)
     double fmax(double,double)
-    int ceil(double) 
+    int ceil(double)
     double sqrt(double)
     double sin(double)
     double cos(double)
@@ -85,16 +85,16 @@ cdef extern from "complex.h":
     cdef double complex csqrt(double complex)
     cdef double complex cpow(double complex,double complex)
 
-    
+
 cdef int gcd( int a, int b ):
-  cdef int c
-  while ( a != 0 ):
-      c = a; a = b%a;  b = c
-  return b
- 
+    cdef int c
+    while ( a != 0 ):
+        c = a; a = b%a;  b = c
+    return b
+
 cdef double complex cexpi(double x):
     return cexp(x*_I)
-#ctypedef void (*foo_t)(int) 
+#ctypedef void (*foo_t)(int)
 ctypedef complex (*complex_function_type)(complex)
 
 DTYPE = np.float
@@ -104,11 +104,11 @@ ctypedef cnp.complex128_t CTYPE_t
 
 cdef double complex _I = _Complex_I
 
-    
+
 # some things that are not in the sage.libs.mpfr
 cdef extern from "mpfr.h":
-    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t) 
-   
+    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t)
+
 from sage.matrix.matrix_dense cimport *
 from psage.rings.mpc_extras cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
@@ -170,7 +170,7 @@ cpdef eval_maass_lp(F,x,y):
         ary=twopi*y3
         for n in range(1,F._M0):
             term=besselk_dp(R,ary*n)*exp(arx*n)
-            res=res+F.coeffs[cjj][n]*term        
+            res=res+F.coeffs[cjj][n]*term
     ## we have trivial character here...
     return res
 
@@ -195,7 +195,7 @@ cdef compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],
     - `` cuspidal`` -- int (set to 1 if we compute cuspidal functions, otherwise zero)
     - `` sym_type`` -- int (set to 0/1 if we compute even/odd functions, otherwise -1)
     - ``verbose`` -- int (verbosity of output)
-    
+
     """
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,s,Qs,Qf,Mf,Ms
     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,Qfak,besarg,lr,nr
@@ -241,19 +241,19 @@ cdef compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],
         for n from 0<=n<Ml:
             ef2_r[n] = <double**>sage_malloc(sizeof(double*)*nc)
             for icusp from 0<=icusp<nc:
-                ef2_r[n][icusp] = <double*>sage_malloc(sizeof(double)*Ql)    
-            
+                ef2_r[n][icusp] = <double*>sage_malloc(sizeof(double)*Ql)
+
     ef1 = <double complex****>sage_malloc(sizeof(double complex***)*Ml)
-    if ef1==NULL: raise MemoryError        
+    if ef1==NULL: raise MemoryError
     for n from 0<=n<Ml:
         ef1[n] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
-        if ef1[n]==NULL: raise MemoryError        
+        if ef1[n]==NULL: raise MemoryError
         for jcusp from 0<=jcusp<nc:
             ef1[n][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*nc)
-            if ef1[n][jcusp]==NULL: raise MemoryError        
+            if ef1[n][jcusp]==NULL: raise MemoryError
             for icusp from 0<=icusp<nc:
                 ef1[n][jcusp][icusp] = <double complex*>sage_malloc(sizeof(double complex)*Ql)
-                if ef1[n][jcusp][icusp]==NULL: raise MemoryError        
+                if ef1[n][jcusp][icusp]==NULL: raise MemoryError
     for n from 0<=n<Ml:
         for jcusp in range(nc):
             nvec[n][jcusp]=<double>(n+Ms)+alphas[jcusp]
@@ -300,7 +300,7 @@ cdef compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],
                 raise MemoryError
         for jcusp from 0<=jcusp<nc:
             lr=nvec[l][jcusp]*twopi
-            for j from 0<=j<Ql:            
+            for j from 0<=j<Ql:
                 # I am trying to make use of the fact that "many" pullback matrices
                 # are invariant under the Fricke involution
                 for icusp from 0<=icusp<nc:
@@ -319,7 +319,7 @@ cdef compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],
             lj=Ml*jcusp+l
             for icusp from int(0) <= icusp < int(nc):
                 for j from 0 <= j < Ql:
-                    if Ypb[icusp][jcusp][j]==0: 
+                    if Ypb[icusp][jcusp][j]==0:
                         #if(not Ypb.has_key((icusp,jcusp,j))):
                         continue
                     ckbes=kbesvec[l][icusp][j]*ef1[l][icusp][jcusp][j]
@@ -402,10 +402,10 @@ cdef compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],
                 for jcusp from 0<=jcusp<nc:
                     if ef1[n][jcusp]<>NULL:
                         for icusp from 0<=icusp<nc:
-                            if ef1[n][jcusp][icusp]<>NULL: 
+                            if ef1[n][jcusp][icusp]<>NULL:
                                 sage_free(ef1[n][jcusp][icusp])
                         sage_free(ef1[n][jcusp])
-                sage_free(ef1[n])                                
+                sage_free(ef1[n])
         sage_free(ef1)
     if ef2_r<>NULL:
         for n from 0<=n<Ml:
@@ -461,7 +461,7 @@ cdef compute_V_cplx_dp_sym(double complex **V,
     - `` cuspidal`` -- int (set to 1 if we compute cuspidal functions, otherwise zero)
     - `` sym_type`` -- int (set to 0/1 if we compute even/odd functions, otherwise -1)
     - ``verbose`` -- int (verbosity of output)
-    
+
     """
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,s,Qs,Qf,Mf,Ms
     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,besarg,lr,nr
@@ -487,7 +487,7 @@ cdef compute_V_cplx_dp_sym(double complex **V,
     if verbose>0:
         print "N1=",N1
         print "Ql=",Ql
-    ## This is the effective offset at the 
+    ## This is the effective offset at the
     cdef int* cusp_offsets=NULL
     cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
@@ -518,16 +518,16 @@ cdef compute_V_cplx_dp_sym(double complex **V,
         for n from 0<=n<Mv[icusp][2]:
             ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
     ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
-    if ef1==NULL: raise MemoryError        
+    if ef1==NULL: raise MemoryError
     for icusp from 0<=icusp<nc:
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc) 
-        if ef1[icusp]==NULL: raise MemoryError        
+        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        if ef1[icusp]==NULL: raise MemoryError
         for jcusp from 0<=jcusp<nc:
             ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
-            if ef1[icusp][jcusp]==NULL: raise MemoryError        
+            if ef1[icusp][jcusp]==NULL: raise MemoryError
             for n from 0<=n<Mv[jcusp][2]:
                 ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
-                if ef1[icusp][jcusp][n]==NULL: raise MemoryError        
+                if ef1[icusp][jcusp][n]==NULL: raise MemoryError
     for jcusp in range(nc):
         #print "alphas[",jcusp,"]=",alphas[jcusp]
         for n from 0<=n<Ml:
@@ -535,7 +535,7 @@ cdef compute_V_cplx_dp_sym(double complex **V,
     cdef int twoQm1
     twoQm1= 2*Qv[0][1]-1
     for jcusp in range(nc):
-        for n from 0<=n<Mv[jcusp][2]:    
+        for n from 0<=n<Mv[jcusp][2]:
             for j from 0<=j<Qv[jcusp][2]:
                 argm=nvec[jcusp][n]*Xm[j]
                 if symmetric_cusps[jcusp]==0:
@@ -585,7 +585,7 @@ cdef compute_V_cplx_dp_sym(double complex **V,
         #print "allocating kbesvec[",jcusp,"] of size:",Mv[jcusp][2]
         kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
-                raise MemoryError
+            raise MemoryError
         for l from 0<=l<Ml:
             kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
@@ -604,12 +604,12 @@ cdef compute_V_cplx_dp_sym(double complex **V,
     #     for icusp from 0<=icusp<nc:
     #         for j from 0<=j<Qv[1][1]:
     #             print "diff[",jcusp,icusp,j,"]=",Xpb[icusp][jcusp][j]+Xpb[icusp][jcusp][2*Qv[jcusp][1]-j-1]
-                
+
     for jcusp from 0<=jcusp<nc:
         for icusp from 0<=icusp<nc:
             if icusp>0 and cusp_evs[icusp]<>0:
                 continue
-            for j from 0<=j<Qv[jcusp][2]:            
+            for j from 0<=j<Qv[jcusp][2]:
                 if Ypb[icusp][jcusp][j]==0:
                     continue
                 for l from 0<=l<Mv[jcusp][2]:
@@ -638,7 +638,7 @@ cdef compute_V_cplx_dp_sym(double complex **V,
                 for icusp from 0 <= icusp < nc:
                     if icusp>0 and cusp_evs[icusp]<>0:
                         continue
-                    if Ypb[icusp][jcusp][j]==0: 
+                    if Ypb[icusp][jcusp][j]==0:
                         continue
                     ckbes=kbesvec[icusp][l][j]*ef1[icusp][jcusp][l][j]
                     for n from 0 <= n < Mv[icusp][2]:
@@ -662,15 +662,15 @@ cdef compute_V_cplx_dp_sym(double complex **V,
                             print "ef1=",ef1[icusp][jcusp][l][j]
                             print "ef2=",ef2_c[icusp][n][j]
                             print "V[",ni,"][",lj0,"]=",V[ni][lj0],"+",ctmpV,"*",cuspev
-                            
+
     if verbose>2:
     #    #for n from 30+cusp_offsets[3]<=n<40+cusp_offsets[3]:
     #    for n from 43<=n<49:
     #        print "V0[",0,n,"]=",V[0][n]
     #        #print "V0[",24,24,"]=",V[24][24]
-         print "V0[",3,3,"]=",V[3][3]
-         for icusp from 0 <= icusp < nc:
-             print "Qfak[{0}]={1}".format(icusp,Qfak[icusp])
+        print "V0[",3,3,"]=",V[3][3]
+        for icusp from 0 <= icusp < nc:
+            print "Qfak[{0}]={1}".format(icusp,Qfak[icusp])
     for icusp from 0 <= icusp < nc:
         if icusp>0 and cusp_evs[icusp]<>0:
             continue
@@ -684,13 +684,13 @@ cdef compute_V_cplx_dp_sym(double complex **V,
                     if lj>N1 or ni>N1: # some extra insurance...
                         print "ni=",cusp_offsets[icusp],"+",n,"=",ni
                         print "lj=",cusp_offsets[jcusp],"+",l,"=",lj
-                        raise ArithmeticError,"Index outside!"                    
+                        raise ArithmeticError,"Index outside!"
                     if verbose>2 and ni==3 and lj==3:
                         print "V[3][3]={0}/{1}".format(V[ni][lj],Qfak[jcusp])
                     V[ni][lj]=V[ni][lj]/<double complex>Qfak[jcusp]
                     if verbose>2 and ni==3 and lj==3:
                         print "V[3][3]/Qfak[{0}]={1}".format(jcusp,V[ni][lj])
-    
+
     for icusp in range(nc):
         if icusp>0 and cusp_evs[icusp]<>0:
             continue
@@ -712,9 +712,9 @@ cdef compute_V_cplx_dp_sym(double complex **V,
             if verbose>2 and ni==3:
                 print "V[3][3]={0}-{1}={2}".format(V[ni][ni],kbes,V[ni][ni]-kbes)
             V[ni][ni]=V[ni][ni] - kbes
-            
+
     if verbose>3:
-        
+
         #        #for n from 30+cusp_offsets[3]<=n<40+cusp_offsets[3]:
         #        print "V3[",0,n,"]=",V[0][n]
         for n from 0<=n<min(100,Ml):
@@ -739,10 +739,10 @@ cdef compute_V_cplx_dp_sym(double complex **V,
                 for icusp from 0<=icusp<nc:
                     if ef1[jcusp][icusp]<>NULL:
                         for n from 0<=n<Mv[icusp][2]:
-                            if ef1[jcusp][icusp][n]<>NULL: 
+                            if ef1[jcusp][icusp][n]<>NULL:
                                 sage_free(ef1[jcusp][icusp][n])
                         sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])                                
+                sage_free(ef1[jcusp])
         sage_free(ef1)
     if ef2_c<>NULL:
         for icusp from 0<=icusp<nc:
@@ -774,7 +774,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
     cdef double ckbes,ctmpV,iargm,twopii,ctmp,lr,nr,besarg,pi
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
-    
+
     pi=M_PI #<double>RealField(53).pi() # 3.14159265358979323846264338328
     sqrtY=sqrt(Y)
     two=<double>(2)
@@ -804,27 +804,27 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
     ef2 = <double***>sage_malloc(sizeof(double**)*Ml)
     if not ef2: raise MemoryError
     for n from 0<=n<Ml:
-        ef2[n] = <double**>sage_malloc(sizeof(double*)*nc)    
+        ef2[n] = <double**>sage_malloc(sizeof(double*)*nc)
         if not ef2[n]: raise MemoryError
         for jcusp from 0<=jcusp<nc:
-            ef2[n][jcusp] = <double*>sage_malloc(sizeof(double)*Ql)    
+            ef2[n][jcusp] = <double*>sage_malloc(sizeof(double)*Ql)
             if not ef2[n][jcusp]: raise MemoryError
     #if verbose>0:
     #    print "Ml=",Ml
-    #    print "Ql=",Ql          
+    #    print "Ql=",Ql
     ef1 = <double****>sage_malloc(sizeof(double***)*Ml)
-    if ef1==NULL: raise MemoryError        
+    if ef1==NULL: raise MemoryError
     for n from 0<=n<Ml:
         ef1[n] = <double***>sage_malloc(sizeof(double**)*nc)
-        if ef1[n]==NULL: raise MemoryError        
+        if ef1[n]==NULL: raise MemoryError
         for jcusp from 0<=jcusp<nc:
             ef1[n][jcusp] = <double**>sage_malloc(sizeof(double*)*nc)
-            if ef1[n][jcusp]==NULL: raise MemoryError        
+            if ef1[n][jcusp]==NULL: raise MemoryError
             for icusp from 0<=icusp<nc:
                 ef1[n][jcusp][icusp] = <double*>sage_malloc(sizeof(double)*Ql)
-                if ef1[n][jcusp][icusp]==NULL: raise MemoryError        
-                
-    for n from 0<=n<Ml: #in range(Ms,Mf+1):        
+                if ef1[n][jcusp][icusp]==NULL: raise MemoryError
+
+    for n from 0<=n<Ml: #in range(Ms,Mf+1):
         for jcusp from 0<=jcusp<nc:
             nvec[n][jcusp]=<double>(n+Ms)+alphas[jcusp]
             for j from 0<=j<Ql: #in range(Qs,Qf+1):
@@ -833,7 +833,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     ef2[n][jcusp][j]=cos(argm)
                 elif sym_type==1:
                     ef2[n][jcusp][j]=sin(argm)
-    for n from 0<=n<Ml: #in range(Ms,Mf+1):        
+    for n from 0<=n<Ml: #in range(Ms,Mf+1):
         #print "ef2[",n,j,"=",ef2_r[n][j]
         for jcusp from 0<=jcusp<nc:
             for icusp in range(nc):
@@ -858,11 +858,11 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
         for jcusp from int(0) <= jcusp < int(nc):
             lr=nvec[l][jcusp]*twopi
             if lr==0.0 and cuspidal==1:
-                continue        
+                continue
             lj=Ml*jcusp+l
-            for icusp from int(0) <= icusp < int(nc):               
+            for icusp from int(0) <= icusp < int(nc):
                 for j from 0 <= j < Ql:
-                    if Ypb[icusp][jcusp][j]==0: 
+                    if Ypb[icusp][jcusp][j]==0:
                         #if(not Ypb.has_key((icusp,jcusp,j))):
                         continue
                     #ypb=Ypb[icusp][jcusp][j]
@@ -886,7 +886,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                             print "V[ni][lj]=",V[ni][lj]
                             print "Ypb[",icusp,jcusp,j,"]=",Ypb[icusp][jcusp][j]
                             print "ef1=",ef1[l][icusp][jcusp][j]
-                        
+
     for n from 0<=n<Ml*nc:
         for l from 0 <= l < Ml*nc:
             V[n][l]=V[n][l]/Qfak
@@ -912,7 +912,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                         sage_free(ef2[n][jcusp])
                 sage_free(ef2[n])
         sage_free(ef2)
-    if ef1<>NULL: 
+    if ef1<>NULL:
         for n from 0<=n<Ml:
             if ef1[n] <> NULL:
                 for jcusp from 0<=jcusp<nc:
@@ -972,7 +972,7 @@ cdef normalize_matrix_cplx_dp(double complex **V,int N,int comp_dim,int num_set,
             do_cont=0
             for i from 0<=i<num_set:
                 if setc_list[i]==k:
-                    for j from 0<=j<comp_dim:                    
+                    for j from 0<=j<comp_dim:
                         tmp[j] = tmp[j] - vals_list[j][i]*V[r][k]
                     do_cont=1
                     break
@@ -985,7 +985,7 @@ cdef normalize_matrix_cplx_dp(double complex **V,int N,int comp_dim,int num_set,
 
     if tmp<>NULL:
         sage_free(tmp)
-            
+
 cdef normalize_matrix_real_dp(double **V,int N,int comp_dim,int num_set,int *setc_list,double ** vals_list,int verbose=0):
     r"""
     W['V']
@@ -1021,7 +1021,7 @@ cdef normalize_matrix_real_dp(double **V,int N,int comp_dim,int num_set,int *set
             do_cont=0
             for i from 0<=i<num_set:
                 if setc_list[i]==k:
-                    for j from 0<=j<comp_dim:                    
+                    for j from 0<=j<comp_dim:
                         tmp[j] = tmp[j] - vals_list[j][i]*V[r][k]
                         #if r<=3:
                         #    print "tmpj=tmpj-",vals_list[j][i],"*",V[r][k]
@@ -1056,7 +1056,7 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
             ncolsV1-=Ml
     ncolsV1=ncolsV1-num_set
     #for i from 0<=i<Ml:
-    #    if 
+    #    if
     if verbose>2:
         print "comp_dim=",comp_dim
         print "num_set=",num_set
@@ -1073,7 +1073,7 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
     roffs=0
     for icusp from 0<=icusp<ncusps:
         if icusp>0 and cusp_evs[icusp]<>0:
-            roffs+=Ml 
+            roffs+=Ml
             continue
         for n from 0<=n<Ml:
             r=icusp*Ml+n
@@ -1100,7 +1100,7 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
                     do_cont=0
                     for i from 0<=i<num_set:
                         if setc_list[i]==k:
-                            for j from 0<=j<comp_dim:                    
+                            for j from 0<=j<comp_dim:
                                 tmp[j] = tmp[j] - vals_list[j][i]*V[r][k]
                             do_cont=1
                             break
@@ -1115,13 +1115,13 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
         sage_free(tmp)
 
 
-        
+
 cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):
     r"""
-    
+
     An efficient method to get coefficients in the double complex case.
     Trying to use as much symmetries as possible.
-    
+
     """
     import mpmath
     cdef double complex **V=NULL
@@ -1157,16 +1157,16 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         Y = 0.5 * tmpr
     if M<=0:
         M = get_M_for_maass_dp(R,Y,eps)
-    
+
     if Q<M:
         Q=M+20
-    #    Qfak=<double>(2*Q)    
+    #    Qfak=<double>(2*Q)
     sym_type = S._sym_type
     nc = int(S._group._ncusps)
     Qfak = <double *>sage_malloc(sizeof(double)*nc)
     Mv=<int**>sage_malloc(sizeof(int*)*nc)
     if not Mv: raise MemoryError
-    Qv=<int**>sage_malloc(sizeof(int*)*nc)    
+    Qv=<int**>sage_malloc(sizeof(int*)*nc)
     if not Qv: raise MemoryError
     for i from 0<=i<nc:
         Mv[i]=<int*>sage_malloc(sizeof(int)*3)
@@ -1190,7 +1190,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     #     #print "sym_type=",sym_type
     #     symmetries=S.even_odd_symmetries()
     #     if sym_type<>-1 and symmetries[i][0]<>0:
-    #         if symmetries[i][1]==1:              
+    #         if symmetries[i][1]==1:
     #             symmetric_cusps[i]=int(sym_type)
     #         elif sym_type==0 and symmetries[i][1]==-1:
     #             symmetric_cusps[i]=1
@@ -1211,7 +1211,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     #         Ml=Mv[i][2]
     #     if Qv[i][2]>Ql:
     #         Ql=Qv[i][2]
-        
+
     #     if verbose>0:
     #         #print "symmetries=",symmetries
     #         print "sym_cusps_evs[",i,"]=",symmetric_cusps[i]
@@ -1338,7 +1338,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
                           cusp_evs,alphas,Mv,Qv,Qfak,
                           symmetric_cusps,
-                          R,Y,nc,ncols,cuspidal,verbose,0)   
+                          R,Y,nc,ncols,cuspidal,verbose,0)
     sig_off()
     cdef Matrix_complex_dense VV
     #Vtmp = load("A.sobj")
@@ -1399,7 +1399,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if vals_list==NULL:
         raise MemoryError
     for j from 0<=j<comp_dim:
-        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set) 
+        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set)
     i=0
     for r,n in SetCs:
         if cusp_evs[r]<>0 and r>0:
@@ -1463,11 +1463,11 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         for i from 0<=i<comp_dim:
             if C[i]<>NULL:
                 sage_free(C[i])
-        sage_free(C)        
+        sage_free(C)
     if Mv<>NULL:
         sage_free(Mv)
     if Qv<>NULL:
-        sage_free(Qv)                
+        sage_free(Qv)
     if symmetric_cusps<>NULL:
         sage_free(symmetric_cusps)
     if cusp_evs<>NULL:
@@ -1475,7 +1475,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if comp_dim==1:
         return res[0]
     return res
-        
+
 cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,norm_c=1):
     r"""
     An efficient method to get coefficients in the double complex case.
@@ -1502,7 +1502,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         Qfak=<double>(Q)/<double>(2)
     else:
         Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
-        Qfak=<double>(2*Q)    
+        Qfak=<double>(2*Q)
     Ml=Mf-Ms+1
     Ql=Qf-Qs+1
     nc = S._group._ncusps
@@ -1577,7 +1577,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     cdef int cuspidal=1
     cdef int Mv[2],Qv[2]
     Mv[0]=Ms; Mv[1]=Mf
-    Qv[0]=Qs; Qv[1]=Qf    
+    Qv[0]=Qs; Qv[1]=Qf
     compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     ## Try to make coefficients real if possible.
     cdef int q
@@ -1591,9 +1591,9 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     #     for n from 0<=n< nc*Ml:
     #         for l from 0 <= l < Ml:
     #             if gcd(l-Ms,q)==1:
-    #                 i =int(  (l-Ms)%q ) 
-    #                 V[n][l]=V[n][l]*sqch[i] 
-            
+    #                 i =int(  (l-Ms)%q )
+    #                 V[n][l]=V[n][l]*sqch[i]
+
     if alphas<>NULL:
         sage_free(alphas)
     if Ypb<>NULL:
@@ -1623,7 +1623,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     if sqch<>NULL:
         sage_free(sqch)
 
-        
+
     #cdef cnp.ndarray[CTYPE_t,ndim=2] VV
     cdef Matrix_complex_dense VV
     if gr==1:
@@ -1650,7 +1650,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     if vals_list==NULL:
         raise MemoryError
     for j from 0<=j<comp_dim:
-        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set) 
+        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set)
     i=0
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
@@ -1673,7 +1673,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     if verbose>1:
         for k from 0<=k<ncols-num_set:
             print "C[",k,"]=",C[0][k]
-   
+
     cdef dict res={}
     for k from 0<=k<comp_dim:
         res[k]=dict()
@@ -1697,11 +1697,11 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         for i from 0<=i<comp_dim:
             if C[i]<>NULL:
                 sage_free(C[i])
-        sage_free(C)        
+        sage_free(C)
     if comp_dim==1:
         return res[0]
     return res
-    
+
 
 cpdef get_coeff_fast_real_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0):
     r"""
@@ -1824,7 +1824,7 @@ cpdef get_coeff_fast_real_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     setc_list = <int*>sage_malloc(sizeof(int)*num_set)
     vals_list = <double** >sage_malloc(sizeof(double*)*comp_dim)
     for j from 0<=j<comp_dim:
-        vals_list[j]=<double*>sage_malloc(sizeof(double)*num_set) 
+        vals_list[j]=<double*>sage_malloc(sizeof(double)*num_set)
     i=0
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
@@ -1910,7 +1910,7 @@ cpdef get_coeff_fast_real_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         sage_free(Cvec)
     return res
 
-## Routines to make allocation and deallocation easier 
+## Routines to make allocation and deallocation easier
 
 
 cdef int my_alloc_double_1(double **A,int d1):
@@ -2010,7 +2010,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
     RF = R.parent()
     prec=RF.prec()
     pi=RF.pi()
-    CF = MPComplexField(prec) 
+    CF = MPComplexField(prec)
     mpc_init2(ckbes,prec)
     mpc_init2(ctmpV,prec)
     mpc_init2(iargm,prec)
@@ -2024,12 +2024,12 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
     mpfr_init2(sqrtY,prec)
     mpfr_init2(Y2pi,prec)
     mpfr_init2(nrY2pi,prec)
-    mpfr_init2(argm,prec)    
+    mpfr_init2(argm,prec)
     mpfr_init2(argpb,prec)
-    mpfr_init2(two,prec)        
+    mpfr_init2(two,prec)
     mpfr_init2(twopi,prec)
     mpfr_init2(kbes,prec)
-    mpfr_init2(xtmp_t,prec)        
+    mpfr_init2(xtmp_t,prec)
     cdef int verbose = S._verbose
     #mp_ctx=mpmath.fp
     if do_hp==1 and prec>53:
@@ -2061,7 +2061,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
         if verbose>0:
             print "lpfak=",print_mpfr(besfak)
     Y = RF(Yin)
-    mpfr_sqrt(sqrtY,Y.value,rnd_re) 
+    mpfr_sqrt(sqrtY,Y.value,rnd_re)
     pi=RF.pi()
     mpfr_mul_ui(twopi,pi.value,2,rnd_re)
     mpfr_mul(Y2pi,Y.value,twopi,rnd_re)
@@ -2095,12 +2095,13 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
         print "Qfak=",print_mpfr(Qfak)
         print "Qf=",Qf,"Qs=",Qs,"Ql=",Ql
         print "Mf=",Mf,"Ms=",Ms,"Ml=",Ml
-    cdef Vector_real_mpfr_dense Xm
+    cdef mpfr_t* Xm
     cdef mpfr_t ***Xpb=NULL
     cdef mpfr_t ***Ypb=NULL
     cdef mpc_t ***Cvec=NULL
-    VS = vector(RF,Qf-Qs+1).parent()
-    Xm = Vector_real_mpfr_dense(VS,0)
+    Xm = <mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ql )
+    for n in range(Ql):
+        mpfr_init2(Xm[n],prec)
     Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
     if Xpb==NULL: raise MemoryError
     Ypb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
@@ -2118,7 +2119,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
             for n from 0<=n<Ql:
                 mpfr_init_set_ui(Xpb[i][j][n],0,rnd_re)
                 mpfr_init_set_ui(Ypb[i][j][n],0,rnd_re)
-    Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )                
+    Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
     if Cvec==NULL:
         raise MemoryError
     for i from 0<=i<nc:
@@ -2163,18 +2164,18 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
             filter_rows[n]=int(filter[n])
         if verbose>0:
             print "filter:",filter
-    for n from 0 <= n < Ml:        
+    for n from 0 <= n < Ml:
         for j from 0<= j <Ql:
             #tmpx1=Xm[j-Qs]
-            mpfr_mul(argm,nvec[n],Xm._entries[j],rnd_re) #tmpx1.value,rnd_re)
+            mpfr_mul(argm,nvec[n],Xm[j],rnd_re) #tmpx1.value,rnd_re)
             # argm -> i*argm
             if sym_type==1:
                 mpfr_neg(argm,argm,rnd_re)
                 mpfr_sin(argm,argm,rnd_re)
-                mpc_set_fr(iargm,argm,rnd) 
+                mpc_set_fr(iargm,argm,rnd)
             elif sym_type==0:
                 mpfr_cos(argm,argm,rnd_re)
-                mpc_set_fr(iargm,argm,rnd) 
+                mpc_set_fr(iargm,argm,rnd)
             else:
                 mpfr_neg(argm,argm,rnd_re)
                 mpfr_sin_cos(mpc_imagref(iargm),mpc_realref(iargm),argm,rnd_re)
@@ -2189,7 +2190,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
                     continue
                 #mpc_set(tmpz1.value,Cvec[icusp][jcusp][j],rnd)
                 # mpfr_set(xtmp_t,Xpb[icusp][jcusp][j],rnd_re)
-                for n from 0 <= n < Ml:        
+                for n from 0 <= n < Ml:
                     mpfr_mul(argpb,nvec[n],Xpb[icusp][jcusp][j],rnd_re)
                     if sym_type==1:
                         mpfr_sin(argpb,argpb,rnd_re)
@@ -2205,7 +2206,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
                     mpc_init2(ef1[n][icusp*nc+jcusp][j],prec)
                     mpc_set(ef1[n][icusp*nc+jcusp][j],iargpb,rnd)
 
-                    
+
     cdef double besprec
     besprec=1.0E-14
 
@@ -2243,7 +2244,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
                             mpc_mul(ctmpV,ckbes,ef2[n][j],rnd)
                         mpc_add(VV._matrix[ni][lj],VV._matrix[ni][lj],ctmpV,rnd)
     for n from 0<=n< s:
-        for l from 0 <= l < s:        
+        for l from 0 <= l < s:
             mpc_div_fr(VV._matrix[n][l],VV._matrix[n][l],Qfak,rnd)
     if tilde==1:
         for n from Ms<=n <=Mf:
@@ -2345,7 +2346,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
                         sage_free(Cvec[i][j])
                 sage_free(Cvec[i])
         sage_free(Cvec)
-                        
+
     return W
 
 
@@ -2358,7 +2359,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
     cdef mpfr_t Qfak,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes
     cdef mpfr_t besarg,lr
     cdef Matrix_complex_dense VV
-    cdef RealNumber Y,tmpx1,tmpx2,pi
+    cdef RealNumber Y,tmpx1,tmpx2,pi,tmp
     cdef MPComplexNumber tmpz1,tmpz2
     cdef mpfr_t *nvec
     cdef mpc_t *** ef1
@@ -2377,16 +2378,16 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
     mpfr_init2(sqrtY,prec)
     mpfr_init2(Y2pi,prec)
     mpfr_init2(nrY2pi,prec)
-    mpfr_init2(argm,prec)    
+    mpfr_init2(argm,prec)
     mpfr_init2(argpb,prec)
-    mpfr_init2(two,prec)        
+    mpfr_init2(two,prec)
     mpfr_init2(twopi,prec)
-    mpfr_init2(kbes,prec)        
+    mpfr_init2(kbes,prec)
     #mp_ctx=mpmath.fp
     RF = R.parent()
-    CF = MPComplexField(RF.prec()) 
+    CF = MPComplexField(RF.prec())
     tmpx1=RF(0); tmpx2=RF(0);
-
+    tmp=RF(0)
     tmpz1=CF(0); tmpz2=CF(0)
     Y = RF(Yin)
     mpfr_sqrt(sqrtY,Y.value,rnd_re)
@@ -2411,7 +2412,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
     mpfr_mul_ui(Qfak,Qfak,2,rnd_re)
     # Qfak = 2*Q
     # Pullpack points
-    
+
     pb=pullback_pts_mpc(S,Qs,Qf,Y,weight=S.weight())
     Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
     s=nc*Ml
@@ -2431,7 +2432,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
         mpfr_set_si(nvec[n],n+Ms,rnd_re)
     MS=MatrixSpace(CF,s,s)
     VV=Matrix_complex_dense(MS,CF.zero(),True,True)
-    for n from Ms <= n <= Mf:        
+    for n from Ms <= n <= Mf:
         #nr=nvec[n-Ms]
         #print "nr(",n,")=",nr
         for j from Qs<= j <=Qf:
@@ -2516,7 +2517,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
                         mpc_add(VV._matrix[ni][lj],VV._matrix[ni][lj],ctmpV,rnd)
 #    print "V[16,16]=",V[16,16]
     for n from 0<=n< s:
-        for l from 0 <= l < s:        
+        for l from 0 <= l < s:
             mpc_div_fr(VV._matrix[n][l],VV._matrix[n][l],Qfak,rnd)
     #    print "V[16,16]=",V[16,16]
     #    print "sqrtY=",sqrtY
@@ -2556,7 +2557,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
     mpfr_clear(argm); mpfr_clear(argpb)
     mpfr_clear(two); mpfr_clear(twopi)
     mpfr_clear(kbes)
-    
+
     for n from 0 <= n <= Ml-1:
         mpfr_clear(nvec[n])
         for icusp from 0 <= icusp <= nc-1:
@@ -2582,22 +2583,22 @@ def phase_2(S,R,Cin,int NA,int NB,ndig=10,M0=None,Yin=None, cuspidal=True,sym_ty
     r"""
     Computes more coefficients from the given initial set.
 
-      INPUT:
-    
-        - ``S`` -- Space of Maas waveforms
-        - ``R`` -- real (mpmath)
-        - ``Cin`` -- complex vector (mpmath)
-        - ``NA`` -- integer 
-        - ``NB`` -- integer 
-        - ``M0`` -- integer (default None) if set we only use this many coeffficients.
-        - ``ndig`` -- integer (default 10) : want new coefficients with this many digits precision.
-        - ``cuspidal`` -- (False) logical : Assume cusp forms
-        - ``sym_type``  -- (None) integer
+        INPUT:
 
-              -  0 -- even / sine
-              -  1 -- odd  / cosine
+            - ``S`` -- Space of Maas waveforms
+            - ``R`` -- real (mpmath)
+            - ``Cin`` -- complex vector (mpmath)
+            - ``NA`` -- integer
+            - ``NB`` -- integer
+            - ``M0`` -- integer (default None) if set we only use this many coeffficients.
+            - ``ndig`` -- integer (default 10) : want new coefficients with this many digits precision.
+            - ``cuspidal`` -- (False) logical : Assume cusp forms
+            - ``sym_type``  -- (None) integer
 
-        - ``low_prec`` -- (False) : Use low (double) precision K-Bessel
+                -  0 -- even / sine
+                -  1 -- odd  / cosine
+
+            - ``low_prec`` -- (False) : Use low (double) precision K-Bessel
 
     OUTPUT:
 
@@ -2610,9 +2611,9 @@ def phase_2(S,R,Cin,int NA,int NB,ndig=10,M0=None,Yin=None, cuspidal=True,sym_ty
         sage: IR=mpmath.mpc(0,R)
         sage: M=MaassWaveForms(Gamma0(1))
         sage: C=Maassform_coeffs(M,R)
-        sage: D=phase_2(SL2Z,R,C,2,10) 
+        sage: D=phase_2(SL2Z,R,C,2,10)
 
-    
+
 
     """
     import mpmath
@@ -2689,7 +2690,7 @@ def phase_2(S,R,Cin,int NA,int NB,ndig=10,M0=None,Yin=None, cuspidal=True,sym_ty
                             #Qp=0
 
                         raise StopIteration()
-                    
+
         except StopIteration:
             continue
         return Cnew
@@ -2697,7 +2698,7 @@ def phase_2(S,R,Cin,int NA,int NB,ndig=10,M0=None,Yin=None, cuspidal=True,sym_ty
 
 
 
-    
+
 
 
 def _setup_kbessel_dict(Ms,Mf,Qs,Qf,nc,IR,pb,lvec=None,mp_ctx=None):
@@ -2711,14 +2712,14 @@ def _setup_kbessel_dict(Ms,Mf,Qs,Qf,nc,IR,pb,lvec=None,mp_ctx=None):
     -``Qs`` -- integer
     -``Qs`` -- integer
     -``nc`` -- integer
-    -``IR`` -- complex (purely imaginary) 
-    -``pb`` -- dictionary 
+    -``IR`` -- complex (purely imaginary)
+    -``pb`` -- dictionary
     -``lvec`` -- (optional) vector of mpmath real integers in range(Ms,Mf+1)
     -``mp_ctx`` -- mpmath context
 
     OUTPUT:
     -``kbdict`` dictionary of dimensions
-          Ms:Mf,Qs:Qf,0:nc-1,0:nc-1,0:1
+        Ms:Mf,Qs:Qf,0:nc-1,0:nc-1,0:1
 
     EXAMPLES::
 
@@ -2733,7 +2734,7 @@ def _setup_kbessel_dict(Ms,Mf,Qs,Qf,nc,IR,pb,lvec=None,mp_ctx=None):
         sage: pb[0]=pullback_pts(Gamma0(1),Qs,Qf,Yv[0])
         sage: pb[1]=pullback_pts(Gamma0(1),Qs,Qf,Yv[1])
         sage: _temp = __import__('maass_forms_alg',globals(), locals(), ['_setup_kbessel_dict'],-1)
-        sage: kbdict=_temp.__dict__['_setup_kbessel_dict'](Ms,Mf,Qs,Qf,1,IR,pb)    
+        sage: kbdict=_temp.__dict__['_setup_kbessel_dict'](Ms,Mf,Qs,Qf,1,IR,pb)
     """
     import mpmath
     if(mp_ctx==None):
@@ -2800,7 +2801,7 @@ def _get_tmpCs_twoY(n,ic,Yv,IR,Ms,Mf,Qs,Qf,Qfak,nc,pb,Cin,kbdict,lvec=None,mp_ct
         sage: pb[0]=pullback_pts(Gamma0(1),Qs,Qf,Yv[0])
         sage: pb[1]=pullback_pts(Gamma0(1),Qs,Qf,Yv[1])
         sage: _temp = __import__('maass_forms_alg',globals(), locals(), ['_setup_kbessel_dict'],-1)
-        sage: kbdict=_temp.__dict__['_setup_kbessel_dict'](Ms,Mf,Qs,Qf,nc,IR,pb)  
+        sage: kbdict=_temp.__dict__['_setup_kbessel_dict'](Ms,Mf,Qs,Qf,nc,IR,pb)
         sage: n=10
         sage: c=_temp.__dict__['_get_tmpCs_twoY'](n,ic,Yv,IR,Ms,Mf,Qs,Qf,Qfak,nc,pb,C,kbdict)
         sage: C[0][n].real
@@ -2812,7 +2813,7 @@ def _get_tmpCs_twoY(n,ic,Yv,IR,Ms,Mf,Qs,Qf,Qfak,nc,pb,Cin,kbdict,lvec=None,mp_ct
         sage:     sage: abs(c[0]-c[1])
         mpf('6.5516259713787926e-15')l
 
-    
+
     """
     import mpmath
     if(mp_ctx==None):
@@ -2877,7 +2878,7 @@ def smallest_inf_norm_mpmath(V):
         sage: smallest_inf_norm(A)
         mpf('5.5')
 
-    
+
     """
     import mpmath
     minc=mpmath.mp.mpf(100)
@@ -2913,7 +2914,7 @@ def smallest_inf_norm(V):
         sage: smallest_inf_norm(A)
         mpf('5.5')
 
-    
+
     """
     RF = RealField(V[0,0].parent().prec())
     minc=RF(100)
@@ -2934,23 +2935,23 @@ def get_M_for_maass(R,Y,eps):
     r""" Computes the  truncation point for Maass waveform with parameter R.
 
     INPUT:
-    
-     - ``R`` -- spectral parameter, real
-     - ``Y`` -- height, real > 0 
-     - ``eps`` -- desired error
-     
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
 
     OUTPUT:
 
-     - ``M`` -- point for truncation
+        - ``M`` -- point for truncation
 
     EXAMPLES::ubuntuusers.de
 
 
-         sage: get_M_for_maass(9.533,0.5,1E-16)
-         12
-         sage: get_M_for_maass(9.533,0.5,1E-25)
-         18
+        sage: get_M_for_maass(9.533,0.5,1E-16)
+        12
+        sage: get_M_for_maass(9.533,0.5,1E-25)
+        18
 
 
     """
@@ -2968,7 +2969,7 @@ def get_M_for_maass(R,Y,eps):
         return -1
     minv = int(minm)
     #print "eps=",eps
-    
+
     try:
         for m in range(minm+1,10000,3):
             erest=err_est_Maasswf(Y,m)
@@ -3025,13 +3026,13 @@ cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):
             print "M={0}, Y={1}".format(m,Y)
         if Y<0:
             continue
-        MM = get_M_for_maass_dp_c(R,Y,eps)     
+        MM = get_M_for_maass_dp_c(R,Y,eps)
         MM +=10
         return Y,MM
     raise ArithmeticError,"Could not find good Y and M for eps={0}".format(eps)
 
 
-        
+
 cpdef get_Y_for_M_dp(S,double R,int M,double eps,int verbose=0):
     r"""
     Computes a value of Y for a given M for which
@@ -3058,7 +3059,7 @@ cpdef get_Y_for_M_dp(S,double R,int M,double eps,int verbose=0):
             return -1  ### We need to get a larger Y
         errest_old=errest
     return Y
-        
+
 cpdef get_M_for_maass_dp(double R,double Y,double eps):
     if R<0:
         raise ValueError,"Need non-negative R! Got R={0}".format(R)
@@ -3069,23 +3070,23 @@ cdef int get_M_for_maass_dp_c(double R,double Y,double eps):
     r""" Computes the  truncation point for Maass waveform with parameter R.
 
     INPUT:
-    
-     - ``R`` -- spectral parameter, real
-     - ``Y`` -- height, real > 0 
-     - ``eps`` -- desired error
-     
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
 
     OUTPUT:
 
-     - ``M`` -- point for truncation
+        - ``M`` -- point for truncation
 
     EXAMPLES::ubuntuusers.de
 
 
-         sage: get_M_for_maass(9.533,0.5,1E-16)
-         12
-         sage: get_M_for_maass(9.533,0.5,1E-25)
-         18
+        sage: get_M_for_maass(9.533,0.5,1E-16)
+        12
+        sage: get_M_for_maass(9.533,0.5,1E-25)
+        18
 
 
     """
@@ -3160,11 +3161,11 @@ cpdef solve_system_for_Maass_waveforms_cp(W,N=None,deb=False):
         - ``N['SetCs']``   -- Which coefficients are set
         - ``N['Vals'] ``   -- To which values are these coefficients set
         - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
-        
+
     - ``deb`` -- print debugging information (default False)
 
     OUTPUT:
-    
+
     - ``C`` -- Fourier coefficients
 
     EXAMPLES::
@@ -3181,21 +3182,21 @@ cpdef solve_system_for_Maass_waveforms_cp(W,N=None,deb=False):
 
     If M is too large and the precision is not high enough the matrix might be numerically singular
 
-        W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)  
+        W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)
         sage: C=solve_system_for_Maass_waveforms(W,N)
         Traceback (most recent call last)
         ...
         ZeroDivisionError: Need higher precision! Use > 23 digits!
 
     Increasing the precision helps
-    
+
         sage: mpmath.mp.dps=25
         sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
         sage: C=solve_system_for_Maass_waveforms(W,N)
         sage: C[0][2]*C[0][3]-C[0][6]
         mpc(real='3.780824715556976438911480324e-25', imag='2.114746048869188750991752872e-99')
 
-        
+
     """
     import mpmath
     V=W['V']
@@ -3234,7 +3235,7 @@ cpdef solve_system_for_Maass_waveforms_cp(W,N=None,deb=False):
     t=V[0,0]
     if(isinstance(t,float)):
         mpmath_ctx=mpmath.fp
-    else:  
+    else:
         mpmath_ctx=mpmath.mp
     if(W.has_key('RHS')):
         RHS=W['RHS']
@@ -3269,7 +3270,7 @@ cpdef solve_system_for_Maass_waveforms_cp(W,N=None,deb=False):
                 tmp=tmp*V[r,cset-Ms]
                 RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
-        for k in range(ncols):            
+        for k in range(ncols):
             if(SetCs.count(k+Ms)>0):
                 coffs=coffs+1
                 continue
@@ -3356,13 +3357,13 @@ from sage.all import vector
 #         - ``N['Vals'] ``   -- To which values are these coefficients set
 #         - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
 #         - ``N['num_set']`` -- Number of coefficients which are set
-        
 
-        
+
+
 #     - ''gr''  -- only return the reduced matrix and right hand side. do not perform the solving .
 #     - ''cn''  -- logical (default False) set to True to compute the max norm of V^-1
 #     OUTPUT:
-    
+
 #     - ``C`` -- Fourier coefficients
 
 #     EXAMPLES::
@@ -3379,14 +3380,14 @@ from sage.all import vector
 
 #     If M is too large and the precision is not high enough the matrix might be numerically singular
 
-#         W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)  
+#         W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)
 #         sage: C=solve_system_for_Maass_waveforms(W,N)
 #         Traceback (most recent call last)
 #         ...
 #         ZeroDivisionError: Need higher precision! Use > 23 digits!
 
 #     Increasing the precision helps
-    
+
 #         sage: mpmath.mp.dps=25
 #         sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
 #         sage: C=solve_system_for_Maass_waveforms(W,N)
@@ -3394,7 +3395,7 @@ from sage.all import vector
 #         mpc(real='3.780824715556976438911480324e-25', imag='2.114746048869188750991752872e-99')
 
 #     """
-#     cdef Matrix_complex_dense LHS,RHS,Q,R    
+#     cdef Matrix_complex_dense LHS,RHS,Q,R
 #     cdef int nrows,ncols
 #     cdef int i,j,r,n,k,roffs,coffs,fn_j,Ms,Mi,Ml,nc,verbose,comp_dim,num_set,rhs_j,num_rhs
 #     cdef Vector_complex_dense y,v,b
@@ -3407,7 +3408,7 @@ from sage.all import vector
 #     get_reduced_matrix=gr
 #     verbose = H._verbose
 #     comp_norm=cn
-#     nc=H.group().ncusps() 
+#     nc=H.group().ncusps()
 #     if V.ncols()<>Ml*nc or V.nrows()<>Ml*nc:
 #         raise Exception," Wrong dimension of input matrix!"
 #     if N==None:
@@ -3435,7 +3436,7 @@ from sage.all import vector
 #     setc_list=list()
 #     vals_list=dict()
 #     for j in range(comp_dim):
-#         vals_list[j]=dict()    
+#         vals_list[j]=dict()
 #     for r,n in SetCs:
 #         if r*Ml+n-Ms<0:
 #             continue
@@ -3488,7 +3489,7 @@ from sage.all import vector
 #                 #RHS._matrix[r-roffs][fn_j]=RHS._matrix[r-roffs][fn_j]-tmp
 #                 mpc_sub(RHS._matrix[r-roffs][fn_j],RHS._matrix[r-roffs][fn_j],tmp.value,rnd)
 #         coffs=0
-#         for k in range(ncols):            
+#         for k in range(ncols):
 #             if setc_list.count(k)>0:
 #                 coffs=coffs+1
 #                 continue
@@ -3545,14 +3546,14 @@ from sage.all import vector
 #                     continue
 #                 X[fn_j][i][n+Ms]=TMP[n+i*Ml-roffs]
 #     return X
- 
+
 
 
 # cpdef reduce_system_cplx(W):
 #     r"""
 #     We apply this method to reduce the system with respect to set coefficients etc.
 #     """
-#     cdef Matrix_complex_dense LHS,RHS,Q,R    
+#     cdef Matrix_complex_dense LHS,RHS,Q,R
 #     cdef int nrows,ncols
 #     cdef int i,j,r,n,k,roffs,coffs,fn_j,Ms,Mi,Ml,nc,verbose,comp_dim,num_set,rhs_j
 #     cdef Vector_complex_dense y,v,b
@@ -3565,7 +3566,7 @@ from sage.all import vector
 #     #get_reduced_matrix=gr
 #     verbose = H._verbose
 #     #comp_norm=cn
-#     nc=H.group().ncusps() 
+#     nc=H.group().ncusps()
 #     if V.ncols()<>Ml*nc or V.nrows()<>Ml*nc:
 #         raise Exception," Wrong dimension of input matrix!"
 #     if N==None:
@@ -3592,7 +3593,7 @@ from sage.all import vector
 #     setc_list=list()
 #     vals_list=dict()
 #     for j in range(comp_dim):
-#         vals_list[j]=dict()    
+#         vals_list[j]=dict()
 #     for r,n in SetCs:
 #         if r*Ml+n-Ms<0:
 #             continue
@@ -3645,7 +3646,7 @@ from sage.all import vector
 #                 #RHS._matrix[r-roffs][fn_j]=RHS._matrix[r-roffs][fn_j]-tmp
 #                 mpc_sub(RHS._matrix[r-roffs][fn_j],RHS._matrix[r-roffs][fn_j],tmp.value,rnd)
 #         coffs=0
-#         for k in range(ncols):            
+#         for k in range(ncols):
 #             if setc_list.count(k)>0:
 #                 coffs=coffs+1
 #                 continue
@@ -3654,7 +3655,7 @@ from sage.all import vector
 
 
 
-            
+
 
 cpdef solve_using_Gauss_elem(LHS,RHS):
     cdef double complex **U=NULL
@@ -3672,7 +3673,7 @@ cpdef solve_using_Gauss_elem(LHS,RHS):
         raise ValueError,"Incorrect matrix format in input! Got:{0}".format(type(LHS))
     assert m==n
     assert len(RHS)==n
-    #assert RHS.ncols()==1 
+    #assert RHS.ncols()==1
     U=<double complex**>sage_malloc(sizeof(double complex*)*n)
     if U==NULL:
         raise MemoryError
@@ -3703,7 +3704,7 @@ cpdef solve_using_Gauss_elem(LHS,RHS):
     cset=<int*>sage_malloc(sizeof(int)*2)
     cset[0]=0
     cset[0]=1
-    
+
     values=<double complex**>sage_malloc(sizeof(double complex*)*1)
     values[0]=<double complex*>sage_malloc(sizeof(double complex*)*2)
     values[0][0]=<double complex>0
@@ -3718,7 +3719,7 @@ cpdef solve_using_Gauss_elem(LHS,RHS):
     if U<>NULL:
         sage_free(U)
     if C<>NULL:
-        sage_free(C)        
+        sage_free(C)
     return res
 
 
@@ -3727,7 +3728,7 @@ cpdef solve_using_Gauss_elem(LHS,RHS):
 cdef SMAT_cplx_dp(double complex** U,int N,int num_rhs,int num_set,double complex **C,double complex** values,int* setc):
     r"""
     Use Gauss elimination to solve a linear system AX=B
-    U = (A|B) is a N x (N+num_rhs) double complex matrix 
+    U = (A|B) is a N x (N+num_rhs) double complex matrix
     setc and values should be allocated of length num_set
     """
     cdef int m,maxi,j,k,i
@@ -3773,11 +3774,11 @@ cdef SMAT_cplx_dp(double complex** U,int N,int num_rhs,int num_set,double comple
         for j in range(maxi):
             TT=U[j][m]
             for k in range(m+1,N+num_rhs): #K=M+1,N+1
-               U[j][k]=U[j][k]-U[maxi][k]*TT
+                U[j][k]=U[j][k]-U[maxi][k]*TT
         for j in range(maxi+1,N): #DO J=Maxi+1,N
             TT=U[j][m]
             for k in range(m+1,N+num_rhs): #do K=M+1,N+1
-               U[j][k]=U[j][k]-U[maxi][k]*TT
+                U[j][k]=U[j][k]-U[maxi][k]*TT
       #!! now remember we have pivot for x_j at PIV(j) not j
     cdef int do_cont,m_offs
     #print "N+num_rhs=",N+num_rhs
@@ -3815,7 +3816,7 @@ cdef SMAT_cplx_dp(double complex** U,int N,int num_rhs,int num_set,double comple
 cdef SMAT_real_dp(double ** U,int N,int num_rhs,int num_set,double **C,double ** values,int* setc):
     r"""
     Use Gauss elimination to solve a linear system AX=B
-    U = (A|B) is a N x (N+num_rhs) double matrix 
+    U = (A|B) is a N x (N+num_rhs) double matrix
     setc and values should be allocated of length num_set
     """
     if C==NULL or values==NULL:
@@ -3881,7 +3882,7 @@ cdef SMAT_real_dp(double ** U,int N,int num_rhs,int num_set,double **C,double **
             C[i][m]=U[piv[m-m_offs]][N+i]
             #print "C[",i,m,"]=",C[i][m]
 
-            
+
     if piv<>NULL:
         sage_free(piv)
     if used<>NULL:
@@ -3896,7 +3897,7 @@ cdef SMAT_real_dp(double ** U,int N,int num_rhs,int num_set,double **C,double **
 
 
 
-        
+
 
 
 
@@ -3908,10 +3909,10 @@ def mppr(x):
     Print fewer digits!
 
     """
-    
+
     # We don't want to print 500 digits
     # So I truncate at two digits with a stupid simple rounding
-    import mpmath  
+    import mpmath
     cdef int dpold=mpmath.mp.dps
     mpmath.mp.dps=5
     cdef str s,ss,s1,s2,es,dot,s3,s4,ma
@@ -3942,7 +3943,7 @@ cpdef Ttest_mul(x,y,test=1):
         w = RealField(53)(0)
         _test_mul2(<RealNumber>x,<RealNumber>y,w)
 
-        
+
 cdef void _test_mul1(double x,double y,double z):
     z= x*y
 
@@ -3953,7 +3954,7 @@ cdef test_mul22(RealNumber x,RealNumber y,RealNumber z):
     z= x*y
 
 cpdef split_interval(H,double R1,double R2):
-    # First we find the next zero 
+    # First we find the next zero
     # First split into intervals having at most one zero
     ivs=list()
     cdef double Y00,k,rnew,rold,r1,r2,Y0,Y1,r11,t,pi
@@ -3988,7 +3989,7 @@ cpdef split_interval(H,double R1,double R2):
                 k=besselk_dp(t,Y1)
                 j=0
                 while j<1000 and abs(k)<1e-3:
-                    Y1=Y1*0.999;j=j+1                
+                    Y1=Y1*0.999;j=j+1
                     k=besselk_dp(t,Y1)
                 Y0=Y1
                 r11=t+1E-08
@@ -4005,7 +4006,7 @@ def next_kbessel_zero(double r1,double r2,double y,int verbose=0):
     my_kbes_diff_real_dp(r0,y,&kd0)
     xtol=1E-6
     rtol=1E-6
-    
+
     if verbose>0:
         print "r0,y=",r0,y,kd0
     while(t1<r1 and r0<r2):
@@ -4047,7 +4048,7 @@ def next_kbessel_zero(double r1,double r2,double y,int verbose=0):
 
 
 cdef my_kbes_diff_real_dp(double r,double x,double *diff):
-    cdef double h,f1,f2 
+    cdef double h,f1,f2
     h=1e-8
     #print "r,x,h=",r,x,h
     f1 = besselk_dp(r,x+h)
@@ -4060,7 +4061,7 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
     An efficient method to get coefficients in the double real case.
     """
     cdef double **V=NULL
-    
+
     cdef double* Xm=NULL
     cdef double*** Xpb=NULL
     cdef double*** Ypb=NULL
@@ -4170,13 +4171,13 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
         if C[i]==NULL:
             raise MemoryError
 
-    
+
     cdef int *setc_list=NULL
     cdef double **vals_list=NULL
     setc_list = <int*>sage_malloc(sizeof(int)*num_set)
     vals_list = <double** >sage_malloc(sizeof(double*)*comp_dim)
     for j from 0<=j<comp_dim:
-        vals_list[j]=<double*>sage_malloc(sizeof(double)*num_set) 
+        vals_list[j]=<double*>sage_malloc(sizeof(double)*num_set)
     i=0
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
@@ -4206,7 +4207,7 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
     signs={}
     #for j from 0<=j<Ml:
     #    print "C[",j,"]=",C[j]
-        
+
     cdef int Mmax=max(Ml,num_tests)
     cdef dict res={}
     cdef double tmp
@@ -4239,11 +4240,11 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
             res[k][i]=dict()
             for j from 0<=j<Ml:
                 res[k][i][j+Ms]=C[k][i*nc+j]
-    
+
     if V<>NULL:
         sage_free(V)
     if C<>NULL:
-        sage_free(C)        
+        sage_free(C)
     if alphas<>NULL:
         sage_free(alphas)
     if Ypb<>NULL:
@@ -4295,7 +4296,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
         Qfak=<double>(Q)/<double>(2)
     else:
         Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
-        Qfak=<double>(2*Q)    
+        Qfak=<double>(2*Q)
     Ml=Mf-Ms+1
     Ql=Qf-Qs+1
     nc = S.group().ncusps()
@@ -4370,7 +4371,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     cdef int cuspidal=1
     cdef int Mv[2],Qv[2]
     Mv[0]=Ms; Mv[1]=Mf
-    Qv[0]=Qs; Qv[1]=Qf    
+    Qv[0]=Qs; Qv[1]=Qf
     compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     cdef cnp.ndarray[CTYPE_t,ndim=2] VV
     if gr==1:
@@ -4392,7 +4393,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     setc_list = <int*>sage_malloc(sizeof(int)*num_set)
     vals_list = <double complex** >sage_malloc(sizeof(double complex*)*comp_dim)
     for j from 0<=j<comp_dim:
-        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set) 
+        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set)
     i=0
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
@@ -4421,7 +4422,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     cdef dict res={}
     if Y2==0:
         Y2=0.94*Y
-    
+
     compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     cdef int Mmax=max(Ml,num_tests)
     res[-1]=dict()
@@ -4439,8 +4440,8 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
                     print "C[",j,"]=",C[0][j]
                     print "V[",i,",",j,"]=",V[i][j]
                 tmp=tmp+C[0][j]*V[i][j]
-            res[-1][i]=tmp                    
-                          
+            res[-1][i]=tmp
+
     for j from 0<=j<comp_dim:
         res[j]=dict()
         for i from 0<=i<nc:
@@ -4448,11 +4449,11 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
             for k from 0<=k<Ml:
                 res[j][i][k+Ms]=C[j][i*Ml+k]
 
-                
+
     if V<>NULL:
         sage_free(V)
     if C<>NULL:
-        sage_free(C)        
+        sage_free(C)
     if alphas<>NULL:
         sage_free(alphas)
     if Ypb<>NULL:
@@ -4495,7 +4496,7 @@ cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,
         # print "sym_type=",sym_type
         symmetries=S.even_odd_symmetries()
         if sym_type<>-1 and symmetries[i][0]<>0:
-            if symmetries[i][1]==1:              
+            if symmetries[i][1]==1:
                 symmetric_cusps[i]=int(sym_type)
             elif sym_type==0 and symmetries[i][1]==-1:
                 symmetric_cusps[i]=1
@@ -4536,8 +4537,8 @@ cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,
         for j from 0 <= j < i:
             if j==0 or cusp_evs[j]==0:
                 cusp_offsets[i]+=Mv[j][2]
-                
+
     if verbose>0:
         print "N,Ml,Ql=",N[0],Ml[0],Ql[0]
 
-        
+

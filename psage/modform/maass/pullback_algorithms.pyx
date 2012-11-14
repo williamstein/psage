@@ -1723,11 +1723,11 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
         print "prec=",prec
     cdef int a,b,c,d,v0,v1,itmp,i,j,ui,Ql
     cdef mpfr_t swj,swi,x0,y0,YY
-    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0,tmp
+    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0,tmp,tmp1
     cdef MPComplexNumber ctmp,m1,m2,m3
     m1=CF(1); m2=CF(1); m3=CF(1)
     ar=RF(1); br=RF(0); cr=RF(0); dr=RF(1)
-    tmp=RF(0)
+    tmp=RF(0); tmp1=RF(0)
     mpfr_init2(swi,prec)
     mpfr_init2(swj,prec)
     mpfr_init2(x0,prec)
@@ -1949,7 +1949,9 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
                     mpfr_mul_si(cr.value,swi,c,rnd_re)
                     mpfr_set_si(dr.value,d,rnd_re)
                     mpfr_div(dr.value,dr.value,swi,rnd_re)
-                    m1=j_fak_mpc_c(cr,dr,Xm[j],Y,-weight,ui)
+                    mpfr_set(tmp.value,Xm[j],rnd_re)
+                    mpfr_set(tmp1.value,Y,rnd_re)
+                    m1=j_fak_mpc(cr,dr,tmp,tmp1,-weight,ui)
                     #m1=j_fak_old(cr,dr,Xm[j],Y,-weight,ui)
                     c = normalizers[cj][2]
                     d = normalizers[cj][3]

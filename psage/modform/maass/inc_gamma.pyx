@@ -31,13 +31,6 @@ Conventions for return codes:
  
 """
 
-#include "sage/ext/cdefs.pxi"
-#include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
-#include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
-#include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
-
-
 ## For multiprecision support
 cdef mpfr_rnd_t rnd_re
 rnd_re = MPFR_RNDN
@@ -173,7 +166,8 @@ cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
     This is just a finite sum so the only error should come from precision of the mpfr-functions and operations.
     """
     cdef mpfr_t tmp,tmp2,tmp_fak
-    cdef int j,prec
+    cdef int j
+    cdef mpfr_prec_t prec
     prec = mpfr_get_prec(x)
     #res = RF(-x)
     mpfr_neg(res,x,rnd_re)
@@ -213,12 +207,14 @@ cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
     """
     if n!=0:
         return -1
-    cdef int prec = mpfr_get_prec(x)
-    cdef unsigned long wp = prec + 20
+    cdef mpfr_prec_t prec, wp
     cdef int ok = 1
     cdef mpfr_t xabs_t, wp_t
-    mpfr_init2(xabs_t, wp)
-    mpfr_init2(wp_t, wp)
+    prec = mpfr_get_prec(x)
+    wp=prec+20
+    mpfr_init2(xabs_t, prec)
+    mpfr_init2(wp_t, prec)
+    mpfr_set_ui(wp_t,wp,rnd_re)
     mpfr_abs(xabs_t, x, rnd_re)
     #cdef int xabs = mpfr_get_ui(xabs_t,rnd_re)
     cdef mpfr_t xnew
@@ -230,8 +226,8 @@ cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
         mpfr_neg(xnew,x,rnd_re)
         ok = ei_asymp_c(res,xnew,verbose)
     else:
-        mpfr_set_ui(wp_t,wp,rnd_re)
         mpfr_mul_ui(xabs_t,xabs_t,2,rnd_re)
+        mpfr_set_ui(wp_t,wp,rnd_re)
         mpfr_add(wp_t,wp_t,xabs_t,rnd_re)
         mpfr_init2(xnew,mpfr_get_ui(wp_t,rnd_re))
         mpfr_set_prec(res,mpfr_get_ui(wp_t,rnd_re))
@@ -249,7 +245,8 @@ cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0) nogil:
     Compute the exponential integral of x via asymptotic formula.
     """
     cdef mpfr_t tmp,tmp2,summa,r,eps
-    cdef int k,prec
+    cdef int k
+    cdef mpfr_prec_t prec
     #cdef RealField_class RF
     cdef int ok = 1
     prec = mpfr_get_prec(x)
@@ -305,7 +302,7 @@ cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0) nogil:
 cdef int ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0) nogil:
     cdef int ok=1
     cdef mpfr_t lnx
-    cdef int prec = mpfr_get_prec(x)
+    cdef mpfr_prec_t prec = mpfr_get_prec(x)
     mpfr_init2(lnx, prec)
     ok = Ei_ml_c(res, x)
     #if verbose>0:
@@ -324,7 +321,8 @@ cdef int Ei_ml_c(mpfr_t res,mpfr_t x) nogil:
     Compute the exponential integral of x  - ln|x|
     """
     cdef mpfr_t tmp,summa,eps
-    cdef int k,prec
+    cdef int k
+    cdef mpfr_prec_t prec
     cdef mpfr_t ec
     cdef int ok = 1
     prec=mpfr_get_prec(x)
@@ -370,7 +368,8 @@ cdef int Ei_ml_c(mpfr_t res,mpfr_t x) nogil:
 
 cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0) nogil:
     cdef mpfr_t sqpi,sqx
-    cdef int prec,ok = 1
+    cdef int ok = 1
+    cdef mpfr_prec_t prec
     if n > 0:
         #return
         ok = incgamma_phint_c(res,n,x,verbose)
@@ -390,7 +389,7 @@ cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0) nogil:
 ### sqrt(pi)* erfc(sqrt(x))  is used at several places
 
 cdef int mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0) nogil:
-    cdef int prec = mpfr_get_prec(x)
+    cdef mpfr_prec_t prec = mpfr_get_prec(x)
     cdef mpfr_t sqpi
     mpfr_init2(sqpi,prec)
     mpfr_const_pi(sqpi,rnd_re)
@@ -403,7 +402,8 @@ cdef int mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0) nogil:
 
 
 cdef int incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
-    cdef int j,m,prec
+    cdef int j,m
+    cdef mpfr_prec_t prec
     cdef mpfr_t half_m_n,summa,tmp,term,tmp2,sqx
     cdef int ok = 0
     #assert n>=0
@@ -486,7 +486,8 @@ cdef int incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
 #!!  incgamma(-n+1/2,x)
 #      !! for integer n>0 and real x>0
 cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0) nogil:
-    cdef int j,prec
+    cdef int j
+    cdef mpfr_prec_t prec
     cdef mpfr_t tmp,summa,tmp2,tmp3,half,half_m_n,lnx,tmpr
     cdef int ok = 0
     #assert n>=0
@@ -594,7 +595,8 @@ cdef void _mppochammer_mpfr(mpfr_t res, mpfr_t a,int k) nogil:
     r"""
     res should be initialized outside
     """
-    cdef int j,prec
+    cdef int j
+    cdef mpfr_prec_t prec
     cdef mpfr_t tmp
     prec = mpfr_get_prec(a)
     #mpfr_init2(res,prec)
@@ -608,7 +610,3 @@ cdef void _mppochammer_mpfr(mpfr_t res, mpfr_t a,int k) nogil:
             mpfr_mul(res,res,tmp,rnd_re)
             # res=res*(a+<double>j)
     mpfr_clear(tmp)
-
-
-
-

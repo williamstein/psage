@@ -2133,7 +2133,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
                 mpc_init2(Cvec[i][j][n],prec)
     cdef RealNumber weight
     weight=RF(0)
-    pullback_pts_mpc_new_c(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm,Xpb,Ypb,Cvec)
     #pb=pullback_pts_mpc_new(S,Qs,Qf,Y)
     #Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
     s=nc*Ml

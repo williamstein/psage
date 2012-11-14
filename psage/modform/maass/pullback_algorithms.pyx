@@ -1197,9 +1197,8 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
     cdef mpfr_t swj,swi,x0,y0,YY
     cdef Vector_real_mpfr_dense Xm
     cdef RealNumber ar,br,cr,dr,twopi,xm,ep0
-
-    mpfr_init2(swi,prec)
     mpfr_init2(swj,prec)
+    mpfr_init2(swi,prec)
     mpfr_init2(x0,prec)
     mpfr_init2(y0,prec)
     mpfr_init2(YY,prec)
@@ -1484,14 +1483,14 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     Pullback the horocycle at height Y.
     If Qs=1 and Qf =Q then we use symmetry, otherwise not.
     """
-    cdef Vector_real_mpfr_dense Xm_t
+    cdef mpfr_t* Xm_t
     cdef mpfr_t*** Xpb_t=NULL
     cdef mpfr_t*** Ypb_t=NULL
     cdef mpc_t*** Cvec_t=NULL
     cdef mpfr_t**** RCvec_t=NULL
     cdef int Ql,i,j,k,n,nc,prec
     cdef RealField_class RF
-    cdef RealNumber weight
+    cdef RealNumber weight,tmp
 #    cdef RealNumber rtmp
     cdef list l
     nc= S.group().ncusps()
@@ -1504,7 +1503,10 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     CF = MPComplexField(prec)
 #    rtmp=RF(0)
     weight = RF(S._weight)
-    Xm_t=Vector_real_mpfr_dense(vector(RF,Ql).parent(),0)
+    tmp=RF(0)
+    Xm_t = <mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ql )
+    for n in range(Ql):
+        mpfr_init2(Xm_t[n],prec)
     Xpb_t = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
     if Xpb_t==NULL: raise MemoryError
     Ypb_t = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
@@ -1566,9 +1568,9 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
         pullback_pts_hecke_triangle_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
     else:
         if Qs<0:
-            pullback_pts_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+            pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,Cvec_t)
         else:
-            pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,RCvec_t)
+            pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,RCvec_t)
     cdef dict Xm,Xpb,Ypb,Cvec,pb
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
@@ -1579,7 +1581,8 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     rtmp = RF(0);rtmp1 = RF(1); rtmp2 = RF(0)
     ctmp = CF(0)
     for n in range(Ql):
-        Xm[n]=Xm_t[n]
+        mpfr_set(tmp.value,Xm_t[n],rnd_re)
+        Xm[n]=tmp
     for i in range(nc):
         Xpb[i]=dict();Ypb[i]=dict()
         for j in range(nc):
@@ -1666,7 +1669,7 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     return pb
 
 @cython.cdivision(True)
-cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
+cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types.
@@ -1705,7 +1708,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
     """
     # WE let the input determine the precision
     #print "pullback mpc!"
-    cdef int prec=Y.parent().prec()
+    cdef int prec=mpfr_get_prec(Y)
     CF=MPComplexField(prec)
     RF=RealField(prec)
     cdef RealNumber x1,y1,x2,y2,x3,y3,one,weight
@@ -1716,20 +1719,21 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
     y2=RF(1)
     y3=RF(1)
     if S._verbose>1:
-        print "Y in pb =",Y
+        print "Y in pb =",mpfr_get_d(Y,rnd_re)
         print "prec=",prec
     cdef int a,b,c,d,v0,v1,itmp,i,j,ui,Ql
     cdef mpfr_t swj,swi,x0,y0,YY
-    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0
+    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0,tmp
     cdef MPComplexNumber ctmp,m1,m2,m3
     m1=CF(1); m2=CF(1); m3=CF(1)
     ar=RF(1); br=RF(0); cr=RF(0); dr=RF(1)
+    tmp=RF(0)
     mpfr_init2(swi,prec)
     mpfr_init2(swj,prec)
     mpfr_init2(x0,prec)
     mpfr_init2(y0,prec)
     mpfr_init2(YY,prec)
-    mpfr_set(YY,Y.value,rnd_re)
+    mpfr_set(YY,Y,rnd_re)
     #mpfr_init2(x1,prec)
     #mpfr_init2(y1,prec)
     Ql = Qf - Qs + 1
@@ -1759,13 +1763,13 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
     if Qs<0:
         Qfak = 2*(Qf-Qs+1)
         for j from Qs <= j <= Qf:
-            mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
-            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+            mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
+            mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     else:
         Qfak = 4*(Qf-Qs+1)
         for j from Qs <= j <= Qf:
-            mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
-            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+            mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
+            mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     cdef int ci,cj
     cdef int cia,cib,cja,cjb,ciindex,cjindex
     cdef int nc=G._ncusps
@@ -1856,17 +1860,17 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
             mpfr_set_ui(swi,1,rnd_re)
         for j in range(Ql): #Qs,Qf+1): #from Qs<= j <= Qf:
             #if ciindex==0:
-            mpfr_set(x0,Xm._entries[j],rnd_re)
-            mpfr_set(y0,Y.value,rnd_re)
+            mpfr_set(x0,Xm[j],rnd_re)
+            mpfr_set(y0,Y,rnd_re)
             if ci<>0:
                 a=normalizers[ci][0]; b=normalizers[ci][1]
                 c=normalizers[ci][2]; d=normalizers[ci][3]
                 _normalize_point_to_cusp_mpfr(x0,y0,a,b,c,d,wi)
             pullback_to_Gamma0N_mpfr_c(G,x1.value,y1.value,x0,y0,&a,&b,&c,&d)
             Tj=SL2Z_elt(a,b,c,d)
-            if verbose > 2:
-                print "pull back of {0},{1} is {2},{3}".format(Xm[j],Y,x1,y1)
-                print "map:",a,b,c,d
+            #if verbose > 2:
+            #    print "pull back of {0},{1} is {2},{3}".format(Xm[j],mpfr_get_d(Y,rnd_re),x1,y1)
+            #    print "map:",a,b,c,d
             #dp_x=mpfr_get_Ad(x1,rnd_re)
             dp_x = float(x1); dp_y = float(y1)
             #dp_y=mpfr_get_d(y1,rnd_re)
@@ -1909,12 +1913,13 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
             mpfr_set(Xpb[ci][cj][j],x3.value,rnd_re)
             mpfr_mul(Xpb[ci][cj][j],Xpb[ci][cj][j],twopi.value,rnd_re)
             # Recall that Ypb must be greater than Y otherwise we need a better Y
-            if y3>=Y-ep0:
+            tmp=RF(y3+ep0)
+            if mpfr_cmp(tmp.value,Y)>=0:
                 mpfr_set(Ypb[ci][cj][j],y3.value,rnd_re)
             else:
                 if verbose > 0:
                     print "ci,cj=",ci,cj
-                    print "Xm=",Xm[j]
+                    print "Xm=",mpfr_get_d(Xm[j],rnd_re)
                     #print "x,y=",x0,"\n",y0
                     print "x1,y1=",x1,"\n",y1
                     print "x2,y2=",x2,"\n",y2
@@ -1924,7 +1929,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
                 raise ArithmeticError,"Need smaller value of Y" 
             if verbose > 2:
                 print "ci,cj=",ci,cj
-                print "Xm=",Xm[j]
+                print "Xm=",mpfr_get_d(Xm[j],rnd_re)
                 print "x,y=",mpfr_get_d(x0,rnd_re),"\n",mpfr_get_d(y0,rnd_re)
                 print "x1,y1=",x1,"\n",y1
                 print "x2,y2=",x2,"\n",y2
@@ -1944,7 +1949,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
                     mpfr_mul_si(cr.value,swi,c,rnd_re)
                     mpfr_set_si(dr.value,d,rnd_re)
                     mpfr_div(dr.value,dr.value,swi,rnd_re)
-                    m1=j_fak_mpc(cr,dr,Xm[j],Y,-weight,ui)
+                    m1=j_fak_mpc_c(cr,dr,Xm[j],Y,-weight,ui)
                     #m1=j_fak_old(cr,dr,Xm[j],Y,-weight,ui)
                     c = normalizers[cj][2]
                     d = normalizers[cj][3]
@@ -2015,7 +2020,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
                 mpc_set_ui(Cvec[ci][cj][j],1,rnd)
         #        Xmi[j]=mp_ctx.mpc(0,Xm[j]*twopi)
     for j in range(Ql):
-        mpfr_mul(Xm._entries[j],Xm._entries[j],twopi.value,rnd_re)
+        mpfr_mul(Xm[j],Xm[j],twopi.value,rnd_re)
     if normalizers<>NULL:
         for i from 0 <= i < nc:
             if  normalizers[i]<>NULL:
@@ -2026,7 +2031,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense
     mpfr_clear(YY)
 
 @cython.cdivision(True)
-cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec):
+cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types.
@@ -2066,7 +2071,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
     """
     # WE let the input determine the precision
     #print "pullback mpc!"
-    cdef int prec=Y.parent().prec()
+    cdef int prec=mpfr_get_prec(Y)
     CF=MPComplexField(prec)
     RF=RealField(prec)
     cdef RealNumber x1,y1,x2,y2,x3,y3,one,weight,rtmp
@@ -2077,22 +2082,22 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
     y2=RF(1)
     y3=RF(1)
     if S._verbose>1:
-        print "Y in pb =",Y
+        print "Y in pb =",mpfr_get_d(Y,rnd_re)
         print "prec=",prec
     cdef int a,b,c,d,v0,v1,itmp,i,j,ui,Ql,k,ch_m1
     cdef mpfr_t swj,swi,x0,y0,YY,tmpab1,tmpar1,tmpab2,tmpar2,tmpab3,tmpar3,tmpar,tmpab,weight_t
-    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0
+    cdef RealNumber ar,br,cr,dr,twopi,xm,ep0,tmp
     cdef MPComplexNumber ctmp,m1,m2,m3
     
     m1=CF(1); m2=CF(1); m3=CF(1)
     ar=RF(1); br=RF(0); cr=RF(0); dr=RF(1)
-    rtmp = RF(0)
+    rtmp = RF(0); tmp=RF(0)
     mpfr_init2(swi,prec)
     mpfr_init2(swj,prec)
     mpfr_init2(x0,prec)
     mpfr_init2(y0,prec)
     mpfr_init2(YY,prec)
-    mpfr_set(YY,Y.value,rnd_re)
+    mpfr_set(YY,Y,rnd_re)
     mpfr_init2(tmpab,prec); mpfr_init2(tmpar,prec)
     mpfr_init2(tmpab1,prec); mpfr_init2(tmpar1,prec)
     mpfr_init2(tmpab2,prec); mpfr_init2(tmpar2,prec)
@@ -2139,13 +2144,13 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
     if Qs<0:
         Qfak = 2*(Qf-Qs+1)
         for j from Qs <= j <= Qf:
-            mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
-            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+            mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
+            mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     else:
         Qfak = 4*(Qf-Qs+1)
         for j from Qs <= j <= Qf:
-            mpfr_set_si(Xm._entries[j-Qs],2*(j-Qf)-1,rnd_re)
-            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+            mpfr_set_si(Xm[j-Qs],2*(j-Qf)-1,rnd_re)
+            mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     cdef int ci,cj
     cdef int cia,cib,cja,cjb,ciindex,cjindex
     cdef int nc=G._ncusps
@@ -2241,7 +2246,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
             mpfr_set_ui(swi,1,rnd_re)
         for j in range(Ql): #Qs,Qf+1): #from Qs<= j <= Qf:
             #if ciindex==0:
-            mpfr_set(x0,Xm._entries[j],rnd_re)
+            mpfr_set(x0,Xm[j],rnd_re)
             mpfr_set(y0,YY,rnd_re)
             mpfr_set(y1.value,YY,rnd_re)
             #print "Xm[j]={0}, Y={1}".format(Xm[j],y1)
@@ -2256,7 +2261,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
             pullback_to_Gamma0N_mpfr_c(G,x1.value,y1.value,x0,y0,&a,&b,&c,&d)
             Tj=SL2Z_elt(a,b,c,d)
             if verbose > 2:
-                print "pull back of {0},{1} is {2},{3}".format(Xm[j],Y,x1,y1)
+                print "pull back of {0},{1} is {2},{3}".format(mpfr_get_d(Xm[j],rnd_re),mpfr_get_d(Y,rnd_re),x1,y1)
                 print "map:",a,b,c,d
             #dp_x=mpfr_get_Ad(x1,rnd_re)
             dp_x = float(x1); dp_y = float(y1)
@@ -2300,12 +2305,13 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
             mpfr_set(Xpb[ci][cj][j],x3.value,rnd_re)
             mpfr_mul(Xpb[ci][cj][j],Xpb[ci][cj][j],twopi.value,rnd_re)
             # Recall that Ypb must be greater than Y otherwise we need a better Y
-            if y3>=Y-ep0:
+            tmp = RF(y3+ep0)
+            if mpfr_cmp(tmp.value,Y)>=0:
                 mpfr_set(Ypb[ci][cj][j],y3.value,rnd_re)
             else:
                 if verbose > 0:
                     print "ci,cj=",ci,cj
-                    print "Xm=",Xm[j]
+                    print "Xm=",mpfr_get_d(Xm[j],rnd_re)
                     #print "x,y=",x0,"\n",y0
                     print "x1,y1=",x1,"\n",y1
                     print "x2,y2=",x2,"\n",y2
@@ -2315,7 +2321,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
                 raise ArithmeticError,"Need smaller value of Y" 
             if verbose > 2:
                 print "ci,cj=",ci,cj
-                print "Xm=",Xm[j]
+                print "Xm=",mpfr_get_d(Xm[j],rnd_re)
                 print "x,y=",mpfr_get_d(x0,rnd_re),"\n",mpfr_get_d(y0,rnd_re)
                 print "x1,y1=",x1,"\n",y1
                 print "x2,y2=",x2,"\n",y2
@@ -2335,7 +2341,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
                     mpfr_set_si(dr.value,d,rnd_re)
                     mpfr_div(dr.value,dr.value,swi,rnd_re)
                     #m1=j_fak_mpc(cr,dr,Xm[j],Y,-weight,ui)
-                    j_fak_mpc_c(cr.value,dr.value,Xm._entries[j],YY,weight_t,ui,tmpab1,tmpar1)
+                    j_fak_mpc_c(cr.value,dr.value,Xm[j],YY,weight_t,ui,tmpab1,tmpar1)
                     if c<>0:  ## 
                         delta -= k
                     if verbose>2:
@@ -2420,7 +2426,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
                         print "|v|=",rtmp
                         mpfr_set(rtmp.value,tmpar,rnd_re)
                         print "arg(v)=",rtmp
-                        print "Y=",Y
+                        print "Y=",mpfr_get_d(Y,rnd_re)
                     #ctmp = ctmp*v
                 delta = delta % 2
                 mpfr_set(RCvec[ci][cj][j][0],tmpab,rnd_re)
@@ -2432,7 +2438,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
                 mpfr_set_si(RCvec[ci][cj][j][2],0,rnd_re)                
 
     for j in range(Ql):
-        mpfr_mul(Xm._entries[j],Xm._entries[j],twopi.value,rnd_re)
+        mpfr_mul(Xm[j],Xm[j],twopi.value,rnd_re)
     if normalizers<>NULL:
         for i from 0 <= i < nc:
             if  normalizers[i]<>NULL:
@@ -2448,12 +2454,8 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_d
     mpfr_clear(x0);  mpfr_clear(y0)
     mpfr_clear(YY)
 
-    
-
-
-
 @cython.cdivision(True)
-cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_real_mpfr_dense Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
+cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types. For Hecke triangle groups
@@ -2521,13 +2523,13 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_
     if Qs<0:
         Qfak = 2*(Qf-Qs+1)
         for j in range(Qs,Qf+1):
-            mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
-            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+            mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
+            mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     else:
         Qfak = 4*(Qf-Qs+1)
         for j in range(Qs,Qf+1):
-            mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
-            mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
+            mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
+            mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     cdef int nc=G._ncusps
     cdef int nv=G._nvertices
     if nc>1 or nv>1:
@@ -2545,7 +2547,7 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_
     if verbose>0:
         print "lambda=",tmpx
     for j in range(Ql): #Qs,Qf+1): #from Qs<= j <= Qf:
-        mpfr_set(x0,Xm._entries[j],rnd_re)
+        mpfr_set(x0,Xm[j],rnd_re)
         mpfr_set(y0,Y.value,rnd_re)
         mpfr_mul(x0,x0,lambdaq,rnd_re)
         mpfr_mul(y0,y0,lambdaq,rnd_re)
@@ -2555,10 +2557,10 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_
         # Recall that Ypb must be greater than Y otherwise we need a better Y
         if mpfr_cmp(y0,Yep)<=0:
             if verbose > 0:
-                print "Xm,Y=",Xm[j],Y
-                mpfr_set(tmpx.value,x0,rnd_re)
-                mpfr_set(tmpy.value,y0,rnd_re)
-                print "xpb,ypb=",tmpx,"\n",tmpy
+        #        print "Xm,Y=",Xm[j],Y
+        #        mpfr_set(tmpx.value,x0,rnd_re)
+        #        mpfr_set(tmpy.value,y0,rnd_re)
+        #        print "xpb,ypb=",tmpx,"\n",tmpy
                 raise ArithmeticError,"Need smaller value of Y" 
                 # We also get the multiplier if we need it
         mpfr_div(x0,x0,lambdaq,rnd_re)
@@ -2566,11 +2568,11 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_
         mpfr_set(Ypb[0][0][j],y0,rnd_re)
         mpfr_set(Xpb[0][0][j],x0,rnd_re)
         mpfr_mul(Xpb[0][0][j],Xpb[0][0][j],twopi,rnd_re)
-        if verbose > 2:
-            print "Xm,Y=",Xm[j],Y
-            mpfr_set(tmpx.value,x0,rnd_re)
-            mpfr_set(tmpy.value,y0,rnd_re)
-            print "xpb,ypb=",tmpx,"\n",tmpy
+        #if verbose > 2:
+        #    print "Xm,Y=",Xm[j],Y
+        #    mpfr_set(tmpx.value,x0,rnd_re)
+        #    mpfr_set(tmpy.value,y0,rnd_re)
+        #    print "xpb,ypb=",tmpx,"\n",tmpy
         ## We didn't implement non-trivial mul
         ## but we will soon allow for non-zero weight...
         if weight<>0:
@@ -2583,7 +2585,7 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, Vector_
             mpc_set_ui(Cvec[0][0][j],1,rnd)
 
     for j in range(Ql):
-        mpfr_mul(Xm._entries[j],Xm._entries[j],twopi,rnd_re)
+        mpfr_mul(Xm[j],Xm[j],twopi,rnd_re)
     mpfr_clear(x0);  mpfr_clear(y0)
     mpfr_clear(Yep); mpfr_clear(lambdaq);mpfr_clear(twopi)
     mpfr_clear(a);mpfr_clear(b);mpfr_clear(c);mpfr_clear(d)

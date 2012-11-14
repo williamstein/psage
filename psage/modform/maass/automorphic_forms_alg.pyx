@@ -1019,6 +1019,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                     #print "ef1[",n,j,icusp,"]=",mpfr_get_d(tmpr,rnd_re)
             if verbose>0:
                 printf("done with inner icusp-loop\n")
+    cdef int nrows,ncols
+    nrows = int(V.nrows()); ncols = int(V.ncols())
     if ret != 0:
         printf("error return value\n")
         return ret
@@ -1086,8 +1088,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         print "V1(",1,1,")=",V[1,1]
         if V.ncols()>=11:
             print "V1(",0,11,")=",V[0,11]
-    cdef int nrows,ncols
-    nrows = int(V.nrows()); ncols = int(V.ncols())
     for n in range(nrows):
         for l in range(ncols):        
             mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)

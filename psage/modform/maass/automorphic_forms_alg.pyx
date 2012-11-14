@@ -987,6 +987,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
                     if verbose > 1 and n-Ms==1:
                         mpfr_set(tmpr.value,ef1cosv[icusp][jcusp][n][j],rnd_re)
                         print "ef1[",n,j,icusp,"]=",tmpr
+    cdef int nrows,ncols
+    nrows = int(V.nrows()); ncols = int(V.ncols())
     for n in range(nrows):
         for l in range(ncols):        
             mpc_set_ui(V._matrix[n][l],0,rnd)
@@ -1044,8 +1046,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,int M,int Q,principal
         print "V1(",1,1,")=",V[1,1]
         if V.ncols()>=11:
             print "V1(",0,11,")=",V[0,11]
-    cdef int nrows,ncols
-    nrows = int(V.nrows()); ncols = int(V.ncols())
     for n in range(nrows):
         for l in range(ncols):        
             mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)

@@ -71,3 +71,14 @@ cdef extern from "mpfr.h" nogil:
     int mpfr_zero_p (mpfr_srcptr)
     int mpfr_div_si (mpfr_ptr, mpfr_srcptr, long int, mpfr_rnd_t)
     int mpfr_mul_d (mpfr_ptr, mpfr_srcptr,double, mpfr_rnd_t)
+    float mpfr_get_flt (mpfr_srcptr, mpfr_rnd_t)
+    int mpfr_zero_p (mpfr_srcptr)
+    int mpfr_sub (mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_rnd_t)
+    long mpfr_get_si (mpfr_srcptr, mpfr_rnd_t)
+
+cdef extern from "mpc.h" nogil:
+    int  mpc_set_fr (mpc_ptr, mpfr_srcptr, mpc_rnd_t)
+    int  mpc_set_si_si (mpc_ptr, long int, long int, mpc_rnd_t)
+    int  mpc_mul_fr (mpc_ptr, mpc_srcptr, mpfr_srcptr, mpc_rnd_t)
+    int  mpc_add (mpc_ptr, mpc_srcptr, mpc_srcptr, mpc_rnd_t)
+    void mpc_init2 (mpc_ptr, mpfr_prec_t)

@@ -1360,35 +1360,35 @@ MS1=MatrixSpace(CF,3,1)
 B = Matrix_complex_dense(MS1,[1,1,1])
 
 
-def test_SMAT_filter(W,N,verbose=0):
-    skipping = []
-    ## Need to determine exactly which coefficients in the matrix should be ignored
-    Ml = W['Ml']; Ms = W['Ms']
-    Mf = W['Mf']
-    ncusps = W['space'].group().ncusps()
-    pp = W['PP'][0]
-    if verbose>0:
-        print "pp=",pp
-        print "pp[+].keys()=",pp['+'].keys()
-    for r,n in pp['+'].keys(): ## Only possibly n=0 are included in the matrix
-        if verbose>0:
-            print "r,n=",r,n
-        if n==0:
-            if verbose>0:
-                print "p[-]=",pp['-']
-            if pp['-'].has_key((r,0)):
-                ix = r*Ml-Ms
-                if ix not in skipping:
-                    skipping.append(ix)
-    #if verbose>0:
-    #    print "skipping1 =",skipping
-    for r,n in N['SetCs'][0].keys():
-        ix = r*Ml+n-Ms
-        if ix not in skipping:
-            skipping.append(ix)
-    if verbose>0:
-        print "skipping=",skipping
-    skipping.sort()
-    if verbose>0:
-        print "sorted(skipping)=",skipping
-    return test_lin_solve_filter(W['V'],W['RHS'],setC=N['SetCs'],skipping=skipping,ncusps=ncusps,Ms=Ms,Mf=Mf,verbose=verbose)
+# def test_SMAT_filter(W,N,verbose=0):
+#     skipping = []
+#     ## Need to determine exactly which coefficients in the matrix should be ignored
+#     Ml = W['Ml']; Ms = W['Ms']
+#     Mf = W['Mf']
+#     ncusps = W['space'].group().ncusps()
+#     pp = W['PP'][0]
+#     if verbose>0:
+#         print "pp=",pp
+#         print "pp[+].keys()=",pp['+'].keys()
+#     for r,n in pp['+'].keys(): ## Only possibly n=0 are included in the matrix
+#         if verbose>0:
+#             print "r,n=",r,n
+#         if n==0:
+#             if verbose>0:
+#                 print "p[-]=",pp['-']
+#             if pp['-'].has_key((r,0)):
+#                 ix = r*Ml-Ms
+#                 if ix not in skipping:
+#                     skipping.append(ix)
+#     #if verbose>0:
+#     #    print "skipping1 =",skipping
+#     for r,n in N['SetCs'][0].keys():
+#         ix = r*Ml+n-Ms
+#         if ix not in skipping:
+#             skipping.append(ix)
+#     if verbose>0:
+#         print "skipping=",skipping
+#     skipping.sort()
+#     if verbose>0:
+#         print "sorted(skipping)=",skipping
+#     return lin_solve_w_filter(W['V'],W['RHS'],setC=N['SetCs'],skipping=skipping,ncusps=ncusps,Ms=Ms,Mf=Mf,verbose=verbose)

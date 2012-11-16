@@ -5,6 +5,7 @@ from psage.matrix import Matrix_complex_dense
 from psage.modform.maass.pullback_algorithms import pullback_pts_mp #,pullback_pts_mp_sym
 from psage.modform.maass.automorphic_forms_alg import check_principal_parts
 from psage.modform.maass.automorphic_forms import solve_system_for_harmonic_weak_Maass_waveforms,smallest_inf_norm
+from psage.modform.maass.linear_system import *
 import pstats, cProfile
 def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0):
     r"""
@@ -1353,3 +1354,41 @@ def testing_new_solve(W,N):
     setc=N['SetCs']
     D = test_lin_solve(A,B,setc)
     return D
+MS=MatrixSpace(CF,3)
+A = Matrix_complex_dense(MS,[1,2,0,1,3,0,0,0,1])
+MS1=MatrixSpace(CF,3,1)
+B = Matrix_complex_dense(MS1,[1,1,1])
+
+
+def test_SMAT_filter(W,N,verbose=0):
+    skipping = []
+    ## Need to determine exactly which coefficients in the matrix should be ignored
+    Ml = W['Ml']; Ms = W['Ms']
+    Mf = W['Mf']
+    ncusps = W['space'].group().ncusps()
+    pp = W['PP'][0]
+    if verbose>0:
+        print "pp=",pp
+        print "pp[+].keys()=",pp['+'].keys()
+    for r,n in pp['+'].keys(): ## Only possibly n=0 are included in the matrix
+        if verbose>0:
+            print "r,n=",r,n
+        if n==0:
+            if verbose>0:
+                print "p[-]=",pp['-']
+            if pp['-'].has_key((r,0)):
+                ix = r*Ml-Ms
+                if ix not in skipping:
+                    skipping.append(ix)
+    #if verbose>0:
+    #    print "skipping1 =",skipping
+    for r,n in N['SetCs'][0].keys():
+        ix = r*Ml+n-Ms
+        if ix not in skipping:
+            skipping.append(ix)
+    if verbose>0:
+        print "skipping=",skipping
+    skipping.sort()
+    if verbose>0:
+        print "sorted(skipping)=",skipping
+    return test_lin_solve_filter(W['V'],W['RHS'],setC=N['SetCs'],skipping=skipping,ncusps=ncusps,Ms=Ms,Mf=Mf,verbose=verbose)

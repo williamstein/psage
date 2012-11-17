@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 r"""
 Pullback algorithms optimized  for various settings.
 

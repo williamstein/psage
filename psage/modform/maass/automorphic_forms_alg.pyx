@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding: utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -20,15 +20,14 @@ Used by routines in atomorphic_forms.py
 
 """
 
-include "stdsage.pxi"  
+include "stdsage.pxi"
 include "cdefs.pxi"
 include "sage/rings/mpc.pxi"
 include "mpfr_loc.pxi"
 
 cdef extern from "stdio.h":
     void printf(char *fmt,...) nogil
-    
-    
+
 #from sage.libs.mpfr cimport *
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
@@ -52,7 +51,7 @@ from sage.all import MatrixSpace,vector,ComplexField
 cdef extern from "math.h":
     double fabs(double)
     double fmax(double,double)
-    int ceil(double) 
+    int ceil(double)
 
 from sage.functions.all import ceil as pceil
 from sage.functions.all import floor
@@ -72,9 +71,14 @@ from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from pullback_algorithms cimport pullback_pts_mpc_new_c
 from pullback_algorithms cimport pullback_pts_mpc_new_c_sym
+#from psage.rings.mpc_extras cimport _mpc_div,_mpc_mul,_mpc_set,_mpc_sub,_mpc_div_ui, _mpc_mul_fr,_mpc_div_fr,_mpc_add
 
 cimport openmp
 openmp.omp_set_dynamic(1)
+cdef int MAX_THREADS
+#MAX_THREADS = openmp.omp_get_max_num_threads()
+#MAX_THREADS=48
+MAX_THREADS=10
 #openmp.omp_set_num_threads(2)
 
 def get_Y_and_M_for_hwmf(G,PP,weight,ndig):
@@ -82,7 +86,7 @@ def get_Y_and_M_for_hwmf(G,PP,weight,ndig):
     Find a good Y and M for computing coefficents with precison 10^-ndig
 
     """
-     # generalized_level
+        # generalized_level
     Y0=G.minimal_height()*mpmath.mpf(0.98)
     # then get corresponding M
     #M0=get_M_for_hwmf(Y0,Kmax,Cmax,weight,ndig)
@@ -92,7 +96,7 @@ def get_Y_and_M_for_hwmf(G,PP,weight,ndig):
 
 def get_M_for_holom(Y,weight,prec=10):
     r""" Get the correct M needed to approximate a  holomorphic
-    modular form. 
+    modular form.
     """
     # to get the range of M we check we make some crude
     # estimates to begin with
@@ -125,7 +129,7 @@ def get_M_for_holom(Y,weight,prec=10):
             raise ArithmeticError,"Could not find good M for Y:%s!" % Y
     #print "Got M=",M
     return M
-    
+
 def err_est_holo(Y,M,weight):
     r"""
     The theoretical error estimate for the truncation error.
@@ -136,7 +140,7 @@ def err_est_holo(Y,M,weight):
     res=mpmath.mp.power(arg,-wt)
     res=2*res*mpmath.mp.gammainc(wt,arg*mm)
     return res
-    
+
 cpdef get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
     r""" Computes truncation point for Harmonic Maass waveform.
     """
@@ -151,22 +155,22 @@ cpdef get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
     minm=mpmath.ceil(10)
     do_hint = 0;do_int = 0
 
-    if hasattr(Y,"parent"):        
+    if hasattr(Y,"parent"):
         RF = RealField(Y.parent().prec())
     else:
         RF = RealField(mpmath.mp.prec)
-    YY = RF(Y); 
+    YY = RF(Y);
     if floor(weight)==ceil(weight):
         do_int = 1
-        wt = int(weight)-1 
+        wt = int(weight)-1
     elif floor(weight-0.5)==ceil(weight-0.5):
         do_hint = 1
-        wt = int(weight-0.5) 
+        wt = int(weight-0.5)
     if(len(PP.values())==0):
         Cmax=1
-        Kmax=0        
+        Kmax=0
     else:
-        Kmax=0        
+        Kmax=0
         Cmax=RF(max(PP.values()))
         for (c,l) in PP.keys():
             if(abs(l)>Kmax):
@@ -211,7 +215,7 @@ cpdef get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
             print "m=",m
         mpmath.mp.dps=dold
         return m
-    
+
 
 cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
     r"""
@@ -238,9 +242,9 @@ cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
 
         sage: err_est_hwmf_pos(0.85,20,0.5,1)
         mpf('6.0466581020500474e-23')
-        sage: err_est_hwmf_pos(0.85,20,0.5,2) 
+        sage: err_est_hwmf_pos(0.85,20,0.5,2)
         mpf('2.5677901894222784e-13')
-        sage: err_est_hwmf_pos(0.5,20,0.5,1) 
+        sage: err_est_hwmf_pos(0.5,20,0.5,1)
         mpf('4.3209202868264023e-6')
         sage: err_est_hwmf_pos(0.85,100,0.5,1)
         mpf('2.4812998619046392e-178')
@@ -361,9 +365,9 @@ def err_est_hwmf_pos_mpmath(Y,M,k,K0,K1):
 
         sage: err_est_hwmf_pos(0.85,20,0.5,1)
         mpf('6.0466581020500474e-23')
-        sage: err_est_hwmf_pos(0.85,20,0.5,2) 
+        sage: err_est_hwmf_pos(0.85,20,0.5,2)
         mpf('2.5677901894222784e-13')
-        sage: err_est_hwmf_pos(0.5,20,0.5,1) 
+        sage: err_est_hwmf_pos(0.5,20,0.5,1)
         mpf('4.3209202868264023e-6')
         sage: err_est_hwmf_pos(0.85,100,0.5,1)
         mpf('2.4812998619046392e-178')
@@ -420,7 +424,7 @@ def err_est_hwmf_neg_mpmath(Y,M,k,K0,K1):
     EXAMPLES::
 
 
- 
+
 
 
     """
@@ -462,7 +466,7 @@ cpdef err_est_hwmf_neg_int(RealNumber Y,int M,int km1,int K0,RealNumber K1):
     EXAMPLES::
 
 
- 
+
 
 
     """
@@ -481,7 +485,7 @@ cpdef err_est_hwmf_neg_int(RealNumber Y,int M,int km1,int K0,RealNumber K1):
     #mpfr_neg(f1,f1,rnd_re)
     #mpfr_exp2(f1,f1,rnd_re)
     mpfr_set_si_2exp(f1,1,-km1-2,rnd_re)
-  
+
     #f1=mpmath.power(two,-k-mpmath.mpf(1))
     mpfr_div(f1,f1,Y.value,rnd_re)
     mpfr_div(f1,f1,pi,rnd_re)
@@ -511,7 +515,7 @@ cpdef err_est_hwmf_neg_int(RealNumber Y,int M,int km1,int K0,RealNumber K1):
 cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
     r"""
     Estimate the negative part of the truncated series.
-    km1 = k - 1/2 is an integer  
+    km1 = k - 1/2 is an integer
     CAVEATS:
     - we assume the Ramanujan bound for the coefficients $a(n)$, i.e. $|a(n)|\le2$.
     - error estimate holds for 2piMY >> R
@@ -532,7 +536,7 @@ cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
     EXAMPLES::
 
 
- 
+
 
 
     """
@@ -573,43 +577,43 @@ cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
     #fak=f2mpmath.mp.exp(-two*pi*M*y)
     #return mpmath.mpf(K1)*fak
 
-cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1):
+cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1,threads=MAX_THREADS):
     if H.group().ncusps()<=2 and use_sym==1:
-        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version)
+        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version,threads)
     else:
         return setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,M,Q,principal_parts,version)
-    
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int Q,principal_parts,version=1):
+cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int Q,principal_parts,version=1,int threads=MAX_THREADS):
     r"""
 
     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
     INPUT:
-    
+
         - ``H`` -- Space of harmonic weak Maass forms
         - ``Y`` -- height of horocycle used for sampling (mpmath real)
-        - ``k`` -- weight (mpmath real) 
+        - ``k`` -- weight (mpmath real)
         - ``M`` -- integer
         - ``Q`` -- integer > M
         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
     OUTPUT:
-    
+
         - ``W`` -- dictionary
         - ``W['Mf']`` -- M start
         - ``W['nc']`` -- number of cusps
         - ``W['Ms']`` -- M stop
-        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix
         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
-    
-    
+
+
     EXAMPLES::
 
         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
-    
+
 
     """
     cdef int l,i,jj,j,k,icusp,jcusp,jjcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc,lj
@@ -680,7 +684,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     Qfak=RF(2*Q)
     cdef int do_mpmath = 0
     if hasattr(H,"_do_mpmath"):
-        #if H._do_mpmath<-1:     
+        #if H._do_mpmath<-1:
         do_mpmath=int(H._do_mpmath) ## By default we want to use mpmath for now...
         if verbose>0:
             print 'NOT using mpmath for incgamma'
@@ -728,8 +732,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
-                mpfr_init2(Xpb[i][j][n],prec) 
-                mpfr_init2(Ypb[i][j][n],prec) 
+                mpfr_init2(Xpb[i][j][n],prec)
+                mpfr_init2(Ypb[i][j][n],prec)
                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
                 #Ypb[i][j][n]=<double>0
@@ -760,7 +764,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     V = Matrix_complex_dense(MS,0,True,True)
     cdef list PPplus,PPminus
     cdef dict pp_info
-    pp_info = check_principal_parts(H,principal_parts)    
+    pp_info = check_principal_parts(H,principal_parts)
     if verbose>0:
         print "pp_info=",pp_info
     #if verbose>1:
@@ -783,7 +787,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
 #        for l in range(nc):
 #            variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
 #            variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
-  
+
     cdef int **PPplus_cusp=NULL , **PPplus_n=NULL,**PPminus_cusp=NULL , **PPminus_n=NULL
     cdef mpc_t **PPplus_values=NULL,**PPminus_values=NULL
     cdef mpfr_t **PPplus_lal=NULL
@@ -822,7 +826,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         if PPplus_lal[j]==NULL: raise MemoryError
         l = 0
         for i,jj in pp_info['PPplus'][j].keys():
-            tmpc = CF(pp_info['PPplus'][j][(i,jj)])        
+            tmpc = CF(pp_info['PPplus'][j][(i,jj)])
             PPplus_cusp[j][l]=int(i)
             PPplus_n[j][l]=int(jj)
             mpc_init2(PPplus_values[j][l],prec)
@@ -843,11 +847,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             mpc_set(PPminus_values[j][l],tmpc.value,rnd)
             l+=1
 
-
     cdef int has_key = 0
     MSRHS = MatrixSpace(CF,s,d)
     RHS = Matrix_complex_dense(MSRHS,0,True,True)
-
+    
     cdef mpfr_t **nvec=NULL
     nvec = <mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * nc )
     cdef RealNumber alpha_tmp
@@ -872,7 +875,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         ef2sinv[icusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
         for n in range(Ml):
             ef2sinv[icusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
-            
+
     # cdef mpfr_t ****ef1=NULL
     # ef1 = <mpfr_t****> sage_malloc( sizeof(ef2) * nc )
     # for icusp in range(nc):
@@ -920,33 +923,41 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef int ok = 1
     if verbose>0:
         print "Ml, Ql =",Ml, Ql
-    for n in range(Ml):
-        for jjcusp in prange(2*nc, nogil=True):
-            if jjcusp % 2 ==0:
-                jcusp=jjcusp/2
-                mpfr_set(nr,nvec[jcusp][n],rnd_re)
-                setcossin2(ef2cosv[jcusp][n],ef2sinv[jcusp][n],Xm,nr,Ql,prec)
-                if verbose>2:
-                    printf("done with ef2cosv[%d][%d], ef2sinv[%d][%d]\n",jcusp,n)
-                    printf("ef2cosv[%d][%d][0]=%f\n",jcusp,n,mpfr_get_flt(ef2cosv[jcusp][n][0],rnd_re))
-            else:
-                jcusp=(jjcusp-1)/2
-                mpfr_set(nr,nvec[jcusp][n],rnd_re)
-                #nr=nvec[n,jcusp]
-                mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
-                #nrfourpi=nr*fourpi
-                with gil:    
+    if verbose>0:
+        print "Threads: ",threads
+    cdef int a,b,it_size
+    it_size = floor((Ml+0.0) / threads)
+    if verbose>0:
+        print "iteration size: ",it_size
+    if verbose>0:
+        print "Starting first parallel loop"
+    for l in prange(threads, nogil=True):
+        a=l*it_size
+        if l==threads-1:
+            b=Ml
+        else:
+            b=a+it_size
+        if verbose>0:
+            printf("a,b=%d,%d\n",a,b)
+        setcossin2(ef2cosv,ef2sinv,Xm,nvec,nc, Ql, Ml, a, b,  prec)
+        with gil:
+            for n in xrange(a,b):
+                for jcusp in xrange(nc):
+                    mpfr_set(nr,nvec[jcusp][n],rnd_re)
+                    #nr=nvec[n,jcusp]
+                    mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
+                    #nrfourpi=nr*fourpi
                     for icusp in xrange(nc):
                         if verbose>2:
                             printf("jcusp=%i\n",jcusp)
-                        #setcossin_besv(ef1cosv[icusp][jcusp][n], ef1sinv[icusp][jcusp][n], besv[icusp][jcusp][n], Ypb[icusp][jcusp][n], variable_a0_minus[0][] nr, eps, kinti, kint_t, is_int, is_half_int, do_mpmath,)
                         for j in xrange(Ql):
                             ## ef1 contains -Xpb*l
                             if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                                #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re) 
+                                #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
                                 continue
                             if verbose>2:
                                 printf("n,icusp,jcusp,j=%d,%d,%d,%d\n",n,icusp,jcusp,j)
+                            #with nogil:
                             mpfr_mul(tmpar,Xpb[icusp][jcusp][j],nr,rnd_re)
                             mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
                             mpfr_cos(ef1cosv[icusp][jcusp][n][j],tmpar,rnd_re)
@@ -963,6 +974,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             if mpfr_cmp_d(nr,eps)>0:
                                 pass
                             elif mpfr_cmp_d(nr,-eps)<0 and not_holom==1 and is_weak==1:
+                            #    with nogil:
                                 mpfr_abs(tmpr,nrfourpi,rnd_re)
                                 mpfr_mul(tmpr,tmpr,Ypb[icusp][jcusp][j],rnd_re)
                                 ok = 1
@@ -974,9 +986,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                         else:
                                             ok = incgamma_nint_c(tmpr2,kinti,tmpr,verbose)
                                     elif is_half_int==1:
-                                        ok = incgamma_hint_c(tmpr2,kinti,tmpr)                                
+                                        ok = incgamma_hint_c(tmpr2,kinti,tmpr)
                                         #except ArithmeticError: ## In case we can not achieve the required error
-                                        #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+                                        #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                                 #if (verbose>0 and ok<>0) or verbose>2:
                                 #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath)
                                 if ok <> 0:
@@ -987,7 +999,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                 #if verbose>1 and icusp==1 and n==0:
                                     #print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)
                                 #    print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,mpfr_get_d(tmpr2,rnd_re))
-                                mpfr_mul(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],tmpr2,rnd_re)
+                                    mpfr_mul(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],tmpr2,rnd_re)
                             elif mpfr_cmp_d(nr,-eps)<0:
                                 mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
                             else:
@@ -1005,8 +1017,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                     ## If none of them are variables this means
                                     ## that they are both set in the principal parts
                                     mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
-            if verbose>1:
-                printf("done with inner loop for n=%d\n",n)
     cdef int nrows,ncols
     nrows = int(V.nrows()); ncols = int(V.ncols())
     if verbose>1:
@@ -1016,9 +1026,18 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         for l in xrange(ncols):
             mpc_init2(V._matrix[n][l],prec)
             mpc_set_ui(V._matrix[n][l],0,rnd)
-    for l in prange(Ml, nogil=True):
-        setV(V._matrix, RCvec,besv,Ypb,ef1cosv,ef1sinv,ef2cosv,ef2sinv,nc, Ql, Ml, l, prec)
-                                        
+    if verbose>0:
+        print "Starting third parallel loop"
+    for l in prange(threads, nogil=True):
+        a = l*it_size
+        if l == threads - 1:
+            b = Ml
+        else:
+            b = a + it_size
+        if verbose>0:
+            printf("a,b=%d,%d\n",a,b)
+        setV(V._matrix, RCvec,besv,Ypb,ef1cosv,ef1sinv,ef2cosv,ef2sinv, nc, Ql, Ml, a, b, prec)
+
     if verbose>1:
         print "Mi,Ms=",Ms,Mf
         print "V1(",0,0,")=",V[0,0]
@@ -1028,12 +1047,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         if V.ncols()>=11:
             print "V1(",0,11,")=",V[0,11]
     for n in range(nrows):
-        for l in range(ncols):        
+        for l in range(ncols):
             mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)
             #V[n,l]=V[n,l]/Qfak
-    if verbose>1: 
+    if verbose>1:
         print "V1(",0,0,")=",V[0,0]
-        print "V1(",1,0,")=",V[1,0]            
+        print "V1(",1,0,")=",V[1,0]
         print "V1(",0,1,")=",V[0,1]
         print "V1(",1,1,")=",V[1,1]
         if V.ncols()>=11:
@@ -1049,240 +1068,257 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     mpc_init2(ppc_minus,prec)
     mpc_init2(summa,prec)
     mpc_init2(summa_minus,prec)
+    cdef mpc_t t[2]
+    mpc_init2(t[0],prec)
+    mpc_init2(t[1],prec)
     f1 = CF(0); f2=CF(0)
     #verbose=3
-    for n in range(Ml):
-        for icusp in range(nc):
-            mpfr_set(nr,nvec[icusp][n],rnd_re)
-            mpfr_mul(nrY2pi,nr,twopiY,rnd_re)
-            #nrY2pi=nr*twopiY
-            ni=Ml*icusp+n
-            if mpfr_cmp_d(nr,eps)>0:
-                mpfr_neg(kbes,nrY2pi,rnd_re)
-                mpfr_exp(kbes,kbes,rnd_re)
-                #kbes=(-nrY2pi).exp()
-            elif mpfr_cmp_d(nr,-eps)<0 and not_holom==1 and is_weak==1:
-                #kbes=RF(mpmath.mp.gammainc(kint,abs(nr)*fourpiY))
-                #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()                
-                mpfr_mul(tmpr,nr,fourpiY,rnd_re)
-                mpfr_abs(tmpr,tmpr,rnd_re)
-                ok = 1
-                if (is_int==1 or is_half_int==1) and  do_mpmath==0:
-                    #try:
-                    if is_int==1:
-                        if kinti>0:
-                            ok = incgamma_pint_c(kbes,kinti,tmpr)
-                        else:
-                            ok = incgamma_nint_c(kbes,kinti,tmpr)
-                    elif is_half_int==1:
-                        ok = incgamma_hint_c(kbes,kinti,tmpr)                                
-                    #except ArithmeticError: ## In case we can not achieve the required error
-                    #    kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                #if (verbose>0 and ok<>0) or verbose>2:
-                #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(kbes,rnd_re),do_mpmath)
-                #    print "ok={0}, tmpr={1}".format(ok,mpfr_get_d(tmpr, rnd_re))
-                if ok <> 0:
-                    #kbes = RF(mpmath.mp.gammainc(kint,tmpr).real) #TODO: Fix call (tmpr is mpfr_t now)
-                    ret=-1
-                    break
-                mpfr_abs(tmpr2,nrY2pi,rnd_re)
-                mpfr_exp(tmpr2,tmpr2,rnd_re)
-                #if verbose>1 and ni==0:
-                #    print "Arg=",mpfr_get_d(tmpr,rnd_re)
-                #    print "Igamma(",kinti,",Arg)=",kbes
-                mpfr_mul(kbes,kbes,tmpr2,rnd_re)
-                #if verbose>1 and ni==0:
-                #    print "expfax=",mpfr_get_d(tmpr2,rnd_re)
-                #    print "Igamma(",kinti,",Arg)*exp()=",mpfr_get_d(tmpr,rnd_re)
-            elif mpfr_cmp_d(nr,-eps)<0:
-                mpfr_set_ui(kbes,0,rnd_re) #=zero
-            else:
-                if variable_a0_plus[0][icusp]==1:
-                    mpfr_set_ui(kbes,1,rnd_re) #=one
-                elif variable_a0_minus[0][icusp]==1:
-                    if kinti<>0:
-                        mpfr_pow(kbes,Y,kint_t,rnd_re)
+    if verbose>0:
+        print "Starting fourth parallel loop"
+    for jj in prange(threads, nogil=True):
+        a=jj*it_size
+        if jj==threads-1:
+            b=Ml
+        else:
+            b=a+it_size
+        if verbose>0:
+            printf("a,b=%d,%d\n",a,b)
+        with gil:
+            for n in xrange(a,b):
+                for icusp in range(nc):
+                    mpfr_set(nr,nvec[icusp][n],rnd_re)
+                    mpfr_mul(nrY2pi,nr,twopiY,rnd_re)
+                    #nrY2pi=nr*twopiY
+                    ni=Ml*icusp+n
+                    if mpfr_cmp_d(nr,eps)>0:
+                        mpfr_neg(kbes,nrY2pi,rnd_re)
+                        mpfr_exp(kbes,kbes,rnd_re)
+                        #kbes=(-nrY2pi).exp()
+                    elif mpfr_cmp_d(nr,-eps)<0 and not_holom==1 and is_weak==1:
+                        #kbes=RF(mpmath.mp.gammainc(kint,abs(nr)*fourpiY))
+                        #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()
+                        mpfr_mul(tmpr,nr,fourpiY,rnd_re)
+                        mpfr_abs(tmpr,tmpr,rnd_re)
+                        ok = 1
+                        if (is_int==1 or is_half_int==1) and do_mpmath==0:
+                            #try:
+                            if is_int==1:
+                                if kinti>0:
+                                    ok = incgamma_pint_c(kbes,kinti,tmpr)
+                                else:
+                                     ok = incgamma_nint_c(kbes,kinti,tmpr)
+                            elif is_half_int==1:
+                                 ok = incgamma_hint_c(kbes,kinti,tmpr)
+                            #except ArithmeticError: ## In case we can not achieve the required error
+                            #    kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
+                        #if (verbose>0 and ok<>0) or verbose>2:
+                        #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(kbes,rnd_re),do_mpmath)
+                        #    print "ok={0}, tmpr={1}".format(ok,mpfr_get_d(tmpr, rnd_re))
+                        if ok <> 0:
+                            #kbes = RF(mpmath.mp.gammainc(kint,tmpr).real) #TODO: Fix call (tmpr is mpfr_t now)
+                            ret=-1
+                            break
+                        mpfr_abs(tmpr2,nrY2pi,rnd_re)
+                        mpfr_exp(tmpr2,tmpr2,rnd_re)
+                        #if verbose>1 and ni==0:
+                        #    print "Arg=",mpfr_get_d(tmpr,rnd_re)
+                        #    print "Igamma(",kinti,",Arg)=",kbes
+                        mpfr_mul(kbes,kbes,tmpr2,rnd_re)
+                        #if verbose>1 and ni==0:
+                        #    print "expfax=",mpfr_get_d(tmpr2,rnd_re)
+                        #    print "Igamma(",kinti,",Arg)*exp()=",mpfr_get_d(tmpr,rnd_re)
+                    elif mpfr_cmp_d(nr,-eps)<0:
+                        mpfr_set_ui(kbes,0,rnd_re) #=zero
                     else:
-                        mpfr_log(kbes,Y,rnd_re)
-                    #kbes=Y**kint
-                else:
-                    #kbes=one
-                    #raise ValueError,"Need to specify at least one of the n=0 terms!"
-                    mpfr_set_ui(kbes,0,rnd_re)
-                    #kbes=zero
-            #with gil:
-            mpc_sub_fr(V._matrix[ni][ni],V._matrix[ni][ni],kbes,rnd)
-            #if verbose>1:
-            #    if ni==0:
-            #        print "Arg=",mpfr_get_d(kbes,rnd_re)
-            #        print "kbes(",0,")=",mpfr_get_d(kbes,rnd_re)
-            #        print "V[1,1]=",V[0,0]
-            #    if ni==1:
-            #        print "nr=",mpfr_get_d(nr,rnd_re)
-            #        print "kint,kinti=",kint,kinti
-            #        print "Arg=",mpfr_get_d(kbes,rnd_re)
-            #        print "kbes(",1,")=",mpfr_get_d(kbes,rnd_re)
-            #        print "V[1,1]=",V[1,1]
-            #    if ni == 11 and V.ncols()>=11:
-            #        print "V1(",0,11,")=",V[0,11]
-            # setting the right hand side of the system
-            for k in range(d):
-                mpc_set_ui(RHS._matrix[ni][k],0,rnd) #=CF(0)
-                for i in range(num_ppplus):
-                #for (jcusp,l) in PPplus[k].keys():
-                    mpc_set(ppc,PPplus_values[k][i],rnd)
-                    jcusp = PPplus_cusp[k][i]
-                    l = PPplus_n[k][i]
-                    ### Note: The constant term is treated below
-                    if mpc_is_zero(ppc)==1: #==zero or PPplus[k][(jcusp,l)]==0:
-                        continue
-                    mpc_set_ui(summa,0,rnd) #=CF(0)
-                    #if verbose>2:
-                    #    mpfr_set(lr,PPplus_lal[k][i],rnd_re)
-                    #    print "l=",lr
-                    #   print "icusp,jcusp=",icusp,jcusp
-                    #   print "alpha(",jcusp,")=",H.alpha(jcusp)[0]
-                    #    print "n=",n,nr," n=",n+Ms
-                    #    print "ppc=",ppc
-                    for j in range(Ql):   
-                        if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                            continue
-                        mpfr_mul(tmpr_t,Ypb[icusp][jcusp][j],twopi,rnd_re)
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_mul(tmpr_t,tmpr_t,PPplus_lal[k][i],rnd_re)
-                        mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_mul(tmpab,tmpr_t,RCvec[icusp][jcusp][j][0],rnd_re)
-                        #if verbose>3:
-                        #    mpfr_set(tmpr,Ypb[icusp][jcusp][j],rnd_re)
-                        #    print "ypb=",mpfr_get_d(tmpr,rnd_re)
-                        #    print "lr=",mpfr_get_d(lr,rnd_re)
-                        #    print "twopi=",mpfr_get_d(twopi,rnd_re)
-                        mpfr_mul(tmpar,PPplus_lal[k][i],Xpb[icusp][jcusp][j],rnd_re)
-                        mpfr_mul(tmpr_t,nr,Xm[j],rnd_re)
-                        mpfr_sub(tmpar,tmpar,tmpr_t,rnd_re)
-                        #mpfr_add(tmpar,tmpar,ef2[icusp][n][j],rnd_re)
-                        mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
-                        #if verbose>3:
-                        #    print "f1(",j,")=",f1
-                        #    print "arg=",lr,"*",xpb,"-",nr,"*",Xm[j],"=",arg
-                        #    print "f2(",j,")=",f2
-                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
-                            mpfr_cos(tmpar1,tmpar,rnd_re)
-                            mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
-                            mpc_set_fr(tmp2,tmpar1,rnd)                                     
+                        if variable_a0_plus[0][icusp]==1:
+                            mpfr_set_ui(kbes,1,rnd_re) #=one
+                        elif variable_a0_minus[0][icusp]==1:
+                            if kinti<>0:
+                                mpfr_pow(kbes,Y,kint_t,rnd_re)
+                            else:
+                                mpfr_log(kbes,Y,rnd_re)
+                            #kbes=Y**kint
                         else:
-                            mpfr_sin(tmpar1,tmpar,rnd_re)
-                            mpc_set_si_si(tmp2,0,2,rnd)
-                            mpc_mul_fr(tmp2,tmp2,tmpar1,rnd)
-                        mpc_mul_fr(tmp2,tmp2,tmpab,rnd)
-                        #mpc_mul_fr(tmp2.value,tmp2.value,RCvec[icusp][jcusp][j][0]):
-                        mpc_add(summa,summa,tmp2,rnd)
-                        #if verbose>3:
-                        #    print "tmpc=",tmpc
-                        #    print "summa=",summa                 
-#                        summa=summa+ch*tmpc
-                    #if verbose>2:
-                    #    print "summa=",RR(summa.real()),RR(summa.imag())
-                    #RHS[ni,k]=RHS[ni,k]+summa/Qfak
-                    mpc_div_ui(summa,summa,Qfaki,rnd)
-                    mpc_mul(summa,summa,ppc,rnd)
-                    mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa,rnd)
-                #if verbose>2:
-                #    print "RHS0[",ni,k,"]=",RHS[ni][k]
-                #    print "icusp,n+Ms=",icusp,n+Ms
-                #    print "PPplus.keys=",PPplus[k].keys()
-                has_key = 0
-                for j in range(num_ppplus):
-                    if PPplus_cusp[k][j]==icusp and PPplus_n[k][j]==n+Ms:
-                        has_key = 1
-                        mpc_set(ppc,PPplus_values[k][j],rnd)
-                        break
-                if has_key==1:
-                    #if PPplus[k].has_key((icusp,n+Ms)):
-                    #if( abs(nr) > mpmath.eps()):
-                    #ppc=CF(PPplus[k][icusp,n+Ms])
-                    mpfr_abs(tmpr_t,nrY2pi,rnd_re)
-                    mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                    mpc_mul_fr(tmpc_t,ppc,tmpr_t,rnd)
-                    mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],tmpc_t,rnd)
-                    #if verbose>2:
-                    #    print "n=",n
-                    #    print "icusp=",icusp
-                    #    print "ppc=",ppc
-                    #    print "nrY2pi=",nrY2pi
-                    #RHS[ni,k]=RHS[ni,k]-ppc*(-nrY2pi).exp()
-                #if verbose>2:
-                #    print "RHS1[",ni,k,"]=",RHS[ni][k]
-                for i in range(num_ppminus):
-                    #for (jcusp,l) in PPminus[k].keys():
-                    jcusp = PPminus_cusp[k][i]
-                    l = PPminus_n[k][i]
-                    mpc_set(ppc_minus,PPminus_values[k][i],rnd)
-                    #ppc_minus = CF(PPminus[k][(jcusp,l)])
-                    #if ppc_minus==zero or PPminus[k][(jcusp,l)]==0:
-                    if mpc_is_zero(ppc_minus)==1:
-                        continue
-                    #if verbose>2:
-                    #    print "ppart_minus=",ppc_minus
-                    mpc_set_ui(summa_minus,0,rnd) #=zero #summa_minus
-                    for j in range(Ql):
-                        if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                            continue
-                        mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
-                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) == 0:
-                            mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
-                            mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
-                            mpfr_sub(tmpar1,tmpcos,tmpsin,rnd_re)
-                            mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
-                            mpc_mul_fr(tmp2,tmp2,tmpar,rnd)                                     
-                        else:
-                            mpfr_sin(tmpar1,tmpar1,rnd_re)
-                            mpfr_mul(tmpcos,ef2sinv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
-                            mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
-                            mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
-                            mpc_set_si_si(tmp2,0,2,rnd)
-                            mpc_mul_fr(tmp2,tmp2,tmpar1,rnd)
-                        mpc_mul_fr(tmp2,tmp2,tmpab,rnd)
-                        mpc_add(summa_minus,summa_minus,tmp2,rnd)
-                        #summa_minus=summa_minus+ch*tmpc
-                        #summa=summa+ef2[n(2):,j,icusp]*tmpc*ch*ppc
+                            #kbes=one
+                            #raise ValueError,"Need to specify at least one of the n=0 terms!"
+                            mpfr_set_ui(kbes,0,rnd_re)
+                            #kbes=zero
+                    #with gil:
+                    mpc_sub_fr(V._matrix[ni][ni],V._matrix[ni][ni],kbes,rnd)
+                    #if verbose>1:
+                    #    if ni==0:
+                    #        print "Arg=",mpfr_get_d(kbes,rnd_re)
+                    #        print "kbes(",0,")=",mpfr_get_d(kbes,rnd_re)
+                    #        print "V[1,1]=",V[0,0]
+                    #    if ni==1:
+                    #        print "nr=",mpfr_get_d(nr,rnd_re)
+                    #        print "kint,kinti=",kint,kinti
+                    #        print "Arg=",mpfr_get_d(kbes,rnd_re)
+                    #        print "kbes(",1,")=",mpfr_get_d(kbes,rnd_re)
+                    #        print "V[1,1]=",V[1,1]
+                    #    if ni == 11 and V.ncols()>=11:
+                    #        print "V1(",0,11,")=",V[0,11]
+                    # setting the right hand side of the system
+                    for k in range(d):
+                        mpc_set_ui(RHS._matrix[ni][k],0,rnd) #=CF(0)
+                        for i in range(num_ppplus):
+                        #for (jcusp,l) in PPplus[k].keys():
+                            mpc_set(ppc,PPplus_values[k][i],rnd)
+                            jcusp = PPplus_cusp[k][i]
+                            #l = PPplus_n[k][i]
+                            ### Note: The constant term is treated below
+                            if mpc_is_zero(ppc)==1: #==zero or PPplus[k][(jcusp,l)]==0:
+                                continue
+                            mpc_set_ui(summa,0,rnd) #=CF(0)
+                            #if verbose>2:
+                            #    mpfr_set(lr,PPplus_lal[k][i],rnd_re)
+                            #    print "l=",lr
+                            #   print "icusp,jcusp=",icusp,jcusp
+                            #   print "alpha(",jcusp,")=",H.alpha(jcusp)[0]
+                            #    print "n=",n,nr," n=",n+Ms
+                            #    print "ppc=",ppc
+                            for j in range(Ql):
+                                if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+                                    continue
+                                mpfr_mul(tmpr_t,Ypb[icusp][jcusp][j],twopi,rnd_re)
+                                mpfr_neg(tmpr_t,tmpr_t,rnd_re)
+                                mpfr_mul(tmpr_t,tmpr_t,PPplus_lal[k][i],rnd_re)
+                                mpfr_exp(tmpr_t,tmpr_t,rnd_re)
+                                mpfr_mul(tmpab,tmpr_t,RCvec[icusp][jcusp][j][0],rnd_re)
+                                #if verbose>3:
+                                #    mpfr_set(tmpr,Ypb[icusp][jcusp][j],rnd_re)
+                                #    print "ypb=",mpfr_get_d(tmpr,rnd_re)
+                                #    print "lr=",mpfr_get_d(lr,rnd_re)
+                                #    print "twopi=",mpfr_get_d(twopi,rnd_re)
+                                mpfr_mul(tmpar,PPplus_lal[k][i],Xpb[icusp][jcusp][j],rnd_re)
+                                mpfr_mul(tmpr_t,nr,Xm[j],rnd_re)
+                                mpfr_sub(tmpar,tmpar,tmpr_t,rnd_re)
+                                #mpfr_add(tmpar,tmpar,ef2[icusp][n][j],rnd_re)
+                                mpfr_add(tmpar,tmpar,RCvec[icusp][jcusp][j][1],rnd_re)
+                                #if verbose>3:
+                                #    print "f1(",j,")=",f1
+                                #    print "arg=",lr,"*",xpb,"-",nr,"*",Xm[j],"=",arg
+                                #    print "f2(",j,")=",f2
+                                if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                                    mpfr_cos(tmpar1,tmpar,rnd_re)
+                                    mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
+                                    mpc_set_fr(tmp2,tmpar1,rnd)
+                                else:
+                                    mpfr_sin(tmpar1,tmpar,rnd_re)
+                                    mpc_set_si_si(tmp2,0,2,rnd)
+                                    mpc_mul_fr(tmp2,tmp2,tmpar1,rnd)
+                                mpc_mul_fr(tmp2,tmp2,tmpab,rnd)
+                                #mpc_mul_fr(tmp2.value,tmp2.value,RCvec[icusp][jcusp][j][0]):
+                                mpc_add(summa,summa,tmp2,rnd)
+                                #if verbose>3:
+                                #    print "tmpc=",tmpc
+                                #    print "summa=",summa
+    #                            summa=summa+ch*tmpc
+                            #if verbose>2:
+                            #    print "summa=",RR(summa.real()),RR(summa.imag())
+                            #RHS[ni,k]=RHS[ni,k]+summa/Qfak
+                            mpc_div_ui(summa,summa,Qfaki,rnd)
+                            mpc_mul(summa,summa,ppc,rnd)
+                            mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa,rnd)
                         #if verbose>2:
-                        #    print "j=",j
-                        #    print "ypb=",ypb
-                        #    print "ch=",ch
-                        #    #print "tmpc_minus=",tmpc_minus
-                        #    print "tmpc=",tmpc
-                        #    print "summa-(",j,")=",summa_minus
-                    #if verbose>2:
-                    #    print "Summa-(",ni,")=",summa_minus
-                    mpc_div_ui(summa_minus,summa_minus,Qfaki,rnd)
-                    mpc_mul(summa_minus,summa_minus,ppc_minus,rnd)
-                    mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa_minus,rnd)
-                    #RHS[ni,k]=RHS[ni,k]+ppc_minus*summa_minus/Qfak
-                #print "summa(",ni,")=",RHS[ni,k]
-                #if verbose>2:
-                #    print "RHS2[{0},{1}]={2}".format(ni,k,RHS[ni,k])
-                has_key = 0
-                for j in range(num_ppminus):
-                    if PPminus_cusp[k][j]==icusp and PPminus_n[k][j]==n+Ms:
-                        has_key = 1
-                        mpc_set(ppc_minus,PPminus_values[k][j],rnd)
-                        break
-                if has_key==1:
-                    #if PPminus[k].has_key((icusp,n+Ms)):
-                    #ppc_minus = CF(PPminus[k][(icusp,n+Ms)])
-                    if kinti==0:
-                        mpfr_log(tmpr,Y,rnd_re)
-                    else:
-                        mpfr_pow(tmpr,Y,kint_t,rnd_re)
-                    mpc_mul_fr(ppc_minus,ppc_minus,tmpr,rnd)
-                    mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],ppc_minus,rnd)
-                    #RHS[ni,k]=RHS[ni,k]-ppc_minus*Y**kint
-                    #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
-                #if verbose>2:
-                #    print "RHS3[{0},{1}]={2}".format(ni,k,RHS[ni,k])
-                    #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-    if verbose>1: 
+                        #    print "RHS0[",ni,k,"]=",RHS[ni][k]
+                        #    print "icusp,n+Ms=",icusp,n+Ms
+                        #    print "PPplus.keys=",PPplus[k].keys()
+                        has_key = 0
+                        for j in range(num_ppplus):
+                            if PPplus_cusp[k][j]==icusp and PPplus_n[k][j]==n+Ms:
+                                has_key = 1
+                                mpc_set(ppc,PPplus_values[k][j],rnd)
+                                break
+                        if has_key==1:
+                            #if PPplus[k].has_key((icusp,n+Ms)):
+                            #if( abs(nr) > mpmath.eps()):
+                            #ppc=CF(PPplus[k][icusp,n+Ms])
+                            mpfr_abs(tmpr_t,nrY2pi,rnd_re)
+                            mpfr_exp(tmpr_t,tmpr_t,rnd_re)
+                            mpc_mul_fr(tmpc_t,ppc,tmpr_t,rnd)
+                            mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],tmpc_t,rnd)
+                            #if verbose>2:
+                            #    print "n=",n
+                            #    print "icusp=",icusp
+                            #    print "ppc=",ppc
+                            #    print "nrY2pi=",nrY2pi
+                            #RHS[ni,k]=RHS[ni,k]-ppc*(-nrY2pi).exp()
+                        #if verbose>2:
+                        #    print "RHS1[",ni,k,"]=",RHS[ni][k]
+                        for i in range(num_ppminus):
+                            #for (jcusp,l) in PPminus[k].keys():
+                            jcusp = PPminus_cusp[k][i]
+                            l = PPminus_n[k][i]
+                            mpc_set(ppc_minus,PPminus_values[k][i],rnd)
+                            #ppc_minus = CF(PPminus[k][(jcusp,l)])
+                            #if ppc_minus==zero or PPminus[k][(jcusp,l)]==0:
+                            if mpc_is_zero(ppc_minus)==1:
+                                continue
+                            #if verbose>2:
+                            #    print "ppart_minus=",ppc_minus
+                            mpc_set_ui(summa_minus,0,rnd) #=zero #summa_minus
+                            for j in range(Ql):
+                                if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+                                    continue
+                                with nogil:
+                                    mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
+                                    if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) == 0:
+                                        mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                                        mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                                        mpfr_sub(tmpar1,tmpcos,tmpsin,rnd_re)
+                                        mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
+                                        mpc_mul_fr(tmp2,tmp2,tmpar,rnd)
+                                    else:
+                                        mpfr_sin(tmpar1,tmpar1,rnd_re)
+                                        mpfr_mul(tmpcos,ef2sinv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                                        mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                                        mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
+                                        mpc_set_si_si(tmp2,0,2,rnd)
+                                        mpc_mul_fr(tmp2,tmp2,tmpar1,rnd)
+                                    mpc_mul_fr(tmp2,tmp2,tmpab,rnd)
+                                    mpc_add(summa_minus,summa_minus,tmp2,rnd)
+                                #summa_minus=summa_minus+ch*tmpc
+                                #summa=summa+ef2[n(2):,j,icusp]*tmpc*ch*ppc
+                                #if verbose>2:
+                                #    print "j=",j
+                                #    print "ypb=",ypb
+                                #    print "ch=",ch
+                                #    #print "tmpc_minus=",tmpc_minus
+                                #    print "tmpc=",tmpc
+                                #    print "summa-(",j,")=",summa_minus
+                            #if verbose>2:
+                            #    print "Summa-(",ni,")=",summa_minus
+                            mpc_div_ui(summa_minus,summa_minus,Qfaki,rnd)
+                            mpc_mul(summa_minus,summa_minus,ppc_minus,rnd)
+                            mpc_add(RHS._matrix[ni][k],RHS._matrix[ni][k],summa_minus,rnd)
+                            #RHS[ni,k]=RHS[ni,k]+ppc_minus*summa_minus/Qfak
+                        #print "summa(",ni,")=",RHS[ni,k]
+                        #if verbose>2:
+                        #    print "RHS2[{0},{1}]={2}".format(ni,k,RHS[ni,k])
+                        has_key = 0
+                        for j in range(num_ppminus):
+                            if PPminus_cusp[k][j]==icusp and PPminus_n[k][j]==n+Ms:
+                                has_key = 1
+                                mpc_set(ppc_minus,PPminus_values[k][j],rnd)
+                                break
+                        if has_key==1:
+                            #if PPminus[k].has_key((icusp,n+Ms)):
+                            #ppc_minus = CF(PPminus[k][(icusp,n+Ms)])
+                            if kinti==0:
+                                mpfr_log(tmpr,Y,rnd_re)
+                            else:
+                                mpfr_pow(tmpr,Y,kint_t,rnd_re)
+                            mpc_mul_fr(ppc_minus,ppc_minus,tmpr,rnd)
+                            mpc_sub(RHS._matrix[ni][k],RHS._matrix[ni][k],ppc_minus,rnd)
+                            #RHS[ni,k]=RHS[ni,k]-ppc_minus*Y**kint
+                            #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
+                        #if verbose>2:
+                        #    print "RHS3[{0},{1}]={2}".format(ni,k,RHS[ni,k])
+                            #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
+    print "DONE with loops"
+
+    if verbose>1:
         for n in range(2):
             print "V2(",n,n,")=",V[n,n]
         if V.ncols()>=11:
@@ -1291,7 +1327,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
 
     for j in range(d):
         sage_free(variable_a0_minus[j])
-        sage_free(variable_a0_plus[j])        
+        sage_free(variable_a0_plus[j])
         sage_free(PPplus_cusp[j])
         sage_free(PPplus_n[j])
         sage_free(PPminus_cusp[j])
@@ -1304,7 +1340,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         for l in range(num_ppminus):
             mpc_clear(PPminus_values[j][l])
         sage_free(PPminus_values[j])
-        
+
     sage_free(PPplus_lal)
     sage_free(PPplus_cusp)
     sage_free(PPplus_n)
@@ -1377,7 +1413,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                         sage_free(ef2sinv[icusp][n])
                 sage_free(ef2sinv[icusp])
         sage_free(ef2sinv)
-        
+
     if ef1cosv<>NULL:
         for icusp in range(nc):
             if ef1cosv[icusp]<>NULL:
@@ -1388,7 +1424,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                 for j in range(Ql):
                                     mpfr_clear(ef1cosv[icusp][jcusp][n][j])
                                 sage_free(ef1cosv[icusp][jcusp][n])
-                        sage_free(ef1cosv[icusp][jcusp])                        
+                        sage_free(ef1cosv[icusp][jcusp])
                 sage_free(ef1cosv[icusp])
         sage_free(ef1cosv)
     if ef1sinv<>NULL:
@@ -1401,7 +1437,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                 for j in range(Ql):
                                     mpfr_clear(ef1sinv[icusp][jcusp][n][j])
                                 sage_free(ef1sinv[icusp][jcusp][n])
-                        sage_free(ef1sinv[icusp][jcusp])                        
+                        sage_free(ef1sinv[icusp][jcusp])
                 sage_free(ef1sinv[icusp])
         sage_free(ef1sinv)
     if besv<>NULL:
@@ -1414,7 +1450,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                 for j in range(Ql):
                                     mpfr_clear(besv[icusp][jcusp][n][j])
                                 sage_free(besv[icusp][jcusp][n])
-                        sage_free(besv[icusp][jcusp])                        
+                        sage_free(besv[icusp][jcusp])
                 sage_free(besv[icusp])
         sage_free(besv)
     mpc_clear(iargpb_t)
@@ -1456,74 +1492,90 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     W['rdim']=H._rdim
     return W
 
-cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Ql, mpfr_prec_t prec) nogil:
+cdef void setcossin2(mpfr_t *** lcos, mpfr_t *** lsin, mpfr_t * Xm, mpfr_t ** nvec, int nc, int Ql, int Ml, int a, int b, mpfr_prec_t prec) nogil:
     cdef int j = 0
-    cdef mpfr_t tmpar
+    cdef int n = 0
+    cdef int jcusp = 0
+    cdef mpfr_t tmpar,nr
     mpfr_init2(tmpar,prec)
-    for j in range(Ql):
-        mpfr_init2(lcos[j],prec)
-        mpfr_init2(lsin[j],prec)
-        mpfr_mul(tmpar,Xm[j],nr,rnd_re)
-        mpfr_neg(tmpar,tmpar,rnd_re)
-        mpfr_cos(lcos[j],tmpar,rnd_re)
-        mpfr_sin(lsin[j],tmpar,rnd_re)
+    mpfr_init2(nr,prec)
+    for n in xrange(a,b):
+        for jcusp in xrange(nc):
+            mpfr_set(nr,nvec[jcusp][n],rnd_re)
+            for j in xrange(Ql):
+                mpfr_init2(lcos[jcusp][n][j],prec)
+                mpfr_init2(lsin[jcusp][n][j],prec)
+                mpfr_mul(tmpar,Xm[j],nr,rnd_re)
+                mpfr_neg(tmpar,tmpar,rnd_re)
+                mpfr_cos(lcos[jcusp][n][j],tmpar,rnd_re)
+                mpfr_sin(lsin[jcusp][n][j],tmpar,rnd_re)
     mpfr_clear(tmpar)
+    mpfr_clear(nr)
+            
 
-cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec) nogil:
+cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv,
+               int nc, int Ql, int Ml, int a, int b, mpfr_prec_t prec) nogil:
     cdef mpfr_t tmpar,tmpar1,tmpab,tmpcos,tmpsin
     cdef mpc_t tmpc_t
-    cdef int jcusp,lj,icusp,j,n, ni
+    cdef int jcusp,lj,icusp,j,n, ni,l
     mpc_init2(tmpc_t,prec)
     mpfr_init2(tmpcos,prec)
     mpfr_init2(tmpsin,prec)
     mpfr_init2(tmpar,prec)
     mpfr_init2(tmpar1,prec)
     mpfr_init2(tmpab,prec)
-    for jcusp in xrange(nc):
-        lj=Ml*jcusp+l
-        for icusp in xrange(nc):
-            for j in xrange(Ql):
-                if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                    continue
-                #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
-                #    mpfr_set(
-                #mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
-                mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
-                for n in xrange(Ml): 
-                    ni=icusp*Ml+n
-                    #mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
-                    #mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
-                    #printf("ef2cosv[%d][%d][%d]=%f\n",icusp,n,j,mpfr_get_flt(ef2cosv[icusp][n][j],rnd_re))
-                    if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
-                        #mpfr_cos(tmpar1,tmpar1,rnd_re)
-                        mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
-                        mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
-                        mpfr_sub(tmpar1,tmpcos,tmpsin,rnd_re)
-                        mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
-                        mpc_set_fr(tmpc_t,tmpar1,rnd)                                     
-                    else:
-                        #mpfr_sin(tmpar1,tmpar1,rnd_re)
-                        mpfr_mul(tmpcos,ef2sinv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
-                        mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
-                        mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
-                        mpc_set_si_si(tmpc_t,0,2,rnd)
-                        mpc_mul_fr(tmpc_t,tmpc_t,tmpar1,rnd)             
-                    mpc_mul_fr(tmpc_t,tmpc_t,tmpab,rnd)                         
-                    #tmp2=tmp1*ef2[n,j,icusp]
-                    mpc_add(Vmat[ni][lj],Vmat[ni][lj],tmpc_t,rnd)
-                        #V[ni,lj]=V[ni,lj]+tmp1*
-                        # if verbose > 1 and ni==0 and lj==10:
-                        #     print "-------------------"
-                        #     print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj]) #CC(V[ni,lj].real(),V[ni,lj].imag())
-                        #     mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
-                        #     print "tmp2=",tmp2 #CC(tmpc.real(),tmpc.imag())
-                        #     print "sym=",mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re)
-                        #     print "ef1(",j,")=",tmpr #CC(tmpc.real(),tmpc.imag())
-                        #     #mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                        #     #print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
-                        #     mpfr_set(tmpr.value,ef2[icusp][n][j],rnd_re)
-                        #     print "ef2(",j,")=",tmpr
-   
+    for l in xrange(a,b):
+        for jcusp in xrange(nc):
+            lj=Ml*jcusp+l
+            for icusp in xrange(nc):
+                for j in xrange(Ql):
+                    if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+                        continue
+                    #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                    #    mpfr_set(
+                    #mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
+                    mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
+                    for n in xrange(Ml):
+                        ni=icusp*Ml+n
+                        #mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
+                        #mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
+                        #printf("ef2cosv[%d][%d][%d]=%f\n",icusp,n,j,mpfr_get_flt(ef2cosv[icusp][n][j],rnd_re))
+                        if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                            #mpfr_cos(tmpar1,tmpar1,rnd_re)
+                            mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_sub(tmpar1,tmpcos,tmpsin,rnd_re)
+                            mpfr_mul_ui(tmpar1,tmpar1,2,rnd_re)
+                            mpc_set_fr(tmpc_t,tmpar1,rnd)
+                        else:
+                            #mpfr_sin(tmpar1,tmpar1,rnd_re)
+                            mpfr_mul(tmpcos,ef2sinv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
+                            mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
+                            mpc_set_si_si(tmpc_t,0,2,rnd)
+                            mpc_mul_fr(tmpc_t,tmpc_t,tmpar1,rnd)
+                        mpc_mul_fr(tmpc_t,tmpc_t,tmpab,rnd)
+                        #tmp2=tmp1*ef2[n,j,icusp]
+                        mpc_add(Vmat[ni][lj],Vmat[ni][lj],tmpc_t,rnd)
+                            #V[ni,lj]=V[ni,lj]+tmp1*
+                            # if verbose > 1 and ni==0 and lj==10:
+                            #     print "-------------------"
+                            #     print "V[{0},{1}]({2})={3}".format(ni,lj,j,V[ni,lj]) #CC(V[ni,lj].real(),V[ni,lj].imag())
+                            #     mpfr_set(tmpr.value,ef1[icusp][jcusp][n][j],rnd_re)
+                            #     print "tmp2=",tmp2 #CC(tmpc.real(),tmpc.imag())
+                            #     print "sym=",mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re)
+                            #     print "ef1(",j,")=",tmpr #CC(tmpc.real(),tmpc.imag())
+                            #     #mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
+                            #     #print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
+                            #     mpfr_set(tmpr.value,ef2[icusp][n][j],rnd_re)
+                            #     print "ef2(",j,")=",tmpr
+    mpc_clear(tmpc_t)
+    mpfr_clear(tmpcos)
+    mpfr_clear(tmpsin)
+    mpfr_clear(tmpar)
+    mpfr_clear(tmpar1)
+    mpfr_clear(tmpab)
+
 
 ### Version to use when we can not use symmetry
 
@@ -1533,33 +1585,33 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
     INPUT:
-    
+
         - ``H`` -- Space of harmonic weak Maass forms
         - ``Y`` -- height of horocycle used for sampling (mpmath real)
-        - ``k`` -- weight (mpmath real) 
+        - ``k`` -- weight (mpmath real)
         - ``M`` -- integer
         - ``Q`` -- integer > M
         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
     OUTPUT:
-    
+
         - ``W`` -- dictionary
         - ``W['Mf']`` -- M start
         - ``W['nc']`` -- number of cusps
         - ``W['Ms']`` -- M stop
-        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+        - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix
         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
-    
-    
+
+
     EXAMPLES::
 
         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
-    
+
 
     """
     cdef int l,i,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
-    cdef int prec 
+    cdef int prec
     prec = <int>H._prec
     #cdef mpc_t tmpc
     cdef MPComplexNumber tmp1,tmp2,iargpb,iargm,iargpb2
@@ -1617,10 +1669,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     Qfak=RF(2*Q)
     cdef int do_mpmath = 1
     if hasattr(H,"_do_mpmath"):
-         if H._do_mpmath<-1:     
-             do_mpmath=0  ## By default we want to use mpmath for now...
-             if verbose>0:
-                 print 'NOT using mpmath for incgamma'
+        if H._do_mpmath<-1:
+            do_mpmath=0  ## By default we want to use mpmath for now...
+            if verbose>0:
+                print 'NOT using mpmath for incgamma'
     cdef int Qfaki
     Qfaki=2*Q
     # Pullpack points
@@ -1654,18 +1706,18 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
-                mpfr_init2(Xpb[i][j][n],prec) 
-                mpfr_init2(Ypb[i][j][n],prec) 
+                mpfr_init2(Xpb[i][j][n],prec)
+                mpfr_init2(Ypb[i][j][n],prec)
                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
                 #Ypb[i][j][n]=<double>0
     Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
     if Cvec==NULL: raise MemoryError
     for i from 0<=i<nc:                        #if verbose>1:
-                        #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                        #    print "ypb[{0}][{1}{2}={3}".format(icusp,jcusp,j,ypb)
-                        #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
-                        #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
+        #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
+        #    print "ypb[{0}][{1}{2}={3}".format(icusp,jcusp,j,ypb)
+        #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
+        #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
 
         Cvec[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
         if Cvec[i]==NULL:
@@ -1686,7 +1738,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     V = Matrix_complex_dense(MS,0,True,True)
     cdef list PPplus,PPminus
     cdef dict pp_info
-    pp_info = check_principal_parts(H,principal_parts)    
+    pp_info = check_principal_parts(H,principal_parts)
     if verbose>0:
         print "pp_info=",pp_info
     if verbose>1:
@@ -1745,7 +1797,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
         if PPplus_lal[j]==NULL: raise MemoryError
         l = 0
         for i,jj in pp_info['PPplus'][j].keys():
-            tmpc = CF(pp_info['PPplus'][j][(i,jj)])        
+            tmpc = CF(pp_info['PPplus'][j][(i,jj)])
             PPplus_cusp[j][l]=int(i)
             PPplus_n[j][l]=int(jj)
             mpc_init2(PPplus_values[j][l],prec)
@@ -1788,7 +1840,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
         ef2[icusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
         for n in range(Ml):
             ef2[icusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
-            
+
     cdef mpc_t ****ef1=NULL
     #ef1 = <mpc_t****> sage_malloc( sizeof(mpc_t*** ) * nc )
     ef1 = <mpc_t****> sage_malloc( sizeof(ef2) * nc )
@@ -1798,13 +1850,13 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
             ef1[icusp][jcusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
             for n in range(Ml):
                 ef1[icusp][jcusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
-                
+
     cdef double eps
     eps = 2.0**float(1-H._dprec)
     cdef int not_holom = int(not H._holomorphic)
     cdef int is_weak = int(H._weak)
 
-    for n in range(Ml): 
+    for n in range(Ml):
         for icusp in range(nc):
             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
             for j in range(Ql):
@@ -1823,7 +1875,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
             mpfr_mul(nrfourpi.value,nr.value,fourpi.value,rnd_re)
             #nrfourpi=nr*fourpi
             for icusp in range(nc):
-                for j in range(Ql): 
+                for j in range(Ql):
                     mpc_init2(ef1[icusp][jcusp][n][j],prec)
                     mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
                     mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
@@ -1832,7 +1884,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                     mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
                     mpfr_mul(tmpr_t,twopi.value,ypb.value,rnd_re)
                     mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                    mpc_set_fr_fr(iargpb_t,tmpr_t,Xpb[icusp][jcusp][j],rnd)                    
+                    mpc_set_fr_fr(iargpb_t,tmpr_t,Xpb[icusp][jcusp][j],rnd)
                     mpc_mul_fr(iargpb_t,iargpb_t,nr.value,rnd)
                     mpc_exp(iargpb_t,iargpb_t,rnd)
                     mpc_set(iargpb.value,iargpb_t,rnd)
@@ -1853,7 +1905,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         if (is_int==1 or is_half_int==1) and do_mpmath==0:
-                            #print "tmpr=",tmpr                            
+                            #print "tmpr=",tmpr
                             try:
                                 if is_int==1:
                                     if kinti>0:
@@ -1867,15 +1919,15 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                                 tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         else:
                             if verbose>1 and icusp==1 and n==0:
-                                 print "arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,tmpr)
-                    
+                                print "arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,tmpr)
+
                             tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         #if verbose>1 and icusp==1 and n==Ms:
                         #    print "Gamma({0},{1})={2}".format(kint,tmpr,tmpr2)
                         if verbose>1 and icusp==1 and n==0:
                             print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)
                             print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,tmpr2)
-                            
+
                         mpc_mul_fr(iargpb.value,iargpb.value,tmpr2.value,rnd)
                         mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd)
 
@@ -1907,22 +1959,22 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
                         print "ef1[",n,j,icusp,"]=",CC(tmpc.real(),tmpc.imag())
     for n in range(s):
-        for l in range(s):        
+        for l in range(s):
             mpc_set_ui(V._matrix[n][l],0,rnd)
-    for l in range(Ml): 
+    for l in range(Ml):
         for jcusp in range(nc):
             lj=Ml*jcusp+l
             for icusp in range(nc):
-                for j in range(Ql): 
+                for j in range(Ql):
 
                     if mpfr_zero_p(mpc_realref(Cvec[icusp][jcusp][j]))<>0 and mpfr_zero_p(mpc_imagref(Cvec[icusp][jcusp][j]))<>0:
                         continue
                     #if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                    #    continue                        
+                    #    continue
                     #mpc_set(tmp1.value,rnd)
                     mpc_mul(tmp1.value,ef1[icusp][jcusp][l][j],Cvec[icusp][jcusp][j],rnd)
                     #tmp1=ef1[j,icusp,jcusp,l]*ch
-                    for n in range(Ml): 
+                    for n in range(Ml):
                         ni=Ml*icusp+n
                         mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
                         #tmp2=tmp1*ef2[n,j,icusp]
@@ -1940,7 +1992,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                             print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
                             mpc_set(tmpc.value,ef2[icusp][n][j],rnd)
                             print "ef2(",j,")=",tmpc
-                        
+
     if verbose>1:
         print "Mi,Ms=",Ms,Mf
         print "V1(",0,0,")=",V[0,0]
@@ -1952,12 +2004,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     cdef int nrows,ncols
     nrows = int(V.nrows()); ncols = int(V.ncols())
     for n in range(nrows):
-        for l in range(ncols):        
+        for l in range(ncols):
             mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)
             #V[n,l]=V[n,l]/Qfak
-    if verbose>1: 
+    if verbose>1:
         print "V1(",0,0,")=",V[0,0]
-        print "V1(",1,0,")=",V[1,0]            
+        print "V1(",1,0,")=",V[1,0]
         print "V1(",0,1,")=",V[0,1]
         print "V1(",1,1,")=",V[1,1]
         if V.ncols()>=11:
@@ -1979,7 +2031,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                 #kbes=(-nrY2pi).exp()
             elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
                 #kbes=RF(mpmath.mp.gammainc(kint,abs(nr)*fourpiY))
-                #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()                
+                #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()
                 mpfr_mul(tmpr.value,nr.value,fourpiY.value,rnd_re)
                 mpfr_abs(tmpr.value,tmpr.value,rnd_re)
                 if is_int==1 or is_half_int==1 and  do_mpmath==0:
@@ -1990,9 +2042,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                             else:
                                 incgamma_nint_c(kbes.value,kinti,tmpr.value)
                         elif is_half_int==1:
-                            incgamma_hint_c(kbes.value,kinti,tmpr.value)                                
+                            incgamma_hint_c(kbes.value,kinti,tmpr.value)
                     except ArithmeticError: ## In case we can not achieve the required error
-                        kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+                        kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
                 else:
                     kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
 
@@ -2061,7 +2113,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         print "alpha(",jcusp,")=",H.alpha(jcusp)[0]
                         print "n=",n,nr," n=",n+Ms
                         print "ppc=",ppc
-                    for j in range(Ql):   
+                    for j in range(Ql):
                         if mpc_is_zero(Cvec[icusp][jcusp][j])==1:
                             continue
                         if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
@@ -2098,7 +2150,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         mpc_add(summa.value,summa.value,tmpc.value,rnd)
                         if verbose>3:
                             print "tmpc=",tmpc
-                            print "summa=",summa                 
+                            print "summa=",summa
 #                        summa=summa+ch*tmpc
                     if verbose>2:
                         print "summa=",RR(summa.real()),RR(summa.imag())
@@ -2204,7 +2256,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                 if verbose>2:
                     print "RHS3[{0},{1}]={2}".format(ni,k,RHS[ni,k])
                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-    if verbose>1: 
+    if verbose>1:
         for n in range(2):
             print "V2(",n,n,")=",V[n,n]
         if V.ncols()>=11:
@@ -2213,7 +2265,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 
     for j in range(d):
         sage_free(variable_a0_minus[j])
-        sage_free(variable_a0_plus[j])        
+        sage_free(variable_a0_plus[j])
         sage_free(PPplus_cusp[j])
         sage_free(PPplus_n[j])
         sage_free(PPminus_cusp[j])
@@ -2226,7 +2278,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
         for l in range(num_ppminus):
             mpc_clear(PPminus_values[j][l])
         sage_free(PPminus_values[j])
-        
+
     sage_free(PPplus_lal)
     sage_free(PPplus_cusp)
     sage_free(PPplus_n)
@@ -2296,10 +2348,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                                 for j in range(Ql):
                                     mpc_clear(ef1[icusp][jcusp][n][j])
                                 sage_free(ef1[icusp][jcusp][n])
-                        sage_free(ef1[icusp][jcusp])                        
+                        sage_free(ef1[icusp][jcusp])
                 sage_free(ef1[icusp])
         sage_free(ef1)
-        
+
         #    print "V2(",44,n,")=",V[V.rows-1,n]
     mpc_clear(iargpb_t)
     mpc_clear(tmpc_t)
@@ -2328,33 +2380,33 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
 ##     INPUT:
-    
+
 ##         - ``H`` -- Space of harmonic weak Maass forms
 ##         - ``Y`` -- height of horocycle used for sampling (mpmath real)
-##         - ``k`` -- weight (mpmath real) 
+##         - ``k`` -- weight (mpmath real)
 ##         - ``M`` -- integer
 ##         - ``Q`` -- integer > M
 ##         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
 ##     OUTPUT:
-    
+
 ##         - ``W`` -- dictionary
 ##         - ``W['Mf']`` -- M start
 ##         - ``W['nc']`` -- number of cusps
 ##         - ``W['Ms']`` -- M stop
-##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix
 ##         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
-    
-    
+
+
 ##     EXAMPLES::
 
 ##         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
-    
+
 
 ##     """
 ##     cdef int l,i,j,k,icusp,jcusp,n,ni,li,Ml,Ms,Mf,Qs,Qf,Ql,s,nc
-##     cdef int prec 
+##     cdef int prec
 ##     prec = <int>H._prec
 ##     #cdef mpc_t tmpc
 ##     cdef MPComplexNumber tmp1,tmp2,iargpb,iargm,iargpb2
@@ -2444,8 +2496,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
 ##                 raise MemoryError
 ##             for n in range(Ql):
-##                 mpfr_init2(Xpb[i][j][n],prec) 
-##                 mpfr_init2(Ypb[i][j][n],prec) 
+##                 mpfr_init2(Xpb[i][j][n],prec)
+##                 mpfr_init2(Ypb[i][j][n],prec)
 ##                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
 ##                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
 ##                 #Ypb[i][j][n]=<double>0
@@ -2476,7 +2528,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     V = Matrix_complex_dense(MS,0,True,True)
 ##     cdef list PPplus,PPminus
 ##     cdef dict pp_info
-##     pp_info = check_principal_parts(H,principal_parts)    
+##     pp_info = check_principal_parts(H,principal_parts)
 ##     if verbose>0:
 ##         print "pp_info=",pp_info
 ##     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
@@ -2529,7 +2581,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##         if PPplus_lal[j]==NULL: raise MemoryError
 ##         l = 0
 ##         for i,jj in pp_info['PPplus'][j].keys():
-##             tmpc = CF(pp_info['PPplus'][j][(i,jj)])        
+##             tmpc = CF(pp_info['PPplus'][j][(i,jj)])
 ##             PPplus_cusp[j][l]=int(i)
 ##             PPplus_n[j][l]=int(jj)
 ##             mpc_init2(PPplus_values[j][l],prec)
@@ -2572,7 +2624,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##         ef2[icusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
 ##         for n in range(Ml):
 ##             ef2[icusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
-            
+
 ##     cdef mpc_t ****ef1=NULL
 ##     #ef1 = <mpc_t****> sage_malloc( sizeof(mpc_t*** ) * nc )
 ##     ef1 = <mpc_t****> sage_malloc( sizeof(ef2) * nc )
@@ -2582,13 +2634,13 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##             ef1[icusp][jcusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
 ##             for n in range(Ml):
 ##                 ef1[icusp][jcusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
-                
+
 ##     cdef double eps
 ##     eps = 2.0**float(1-H._dprec)
 ##     cdef int not_holom = int(not H._holomorphic)
 ##     cdef int is_weak = int(H._weak)
 
-##     for n in range(Ml): 
+##     for n in range(Ml):
 ##         for icusp in range(nc):
 ##             mpfr_set(nr.value,nvec[icusp][n],rnd_re)
 ##             for j in range(Ql):
@@ -2607,7 +2659,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##             mpfr_mul(nrfourpi.value,nr.value,fourpi.value,rnd_re)
 ##             #nrfourpi=nr*fourpi
 ##             for icusp in range(nc):
-##                 for j in range(Ql): 
+##                 for j in range(Ql):
 ##                     mpc_init2(ef1[icusp][jcusp][n][j],prec)
 ##                     mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
 ##                     mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
@@ -2616,7 +2668,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                     mpfr_set(xpb.value,Xpb[icusp][jcusp][j],rnd_re)
 ##                     mpfr_mul(tmpr_t,twopi.value,ypb.value,rnd_re)
 ##                     mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-##                     mpc_set_fr_fr(iargpb_t,tmpr_t,Xpb[icusp][jcusp][j],rnd)                    
+##                     mpc_set_fr_fr(iargpb_t,tmpr_t,Xpb[icusp][jcusp][j],rnd)
 ##                     mpc_mul_fr(iargpb_t,iargpb_t,nr.value,rnd)
 ##                     mpc_exp(iargpb_t,iargpb_t,rnd)
 ##                     mpc_set(iargpb.value,iargpb_t,rnd)
@@ -2637,7 +2689,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
 ##                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
 ##                         if is_int==1 or is_half_int==1 and do_mpmath==0:
-##                             #print "tmpr=",tmpr                            
+##                             #print "tmpr=",tmpr
 ##                             try:
 ##                                 if is_int==1:
 ##                                     if kinti>0:
@@ -2657,8 +2709,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                         #    print "is_half_int=",is_half_int
 ##                         #    print "mpmath.gammainc {0}={1}".format(kint,tmpr2)
 ##                         #    raise ArithmeticError
-                        
-                        
+
+
 ##                         mpc_mul_fr(iargpb.value,iargpb.value,tmpr2.value,rnd)
 ##                         #mpmath: iargpb=iargpb*RF(mpmath.mp.gammainc(kint,tmpr).real)
 ##                         #ef1[j,icusp,jcusp,n]=iargpb*ckint.gamma_inc(tmpr)
@@ -2691,22 +2743,22 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                         mpc_set(tmpc.value,ef1[icusp][jcusp][n][j],rnd)
 ##                         print "ef1[",n,j,icusp,"]=",CC(tmpc.real(),tmpc.imag())
 ##     for n in range(s):
-##         for l in range(s):        
+##         for l in range(s):
 ##             mpc_set_ui(V._matrix[n][l],0,rnd)
-##     for l in range(Ml): 
+##     for l in range(Ml):
 ##         for jcusp in range(nc):
 ##             lj=Ml*jcusp+l
 ##             for icusp in range(nc):
-##                 for j in range(Ql): 
+##                 for j in range(Ql):
 
 ##                     if mpfr_zero_p(mpc_realref(Cvec[icusp][jcusp][j]))<>0 and mpfr_zero_p(mpc_imagref(Cvec[icusp][jcusp][j]))<>0:
 ##                         continue
 ##                     #if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-##                     #    continue                        
+##                     #    continue
 ##                     #mpc_set(tmp1.value,rnd)
 ##                     mpc_mul(tmp1.value,ef1[icusp][jcusp][l][j],Cvec[icusp][jcusp][j],rnd)
 ##                     #tmp1=ef1[j,icusp,jcusp,l]*ch
-##                     for n in range(Ml): 
+##                     for n in range(Ml):
 ##                         ni=Ml*icusp+n
 ##                         mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
 ##                         #tmp2=tmp1*ef2[n,j,icusp]
@@ -2721,7 +2773,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                             print "cv(",j,")=",CC(ch.real(),ch.imag())
 ##                             mpc_set(tmpc.value,ef2[icusp][n][j],rnd)
 ##                             print "ef2(",j,")=",tmpc
-                        
+
 ##     if verbose>1:
 ##         print "Mi,Ms=",Ms,Mf
 ##         print "V1(",0,0,")=",V[0,0]
@@ -2731,12 +2783,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     cdef int nrows,ncols
 ##     nrows = int(V.nrows()); ncols = int(V.ncols())
 ##     for n in range(nrows):
-##         for l in range(ncols):        
+##         for l in range(ncols):
 ##             mpc_div_ui(V._matrix[n][l],V._matrix[n][l],Qfaki,rnd)
 ##             #V[n,l]=V[n,l]/Qfak
-##     if verbose>1: 
+##     if verbose>1:
 ##         print "V1(",0,0,")=",V[0,0]
-##         print "V1(",1,0,")=",V[1,0]            
+##         print "V1(",1,0,")=",V[1,0]
 ##         print "V1(",0,1,")=",V[0,1]
 ##         print "V1(",1,1,")=",V[1,1]
 ##     cdef MPComplexNumber f1,f2,ppc,summa,ppc_minus,summa_minus
@@ -2756,7 +2808,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                 #kbes=(-nrY2pi).exp()
 ##             elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
 ##                 #kbes=RF(mpmath.mp.gammainc(kint,abs(nr)*fourpiY))
-##                 #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()                
+##                 #kbes=ckint.gamma_inc(abs(nr)*fourpiY).real()
 ##                 mpfr_mul(tmpr.value,nr.value,fourpiY.value,rnd_re)
 ##                 mpfr_abs(tmpr.value,tmpr.value,rnd_re)
 ##                 if is_int==1 or is_half_int==1 and  do_mpmath==0:
@@ -2767,9 +2819,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                             else:
 ##                                 incgamma_nint_c(kbes.value,kinti,tmpr.value)
 ##                         elif is_half_int==1:
-##                             incgamma_hint_c(kbes.value,kinti,tmpr.value)                                
+##                             incgamma_hint_c(kbes.value,kinti,tmpr.value)
 ##                     except ArithmeticError: ## In case we can not achieve the required error
-##                         kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
+##                         kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
 ##                 else:
 ##                     kbes = RF(mpmath.mp.gammainc(kint,tmpr).real)
 
@@ -2835,7 +2887,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                         print "alpha(",jcusp,")=",H.alpha(jcusp)[0]
 ##                         print "n=",n,nr," n=",n+Ms
 ##                         print "ppc=",ppc
-##                     for j in range(Ql):   
+##                     for j in range(Ql):
 ##                         if mpc_is_zero(Cvec[icusp][jcusp][j])==1:
 ##                             continue
 ##                         if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
@@ -2872,7 +2924,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                         mpc_add(summa.value,summa.value,tmpc.value,rnd)
 ##                         if verbose>3:
 ##                             print "tmpc=",tmpc
-##                             print "summa=",summa                 
+##                             print "summa=",summa
 ## #                        summa=summa+ch*tmpc
 ##                     if verbose>2:
 ##                         print "summa=",RR(summa.real()),RR(summa.imag())
@@ -2978,14 +3030,14 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                 if verbose>2:
 ##                     print "RHS3[{0},{1}]={2}".format(ni,k,RHS[ni,k])
 ##                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-##     if verbose>1: 
+##     if verbose>1:
 ##         for n in range(2):
 ##             print "V2(",n,n,")=",V[n,n]
 ##     # Clearing up allocated variables
 
 ##     for j in range(d):
 ##         sage_free(variable_a0_minus[j])
-##         sage_free(variable_a0_plus[j])        
+##         sage_free(variable_a0_plus[j])
 ##         sage_free(PPplus_cusp[j])
 ##         sage_free(PPplus_n[j])
 ##         sage_free(PPminus_cusp[j])
@@ -2998,7 +3050,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##         for l in range(num_ppminus):
 ##             mpc_clear(PPminus_values[j][l])
 ##         sage_free(PPminus_values[j])
-        
+
 ##     sage_free(PPplus_lal)
 ##     sage_free(PPplus_cusp)
 ##     sage_free(PPplus_n)
@@ -3064,10 +3116,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                                 for j in range(Ql):
 ##                                     mpc_clear(ef1[icusp][jcusp][n][j])
 ##                                 sage_free(ef1[icusp][jcusp][n])
-##                         sage_free(ef1[icusp][jcusp])                        
+##                         sage_free(ef1[icusp][jcusp])
 ##                 sage_free(ef1[icusp])
 ##         sage_free(ef1)
-        
+
 ##         #    print "V2(",44,n,")=",V[V.rows-1,n]
 ##     mpc_clear(iargpb_t)
 ##     mpc_clear(tmpc_t)
@@ -3168,7 +3220,7 @@ cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
         mpfr_set_si(xm,jj,rnd_re)
         mpfr_div_ui(xm,xm,Q4,rnd_re)
         mpfr_sub(xm,xm,mphalf,rnd_re)
-        xdb = mpfr_get_d(xm,rnd_re) 
+        xdb = mpfr_get_d(xm,rnd_re)
         a,b,c,d=pullback_to_psl2z_mat(xdb,ydb)
         mpfr_set(y1.value,Y.value,rnd_re)
         mpfr_set(x1.value,xm,rnd_re)
@@ -3186,7 +3238,7 @@ cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
         mpfr_mul(xm,xm,twopi.value,rnd_re)
         if verbose>2:
             print "Xm[",j,"]=",mpfr_get_d(xm,rnd_re)
-            
+
             print "xpb[",j,"]=",x1
             print "ypb[",j,"]=",y1
             print "Cv[",j,"]=",Cv[j]
@@ -3195,7 +3247,7 @@ cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
         mpfr_neg(twopiypb,twopiypb,rnd_re)
         mpfr_sqrt(sqypb,y1.value,rnd_re)
         for n from 0 <= n<= M:
-            mpfr_add_si(nnn,alpha.value,n,rnd_re) 
+            mpfr_add_si(nnn,alpha.value,n,rnd_re)
             mpfr_mul(tmpr,nnn,xm,rnd_re)
             mpfr_neg(tmpr,tmpr,rnd_re)
             mpc_set_fr(arg,tmpr,rnd)
@@ -3225,11 +3277,11 @@ cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
                     mpc_mul_fr(arg,arg,tmpr,rnd)
                 mpc_set(fak1._matrix[j][n],arg,rnd)
                 if n==1 and verbose>3:
-                    print "Ypb[",j,"]=",y1 
+                    print "Ypb[",j,"]=",y1
                     mpc_set(tmpcc.value,arg,rnd)
                     print "iargpb[",j,"]=",tmpcc
                     print "ef1[",n,j,0,"]=",fak1[j][n]
-                
+
     for n from 0 <= n <= M:
         for l from 0 <= l <= M:
             mpc_set_ui(V._matrix[n][l],0,rnd)
@@ -3249,45 +3301,45 @@ cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
                     print "ef1(",j,")=",CC(fak1[j][l].real(),fak1[j][l].imag())
                     print "cv(",j,")=",CC(Cv[j].real(),Cv[j].imag())
                     print "ef2(",j,")=",CC(fak2[j][n].real(),fak2[j][n].imag())
-         
 
-                
+
+
                 #mpfr_set(x1.value,kappa,rnd_re)
                 #V[n,l]=V[n,l]+Cv[j]*fak1[j,l]*fak2[j,n]
-    if H._verbose>1: 
+    if H._verbose>1:
         for n from 0<=n<2:
             print "V0(",n,n,")=",V[n,n]
     for n from 0 <= n <= M:
         for l from 0 <= l <= M:
             #mpc_div_fr(V._matrix[n][l],V._matrix[n][l],Qfak.value,rnd)
             V[n,l]=V[n,l]/Qfak
-    if H._verbose>1: 
+    if H._verbose>1:
         for n from 0<=n<2:
             print "V1(",n,n,")=",V[n,n]
     for n from 0 <= n <= M:
         #nn = RF(n)+alpha
-        mpfr_add_si(nnn,alpha.value,n,rnd_re) 
+        mpfr_add_si(nnn,alpha.value,n,rnd_re)
         if n==0 and alpha==0:
             if H._unitary_action==1:
                 #kap = Y**(weight*half)
                 mpfr_pow(kappa,Y.value,weight_half,rnd_re)
             else:
                 mpfr_set_ui(kappa,1,rnd_re)
-        else:            
+        else:
             mpfr_mul(tmpr,minus_twopiy.value,nnn,rnd_re)
             mpfr_exp(kappa,tmpr,rnd_re)
             if H._unitary_action==1:
                 mpfr_mul(tmpr,Y.value,nnn,rnd_re)
                 mpfr_pow(tmpr,tmpr,p.value,rnd_re)
                 mpfr_mul(tmpr,tmpr,sqrtY,rnd_re)
-                #kap = Y.sqrt()*(Y*nn)**p*(-twopi*nn*Y).exp() 
+                #kap = Y.sqrt()*(Y*nn)**p*(-twopi*nn*Y).exp()
                 mpfr_mul(kappa,kappa,tmpr,rnd_re)
             #V[n,n]=V[n,n]-kap
         mpc_sub_fr(V._matrix[n][n],V._matrix[n][n],kappa,rnd)
-    if H._verbose>1: 
+    if H._verbose>1:
         for n from 0<=n<2:
             print "V2(",n,n,")=",V[n,n]
-        
+
     mpfr_clear(nnn)
     mpfr_clear(tmpr)
     mpfr_clear(kappa)
@@ -3316,7 +3368,7 @@ cpdef setup_matrix_for_sl2z(H,RealNumber Y,int M, int Q,int verbose=2):
     W['alphas']=[H.alpha(0)]
     W['var_a+']=[]
     W['var_a-']=[]
- 
+
     return W
 
 
@@ -3327,7 +3379,7 @@ def solve_for_sl2z(W):
         V.delete_row(0)
         b = V.column(1)
         V.delete_column(0)
-        V.delete_column(0)    
+        V.delete_column(0)
     else:
         V.delete_row(1)
         b = V.column(1)
@@ -3343,29 +3395,29 @@ def solve_for_sl2z(W):
 ##     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
 ##     INPUT:
-    
+
 ##         - ``H`` -- Space of harmonic weak Maass forms
 ##         - ``Y`` -- height of horocycle used for sampling (mpmath real)
-##         - ``k`` -- weight (mpmath real) 
+##         - ``k`` -- weight (mpmath real)
 ##         - ``M`` -- integer
 ##         - ``Q`` -- integer > M
 ##         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
 ##     OUTPUT:
-    
+
 ##         - ``W`` -- dictionary
 ##         - ``W['Mf']`` -- M start
 ##         - ``W['nc']`` -- number of cusps
 ##         - ``W['Ms']`` -- M stop
-##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix
 ##         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
-    
-    
+
+
 ##     EXAMPLES::
 
 ##         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
-    
+
 
 ##     """
 ##     cdef int l,j,icusp,jcusp,n,ni,li,iMl,iMs,iMf,iQs,iQf,iQl,s,nc
@@ -3375,7 +3427,7 @@ def solve_for_sl2z(W):
 ##     #if( not test_ctx(Y,mpmath_ctx)):
 ##     #    raise TypeError," Need Mpmath reals as input!"
 ##     #GG=H._G
-##     if(not isinstance(Y_in,type(mpmath_ctx.mpf(1.0)))):        
+##     if(not isinstance(Y_in,type(mpmath_ctx.mpf(1.0)))):
 ##         Y = mpmath_ctx.mpf(Y_in)
 ##     else:
 ##         Y = Y_in
@@ -3423,7 +3475,7 @@ def solve_for_sl2z(W):
 ##     for pp in PPminus:
 ##         for icusp,n in pp:
 ##             if((icusp not in range(nc)) or n>0):
-##                 raise ValueError,"Principal parts are in wrong format!"            
+##                 raise ValueError,"Principal parts are in wrong format!"
 
 ##     # if we have a holomorphic function we  don't want any non-holomorphic principal parts
 ##     if(H._holomorphic):
@@ -3439,7 +3491,7 @@ def solve_for_sl2z(W):
 ##     #if(principal_parts.has_key('-')):
 ##     #    PPminus = principal_parts['-']
 ##     #else:
-##     #    PPminus = [{}] 
+##     #    PPminus = [{}]
 ##     if(not isinstance(PPplus,list)):
 ##         raise ValueError,"Need a list of (+) principal parts!"
 ##     if(not isinstance(PPminus,list)):
@@ -3447,7 +3499,7 @@ def solve_for_sl2z(W):
 ##     if(len(PPminus)<>len(PPplus)):
 ##         raise ValueError," Need equal number of holomorphic and non-holomorphic principal parts! Got:%s" % principal_parts
 ##     d = len(PPplus)
-##     if(H._verbose>0): 
+##     if(H._verbose>0):
 ##         print "PPplus=",PPplus
 ##         print "PPminus=",PPminus
 ##     variable_a0_plus=dict()
@@ -3462,14 +3514,14 @@ def solve_for_sl2z(W):
 ##         if(PPplus[0].has_key((j,0))):
 ##             variable_a0_plus[j]=False
 ##         if(PPminus[0].has_key((j,0))):
-##             variable_a0_minus[j]=False        
+##             variable_a0_minus[j]=False
 ##         ## They can not both be variable...
 ##         if(variable_a0_minus[j] and variable_a0_plus[j]):
 ##             print "Variables a(0)^+=",variable_a0_plus
 ##             print "Variables a(0)^-=",variable_a0_minus
 ##             raise ValueError,"Need to specify constant terms of the principal parts! Got: %s" % principal_parts
 
-##     if(H._verbose>0): 
+##     if(H._verbose>0):
 ##         print "Variables a(0)^+=",variable_a0_plus
 ##         print "Variables a(0)^-=",variable_a0_minus
 ##     RHS=mpmath_ctx.matrix(int(s),int(d))
@@ -3479,8 +3531,8 @@ def solve_for_sl2z(W):
 ##             nvec[l,icusp]=mpmath_ctx.mpf(l)+H.alpha(icusp)[0]
 ##         #print "nvec(",icusp,0,")=",nvec[0,icusp]
 ##     ef1=dict(); ef2=dict()
-    
-##     for n from iMs <=n <= iMf:        
+
+##     for n from iMs <=n <= iMf:
 ##         for icusp in range(nc):
 ##             inr=mpmath_ctx.mpc(0,nvec[n,icusp])
 ##             for j from iQs <= j <= iQf:
@@ -3531,7 +3583,7 @@ def solve_for_sl2z(W):
 ##                             print "V[0,0](",j,")=",V[ni,lj]
 ##                             print "xpb=",Xpb[icusp,jcusp,j]
 ##                             print "ef1(",j,")=",ef1[j,icusp,jcusp,l]
-##                             print "cv(",j,")=",Cv[icusp,jcusp,j] 
+##                             print "cv(",j,")=",Cv[icusp,jcusp,j]
 ##                             print "ef2(",j,")=",ef2[n,j,icusp]
 ##                         #if(ni==44):
 ##                         #    print l,j,tmp1,ef2[n,j,icusp]
@@ -3541,12 +3593,12 @@ def solve_for_sl2z(W):
 ##         print "Mi,Ms=",iMs,iMf
 ##         print "V1(",0,0,")=",V[0,0]
 ##     for n from 0<=n< V.rows:
-##         for l from 0 <= l < V.cols:        
+##         for l from 0 <= l < V.cols:
 ##             V[n,l]=V[n,l]/Qfak
-##     if(H._verbose>2): 
-##         for n from 0<=n< V.rows:   
+##     if(H._verbose>2):
+##         for n from 0<=n< V.rows:
 ##             print "V1(",n,n,")=",V[n,n]
-            
+
 ##     for n from iMs<=n <=iMf:
 ##         for icusp from int(0)<=icusp<nc:
 ##             nr=nvec[n,icusp]
@@ -3619,10 +3671,10 @@ def solve_for_sl2z(W):
 ##                     RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.mp.power(Y,kint)
 ##                     #print "subtracting:",ppc_minus*mpmath.power(Y,kint)
 ##                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
-##     if(H._verbose>2): 
-##         for n from 0<=n< V.rows:   
+##     if(H._verbose>2):
+##         for n from 0<=n< V.rows:
 ##             print "V2(",n,n,")=",V[n,n]
-##     #for n from 0<=n< V.rows:   
+##     #for n from 0<=n< V.rows:
 ##     #    print "V2(",44,n,")=",V[V.rows-1,n]
 ##     W=dict()
 ##     W['var_a+']=variable_a0_plus
@@ -3648,29 +3700,29 @@ def solve_for_sl2z(W):
 ##     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
 
 ##     INPUT:
-    
+
 ##         - ``H`` -- Space of harmonic weak Maass forms
 ##         - ``Y`` -- height of horocycle used for sampling (mpmath real)
-##         - ``k`` -- weight (mpmath real) 
+##         - ``k`` -- weight (mpmath real)
 ##         - ``M`` -- integer
 ##         - ``Q`` -- integer > M
 ##         - ``PP``-- dict : Principal parts at cusp nr. j = \Sum_ PP(j,n) q^[-n]
 
 ##     OUTPUT:
-    
+
 ##         - ``W`` -- dictionary
 ##         - ``W['Mf']`` -- M start
 ##         - ``W['nc']`` -- number of cusps
 ##         - ``W['Ms']`` -- M stop
-##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix 
+##         - ``W['V']``  -- ((Ms-Mf+1)*num_cusps)**2 matrix
 ##         - ``W['RHS']``  -- ((Ms-Mf+1)*num_cusps) matrix
-    
-    
+
+
 ##     EXAMPLES::
 
 ##         sage: setup_matrix_for_harmonic_Maass_waveforms_sv(MySubgroup(Gamma0(1)),mpmath.mpf(0.5),mpmath.mpf(0),10,20,{(0,-1):1})
 
-    
+
 
 ##     """
 ##     cdef int l,j,icusp,jcusp,n,ni,li,iMl,iMs,iMf,iQs,iQf,iQl,s,nc
@@ -3694,7 +3746,7 @@ def solve_for_sl2z(W):
 ##     nc=int(H._group.ncusps())
 ##     two_const_terms=False
 ##     #if(H._weak and not H._holomorphic and not H.two_constant_terms):
-##     #   
+##     #
 ##     two_const_terms=True
 ##     if(Q<M):
 ##         Q=M+20
@@ -3737,7 +3789,7 @@ def solve_for_sl2z(W):
 ##         for i in range(len(principal_parts)):
 ##             PP.append(principal_parts[i]['+'])
 ##             PPminus.append(principal_parts[i]['-'])
-            
+
 ##             # if we have a holomorphic function we  don't want any non-holomorphic principal parts
 ##     if(H._holomorphic):
 ##         print "H is holomorphic!"
@@ -3771,7 +3823,7 @@ def solve_for_sl2z(W):
 ##             variable_a0_plus[j]=False
 ##         if(PPminus[0].has_key((j,0))):
 ##             variable_a0_minus[j]=False
-            
+
 ##         ## They can not both be variable...
 ##         if(variable_a0_minus[j] and variable_a0_plus[j]):
 ##             print "Variables a(0)^+=",variable_a0_plus
@@ -3788,8 +3840,8 @@ def solve_for_sl2z(W):
 ##             #print "nvec(",icusp,0,")=",nvec[0,icusp]
 ##     ef1=dict() #; ef1m=dict();
 ##     ef2=dict() #; ef2m=dict()
-    
-##     for n from iMs <=n <= iMf:        
+
+##     for n from iMs <=n <= iMf:
 ##         for icusp in range(nc):
 ##             inr=mpmath_ctx.mpc(0,nvec[n,icusp])
 ##             for j from iQs <= j <= iQf:
@@ -3806,11 +3858,11 @@ def solve_for_sl2z(W):
 ##                     if(nr>mpmath_ctx.eps()):
 ##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)
 ##                     elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):
-##                         tmp=abs(nrfourpi)*Ypb[icusp,jcusp,j]                        
+##                         tmp=abs(nrfourpi)*Ypb[icusp,jcusp,j]
 ##                         ef1[j,icusp,jcusp,n]=mpmath_ctx.exp(iargpb)*mpmath_ctx.gammainc(kint,tmp)
 ##                     elif(nr<-mpmath_ctx.eps()):
 ##                         ef1[j,icusp,jcusp,n]=zero
-##                     else: # nr = 0 
+##                     else: # nr = 0
 ##                         ## WAs commented out
 ##                         if(variable_a0_plus[jcusp]):
 ##                             ef1[j,icusp,jcusp,n]=one
@@ -3833,7 +3885,7 @@ def solve_for_sl2z(W):
 ##                     tmp1=ef1[j,icusp,jcusp,l]*ch
 ##                     if(tmp1.ae(zero)):
 ##                         continue
-##                     for n from iMs <= n <= iMf:                        
+##                     for n from iMs <= n <= iMf:
 ##                         ni=iMl*icusp+iMf+n #-iMs
 ##                         V[ni,lj] = V[ni,lj] + tmp1*ef2[n,j,icusp]
 ##                         if(H._verbose > 1 and ((n==0 and icusp==2) or (l==0 and  jcusp==2)) and (j>0 and j<5)):
@@ -3846,7 +3898,7 @@ def solve_for_sl2z(W):
 ##                             #print "xpb=",Xpb[icusp,jcusp,j]
 ##                             print "tmp1(",j,")=",tmp1
 ##                             #print "tmp1p(",j,")=",tmp1p
-##                             print "cv(",j,")=",Cv[icusp,jcusp,j] 
+##                             print "cv(",j,")=",Cv[icusp,jcusp,j]
 ##                             print "ef2(",j,")=",ef2[n,j,icusp]
 ##                             #print "ef2p",j,")=",ef2[n,j,icusp]
 ##                         #if(ni==44):
@@ -3854,15 +3906,15 @@ def solve_for_sl2z(W):
 ##                         #    print V[ni,lj]
 ##     if H._verbose>0:
 ##         print "Mi,Ms=",iMs,iMf
-##     if(H._verbose>1): 
+##     if(H._verbose>1):
 ##         print "V1(",0,0,")=",V[0,0]
 ##     for n from 0<=n< V.rows:
-##         for l from 0 <= l < V.cols:        
+##         for l from 0 <= l < V.cols:
 ##             V[n,l]=V[n,l]/Qfak
-##     if(H._verbose>2): 
-##         for n from 0<=n< V.rows:   
+##     if(H._verbose>2):
+##         for n from 0<=n< V.rows:
 ##             print "V1(",n,n,")=",V[n,n]
-            
+
 ##     for n from iMs<= n <=iMf:
 ##         for icusp from int(0)<=icusp<nc:
 ##             nr=nvec[n,icusp]
@@ -3870,7 +3922,7 @@ def solve_for_sl2z(W):
 ##             ni=iMl*icusp+iMf+n #-iMs
 ##             if(nr>mpmath_ctx.eps()):
 ##                 kbes=mpmath_ctx.exp(-nrY2pi)
-##             elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):                
+##             elif(nr<-mpmath_ctx.eps() and not H._holomorphic and H._weak):
 ##                 kbes=mpmath_ctx.gammainc(kint,abs(nr)*fourpiY)*mpmath_ctx.exp(-nrY2pi)
 ##             elif(nr<-mpmath_ctx.eps()):
 ##                 kbes=zero
@@ -3908,8 +3960,8 @@ def solve_for_sl2z(W):
 ##                 for jcusp in range(nc):
 ##                     if(H.alpha(jcusp)[1]<>1):
 ##                         continue
-##                     ppc_minus = zero                    
-##                     ppc_plus  = zero                    
+##                     ppc_minus = zero
+##                     ppc_plus  = zero
 ##                     if( (not variable_a0_minus[jcusp]) and PPminus[k].has_key((jcusp,0))):
 ##                         ppc_minus = mpmath_ctx.mpc(PPminus[k][(jcusp,0)])
 ##                         if(not ppc_minus.ae(zero)):
@@ -3923,7 +3975,7 @@ def solve_for_sl2z(W):
 ##                                 summa_minus=summa_minus+ch*tmpc
 ##                             summa=summa+summa_minus*ppc_minus
 ##                     if( (not variable_a0_plus[jcusp]) and PP[k].has_key((jcusp,0))):
-##                         ppc_plus = mpmath_ctx.mpc(PP[k][(jcusp,0)])                            
+##                         ppc_plus = mpmath_ctx.mpc(PP[k][(jcusp,0)])
 ##                         summa_plus=zero
 ##                         if(not ppc_plus.ae(zero)):
 ##                             for j from Qs <= j <= Qf:
@@ -3945,7 +3997,7 @@ def solve_for_sl2z(W):
 ##                             RHS[ni,k]=RHS[ni,k]-ppc_minus*mpmath.power(Y,kint)
 
 
-                        
+
 ##                 # print "summa(",ni,")=",RHS[ni,k]
 ##     if(PPminus[k].has_key((icusp,n))):
 ##                     ppc_minus = mpmath_ctx.mpc(PPminus[k][(icusp,n)])
@@ -3953,10 +4005,10 @@ def solve_for_sl2z(W):
 ##                     print "subtracting:",ppc_minus*mpmath.power(Y,kint)
 ##                     #print "RHS(",ni,")-=",ppc*mpmath_ctx.exp(-nrY2pi)
 ##                 ## until here
-##     if(H._verbose>2): 
-##         for n from 0<=n< V.rows:   
+##     if(H._verbose>2):
+##         for n from 0<=n< V.rows:
 ##             print "V2(",n,n,")=",V[n,n]
-##     #for n from 0<=n< V.rows:   
+##     #for n from 0<=n< V.rows:
 ##     #    print "V2(",44,n,")=",V[V.rows-1,n]
 ##     W=dict()
 ##     W['space']=H
@@ -3965,7 +4017,7 @@ def solve_for_sl2z(W):
 ##     W['alphas']=H.alphas()
 ##     W['V']=V
 ##     W['RHS']=RHS
-##     W['Ms']=Ms 
+##     W['Ms']=Ms
 ##     W['Mf']=Mf
 ##     W['Ml']=Ml
 ##     W['nc']=nc
@@ -3993,7 +4045,7 @@ cpdef check_principal_parts(H,principal_parts):
     for pp in PPminus:
         for icusp,n in pp:
             if((icusp not in range(nc)) or n>0):
-                raise ValueError,"Principal parts are in wrong format! PP-={0}".format(PPminus)            
+                raise ValueError,"Principal parts are in wrong format! PP-={0}".format(PPminus)
 
     # if we have a holomorphic function we  don't want any non-holomorphic principal parts
     if H._holomorphic:
@@ -4006,7 +4058,7 @@ cpdef check_principal_parts(H,principal_parts):
         raise ValueError,"Need a list of (-) principal parts!"
     if len(PPminus)<>len(PPplus):
         raise ValueError," Need equal number of holomorphic and non-holomorphic principal parts! Got:%s" % principal_parts
-    if H._verbose>0: 
+    if H._verbose>0:
         print "PPplus=",PPplus
         print "PPminus=",PPminus
     variable_a0_plus=dict()
@@ -4021,14 +4073,14 @@ cpdef check_principal_parts(H,principal_parts):
         if PPplus[0].has_key((j,0)):
             variable_a0_plus[j]=False
         if PPminus[0].has_key((j,0)):
-            variable_a0_minus[j]=False        
+            variable_a0_minus[j]=False
         ## They can not both be variable...
         if variable_a0_minus[j] and variable_a0_plus[j]:
             print "Variables a(0)^+=",variable_a0_plus
             print "Variables a(0)^-=",variable_a0_minus
             raise ValueError,"Need to specify constant terms of the principal parts! Got: %s" % principal_parts
 
-    if H._verbose>0: 
+    if H._verbose>0:
         print "Variables a(0)^+=",variable_a0_plus
         print "Variables a(0)^-=",variable_a0_minus
         print "alphas=",H.alphas()
@@ -4063,9 +4115,9 @@ cpdef setup_and_solve_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_
     N['Ml']=W['Ml']
     N['var_a+']=W['var_a+']
     N['var_a-']=W['var_a-']
-    C = solve_system_for_harmonic_weak_Maass_waveforms_mp(N,V1,RHS1) 
+    C = solve_system_for_harmonic_weak_Maass_waveforms_mp(N,V1,RHS1)
     return C
-    
+
 cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_dense V1,Matrix_complex_dense RHS1,gr=0):
     r"""
     Solve the linear system to obtain the Fourier coefficients of Maass forms
@@ -4083,10 +4135,10 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
         - ``N['SetCs']``   -- Which coefficients are set and their values
         - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
         - ``N['num_set']`` -- Number of coefficients which are set
-        
+
 
     OUTPUT:
-    
+
     - ``C`` -- Fourier coefficients
 
     EXAMPLES::
@@ -4103,14 +4155,14 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
 
     If M is too large and the precision is not high enough the matrix might be numerically singular
 
-        W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)  
+        W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)
         sage: C=solve_system_for_Maass_waveforms(W,N)
         Traceback (most recent call last)
         ...
         ZeroDivisionError: Need higher precision! Use > 23 digits!
 
     Increasing the precision helps
-    
+
         sage: mpmath.mp.dps=25
         sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
         sage: C=solve_system_for_Maass_waveforms(W,N)
@@ -4170,13 +4222,13 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
         if verbose>0:
             print "SetClist_pos=",SetClist
         ## Then we check the zeroth coefficients
-        ## Note that these should already be in the right hand side.    
+        ## Note that these should already be in the right hand side.
         for r in range(nc):
             if(alphas[r][1]==1):
                 if( (not variable_a_plus[j][r]) and (not variable_a_minus[j][r])):
                     nr = r*Ml
                     #if(SetCs_neg.get(j,{}).has_key((r,0))):
-                    SetClist[j][nr]=CF(0) #SetCs_neg[j][(r,0)]) 
+                    SetClist[j][nr]=CF(0) #SetCs_neg[j][(r,0)])
         num_set=len(SetClist[0].keys())
     if verbose>0:
         print "SetClist_tot=",SetClist
@@ -4190,7 +4242,7 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
     l=RHS1.ncols()
     if(l>1 and l<>comp_dim):
         raise ValueError,"Incorrect number of right hand sides!"
-        
+
     MS2 = MatrixSpace(CF,int(Ml*nc-num_set),int(Ml*nc-num_set))
     LHS = Matrix_complex_dense(MS2,0,True,True)
     #LHS=mpmath_ctx.matrix(int(Ml*nc-num_set),int(Ml*nc-num_set))
@@ -4202,20 +4254,20 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
     setc_values = <mpc_t**>sage_malloc(sizeof(mpc_t*)*comp_dim)
     setc_n =<int**>sage_malloc(sizeof(int*)*comp_dim)
     if setc_values==NULL: raise MemoryError
-    if setc_n==NULL: raise MemoryError        
+    if setc_n==NULL: raise MemoryError
     for r in range(comp_dim):
         setc_values[r]=NULL
         setc_values[r] = <mpc_t*>sage_malloc(sizeof(mpc_t)*num_set)
         if setc_values[r]==NULL: raise MemoryError
         setc_n[r]=NULL
         setc_n[r] = <int*>sage_malloc(sizeof(int)*num_set)
-        if setc_n[r]==NULL: raise MemoryError        
+        if setc_n[r]==NULL: raise MemoryError
         i = 0
         for j in SetClist[r].keys():
             setc_n[r][i]=int(j)
-            i+=1            
+            i+=1
         assert i==num_set
-        for j in range(num_set):            
+        for j in range(num_set):
             mpc_init2(setc_values[r][j],prec)
             tmpc = CF(SetClist[r][setc_n[r][j]])
             mpc_set(setc_values[r][j],tmpc.value,rnd)
@@ -4239,7 +4291,7 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
         for j in range(num_set):
             if setc_n[0][j]==r+Ms:
                 isin=1
-                break       
+                break
         #if(SetClist[0].keys().count(r+Ms)>0):
         if isin==1:
             roffs=roffs+1
@@ -4248,7 +4300,7 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
             ## Assume well-formed...
             mpc_set(RHS._matrix[r-roffs][fn_j],RHS1._matrix[r][fn_j],rnd)
             mpc_neg(RHS._matrix[r-roffs][fn_j],RHS._matrix[r-roffs][fn_j],rnd)
-            
+
             #for c in SetClist[fn_j].keys():
             for j in range(num_set):
                 #vv=CF(SetClist[fn_j][c])
@@ -4259,12 +4311,12 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
                 mpc_sub(RHS._matrix[r-roffs][fn_j],RHS._matrix[r-roffs][fn_j],tmp.value,rnd)
                 #RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
-        for k in range(ncols):            
+        for k in range(ncols):
             isin=0
             for j in range(num_set):
                 if setc_n[0][j]==k+Ms:
                     isin=1
-                    break           
+                    break
             #if(SetClist[0].keys().count(k+Ms)>0):
             if isin==1:
                 coffs=coffs+1
@@ -4297,8 +4349,8 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
         raise ZeroDivisionError,"Can not raise precision enough to solve system! Should need > %s digits! and %s digits was not enough!" % (t,dps)
     X=dict()
     for fn_j in range(comp_dim):
-        X[fn_j] = dict() 
-        X[fn_j][0] = dict() 
+        X[fn_j] = dict()
+        X[fn_j][0] = dict()
         v = RHS.column(fn_j)
         if verbose>0:
             print "len(B)=",len(v)
@@ -4324,7 +4376,7 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
                     if verbose>1:
                         print "We have set ",nn
                     roffs=roffs+1
-                    X[fn_j][0][i][key]=SetClist[fn_j][nn] 
+                    X[fn_j][0][i][key]=SetClist[fn_j][nn]
                     if verbose>0:
                         print "X[",fn_j,",",i,",",key,"]=",SetClist[fn_j][nn]
                         print "nn=",nn

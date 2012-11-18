@@ -921,21 +921,17 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     if verbose>0:
         print "Ml, Ql =",Ml, Ql
     for n in range(Ml):
-        for jjcusp in prange(2*nc, nogil=True):
-            if jjcusp % 2 ==0:
-                jcusp=jjcusp/2
+        for jcusp in range(nc):
                 mpfr_set(nr,nvec[jcusp][n],rnd_re)
                 setcossin2(ef2cosv[jcusp][n],ef2sinv[jcusp][n],Xm,nr,Ql,prec)
                 if verbose>2:
                     printf("done with ef2cosv[%d][%d], ef2sinv[%d][%d]\n",jcusp,n)
                     printf("ef2cosv[%d][%d][0]=%f\n",jcusp,n,mpfr_get_flt(ef2cosv[jcusp][n][0],rnd_re))
-            else:
-                jcusp=(jjcusp-1)/2
                 mpfr_set(nr,nvec[jcusp][n],rnd_re)
                 #nr=nvec[n,jcusp]
                 mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
                 #nrfourpi=nr*fourpi
-                with gil:    
+                if True:    
                     for icusp in xrange(nc):
                         if verbose>2:
                             printf("jcusp=%i\n",jcusp)
@@ -1005,8 +1001,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                     ## If none of them are variables this means
                                     ## that they are both set in the principal parts
                                     mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
-            if verbose>1:
-                printf("done with inner loop for n=%d\n",n)
     cdef int nrows,ncols
     nrows = int(V.nrows()); ncols = int(V.ncols())
     if verbose>1:

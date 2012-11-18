@@ -573,11 +573,11 @@ cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
     #fak=f2mpmath.mp.exp(-two*pi*M*y)
     #return mpmath.mpf(K1)*fak
 
-cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1):
+cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1,**kwds):
     if H.group().ncusps()<=2 and use_sym==1:
-        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version)
+        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version,**kwds)
     else:
-        return setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,M,Q,principal_parts,version)
+        return setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,M,Q,principal_parts,version,**kwds)
     
 @cython.cdivision(True)
 @cython.boundscheck(False)

@@ -12,6 +12,7 @@ MANIFEST
 *.cpp
 *~
 *.aux
+*.html
 *.dvi
 *.html
 *.log

@@ -23,7 +23,7 @@ Used by routines in atomorphic_forms.py
 include "stdsage.pxi"  
 include "cdefs.pxi"
 include "sage/rings/mpc.pxi"
-include "mpfr_loc.pxi"
+include "../../rings/mpfr_loc.pxi"
 
 cdef extern from "stdio.h":
     void printf(char *fmt,...) nogil
@@ -46,6 +46,7 @@ from sage.libs.pari.gen cimport GEN
 #cimport sage.structure.element
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.modform.maass.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
+from psage.rings.mpc_extras cimport _mpc_div,_mpc_mul,_mpc_set,_mpc_sub
 
 from sage.structure.element cimport Element, ModuleElement, RingElement
 from sage.all import MatrixSpace,vector,ComplexField
@@ -709,6 +710,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef mpfr_t*** Xpb=NULL
     cdef mpfr_t*** Ypb=NULL
     cdef mpfr_t**** RCvec=NULL
+    cdef int*** CSvec=NULL
     Xm = <mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ql )
     if Xm==NULL: raise MemoryError
     for n in range(Ql):
@@ -733,6 +735,15 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
                 #Ypb[i][j][n]=<double>0
+    CSvec = <int***>sage_malloc(sizeof(int**) * nc )
+    if CSvec==NULL: raise MemoryError
+    for i from 0<=i<nc:
+        CSvec[i] = <int**>sage_malloc(sizeof(int*) * nc )
+        if CSvec[i]==NULL:
+            raise MemoryError
+        for j from 0<=j<nc:
+            CSvec[i][j] = <int*>sage_malloc(sizeof(int) * Ql )
+            if CSvec[i][j]==NULL: raise MemoryError
     RCvec = <mpfr_t****>sage_malloc(sizeof(Xpb) * nc )
     if RCvec==NULL: raise MemoryError
     for i from 0<=i<nc:
@@ -752,7 +763,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 mpfr_set_si(RCvec[i][j][n][1],0,rnd_re)
                 mpfr_set_si(RCvec[i][j][n][2],0,rnd_re)
                 #Cvec[i][j][n]=<double complex>0
-    pullback_pts_mpc_new_c_sym(H,Qs,Qf,Y,Xm,Xpb,Ypb,RCvec)
+    pullback_pts_mpc_new_c_sym(H,Qs,Qf,Y,Xm,Xpb,Ypb,RCvec,CSvec)
     #pb=pullback_pts_mp(H,Qs,Qf,Y,weight)
     #Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
     s=nc*Ml
@@ -1011,7 +1022,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             mpc_init2(V._matrix[n][l],prec)
             mpc_set_ui(V._matrix[n][l],0,rnd)
     for l in prange(Ml, nogil=True):
-        setV(V._matrix, RCvec,besv,Ypb,ef1cosv,ef1sinv,ef2cosv,ef2sinv,nc, Ql, Ml, l, prec)
+        setV(V._matrix, RCvec,CSvec,besv,Ypb,ef1cosv,ef1sinv,ef2cosv,ef2sinv,nc, Ql, Ml, l, prec)
                                         
     if verbose>1:
         print "Mi,Ms=",Ms,Mf
@@ -1327,6 +1338,14 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                         sage_free(Xpb[i][j])
                 sage_free(Xpb[i])
         sage_free(Xpb)
+    if CSvec<>NULL:
+        for i in range(nc):
+            if CSvec[i]<>NULL:
+                for j in range(nc):
+                    if CSvec[i][j]<>NULL:
+                        sage_free(CSvec[i][j])
+                sage_free(CSvec[i])
+        sage_free(CSvec)
     if RCvec<>NULL:
         for i in range(nc):
             if RCvec[i]<>NULL:
@@ -1463,10 +1482,13 @@ cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Q
         mpfr_sin(lsin[j],tmpar,rnd_re)
     mpfr_clear(tmpar)
 
-cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec) nogil:
+cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec) nogil:
     cdef mpfr_t tmpar,tmpar1,tmpab,tmpcos,tmpsin
     cdef mpc_t tmpc_t
     cdef int jcusp,lj,icusp,j,n, ni
+    cdef mpc_t t[2]
+    mpc_init2(t[0],prec)
+    mpc_init2(t[1],prec)
     mpc_init2(tmpc_t,prec)
     mpfr_init2(tmpcos,prec)
     mpfr_init2(tmpsin,prec)
@@ -1488,7 +1510,8 @@ cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb,
                     #mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
                     #mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)
                     #printf("ef2cosv[%d][%d][%d]=%f\n",icusp,n,j,mpfr_get_flt(ef2cosv[icusp][n][j],rnd_re))
-                    if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                    #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
+                    if CSvec[icusp][jcusp][j] == 0:
                         #mpfr_cos(tmpar1,tmpar1,rnd_re)
                         mpfr_mul(tmpcos,ef2cosv[icusp][n][j],ef1cosv[icusp][jcusp][l][j],rnd_re)
                         mpfr_mul(tmpsin,ef2sinv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
@@ -1501,10 +1524,10 @@ cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb,
                         mpfr_mul(tmpsin,ef2cosv[icusp][n][j],ef1sinv[icusp][jcusp][l][j],rnd_re)
                         mpfr_add(tmpar1,tmpcos,tmpsin,rnd_re)
                         mpc_set_si_si(tmpc_t,0,2,rnd)
-                        mpc_mul_fr(tmpc_t,tmpc_t,tmpar1,rnd)             
-                    mpc_mul_fr(tmpc_t,tmpc_t,tmpab,rnd)                         
+                        _mpc_mul_fr(&tmpc_t,tmpc_t,tmpar1,rnd,rnd_re)             
+                    _mpc_mul_fr(&tmpc_t,tmpc_t,tmpab,rnd,rnd_re)                         
                     #tmp2=tmp1*ef2[n,j,icusp]
-                    mpc_add(Vmat[ni][lj],Vmat[ni][lj],tmpc_t,rnd)
+                    _mpc_add(&Vmat[ni][lj],Vmat[ni][lj],tmpc_t,rnd)
                         #V[ni,lj]=V[ni,lj]+tmp1*
                         # if verbose > 1 and ni==0 and lj==10:
                         #     print "-------------------"
@@ -1517,7 +1540,14 @@ cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb,
                         #     #print "cv(",j,")=",ch #CC(ch.real(),ch.imag())
                         #     mpfr_set(tmpr.value,ef2[icusp][n][j],rnd_re)
                         #     print "ef2(",j,")=",tmpr
-   
+    mpc_clear(t[0])
+    mpc_clear(t[1])
+    mpc_clear(tmpc_t)
+    mpfr_clear(tmpcos)
+    mpfr_clear(tmpsin)
+    mpfr_clear(tmpar)
+    mpfr_clear(tmpar1)
+    mpfr_clear(tmpab)   
 
 ### Version to use when we can not use symmetry
 

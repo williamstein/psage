@@ -4,7 +4,7 @@ include "cdefs.pxi"
 
 from sage.libs.mpfr cimport *
 
-include "mpfr_loc.pxi"
+include "../../rings/mpfr_loc.pxi"
 
 import cython
 from libc.stdlib cimport abort, malloc, free

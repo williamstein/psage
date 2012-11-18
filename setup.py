@@ -186,6 +186,10 @@ for g in [1, 2]:
     ext_modules.append(e)
 ## Fredrik Stroemberg: my additional modules.
 my_extensions = [
+    Extension('psage.rings.mpc_extras',
+              sources = ['psage/rings/mpc_extras.pyx'],
+              libraries = ['m','gmp','mpfr','mpc']),
+
     Extension('psage.modform.maass.inc_gamma',
               ['psage/modform/maass/inc_gamma.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
@@ -212,7 +216,7 @@ my_extensions = [
     Extension('psage.modform.maass.automorphic_forms_alg',
               ['psage/modform/maass/automorphic_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-            include_dirs = numpy_include_dirs,
+              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
     Extension('psage.modform.maass.hilbert_modular_group_alg',
@@ -228,10 +232,6 @@ my_extensions = [
               ['psage/modform/maass/vv_harmonic_weak_maass_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs),
-    Extension('psage.rings.mpc_extras',
-              sources = ['psage/rings/mpc_extras.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-    
     Extension('psage.modform.maass.maass_forms_phase2',
                   sources=['psage/modform/maass/maass_forms_phase2.pyx'],
                   libraries = ['m','gmp','mpfr','mpc'],

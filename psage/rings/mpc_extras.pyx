@@ -5,22 +5,27 @@ Note: When the builtin mpc_mul etc. catch up to mine you can delete these routin
 
 """
 
+include "sage/ext/stdsage.pxi"
+#include "sage/ext/cdefs.pxi"
+#include "sage/rings/mpc.pxi"
+
+
 from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.real_mpfr cimport RealNumber
 from sage.rings.real_mpfr import RealField
+#from sage.libs.mpfr cimport *
 
+include "mpfr_loc.pxi"
 
-
-cdef inline void mpc_z_to_pol(mpc_t * res, mpc_t z,mpfr_rnd_t rnd_re):
+cdef inline void mpc_z_to_pol(mpc_t * res, mpc_t z,mpfr_rnd_t rnd_re)  nogil:
     #assert_nsame(res[0].re, z.re)
     mpfr_hypot(res[0].re, z.re, z.im, rnd_re)
     mpfr_atan2(res[0].im, z.im, z.re, rnd_re)
 
 
-
 ## This is about 20% faster than standard mpc_mul
-cdef inline void _mpc_mul(mpc_t* z, mpc_t a, mpc_t b, mpc_t *t, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef inline void _mpc_mul(mpc_t* z, mpc_t a, mpc_t b, mpc_t *t, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
     # __inline__ void compl_mul(complex_t * z, complex_t a, complex_t b)
     #assert_nsame(z->re, a.re);
     #assert_nsame(z->re, b.re);
@@ -78,14 +83,14 @@ cdef inline void _mpc_mul(mpc_t* z, mpc_t a, mpc_t b, mpc_t *t, mpc_rnd_t rnd, m
 
 
 
-cdef inline void _mpc_mul_fr(mpc_t* z, mpc_t a, mpfr_t b, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef inline void _mpc_mul_fr(mpc_t* z, mpc_t a, mpfr_t b, mpc_rnd_t rnd, mpfr_rnd_t rnd_re)  nogil:
     cdef int kk
     mpfr_mul(z[0].re, a.re, b, rnd_re)
     mpfr_mul(z[0].im, a.im, b, rnd_re)
     return
 
 
-cdef inline void _mpc_div(mpc_t * z, mpc_t a, mpc_t b, mpc_t t[2], mpfr_rnd_t rnd_re):
+cdef inline void _mpc_div(mpc_t * z, mpc_t a, mpc_t b, mpc_t t[2], mpfr_rnd_t rnd_re)  nogil:
     r"""
 
     
@@ -176,32 +181,32 @@ cdef inline void _mpc_div(mpc_t * z, mpc_t a, mpc_t b, mpc_t t[2], mpfr_rnd_t rn
 
 
 
-cdef inline void _mpc_add(mpc_t *res, mpc_t a, mpc_t b,mpfr_rnd_t rnd_re):
+cdef inline void _mpc_add(mpc_t *res, mpc_t a, mpc_t b,mpfr_rnd_t rnd_re)  nogil:
     mpfr_add(res[0].re, a[0].re, b[0].re, rnd_re)
     mpfr_add(res[0].im, a[0].im, b[0].im, rnd_re)
 
 
-cdef inline void _mpc_sub(mpc_t *res, mpc_t a, mpc_t b,mpfr_rnd_t rnd_re):
+cdef inline void _mpc_sub(mpc_t *res, mpc_t a, mpc_t b,mpfr_rnd_t rnd_re)  nogil:
     mpfr_sub(res[0].re, a[0].re, b[0].re, rnd_re)
     mpfr_sub(res[0].im, a[0].im, b[0].im, rnd_re)
 
 
-cdef inline void _mpc_div_fr(mpc_t * r, mpc_t a, mpfr_t d, mpfr_rnd_t rnd):
+cdef inline void _mpc_div_fr(mpc_t * r, mpc_t a, mpfr_t d, mpfr_rnd_t rnd)  nogil:
     mpfr_div(r[0].re, a[0].re, d, rnd)
     mpfr_div(r[0].im, a[0].im, d, rnd)
 
 
-cdef inline void _mpc_div_ui(mpc_t *res,mpc_t z, unsigned int i, mpfr_rnd_t rnd_re):
+cdef inline void _mpc_div_ui(mpc_t *res,mpc_t z, unsigned int i, mpfr_rnd_t rnd_re)  nogil:
     mpfr_div_ui(res[0].re,z.re,i,rnd_re)
     mpfr_div_ui(res[0].im,z.im,i,rnd_re)
 
 
 
-cdef inline void _mpc_set(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re):
+cdef inline void _mpc_set(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re)  nogil:
     mpfr_set(res[0].re, z[0].re,rnd_re)
     mpfr_set(res[0].im, z[0].im,rnd_re)
 
-cdef inline void _mpc_conj(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re):
+cdef inline void _mpc_conj(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re)  nogil:
     mpfr_set(res[0].re, z[0].re,rnd_re)
     mpfr_set(res[0].im, z[0].im,rnd_re)
     mpfr_neg(res[0].im, res[0].im,rnd_re)
@@ -210,7 +215,7 @@ cdef inline void _mpc_conj(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re):
 #       we don't need to make any new versions of these
 
 
-cdef inline void _pochammer(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+cdef inline void _pochammer(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re)  nogil:
     r"""
     Pochammer symbol
     """
@@ -265,7 +270,7 @@ cdef print_mpfr(mpfr_t x):
     return str(xx)
 
 
-cdef void mpc_sign(mpc_t *res, mpc_t *z,mpfr_rnd_t rnd_re):
+cdef void mpc_sign(mpc_t *res, mpc_t *z,mpfr_rnd_t rnd_re)  nogil:
     r"""
     The complex sign function. Returns z/abs(z)=exp(i*Arg(z))
     """

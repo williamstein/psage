@@ -573,15 +573,15 @@ cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
     #fak=f2mpmath.mp.exp(-two*pi*M*y)
     #return mpmath.mpf(K1)*fak
 
-cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1,**kwds):
+cpdef setup_matrix_for_harmonic_Maass_waveforms(H,Y_in,int M,int Q,principal_parts,use_sym=1,version=1,threads=1):
     if H.group().ncusps()<=2 and use_sym==1:
-        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version,**kwds)
+        return setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y_in,M,Q,principal_parts,version,threads)
     else:
-        return setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,M,Q,principal_parts,version,**kwds)
+        return setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,M,Q,principal_parts,version,threads)
     
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int Q,principal_parts,version=1):
+cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int Q,principal_parts,version=1,threads=1):
     r"""
 
     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.
@@ -1521,7 +1521,7 @@ cdef void setV(mpc_t **Vmat, mpfr_t**** RCvec, mpfr_t **** besv, mpfr_t *** Ypb,
 
 ### Version to use when we can not use symmetry
 
-cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,principal_parts,version=1):
+cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,principal_parts,version=1,threads=1):
     r"""
 
     Set up the matrix for the system of equations giving the Fourier coefficients of a Harmonic Maass waveforms.

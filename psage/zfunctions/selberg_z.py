@@ -2079,7 +2079,7 @@ class TransferOperator(Parent):
                     
 
 
-def Gauss_approximation(self,s,M):
+def Gauss_approximation(s,M):
     r"""
     Try the approximation (for the Gauss map) as suggested by Zagier in 'New points of view on Selberg Zeta function' 2002.
 
@@ -2107,7 +2107,7 @@ def Gauss_approximation(self,s,M):
 
     
 
-def eigenvalues_Gauss(self,s,M,h=3,delta=1e-7):
+def eigenvalues_Gauss(s,M,h=3,delta=1e-7):
     r"""
     Get approximations to the eigenvalues of the Gauss transfer operator
     """

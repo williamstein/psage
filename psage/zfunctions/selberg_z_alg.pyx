@@ -662,6 +662,204 @@ cdef setup_approximation_sym(mpc_t** A, int M,  mpz_t** Nij, int dim, int q, int
 #     return ComplexField(prec)(P.real,P.imag)
 
 
+cpdef gat_Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,int k1=0,int k2=0):
+    r"""
+    Compute Gauss transfer operator matrix operator approximation A[r,k] with r1<=r<=r2 and k1<=k<=k2.
+    """
+    cdef int prec = s.parent().prec()
+    cdef MPComplexNumber tmpc
+    cdef mpc_t** A=NULL
+    cdef int r,k
+    if k2==0 and r2==0 and r1>0:
+        k2 = r1; r2=r1; k1=0
+        r1=0
+    A = <mpc_t**> sage_malloc(sizeof(mpc_t*)*(r2-r1+1))
+    for r in range(0,r2-r1+1):
+        A[r] = <mpc_t*> sage_malloc(sizeof(mpc_t)*(k2-k1+1))
+        for k in range(0,k2-k1+1):
+            mpc_init2(A[r][k],prec)
+    setup_Gauss_c(A,s.value,t.value,r1,r2,k1,k2)
+    res = {}
+    tmpc = MPComplexField(prec)(1)
+    for r in range(0,r2-r1+1):
+        for k in range(0,k2-k1+1):
+            mpc_set(tmpc.value,A[r][k],rnd)
+            res[(r,k)]=1*tmpc
+    return res
+
+cdef setup_approximation_sym(mpc_t** A, mpfr_t s, mpfr_t t, int r1,int r2,int k1,int k2, verbose=0):
+    r"""    Setup the Matrix approximation of the Gauss transfer operator  """
+    cdef int i,j,k,l,n,nn
+    cdef mpc_t twos,tmp,tmp1,clambda,poc, *AA
+    cdef int prec = mprf_get_prec(s)
+    cdef mpc_t t[4]
+    cdef mpc_t *Z=NULL,*lpow=NULL,*twozn=NULL
+    cdef mpfr_t **ajpow
+    cdef Vector_real_mpfr_dense B
+    cdef int **abN
+    cdef int sym_dim = dim / 2
+    cdef MPComplexNumber twoz,tmpz,z
+    cdef ComplexNumber twozz
+    cdef mpz_t binc
+    cdef mpfr_t fak1,fak2,fak
+    cdef RealNumber tmpx
+    cdef int lmin,lmax
+    lmin = r1+k1; lmax = r2+k2
+    sig_on()
+    RF = RealField(prec)
+    CF = MPComplexField(prec)
+    CFF = ComplexField(prec)
+    B = Vector_real_mpfr_dense(vector(RF,2).parent(),0)
+    twozz = CFF(0)
+    tmpx = RF(0)
+    mpmath.mp.prec=prec
+    z = CF(0)
+    assert abs(eps)==1
+    if verbose>0:
+        print "eps=",eps
+        print "prec=",prec
+    mpfr_init2(fak1,prec);mpfr_init2(fak2,prec);mpfr_init2(fak,prec)
+    mpz_init(binc)
+    AA =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2))
+    mpc_init2(AA[0],prec);mpc_init2(AA[1],prec)
+    mpc_init2(poc,prec)
+    mpc_init2(tmp,prec); mpc_init2(tmp1,prec)
+    mpc_init2(twos,prec)
+    mpc_init2(t[0],prec); mpc_init2(t[1],prec)
+    mpc_init2(t[2],prec); mpc_init2(t[3],prec)
+    mpc_set(twos,s,rnd)
+    mpc_mul_ui(twos,twos,2,rnd)
+    tmpz=CF(0)
+    #z = CF(0)
+    twoz = MPComplexField(prec+20)(0)
+    mpc_set(twoz.value,twos,rnd)
+    ## Recall that sizeof(mpc_t ***) does not work
+    Z  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(r2-r1+1))
+    if Z==NULL: raise MemoryError
+    for i in range(r2-r1+1):
+        mpc_init2(Z[i],prec)
+    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+    if twozn==NULL: raise MemoryError
+    # Try to evaluate all powers outside the double loop
+    ajpow=<mpfr_t **> sage_malloc(sizeof(mpfr_t*)*(sym_dim))
+    if ajpow==NULL: raise MemoryError
+    for i in range(sym_dim):        
+        ajpow[i]=<mpfr_t *> sage_malloc(sizeof(mpfr_t)*(M+1))
+        if ajpow[i]==NULL: raise MemoryError
+        for n in range(M+1):
+            mpfr_init2(ajpow[i][n],prec)
+            mpfr_pow_si(ajpow[i][n],alphas[i],n,rnd_re)
+    if q > 3:
+        lpow = <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+        if lpow==NULL: raise MemoryError
+    cdef RealNumber xarg
+    cdef mpc_t zarg,minus_twoz
+    mpc_init2(zarg,prec)
+    mpc_init2(minus_twoz,prec)    
+    xarg = RF(0)
+
+    for n in range(lmin,lmax):
+        mpc_init2(twozn[n],prec)
+        mpc_add_ui(twozn[n],twos,n,rnd)
+        _mpc_set(&twoz.value,twozn[n],rnd_re)
+        mpc_neg(minus_twoz,twoz.value,rnd)
+        twozz=CFF(twoz.real(),twoz.imag())
+        mpz = mpmath.mp.zeta(twozz,xarg)
+        z = CF(mpz.real,mpz.imag)
+        mpc_set(Z[n],z.value,rnd)
+    if verbose>0:
+        print "Here1"
+    cdef int ni,kj,ii
+    cdef mpfr_t rho
+    mpfr_init2(rho,prec)
+    mpfr_set_ui(rho,3,rnd_re)
+    mpfr_div_ui(rho,rho,2,rnd_re)
+    
+    for n in range(r1,r2+1): 
+        for k in range(k1,k2+1): 
+            mpc_set_ui(AA[0],0,rnd)
+            for l in range(k+1):
+                _pochammer_over_fak(&poc,twozn[l],n,rnd,rnd_re)
+                mpz_bin_uiui(binc,k,l)
+                mpfr_mul_z(poc.re,poc.re,binc,rnd_re)
+                mpfr_mul_z(poc.im,poc.im,binc,rnd_re)
+                mpc_mul(poc,poc,Z[l+n],rnd)
+                if k-l % 2 == 1:
+                    mpc_neg(poc,poc,rnd)                                
+                mpfr_pow_si(rtemp,rho,rnd_re)
+                mpc_mul_fr(poc,poc,ajpow[j][k-l],rnd)
+
+                    mpc_add(AA[ii],AA[ii],poc,rnd)
+                            if mpfr_sgn(B._entries[ii])>0 and sg==-1:
+                                #AA=-AA
+                                mpc_neg(AA[ii],AA[ii],rnd)
+                    if (k % 2) == 1:
+                        mpc_neg(AA[1],AA[1],rnd)
+                    if eps == -1:
+                        mpc_neg(AA[1],AA[1],rnd)
+                    mpc_add(A[ni][kj],AA[0],AA[1],rnd)
+                    mpfr_pow_si(fak1,rhos[j],-k,rnd_re)
+                    mpfr_pow_si(fak2,rhos[i],n,rnd_re)
+                    mpfr_mul(fak,fak1,fak2,rnd_re)
+                    #if ni==0 and kj==32:
+                    #    mpc_set(z.value,A[ni][kj],rnd)
+                    #    print "A[0,32]=",z
+                    #    mpfr_set(tmpx.value,fak,rnd_re)
+                    #    print "fak=",tmpx
+                    mpc_mul_fr(A[ni][kj],A[ni][kj],fak,rnd)
+                    
+    if verbose>0:
+        print "About to clear"
+    mpc_clear(t[0]);mpc_clear(t[1])
+    mpc_clear(t[2]);mpc_clear(t[3])
+    mpc_clear(twos); mpc_clear(clambda)
+    mpc_clear(tmp); mpc_clear(tmp1)
+    mpc_clear(poc)
+    mpc_clear(zarg); mpc_clear(minus_twoz)
+    mpfr_clear(fak1);mpfr_clear(fak2);mpfr_clear(fak)
+    if AA<>NULL:
+        mpc_clear(AA[0]);  mpc_clear(AA[1])
+    if Z<>NULL:
+        for i in range(sym_dim):
+            if Z[i]<>NULL:
+                for j in range(sym_dim):      
+                    if Z[i][j]<>NULL:
+                        for n from 0 <= n < 2*M+1:
+                            mpc_clear(Z[i][j][n][0])
+                            mpc_clear(Z[i][j][n][1])
+                            sage_free(Z[i][j][n])
+                        sage_free(Z[i][j])
+                sage_free(Z[i])
+        sage_free(Z)
+    # if lsum<>NULL:
+    #     for n from 0 <= n < 2*M+1:
+    #         if lsum[n]<>NULL:
+    #             for i from 0<= i < dim:
+    #                 if lsum[n][i]<>NULL:
+    #                     for j from 0<= j < dim:
+    #                         mpc_clear(lsum[n][i][j])
+    #                     sage_free(lsum[n][i])
+    #             sage_free(lsum[n])
+    #     sage_free(lsum)
+    
+    if ajpow<>NULL:
+        for i in range(sym_dim):
+            if ajpow[i]<>NULL:
+                for n in range(M+1):
+                    mpfr_clear(ajpow[i][n])
+                sage_free(ajpow[i])
+        sage_free(ajpow)    
+    if twozn<>NULL:
+        for n in range(2*M+1):
+            mpc_clear(twozn[n])
+        sage_free(twozn)
+    if q>3:
+        if lpow<>NULL:
+            for n in range(2*M+1):
+                mpc_clear(lpow[n])
+            sage_free(lpow)     
+    sig_off()
+
        
 cpdef my_floor(double x):
     r"""  Return n where n<x<=n+1 and x>0 or  n<=x<n+1 and x<=0.  """

@@ -33,6 +33,7 @@ from sage.rings.integer import Integer,is_Integer
 from sage.all import exp,I,CC,vector
 from sage.functions.transcendental import zeta
 from sage.all import find_root
+from psage.rings.mpc_extras cimport _mpc_mul,_mpc_mul_fr,_mpc_add,_mpc_set
 ## Since I want to import sinand cos from math.h 
 #from sage.all import sin as ssin
 #from sage.all import cos as scos
@@ -662,7 +663,7 @@ cdef setup_approximation_sym(mpc_t** A, int M,  mpz_t** Nij, int dim, int q, int
 #     return ComplexField(prec)(P.real,P.imag)
 
 
-cpdef Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,int k1=0,int k2=0):
+cpdef Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,int k1=0,int k2=0,int verbose=0,ret="dict"):
     r"""
     Compute Gauss transfer operator matrix operator approximation A[r,k] with r1<=r<=r2 and k1<=k<=k2.
     """
@@ -673,22 +674,34 @@ cpdef Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,i
     cdef int r,k
     alpha = RealField(prec)(1)
     rho = RealField(prec)(1.5)
+    if verbose>0:
+        print "alpha=",alpha
+        print "rho=",rho
     if k2==0 and r2==0 and r1>0:
         k2 = r1; r2=r1; k1=0
         r1=0
-    A = <mpc_t**> sage_malloc(sizeof(mpc_t*)*(r2-r1+1))
-    for r in range(0,r2-r1+1):
-        A[r] = <mpc_t*> sage_malloc(sizeof(mpc_t)*(k2-k1+1))
-        for k in range(0,k2-k1+1):
+    A = <mpc_t**> sage_malloc(sizeof(mpc_t*)*(r2-r1))
+    for r in range(0,r2-r1):
+        A[r] = <mpc_t*> sage_malloc(sizeof(mpc_t)*(k2-k1))
+        for k in range(0,k2-k1):
             mpc_init2(A[r][k],prec)
-    setup_Gauss_c(A,s.value,t.value,alpha.value,rho.value,r1,r2,k1,k2)
-    res = {}
-    tmpc = MPComplexField(prec)(1)
-    for r in range(0,r2-r1+1):
-        for k in range(0,k2-k1+1):
-            mpc_set(tmpc.value,A[r][k],rnd)
-            res[(r,k)]=1*tmpc
-    return res
+    setup_Gauss_c(A,s.value,t.value,alpha.value,rho.value,r1,r2,k1,k2,verbose)
+    cdef dict resd
+    if ret=="dict":
+        resd = {}
+        tmpc = MPComplexField(prec)(1)
+        for r in range(0,r2-r1):
+            for k in range(0,k2-k1):
+                mpc_set(tmpc.value,A[r][k],rnd)
+                resd[(r,k)]=1*tmpc
+        return resd
+    MS = MatrixSpace(MPComplexField(prec),r2-r1,k2-k1)
+    resm = Matrix_complex_dense(MS,0)
+    for r in range(0,r2-r1):
+        for k in range(0,k2-k1):
+            mpc_set(resm._matrix[r][k],A[r][k],rnd)
+    return resm
+    
 
 cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r1,int r2,int k1,int k2, verbose=0):
     r"""    Setup the Matrix approximation of the Gauss transfer operator  """
@@ -714,6 +727,12 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     mpmath.mp.prec=prec
     if verbose>0:
         print "prec=",prec
+        mpfr_set(tmpx.value,alpha,rnd_re)
+        print "alpha=",tmpx
+        mpfr_set(tmpx.value,rho,rnd_re)
+        print "rho=",tmpx
+        print "r1,r2=",r1,r2
+        print "k1,k2=",k1,k2
     mpfr_init2(fak1,prec);mpfr_init2(fak2,prec);mpfr_init2(fak,prec)
     mpfr_init2(rtemp,prec)
     mpz_init(binc)
@@ -730,12 +749,6 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     twoz = MPComplexField(prec+20)(0)
     mpc_set(twoz.value,twos,rnd)
     ## Recall that sizeof(mpc_t ***) does not work
-    Z  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(r2-r1+1))
-    if Z==NULL: raise MemoryError
-    for i in range(r2-r1+1):
-        mpc_init2(Z[i],prec)
-    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+1))
-    if twozn==NULL: raise MemoryError
     # ajpow[n]=(-alpha)**n
     ajpow=<mpfr_t *> sage_malloc(sizeof(mpfr_t)*(k2))
     if ajpow==NULL: raise MemoryError
@@ -750,16 +763,36 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     mpc_init2(minus_twoz,prec)    
     xarg = RF(0)
     mpfr_add_ui(xarg.value,alpha,1,rnd_re)
-    for n in range(0,lmax-lmin):
-        
-        mpc_init2(twozn[n],prec)
-        mpc_add_ui(twozn[n],twos,n+lmin,rnd)
-        _mpc_set(&twoz.value,twozn[n],rnd_re)
-        mpc_neg(minus_twoz,twoz.value,rnd)
-        twozz=CFF(twoz.real(),twoz.imag())
-        mpz = mpmath.mp.zeta(twozz,xarg)
-        z = CF(mpz.real,mpz.imag)
-        mpc_set(Z[n],z.value,rnd)
+    Z  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
+    if Z==NULL: raise MemoryError
+    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
+    if twozn==NULL: raise MemoryError
+    if mpfr_cmp_ui(xarg.value,2)==0:
+        if verbose>0:
+            print "alpha=1 n0=1"            
+        for n in range(0,lmax-lmin+1):
+            mpc_init2(Z[n],prec)        
+            mpc_init2(twozn[n],prec)
+            mpc_add_ui(twozn[n],twos,n+lmin,rnd)
+            _mpc_set(&twoz.value,twozn[n],rnd_re)
+            mpc_neg(minus_twoz,twoz.value,rnd)
+            #twozz=CFF(twoz.real(),twoz.imag())
+            # mpz = mpmath.mp.zeta(twozz,xarg)        
+            z = twoz.zeta()
+            #z = CF(mpz.real,mpz.imag)
+            _mpc_set(&Z[n],z.value,rnd_re)
+            mpc_sub_ui(Z[n],Z[n],1,rnd)
+    else:
+        for n in range(0,lmax-lmin+1):
+            mpc_init2(Z[n],prec)        
+            mpc_init2(twozn[n],prec)
+            mpc_add_ui(twozn[n],twos,n+lmin,rnd)
+            _mpc_set(&twoz.value,twozn[n],rnd_re)
+            mpc_neg(minus_twoz,twoz.value,rnd)
+            twozz=CFF(twoz.real(),twoz.imag())
+            mpz = mpmath.mp.zeta(twozz,xarg)        
+            z = CF(mpz.real,mpz.imag)
+            _mpc_set(&Z[n],z.value,rnd_re)
     if verbose>0:
         print "Here1"
     cdef int ni,kj,ii
@@ -773,15 +806,24 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
                 mpz_bin_uiui(binc,k+k1,l)
                 mpfr_mul_z(poc.re,poc.re,binc,rnd_re)
                 mpfr_mul_z(poc.im,poc.im,binc,rnd_re)
-                mpc_mul(poc,poc,Z[l+n],rnd)
-                mpc_mul_fr(poc,poc,ajpow[k-l],rnd)
-                mpc_add(AA,AA,poc,rnd)
+                _mpc_mul(&poc,poc,Z[l+n],tt,rnd,rnd_re)
+                _mpc_mul_fr(&poc,poc,ajpow[k-l],rnd,rnd_re)
+                _mpc_add(&AA,AA,poc,rnd_re)
 
             mpfr_pow_si(rtemp,rho,n-k+r1-k1,rnd_re)
-            mpc_mul_fr(AA,AA,rtemp,rnd)
+            if verbose>1:
+                mpc_set(z.value,AA,rnd)
+                print "A[{0}][{1}]={2}".format(n,k,z)
+                mpfr_set(tmpx.value,rtemp,rnd_re)
+                print "r^{0}[{1}][{2}]={3}".format(n-k+r1-k1,n,k,tmpx)
+                
+            _mpc_mul_fr(&AA,AA,rtemp,rnd,rnd_re)
             if (n % 2) == 1:
                 mpc_neg(AA,AA,rnd)
-            mpc_set(A[n][k],AA,rnd)
+            if verbose>1:
+                mpc_set(z.value,AA,rnd)
+                print "A[{0}][{1}]*r^(n-k)={2}".format(n,k,z)
+            _mpc_set(&A[n][k],AA,rnd_re)
             #if ni==0 and kj==32:
             #    mpc_set(z.value,A[ni][kj],rnd)
             #    print "A[0,32]=",z

@@ -1,5 +1,6 @@
 include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
+
 #include "sage/rings/mpc.pxi"
 
 #from psage.modules.vector_complex_dense cimport *

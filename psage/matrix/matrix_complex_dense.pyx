@@ -14,6 +14,7 @@ include "../ext/stdsage.pxi"
 include "../ext/cdefs.pxi"
 include "../ext/gmp.pxi"
 include "../ext/random.pxi"
+from psage.rings.mpfr_nogil cimport *
 #include "../rings/mpc.pxi"
 
 #include "gmp.pxi"
@@ -147,9 +148,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
         ## TODO: acces rounding modes of parents
         self._rnd=MPC_RNDNN ## self._base_ring.__rnd
         #print "here! rnd=",self._rnd
-        self._rnd_re=GMP_RNDN #self._base_ring.__real_field.__rnd
+        self._rnd_re=MPFR_RNDN #self._base_ring.__real_field.__rnd
         #print "here! rnd_re=",self._rnd_re
-        self._rnd_im=GMP_RNDN # self._base_ring.__imag_field.__rnd
+        self._rnd_im=MPFR_RNDN # self._base_ring.__imag_field.__rnd
         #print "here! rnd_im=",self._rnd_im
         ## we also set something like an "effective" machine epsilon
         self._base_for_str_rep=32
@@ -2279,7 +2280,7 @@ cpdef test_matrix_met(int n=20):
     for i in xrange(100):
         B=A.qr_decomp()
 
-cdef _my_sign(mpc_t alpha, mpc_t z, prec,mpc_rnd_t rnd_cplx,mp_rnd_t rnd_re):
+cdef _my_sign(mpc_t alpha, mpc_t z, prec,mpc_rnd_t rnd_cplx,mpfr_rnd_t rnd_re):
     r""" Sign of a complex number: sign(z)=exp(iArg(z))
     """
     #cdef mpc_t alpha

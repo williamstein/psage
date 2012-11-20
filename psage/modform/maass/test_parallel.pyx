@@ -12,7 +12,7 @@ from libc.stdlib cimport abort, malloc, free
 from cython.parallel cimport parallel, prange
 
 cdef mpfr_rnd_t rnd_re
-rnd_re = GMP_RNDN
+rnd_re = MPFR_RNDN
 
 cdef mpfr_t * ef1cosv = NULL
 #cpdef int * ef1cosv = NULL

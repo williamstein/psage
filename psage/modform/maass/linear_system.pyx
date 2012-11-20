@@ -24,14 +24,14 @@ AUTHOR:
 """
 #from sage.rings.complex_mpc import MPComplexField
 #from psage.matrix import *
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
 include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
 include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
 include "sage/ext/cdefs.pxi"
-include "sage/ext/gmp.pxi"
+#include "sage/ext/gmp.pxi"
+cdef mpc_rnd_t rnd
+cdef mpfr_rnd_t rnd_re
+rnd = MPC_RNDNN
+rnd_re = MPFR_RNDN
 from sage.rings.complex_mpc cimport MPComplexNumber,MPComplexField_class
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.all import copy,MatrixSpace

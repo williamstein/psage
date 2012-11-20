@@ -5,8 +5,9 @@ include "../rings/mpc.pxi"
 
 from sage.modules.free_module_element cimport *
 
-from sage.rings.complex_mpc cimport *
-from sage.rings.real_mpfr cimport *
+from sage.rings.complex_mpc cimport MPComplexField_class,MPComplexNumber
+from sage.rings.real_mpfr cimport RealNumber
+from psage.rings.mpfr_nogil cimport *
 from sage.structure.element cimport Vector
 
 cdef class Vector_complex_dense(FreeModuleElement):

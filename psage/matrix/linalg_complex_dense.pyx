@@ -21,7 +21,7 @@ The main idea is to use QR-reduction computed by Givens rotations for complex ma
 include "sage/ext/gmp.pxi"
 include "sage/ext/random.pxi"
 #include "sage/rings/mpc.pxi"
-
+from psage.rings.mpfr_nogil cimport *
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
@@ -702,7 +702,7 @@ cdef _get_additional_precision(mpc_t** A,int m, int n, mpfr_t mpeps, int prec, m
     mpfr_log2(amax,amax,rnd_re)
     mpfr_abs(amax,amax,rnd_re)
     mpfr_add_ui(amax,amax,1,rnd_re)
-    return  mpfr_get_ui(amax,GMP_RNDD)+30 # truncating
+    return  mpfr_get_ui(amax,MPFR_RNDD)+30 # truncating
 
 
 ###

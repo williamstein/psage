@@ -139,7 +139,8 @@ cpdef RealNumber ei_taylor(RealNumber x, int verbose=0):
         return res
     else:
         raise ArithmeticError,"Taylor expansion method for exponential integral failed with code:{0}".format(ok)
-    
+
+
 cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
     r"""
     Compute the exponential integral of x via asymptotic formula

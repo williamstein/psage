@@ -273,7 +273,7 @@ cdef print_mpfr(mpfr_t x):
     cdef RealNumber xx
     prec = mpfr_get_prec(x)
     xx = RealField(prec)(1)
-    mpfr_set(xx.value,x,GMP_RNDN)
+    mpfr_set(xx.value,x,MPFR_RNDN)
     return str(xx)
 
 

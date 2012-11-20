@@ -22,11 +22,12 @@ Used by routines in atomorphic_forms.py
 
 include "stdsage.pxi"  
 include "cdefs.pxi"
-include "sage/rings/mpc.pxi"
-include "../../rings/mpfr_loc.pxi"
+#include "sage/rings/mpc.pxi"
+#include "../../rings/mpfr_loc.pxi"
+from psage.rings.mpfr_nogil cimport *
 
 cdef extern from "stdio.h":
-    void printf(char *fmt,...) nogil
+    cdef extern void printf(char *fmt,...) nogil
     
     
 #from sage.libs.mpfr cimport *
@@ -46,14 +47,14 @@ from sage.libs.pari.gen cimport GEN
 #cimport sage.structure.element
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.modform.maass.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
-from psage.rings.mpc_extras cimport _mpc_div,_mpc_mul,_mpc_set,_mpc_sub
+from psage.rings.mpc_extras cimport _mpc_div,_mpc_mul,_mpc_set,_mpc_sub,_mpc_mul_fr,_mpc_add
 
 from sage.structure.element cimport Element, ModuleElement, RingElement
 from sage.all import MatrixSpace,vector,ComplexField
-cdef extern from "math.h":
-    double fabs(double)
-    double fmax(double,double)
-    int ceil(double) 
+cdef extern from "math.h" nogil:
+    cdef double fabs(double)
+    cdef double fmax(double,double)
+    cdef int ceil(double) 
 
 from sage.functions.all import ceil as pceil
 from sage.functions.all import floor
@@ -252,10 +253,12 @@ cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
     """
     cdef RealNumber YY,res
     cdef int prec = Y.parent().prec()
-    cdef mpfr_t pi,f1,sqM,sqK,B,Bsq,sqrt2pi,sqpiY,f2,f3
+    #cdef mpfr_t pi,f1,sqM,sqK,B,Bsq,sqrt2pi,sqpiY,f2,f3
+    cdef mpfr_t f1,sqM,sqK,B,Bsq,sqrt2pi[1],sqpiY,f2,f3
+    cdef mpfr_t pi[1]
     #mpfr_init2(t,prec);
     #mpfr_init2(c,prec)
-    mpfr_init2(pi,prec); mpfr_init2(sqrt2pi,prec)
+    mpfr_init2(pi[0],prec); mpfr_init2(sqrt2pi[0],prec)
     mpfr_init2(f1,prec); mpfr_init2(sqM,prec)
     mpfr_init2(sqK,prec); mpfr_init2(B,prec)
     mpfr_init2(Bsq,prec);mpfr_init2(f2,prec)
@@ -263,13 +266,13 @@ cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
     RF = RealField(prec)
     YY = RF(Y); res = RF(0)
     #mpfr_set_ui(c,1,rnd_re) ## Should be some "true" bound
-    mpfr_const_pi(pi,rnd_re)
-    mpfr_mul_ui(sqrt2pi,pi,2,rnd_re)
-    mpfr_sqrt(sqrt2pi,sqrt2pi,rnd_re)
-    mpfr_mul(sqpiY,pi,YY.value,rnd_re)
+    mpfr_const_pi(pi[0],rnd_re)
+    mpfr_mul_ui(sqrt2pi[0],pi[0],2,rnd_re)
+    mpfr_sqrt(sqrt2pi[0],sqrt2pi[0],rnd_re)
+    mpfr_mul(sqpiY,pi[0],YY.value,rnd_re)
     mpfr_sqrt(sqpiY,sqpiY,rnd_re)
     #mpfr_set_pi=mpmath.mp.pi()
-    mpfr_mul_si(f1,pi,2,rnd_re)
+    mpfr_mul_si(f1,pi[0],2,rnd_re)
     mpfr_mul_si(f1,f1,K0,rnd_re)
     mpfr_div(f1,f1,YY.value,rnd_re)
     mpfr_exp(f1,f2,rnd_re)
@@ -282,7 +285,7 @@ cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
     mpfr_div(B,sqK,YY.value,rnd_re)
     mpfr_neg(B,B,rnd_re)
     mpfr_add(B,B,sqM,rnd_re)
-    mpfr_mul(B,B,sqrt2pi,rnd_re)
+    mpfr_mul(B,B,sqrt2pi[0],rnd_re)
     mpfr_mul(Bsq,B,B,rnd_re)
     mpfr_neg(Bsq,Bsq,rnd_re)
     #B=mpmath.mp.sqrt(2*pi)*(sqM-sqK/Y)
@@ -328,7 +331,7 @@ cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
     mpfr_set(res.value,f3,rnd_re)
     res = res*RF(K1)
     #mpfr_clear(c)
-    mpfr_clear(pi); mpfr_clear(sqrt2pi)
+    mpfr_clear(pi[0]); mpfr_clear(sqrt2pi[0])
     mpfr_clear(f1); mpfr_clear(sqM)
     mpfr_clear(sqK); mpfr_clear(B)
     mpfr_clear(Bsq);mpfr_clear(f2)
@@ -628,6 +631,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     weight=H._weight
     cdef RealNumber pi,one,two,zero,p,Qfak,ypb,xpb,trn
     cdef mpfr_t twopi,fourpi,nrfourpi,twopiY,fourpiY, kint_t, Y
+    cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab,tmpcos,tmpsin, nr, tmpr, tmpr2
+    cdef mpc_t iargpb_t,tmpc_t, tmp1, tmp2
+    cdef mpfr_t lr,arg,nrY2pi,kbes
+    cdef mpc_t ppc,summa,ppc_minus,summa_minus
+
     cdef int kinti
     cdef Matrix_complex_dense V
     cdef MPComplexNumber tmpc,ch
@@ -646,6 +654,27 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     mpfr_init2(fourpiY,prec)
     mpfr_init2(nrfourpi, prec)
     mpfr_init2(kint_t,prec)
+    mpc_init2(tmp1,prec)
+    mpc_init2(tmp2,prec)
+    mpfr_init2(nr, prec)
+    mpfr_init2(tmpr, prec)
+    mpfr_init2(tmpr2, prec)
+    mpfr_init2(tmpr_t,prec)
+    mpfr_init2(tmpcos,prec)
+    mpfr_init2(tmpsin,prec)
+    mpfr_init2(tmpar,prec)
+    mpfr_init2(tmpar1,prec)
+    mpfr_init2(tmpab,prec)
+    mpc_init2(iargpb_t,prec)
+    mpc_init2(tmpc_t,prec)
+    mpfr_init2(lr,prec)
+    mpfr_init2(nrY2pi,prec)
+    mpfr_init2(kbes,prec)
+    mpfr_init2(arg,prec)
+    mpc_init2(ppc,prec)
+    mpc_init2(ppc_minus,prec)
+    mpc_init2(summa,prec)
+    mpc_init2(summa_minus,prec)
     mpfr_mul_ui(twopi,pi.value,2,rnd_re)
     mpfr_mul_ui(fourpi,twopi,2,rnd_re)
     mpfr_set(Y,Y_in.value,rnd_re)
@@ -691,21 +720,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     if verbose>0:
         print "In setup_matrix_for_harmonic_Maass_waveforms_sym"
         print "Qs,Qf=",Qs,Qf
-    cdef mpfr_t tmpr_t,tmpar,tmpar1,tmpab,tmpcos,tmpsin, nr, tmpr, tmpr2
-    cdef mpc_t iargpb_t,tmpc_t, tmp1, tmp2
-    mpc_init2(tmp1,prec)
-    mpc_init2(tmp2,prec)
-    mpfr_init2(nr, prec)
-    mpfr_init2(tmpr, prec)
-    mpfr_init2(tmpr2, prec)
-    mpfr_init2(tmpr_t,prec)
-    mpfr_init2(tmpcos,prec)
-    mpfr_init2(tmpsin,prec)
-    mpfr_init2(tmpar,prec)
-    mpfr_init2(tmpar1,prec)
-    mpfr_init2(tmpab,prec)
-    mpc_init2(iargpb_t,prec)
-    mpc_init2(tmpc_t,prec)
     cdef mpfr_t* Xm
     cdef mpfr_t*** Xpb=NULL
     cdef mpfr_t*** Ypb=NULL
@@ -937,7 +951,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 setcossin2(ef2cosv[jcusp][n],ef2sinv[jcusp][n],Xm,nr,Ql,prec)
                 if verbose>2:
                     printf("done with ef2cosv[%d][%d], ef2sinv[%d][%d]\n",jcusp,n)
-                    printf("ef2cosv[%d][%d][0]=%f\n",jcusp,n,mpfr_get_flt(ef2cosv[jcusp][n][0],rnd_re))
+                    printf("ef2cosv[%d][%d][0]=%f\n",jcusp,n,mpfr_get_d(ef2cosv[jcusp][n][0],rnd_re))
                 mpfr_set(nr,nvec[jcusp][n],rnd_re)
                 #nr=nvec[n,jcusp]
                 mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
@@ -962,7 +976,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re)
                             mpfr_neg(tmpr_t,tmpr_t,rnd_re)
                             if verbose>2:
-                                printf("arg=%f",mpfr_get_flt(tmpr_t,rnd_re))
+                                printf("arg=%f",mpfr_get_d(tmpr_t,rnd_re))
                             mpfr_exp(besv[icusp][jcusp][n][j],tmpr_t,rnd_re)
                             #if verbose>1:
                             #    mpfr_set(tmpr,besv[icusp][jcusp][n][j],rnd_re)
@@ -1044,16 +1058,6 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         if V.ncols()>=11:
             print "V1(",0,11,")=",V[0,11]
     cdef MPComplexNumber f1,f2
-    cdef mpfr_t lr,arg,nrY2pi,kbes
-    cdef mpc_t ppc,summa,ppc_minus,summa_minus
-    mpfr_init2(lr,prec)
-    mpfr_init2(nrY2pi,prec)
-    mpfr_init2(kbes,prec)
-    mpfr_init2(arg,prec)
-    mpc_init2(ppc,prec)
-    mpc_init2(ppc_minus,prec)
-    mpc_init2(summa,prec)
-    mpc_init2(summa_minus,prec)
     f1 = CF(0); f2=CF(0)
     #verbose=3
     for n in range(Ml):
@@ -1469,7 +1473,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     W['rdim']=H._rdim
     return W
 
-cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Ql, mpfr_prec_t prec) nogil:
+cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Ql, mp_prec_t prec) nogil:
     cdef int j = 0
     cdef mpfr_t tmpar
     mpfr_init2(tmpar,prec)
@@ -1482,7 +1486,7 @@ cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Q
         mpfr_sin(lsin[j],tmpar,rnd_re)
     mpfr_clear(tmpar)
 
-cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec) nogil:
+cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mp_prec_t prec) nogil:
     cdef mpfr_t tmpar,tmpar1,tmpab,tmpcos,tmpsin
     cdef mpc_t tmpc_t
     cdef int jcusp,lj,icusp,j,n, ni
@@ -1527,7 +1531,7 @@ cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mp
                         _mpc_mul_fr(&tmpc_t,tmpc_t,tmpar1,rnd,rnd_re)             
                     _mpc_mul_fr(&tmpc_t,tmpc_t,tmpab,rnd,rnd_re)                         
                     #tmp2=tmp1*ef2[n,j,icusp]
-                    _mpc_add(&Vmat[ni][lj],Vmat[ni][lj],tmpc_t,rnd)
+                    _mpc_add(&Vmat[ni][lj],Vmat[ni][lj],tmpc_t,rnd_re)
                         #V[ni,lj]=V[ni,lj]+tmp1*
                         # if verbose > 1 and ni==0 and lj==10:
                         #     print "-------------------"

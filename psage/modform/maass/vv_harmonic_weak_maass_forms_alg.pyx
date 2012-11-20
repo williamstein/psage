@@ -19,8 +19,9 @@
 include 'sage/ext/stdsage.pxi'
 include "sage/ext/cdefs.pxi"
 include 'sage/ext/interrupt.pxi'
-include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
+#include "sage/ext/gmp.pxi"
+#include "sage/rings/mpc.pxi"
+from psage.rings.mpfr_nogil cimport *
 
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
@@ -260,14 +261,14 @@ def vv_harmonic_wmwf_setupV_ef(H,PP,Y_in,M,Q,kappa,sym_type=1,verbose=0):
                     lj=Ml*(b-Dstart)+l-Ms
                     if b not in oddD: #(2*b) % orderD ==0: #is_int(2*b): #if (b == -b):
                         ch=Cv[j][a,b]
-                        bii=(bi*Cfak[1-j][1]) % abD
+                        bii=(b*Cfak[1-j][1]) % abD
                         if Cv[j][a,bii]==0:
                             ch2=0
                         else:
                             ch2=1/Cv[j][a,bii]  #*Cfak[1-j][0]  #Cv[1-j][ai,bi]
                     else:
                         mbi= -b % abD 
-                        ch=(Cv[j][a,bi]+sym_type*Cv[j][a,mbi])
+                        ch=(Cv[j][a,b]+sym_type*Cv[j][a,mbi])
                         ch21=0; ch22=0
                         if Cv[j][a,b]<>0:
                             ch21=1/Cv[j][a,b]
@@ -372,7 +373,7 @@ def vv_harmonic_wmwf_setupV_ef(H,PP,Y_in,M,Q,kappa,sym_type=1,verbose=0):
                         #ch2=Cv[1-j][ai,betai[beta]]+sym_type*Cv[1-j][ai,mbetai[beta]]
                         ch21=0; ch22=0
                         if Cv[j][a,betai[beta]]<>0:
-                            ch21=1/Cv[j][ai,betai[beta]]
+                            ch21=1/Cv[j][a,betai[beta]]
                         if Cv[j][a,mbetai[beta]]<>0:
                             ch22=1/Cv[j][a,mbetai[beta]]
                         if sym_type==1:
@@ -458,8 +459,8 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     cdef int j,l,n,ai,bi,bii,mbi
     cdef int N,sym_type,verbose,len_of_pp,Qs,Qf,Ql,Ms,Mf,Ml,Qfaki
     cdef list D,PP0,beta_rat,pp_c,mbeta_rat #,mm_real,mmi_cplx
-    cdef mpfr_t tmpr_t
-    mpfr_init2(tmpr_t,prec)
+    cdef mpfr_t tmpr_t[1]
+    mpfr_init2(tmpr_t[0],prec)
     D=WR.basis(); N=WR.rank()/2
     sym_type = H.sym_type(); verbose = H._verbose
     beta_rat=[]; pp_c=[]; mbeta_rat=[] #; mm_real=[]; mmi_cplx=[]
@@ -617,19 +618,19 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     VS = vector(RF,Df-Ds+1).parent()
     Qvv=Vector_real_mpfr_dense(VS,0)
     nrtwopi=RF(0); nrtwo=RF(0)
-    cdef mpc_t tmp1,tmp2
-    mpc_init2(tmp1,prec)
-    mpc_init2(tmp2,prec)
+    cdef mpc_t tmp1[1],tmp2[1]
+    mpc_init2(tmp1[0],prec)
+    mpc_init2(tmp2[0],prec)
 
     for j from Ds<= j <= Df:
         Qvv[j-Ds]=RF(H.multiplier().Qv[j])
-    cdef mpfr_t nr
-    cdef mpc_t nri,tmpc_t
+    cdef mpfr_t nr[1]
+    cdef mpc_t nri[1],tmpc_t[1]
     cdef Rational a
     a = QQ(0)
-    mpfr_init2(nr,prec)
-    mpc_init2(nri,prec)
-    mpc_init2(tmpc_t,prec)
+    mpfr_init2(nr[0],prec)
+    mpc_init2(nri[0],prec)
+    mpc_init2(tmpc_t[0],prec)
     cdef RealNumber tmparg
     tmparg=RF(1)
     cdef RealNumber nrY2pi,nrY4pi,kbes
@@ -659,40 +660,40 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     mparg = mpmath.mp.mpf(0)
     for n from 0 <= n < Ml:
         for ai from 0 <= ai < Dl:
-            mpfr_set_si(nr,n+Ms,rnd_re)
-            mpfr_add(nr,nr,Qvv._entries[ai],rnd_re)
-            mpc_set_fr(nri,nr,rnd)
-            mpfr_swap(mpc_realref(nri),mpc_imagref(nri))
-            mpfr_set(tmp_r.value,nr,rnd_re)
-            mpc_set(ztmp.value,nri,rnd)
+            mpfr_set_si(nr[0],n+Ms,rnd_re)
+            mpfr_add(nr[0],nr[0],Qvv._entries[ai],rnd_re)
+            mpc_set_fr(nri[0],nr[0],rnd)
+            mpfr_swap(mpc_realref(nri[0]),mpc_imagref(nri[0]))
+            mpfr_set(tmp_r.value,nr[0],rnd_re)
+            mpc_set(ztmp.value,nri[0],rnd)
             for j from 0 <= j < Ql:
-                mpc_mul_fr(tmpc_t,nri,Xm._entries[j],rnd)
-                mpc_neg(tmpc_t,tmpc_t,rnd)
-                mpc_exp(fak2[n][ai][j],tmpc_t,rnd)
-                #fak2[n,j,a]=CF(-nri*Xm[j]).exp()
-            if mpfr_sgn(nr)>0:
+                mpc_mul_fr(tmpc_t[0],nri[0],Xm._entries[j],rnd)
+                mpc_neg(tmpc_t[0],tmpc_t[0],rnd)
+                mpc_exp(fak2[n][ai][j],tmpc_t[0],rnd)
+                #fak2[n,j,a]=CF(-nri[0]*Xm[j]).exp()
+            if mpfr_sgn(nr[0])>0:
                 for j from 0 <= j < Ql:
-                    mpc_mul(tmpc_t,nri,Zpb._entries[j],rnd)
-                    mpc_exp(tmpc_t,tmpc_t,rnd)
-                    mpc_set(fak1[n][ai][j],tmpc_t,rnd)
-            elif mpfr_sgn(nr)==0:
+                    mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
+                    mpc_exp(tmpc_t[0],tmpc_t[0],rnd)
+                    mpc_set(fak1[n][ai][j],tmpc_t[0],rnd)
+            elif mpfr_sgn(nr[0])==0:
                 for j from 0 <= j < Ql:
                     mpc_set_ui(fak1[n][ai][j],1,rnd)
             elif not H._holomorphic: 
-                mpfr_mul_ui(nrtwo.value,nr,2,rnd_re)
+                mpfr_mul_ui(nrtwo.value,nr[0],2,rnd_re)
                 mpfr_abs(nrtwo.value,nrtwo.value,rnd_re)
-                mpc_set_si(tmp1,1,rnd) 
+                mpc_set_si(tmp1[0],1,rnd) 
                 for j from 0 <= j < Ql:
-                    mpc_mul(tmpc_t,nri,Zpb._entries[j],rnd)
-                    mpc_exp(tmp1,tmpc_t,rnd)
+                    mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
+                    mpc_exp(tmp1[0],tmpc_t[0],rnd)
                     mpfr_mul(tmparg.value,mpc_imagref(Zpb._entries[j]),nrtwo.value,rnd_re)
                     tu = mpfr_to_mpfval(tmparg.value)
                     mparg._set_mpf(tu)
                     testmp= mpctx.gammainc(kint,mparg)
                     mpfr_from_mpfval(kbes.value,testmp._mpf_)
                     #mpgamma = mpctx.gammainc(kint,tmparg)
-                    mpc_mul_fr(tmp1,tmp1,kbes.value,rnd)
-                    mpc_set(fak1[n][ai][j],tmp1,rnd)
+                    mpc_mul_fr(tmp1[0],tmp1[0],kbes.value,rnd)
+                    mpc_set(fak1[n][ai][j],tmp1[0],rnd)
                     #if n==Ms and j==1 and ai==1:
                     #    print "ERROR!"
             #else:
@@ -707,13 +708,13 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                     #print "Cfak[",1-j,"][0]=",Cfak_minus[j-Qs]
                     #print "Cfak[",j,"][1]=",Cfak[j][1]
     cdef int t_ch_r,t_ch_i,t_ch2_r,t_ch2_i,ni,lj,nis
-    cdef mpc_t ch,ch2,ch21,ch22,tmpV,tmpV2
-    mpc_init2(tmpV2,prec)
-    mpc_init2(tmpV,prec)
-    mpc_init2(ch,prec)
-    mpc_init2(ch2,prec)
-    mpc_init2(ch21,prec)
-    mpc_init2(ch22,prec)
+    cdef mpc_t ch[1],ch2[1],ch21[1],ch22[1],tmpV[1],tmpV2[1]
+    mpc_init2(tmpV2[0],prec)
+    mpc_init2(tmpV[0],prec)
+    mpc_init2(ch[0],prec)
+    mpc_init2(ch2[0],prec)
+    mpc_init2(ch21[0],prec)
+    mpc_init2(ch22[0],prec)
     cdef MPComplexNumber tmpV1
 
     cdef int t
@@ -728,72 +729,72 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                     continue
                 for j from 0 <= j < Ql:
                     if bi==0 or bi==N:
-                        mpc_set(ch,Cv[j][ai][bi],rnd)
+                        mpc_set(ch[0],Cv[j][ai][bi],rnd)
                         # ch = Cv[j][ai,bi]
                         bii= bi # this is true for bi=0 and bi=N
                         #mpc_set(ztmp.value,Cv[j][ai][bii],rnd)
                         if is_zero(Cv[j][ai][bii]): #t_ch_r<>0 and t_ch_i<>0:
-                            mpc_set_si(ch2,0,rnd) # ch2=CF(0)
+                            mpc_set_si(ch2[0],0,rnd) # ch2=CF(0)
                         else:
                             #print "non-zero!"
-                            mpc_set_ui(ch2,1,rnd)
-                            mpc_div(ch2,ch2,Cv[j][ai][bii],rnd)
+                            mpc_set_ui(ch2[0],1,rnd)
+                            mpc_div(ch2[0],ch2[0],Cv[j][ai][bii],rnd)
                             #ch2=1/Cv[j][ai,bii]  #*Cfak[1-j][0]  #Cv[1-j][ai,bi]
                     else:
                         mbi= abD -bi # else -bi = 2N-bi
                         ##ch = (Cv[j][ai,bi]+sym_type*Cv[j][ai,mbi])
-                        mpc_set(ch,Cv[j][ai][mbi],rnd)
-                        mpc_mul_si(ch,ch,sym_type,rnd)
-                        mpc_add(ch,ch,Cv[j][ai][bi],rnd)
-                        mpc_set_si(ch21,0,rnd)
-                        mpc_set_si(ch22,0,rnd)
+                        mpc_set(ch[0],Cv[j][ai][mbi],rnd)
+                        mpc_mul_si(ch[0],ch[0],sym_type,rnd)
+                        mpc_add(ch[0],ch[0],Cv[j][ai][bi],rnd)
+                        mpc_set_si(ch21[0],0,rnd)
+                        mpc_set_si(ch22[0],0,rnd)
                         #ch21=0; ch22=0
                         if is_zero(Cv[j][ai][bi])==0: # i.e. is non-zero
-                            mpc_set_ui(ch21,1,rnd)
-                            mpc_div(ch21,ch21,Cv[j][ai][bi],rnd)
+                            mpc_set_ui(ch21[0],1,rnd)
+                            mpc_div(ch21[0],ch21[0],Cv[j][ai][bi],rnd)
                             #ch21=Cv[j][ai,bi]**-1
                         if is_zero(Cv[j][ai][mbi])==0:
-                            mpc_set_ui(ch22,1,rnd)
-                            mpc_div(ch22,ch22,Cv[j][ai][mbi],rnd)
+                            mpc_set_ui(ch22[0],1,rnd)
+                            mpc_div(ch22[0],ch22[0],Cv[j][ai][mbi],rnd)
                             #ztmp=Cv[j][ai,mbi]**-1
                         if sym_type==1:
-                            mpc_add(ch2,ch22,ch21,rnd)
+                            mpc_add(ch2[0],ch22[0],ch21[0],rnd)
                         else:
-                            mpc_sub(ch2,ch22,ch21,rnd)
-                    if is_zero(ch)==0:
-                        mpc_set(tmp1,fak1[l][bi-Ds][j],rnd)
-                        mpc_mul(tmp1,tmp1,ch,rnd)
-                        mpc_mul(tmp1,tmp1,Cfak_plus._entries[j],rnd)
-                        #tmp1=fak1[l][j-1,bi-Ds]*ch*Cfak[j][0]
+                            mpc_sub(ch2[0],ch22[0],ch21[0],rnd)
+                    if is_zero(ch[0])==0:
+                        mpc_set(tmp1[0],fak1[l][bi-Ds][j],rnd)
+                        mpc_mul(tmp1[0],tmp1[0],ch[0],rnd)
+                        mpc_mul(tmp1[0],tmp1[0],Cfak_plus._entries[j],rnd)
+                        #tmp1[0]=fak1[l][j-1,bi-Ds]*ch*Cfak[j][0]
                     else:
-                        mpc_set_si(tmp1,0,rnd)
-                    if is_zero(ch2)==0:
-                        mpc_set(tmp2,fak1[l][bi-Ds][j],rnd)
-                        mpc_conj(tmp2,tmp2,rnd)
-                        mpc_mul(tmp2,tmp2,ch2,rnd)
-                        mpc_mul(tmp2,tmp2,Cfak_minus._entries[j],rnd)
+                        mpc_set_si(tmp1[0],0,rnd)
+                    if is_zero(ch2[0])==0:
+                        mpc_set(tmp2[0],fak1[l][bi-Ds][j],rnd)
+                        mpc_conj(tmp2[0],tmp2[0],rnd)
+                        mpc_mul(tmp2[0],tmp2[0],ch2[0],rnd)
+                        mpc_mul(tmp2[0],tmp2[0],Cfak_minus._entries[j],rnd)
                     else:
-                        mpc_set_si(tmp2,0,rnd)
-                    if is_zero(ch) and is_zero(ch2):
+                        mpc_set_si(tmp2[0],0,rnd)
+                    if is_zero(ch[0]) and is_zero(ch2[0]):
                         continue
                     nis= Ml*ai
                     ## Do the case n=0 separately
                     if not H._holomorphic or Qvv[ai]>=0:
-                        mpc_set(tmpV,fak2[0][ai][j],rnd)
-                        mpc_mul(tmpV2,tmp1,tmpV,rnd)
-                        mpc_conj(tmpV,tmpV,rnd)
-                        mpc_mul(tmpV,tmpV,tmp2,rnd)                        
-                        mpc_add(tmpV1.value,tmpV,tmpV2,rnd)
+                        mpc_set(tmpV[0],fak2[0][ai][j],rnd)
+                        mpc_mul(tmpV2[0],tmp1[0],tmpV[0],rnd)
+                        mpc_conj(tmpV[0],tmpV[0],rnd)
+                        mpc_mul(tmpV[0],tmpV[0],tmp2[0],rnd)                        
+                        mpc_add(tmpV1.value,tmpV[0],tmpV2[0],rnd)
                         mpc_add(V._matrix[nis][lj],V._matrix[nis][lj],tmpV1.value,rnd)                        
                     for n from 1 <= n < Ml:
                         ni=nis+n
-                        mpc_set(tmpV,fak2[n][ai][j],rnd)
-                        mpc_mul(tmpV2,tmp1,tmpV,rnd)
-                        mpc_conj(tmpV,tmpV,rnd)
-                        mpc_mul(tmpV,tmpV,tmp2,rnd)                        
-                        mpc_add(tmpV1.value,tmpV,tmpV2,rnd)
-                        #tmpV1=tmp1*ztmp+tmp2*ztmp.conjugate()
-                        #tmpV1=(tmp1*ztmp+tmp2*ztmp.conjugate())
+                        mpc_set(tmpV[0],fak2[n][ai][j],rnd)
+                        mpc_mul(tmpV2[0],tmp1[0],tmpV[0],rnd)
+                        mpc_conj(tmpV[0],tmpV[0],rnd)
+                        mpc_mul(tmpV[0],tmpV[0],tmp2[0],rnd)                        
+                        mpc_add(tmpV1.value,tmpV[0],tmpV2[0],rnd)
+                        #tmpV1=tmp1[0]*ztmp+tmp2*ztmp.conjugate()
+                        #tmpV1=(tmp1[0]*ztmp+tmp2*ztmp.conjugate())
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmpV1.value,rnd)
     if verbose>0:
         print "here1"
@@ -802,9 +803,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     if verbose>0:
         print "V[9,9]=",V[9,9]
         print "V[30,30]=",V[30,30]
-    cdef mpfr_t twopiY
-    mpfr_init2(twopiY,prec)
-    mpfr_mul(twopiY,twopi.value,Y.value,rnd_re)
+    cdef mpfr_t twopiY[1]
+    mpfr_init2(twopiY[0],prec)
+    mpfr_mul(twopiY[0],twopi.value,Y.value,rnd_re)
     ni = V.nrows()-1
     lj = V.ncols()-1
     for n from 0 <= n <= ni:
@@ -818,17 +819,17 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     for ai from 0 <= ai < Dl:
         for n from 0 <= n < Ml:
             #a=D[ai+Ds]
-            mpfr_set(nr,Qvv._entries[ai],rnd_re)
-            mpfr_add_si(nr,nr,n+Ms,rnd_re)
-            mpc_set_fr(nri,nr,rnd)
-            mpfr_swap(mpc_realref(nri),mpc_imagref(nri))
+            mpfr_set(nr[0],Qvv._entries[ai],rnd_re)
+            mpfr_add_si(nr[0],nr[0],n+Ms,rnd_re)
+            mpc_set_fr(nri[0],nr[0],rnd)
+            mpfr_swap(mpc_realref(nri[0]),mpc_imagref(nri[0]))
             ni=Ml*ai+n
-            mpfr_mul(nrY2pi.value,nr,twopiY,rnd_re)
+            mpfr_mul(nrY2pi.value,nr[0],twopiY[0],rnd_re)
             if verbose>1:
                 print "ni=",ni
-                mpfr_set(tmp_r.value,nr,rnd_re)
+                mpfr_set(tmp_r.value,nr[0],rnd_re)
                 print "nr=",tmp_r
-            if mpfr_sgn(nr)>=0:
+            if mpfr_sgn(nr[0])>=0:
                 kbes=(-nrY2pi).exp()
             elif not H._holomorphic:
                 mpfr_mul_si(nrY4pi.value,nrY2pi.value,-2,rnd_re)
@@ -874,21 +875,21 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                         #summa=CF(0)
                     else:
                         for j from 0 <= j < Ql:
-                            mpc_mul_fr(tmp1,nri,Xm._entries[j],rnd)
+                            mpc_mul_fr(tmp1[0],nri[0],Xm._entries[j],rnd)
                             #mpc_mul
-                            mpc_set(tmp.value,tmp1,rnd)
+                            mpc_set(tmp.value,tmp1[0],rnd)
                             #tmp=mmi_cplx[bi]*Zpb[j]-tmp  
-                            mpc_mul(tmp1,mmi_cplx[bi],Zpb._entries[j],rnd)
-                            mpc_sub(tmp.value,tmp1,tmp.value,rnd)
-                            #tmp=mmmi[(beta,m)]*Zpb[j]-nri*Xm[j]
+                            mpc_mul(tmp1[0],mmi_cplx[bi],Zpb._entries[j],rnd)
+                            mpc_sub(tmp.value,tmp1[0],tmp.value,rnd)
+                            #tmp=mmmi[(beta,m)]*Zpb[j]-nri[0]*Xm[j]
                             mpc_exp(tmpc.value,tmp.value,rnd) #=tmp.exp()
-                            mpc_set(tmp1,Cv[j][ai][beta_int[bi]],rnd)
-                            #tmp1=tmp1*Cfak[j][0] TEST
-                            mpc_mul(tmp1,tmp1,Cfak_plus._entries[j],rnd)
+                            mpc_set(tmp1[0],Cv[j][ai][beta_int[bi]],rnd)
+                            #tmp1[0]=tmp1[0]*Cfak[j][0] TEST
+                            mpc_mul(tmp1[0],tmp1[0],Cfak_plus._entries[j],rnd)
                             #ch2=Cv[1-j][ai,betai[beta]]
-                            mpc_mul(tmp1,tmp1,tmpc.value,rnd)
-                            mpc_add(summa.value,summa.value,tmp1,rnd)
-                            #rtmp1.summa=summa+tmpc*tmp1
+                            mpc_mul(tmp1[0],tmp1[0],tmpc.value,rnd)
+                            mpc_add(summa.value,summa.value,tmp1[0],rnd)
+                            #rtmp1[0].summa=summa+tmpc*tmp1[0]
                             if beta_int[bi] == 0 or beta_int[bi]==N:
                                 bii = beta_int[bi]
                             else:
@@ -896,53 +897,53 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                             if is_zero(Cv[j][ai][bii])==0:
                                 #t_ch_r==0 or t_ch_i==0:
                                 # if Cv[j][ai,bii]<>0:
-                                mpc_div(tmp1,Cfak_minus._entries[j],Cv[j][ai][bii],rnd)
-                                mpc_set(tmp2,tmpc.value,rnd)
-                                mpc_conj(tmp2,tmp2,rnd)
-                                mpc_mul(tmp1,tmp1,tmp2,rnd)
+                                mpc_div(tmp1[0],Cfak_minus._entries[j],Cv[j][ai][bii],rnd)
+                                mpc_set(tmp2[0],tmpc.value,rnd)
+                                mpc_conj(tmp2[0],tmp2[0],rnd)
+                                mpc_mul(tmp1[0],tmp1[0],tmp2[0],rnd)
 
-                                mpc_add(summa.value,summa.value,tmp1,rnd)
-                                #summa=summa+tmp1*tmpc.conjugate()
+                                mpc_add(summa.value,summa.value,tmp1[0],rnd)
+                                #summa=summa+tmp1[0]*tmpc.conjugate()
 
                 else:
                     for j from 0 <= j < Ql:
                         #ch=(Cv[j][ai,beta_int[bi]]+sym_type*Cv[j][ai,mbeta_int[bi]])
-                        mpc_set(ch,Cv[j][ai][mbeta_int[bi]],rnd)
-                        mpc_mul_si(ch,ch,sym_type,rnd)
-                        mpc_add(ch,ch,Cv[j][ai][beta_int[bi]],rnd)
+                        mpc_set(ch[0],Cv[j][ai][mbeta_int[bi]],rnd)
+                        mpc_mul_si(ch[0],ch[0],sym_type,rnd)
+                        mpc_add(ch[0],ch[0],Cv[j][ai][beta_int[bi]],rnd)
                         if is_zero(Cv[j][ai][beta_int[bi]])==0:
-                            mpc_set_si(ch21,1,rnd)
+                            mpc_set_si(ch21[0],1,rnd)
                             #ch21=1/Cv[j][ai,beta_int[bi]]
-                            mpc_div(ch21,ch21,Cv[j][ai][beta_int[bi]],rnd)
+                            mpc_div(ch21[0],ch21[0],Cv[j][ai][beta_int[bi]],rnd)
                         if is_zero(Cv[j][ai][mbeta_int[bi]])==0:
-                            mpc_set_si(ch22,1,rnd)
-                            mpc_div(ch22,ch22,Cv[j][ai][mbeta_int[bi]],rnd)
+                            mpc_set_si(ch22[0],1,rnd)
+                            mpc_div(ch22[0],ch22[0],Cv[j][ai][mbeta_int[bi]],rnd)
                             #ch22=1/Cv[j][ai,mbeta_int[bi]]
                         if sym_type==1:
-                            mpc_add(ch2,ch21,ch22,rnd)
+                            mpc_add(ch2[0],ch21[0],ch22[0],rnd)
                             #ch2=(ch21+ch22)
                         else:
-                            mpc_sub(ch2,ch22,ch21,rnd)
+                            mpc_sub(ch2[0],ch22[0],ch21[0],rnd)
                             #ch2=(ch22-ch21)
-                        if is_zero(ch) and is_zero(ch2):
+                        if is_zero(ch[0]) and is_zero(ch2[0]):
                             continue
-                        mpc_mul_fr(tmp1,nri,Xm._entries[j],rnd)
-                        #tmp=mmmi[(beta,m)]*Zpb[j]-nri*Xm[j]
-                        mpc_set((<MPComplexNumber>tmp).value,tmp1,rnd)
+                        mpc_mul_fr(tmp1[0],nri[0],Xm._entries[j],rnd)
+                        #tmp=mmmi[(beta,m)]*Zpb[j]-nri[0]*Xm[j]
+                        mpc_set((<MPComplexNumber>tmp).value,tmp1[0],rnd)
                         
-                        #tmp=mmi_cplx[bi]*Zpb[j]-tmp # -tmp1
+                        #tmp=mmi_cplx[bi]*Zpb[j]-tmp # -tmp1[0]
                         #tmpc=tmp.exp()
-                        mpc_mul(tmp1,mmi_cplx[bi],Zpb._entries[j],rnd)
-                        mpc_sub(tmp.value,tmp1,tmp.value,rnd)
+                        mpc_mul(tmp1[0],mmi_cplx[bi],Zpb._entries[j],rnd)
+                        mpc_sub(tmp.value,tmp1[0],tmp.value,rnd)
                         mpc_exp(tmpc.value,tmp.value,rnd)
                         
-                        mpc_mul(ch,ch,Cfak_plus._entries[j],rnd)
-                        mpc_mul(ch2,ch2,Cfak_minus._entries[j],rnd)
-                        mpc_mul(ch,tmpc.value,ch,rnd)
+                        mpc_mul(ch[0],ch[0],Cfak_plus._entries[j],rnd)
+                        mpc_mul(ch2[0],ch2[0],Cfak_minus._entries[j],rnd)
+                        mpc_mul(ch[0],tmpc.value,ch[0],rnd)
                         mpc_conj(tmpc.value,tmpc.value,rnd)
-                        mpc_mul(ch2,tmpc.value,ch2,rnd)
-                        mpc_add(ch,ch,ch2,rnd)
-                        mpc_add(summa.value,summa.value,ch,rnd)
+                        mpc_mul(ch2[0],tmpc.value,ch2[0],rnd)
+                        mpc_add(ch[0],ch[0],ch2[0],rnd)
+                        mpc_add(summa.value,summa.value,ch[0],rnd)
                         #summa=summa+tmpc*ch+ch2*tmpc.conjugate()
 
                 mpc_mul(summa.value,summa.value,an.value,rnd)
@@ -958,43 +959,43 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                 if n+Ms == m:
                     if mbeta_int[bi]==beta_int[bi]:
                         if ai+Ds==beta_int[bi] and sym_type==1:
-                            mpfr_mul(tmpr_t,twopiY,mm_real[bi],rnd_re)
-                            mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                            mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                            mpc_mul_fr(an.value,an.value,tmpr_t,rnd)
+                            mpfr_mul(tmpr_t[0],twopiY[0],mm_real[bi],rnd_re)
+                            mpfr_neg(tmpr_t[0],tmpr_t[0],rnd_re)
+                            mpfr_exp(tmpr_t[0],tmpr_t[0],rnd_re)
+                            mpc_mul_fr(an.value,an.value,tmpr_t[0],rnd)
                             #an = an*(-mm_real[bi]*twopiY).exp()
                             RHS[ni,0]=RHS[ni,0]- an
                     elif ai+Ds==beta_int[bi]:
-                        mpfr_mul(tmpr_t,twopiY,mm_real[bi],rnd_re)
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                        mpc_mul_fr(an.value,an.value,tmpr_t,rnd)
+                        mpfr_mul(tmpr_t[0],twopiY[0],mm_real[bi],rnd_re)
+                        mpfr_neg(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpfr_exp(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpc_mul_fr(an.value,an.value,tmpr_t[0],rnd)
                         #an = an*(-mm_real[bi]*twopiY).exp()
                         RHS[ni,0]=RHS[ni,0]-an #*(-mm_real[bi]*twopiY).exp()
                     elif ai+Ds == mbeta_int[bi]:
-                        mpfr_mul(tmpr_t,twopiY,mm_real[bi],rnd_re)
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                        mpc_mul_fr(an.value,an.value,tmpr_t,rnd)
+                        mpfr_mul(tmpr_t[0],twopiY[0],mm_real[bi],rnd_re)
+                        mpfr_neg(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpfr_exp(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpc_mul_fr(an.value,an.value,tmpr_t[0],rnd)
                         mpc_mul_si(an.value,an.value,sym_type,rnd)
                         #an = sym_type*an*(-mm_real[bi]*twopiY).exp()
                         RHS[ni,0]=RHS[ni,0]-an  #*(-mm_real[bi]*twopiY).exp()
 
 
     # Clear variables
-    mpc_clear(ch)
-    mpc_clear(tmpV)
-    mpc_clear(tmp1)
-    mpc_clear(tmp2)
-    mpc_clear(tmpV2)
-    mpc_clear(ch2)
-    mpc_clear(ch21)
-    mpc_clear(ch22)
-    mpfr_clear(nr)
-    mpfr_clear(tmpr_t)
-    mpfr_clear(twopiY)
-    mpc_clear(nri)
-    mpc_clear(tmpc_t)
+    mpc_clear(ch[0])
+    mpc_clear(tmpV[0])
+    mpc_clear(tmp1[0])
+    mpc_clear(tmp2[0])
+    mpc_clear(tmpV2[0])
+    mpc_clear(ch2[0])
+    mpc_clear(ch21[0])
+    mpc_clear(ch22[0])
+    mpfr_clear(nr[0])
+    mpfr_clear(tmpr_t[0])
+    mpfr_clear(twopiY[0])
+    mpc_clear(nri[0])
+    mpc_clear(tmpc_t[0])
     sage_free(beta_int)
     sage_free(mbeta_int)
     sage_free(mm_real)
@@ -1100,8 +1101,8 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     cdef int j,l,n,ai,bi,bii,mbi
     cdef int N,sym_type,verbose,len_of_pp,Qs,Qf,Ql,Ms,Mf,Ml,Qfaki
     cdef list PP0,beta_rat,pp_c,mbeta_rat #,mm_real,mmi_cplx
-    cdef mpfr_t tmpr_t
-    mpfr_init2(tmpr_t,prec)
+    cdef mpfr_t tmpr_t[1]
+    mpfr_init2(tmpr_t[0],prec)
     #D=WM.basis(); N=WM.rank()/2
     #D = 
     sym_type = H.sym_type(); verbose = H._verbose
@@ -1209,9 +1210,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
         print "Symmetry type=",sym_type
         print "D=",D
     if sym_type<>0:
-        Qs=1; Qf=Q; Ql=Qf-Ql; Qfaki=2*Q
+        Qs=1; Qf=Q; Ql=Qf-Qs; Qfaki=2*Q
     else:
-        Qs=1-Q; Qf=Q; Ql=Qf-Ql; Qfaki=4*Q
+        Qs=1-Q; Qf=Q; Ql=Qf-Qs; Qfaki=4*Q
     kint=mpmath.mp.mpf(mpone-weight)
     ## Recall that we have different index sets depending on the symmetry
     cdef int Ds,Df,Dl,s
@@ -1283,19 +1284,19 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     VS = vector(RF,Df-Ds+1).parent()
     Qvv=Vector_real_mpfr_dense(VS,0)
     nrtwopi=RF(0); nrtwo=RF(0)
-    cdef mpc_t tmp1,tmp2
-    mpc_init2(tmp1,prec)
-    mpc_init2(tmp2,prec)
+    cdef mpc_t tmp1[1],tmp2[1]
+    mpc_init2(tmp1[0],prec)
+    mpc_init2(tmp2[0],prec)
 
     for j from Ds<= j <= Df:
         Qvv[j-Ds]=RF(H.multiplier().Qv[j])
-    cdef mpfr_t nr
-    cdef mpc_t nri,tmpc_t
+    cdef mpfr_t nr[1]
+    cdef mpc_t nri[1],tmpc_t[1]
     cdef Rational a
     a = QQ(0)
-    mpfr_init2(nr,prec)
-    mpc_init2(nri,prec)
-    mpc_init2(tmpc_t,prec)
+    mpfr_init2(nr[0],prec)
+    mpc_init2(nri[0],prec)
+    mpc_init2(tmpc_t[0],prec)
     cdef RealNumber tmparg
     tmparg=RF(1)
     cdef RealNumber nrY2pi,nrY4pi,kbes
@@ -1325,40 +1326,40 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     mparg = mpmath.mp.mpf(0)
     for n from 0 <= n < Ml:
         for ai from 0 <= ai < Dl:
-            mpfr_set_si(nr,n+Ms,rnd_re)
-            mpfr_add(nr,nr,Qvv._entries[ai],rnd_re)
-            mpc_set_fr(nri,nr,rnd)
-            mpfr_swap(mpc_realref(nri),mpc_imagref(nri))
-            mpfr_set(tmp_r.value,nr,rnd_re)
-            mpc_set(ztmp.value,nri,rnd)
+            mpfr_set_si(nr[0],n+Ms,rnd_re)
+            mpfr_add(nr[0],nr[0],Qvv._entries[ai],rnd_re)
+            mpc_set_fr(nri[0],nr[0],rnd)
+            mpfr_swap(mpc_realref(nri[0]),mpc_imagref(nri[0]))
+            mpfr_set(tmp_r.value,nr[0],rnd_re)
+            mpc_set(ztmp.value,nri[0],rnd)
             for j from 0 <= j < Ql:
-                mpc_mul_fr(tmpc_t,nri,Xm._entries[j],rnd)
-                mpc_neg(tmpc_t,tmpc_t,rnd)
-                mpc_exp(fak2[n][ai][j],tmpc_t,rnd)
-                #fak2[n,j,a]=CF(-nri*Xm[j]).exp()
-            if mpfr_sgn(nr)>0:
+                mpc_mul_fr(tmpc_t[0],nri[0],Xm._entries[j],rnd)
+                mpc_neg(tmpc_t[0],tmpc_t[0],rnd)
+                mpc_exp(fak2[n][ai][j],tmpc_t[0],rnd)
+                #fak2[n,j,a]=CF(-nri[0]*Xm[j]).exp()
+            if mpfr_sgn(nr[0])>0:
                 for j from 0 <= j < Ql:
-                    mpc_mul(tmpc_t,nri,Zpb._entries[j],rnd)
-                    mpc_exp(tmpc_t,tmpc_t,rnd)
-                    mpc_set(fak1[n][ai][j],tmpc_t,rnd)
-            elif mpfr_sgn(nr)==0:
+                    mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
+                    mpc_exp(tmpc_t[0],tmpc_t[0],rnd)
+                    mpc_set(fak1[n][ai][j],tmpc_t[0],rnd)
+            elif mpfr_sgn(nr[0])==0:
                 for j from 0 <= j < Ql:
                     mpc_set_ui(fak1[n][ai][j],1,rnd)
             elif not H._holomorphic: 
-                mpfr_mul_ui(nrtwo.value,nr,2,rnd_re)
+                mpfr_mul_ui(nrtwo.value,nr[0],2,rnd_re)
                 mpfr_abs(nrtwo.value,nrtwo.value,rnd_re)
-                mpc_set_si(tmp1,1,rnd) 
+                mpc_set_si(tmp1[0],1,rnd) 
                 for j from 0 <= j < Ql:
-                    mpc_mul(tmpc_t,nri,Zpb._entries[j],rnd)
-                    mpc_exp(tmp1,tmpc_t,rnd)
+                    mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
+                    mpc_exp(tmp1[0],tmpc_t[0],rnd)
                     mpfr_mul(tmparg.value,mpc_imagref(Zpb._entries[j]),nrtwo.value,rnd_re)
                     tu = mpfr_to_mpfval(tmparg.value)
                     mparg._set_mpf(tu)
                     testmp= mpctx.gammainc(kint,mparg)
                     mpfr_from_mpfval(kbes.value,testmp._mpf_)
                     #mpgamma = mpctx.gammainc(kint,tmparg)
-                    mpc_mul_fr(tmp1,tmp1,kbes.value,rnd)
-                    mpc_set(fak1[n][ai][j],tmp1,rnd)
+                    mpc_mul_fr(tmp1[0],tmp1[0],kbes.value,rnd)
+                    mpc_set(fak1[n][ai][j],tmp1[0],rnd)
                     #if n==Ms and j==1 and ai==1:
                     #    print "ERROR!"
             #else:
@@ -1373,12 +1374,12 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                     #print "Cfak[",1-j,"][0]=",Cfak_minus[j-Qs]
                     #print "Cfak[",j,"][1]=",Cfak[j][1]
     cdef int t_ch_r,t_ch_i,t_ch2_r,t_ch2_i,ni,lj,nis
-    cdef mpc_t ch,ch2,ch21,ch22,tmpV,tmpV2
+    cdef mpc_t ch[1],ch2,ch21,ch22,tmpV,tmpV2
     if verbose>0:
         print "precAAA:",prec
     mpc_init2(tmpV2,prec)
     mpc_init2(tmpV,prec)
-    mpc_init2(ch,prec)
+    mpc_init2(ch[0],prec)
     mpc_init2(ch2,prec)
     mpc_init2(ch21,prec)
     mpc_init2(ch22,prec)
@@ -1404,8 +1405,8 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                         print "Skipping l=",l," b=",bi-Ds, " lj=",lj
                     continue
                 for j from 0 <= j < Ql:
-                    if bi==0 or bi==N:
-                        mpc_set(ch,Cv[j][ai][bi],rnd)
+                    if minus_ix[bi]==bi: # bi==0 or bi==N:
+                        mpc_set(ch[0],Cv[j][ai][bi],rnd)
                         # ch = Cv[j][ai,bi]
                         bii= bi # this is true for bi=0 and bi=N
                         #mpc_set(ztmp.value,Cv[j][ai][bii],rnd)
@@ -1428,9 +1429,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                         #    print "j,ai,mbi=",j,ai,mbi
                         #    mpc_set(ztmp.value,Cv[j][ai][mbi],rnd)
                         #    print "Cv[",j,"][",ai,mbi,"]=",ztmp
-                        mpc_set(ch,Cv[j][ai][mbi],rnd)
-                        mpc_mul_si(ch,ch,sym_type,rnd)
-                        mpc_add(ch,ch,Cv[j][ai][bi],rnd)
+                        mpc_set(ch[0],Cv[j][ai][mbi],rnd)
+                        mpc_mul_si(ch[0],ch[0],sym_type,rnd)
+                        mpc_add(ch[0],ch[0],Cv[j][ai][bi],rnd)
                         mpc_set_si(ch21,0,rnd)
                         mpc_set_si(ch22,0,rnd)
                         #ch21=0; ch22=0
@@ -1446,40 +1447,40 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                             mpc_add(ch2,ch22,ch21,rnd)
                         else:
                             mpc_sub(ch2,ch22,ch21,rnd)
-                    if is_zero(ch)==0:
-                        mpc_set(tmp1,fak1[l][bi-Ds][j],rnd)
-                        mpc_mul(tmp1,tmp1,ch,rnd)
-                        mpc_mul(tmp1,tmp1,Cfak_plus._entries[j],rnd)
-                        #tmp1=fak1[l][j-1,bi-Ds]*ch*Cfak[j][0]
+                    if is_zero(ch[0])==0:
+                        mpc_set(tmp1[0],fak1[l][bi-Ds][j],rnd)
+                        mpc_mul(tmp1[0],tmp1[0],ch[0],rnd)
+                        mpc_mul(tmp1[0],tmp1[0],Cfak_plus._entries[j],rnd)
+                        #tmp1[0]=fak1[l][j-1,bi-Ds]*ch*Cfak[j][0]
                     else:
-                        mpc_set_si(tmp1,0,rnd)
+                        mpc_set_si(tmp1[0],0,rnd)
                     if is_zero(ch2)==0:
-                        mpc_set(tmp2,fak1[l][bi-Ds][j],rnd)
-                        mpc_conj(tmp2,tmp2,rnd)
-                        mpc_mul(tmp2,tmp2,ch2,rnd)
-                        mpc_mul(tmp2,tmp2,Cfak_minus._entries[j],rnd)
+                        mpc_set(tmp2[0],fak1[l][bi-Ds][j],rnd)
+                        mpc_conj(tmp2[0],tmp2[0],rnd)
+                        mpc_mul(tmp2[0],tmp2[0],ch2,rnd)
+                        mpc_mul(tmp2[0],tmp2[0],Cfak_minus._entries[j],rnd)
                     else:
-                        mpc_set_si(tmp2,0,rnd)
-                    if is_zero(ch) and is_zero(ch2):
+                        mpc_set_si(tmp2[0],0,rnd)
+                    if is_zero(ch[0]) and is_zero(ch2):
                         continue
                     nis= Ml*ai
                     ## Do the case n=0 separately
                     if not H._holomorphic or Qvv[ai]>=0:
                         mpc_set(tmpV,fak2[0][ai][j],rnd)
-                        mpc_mul(tmpV2,tmp1,tmpV,rnd)
+                        mpc_mul(tmpV2,tmp1[0],tmpV,rnd)
                         mpc_conj(tmpV,tmpV,rnd)
-                        mpc_mul(tmpV,tmpV,tmp2,rnd)                        
+                        mpc_mul(tmpV,tmpV,tmp2[0],rnd)                        
                         mpc_add(tmpV1.value,tmpV,tmpV2,rnd)
                         mpc_add(V._matrix[nis][lj],V._matrix[nis][lj],tmpV1.value,rnd)                        
                     for n from 1 <= n < Ml:
                         ni=nis+n
                         mpc_set(tmpV,fak2[n][ai][j],rnd)
-                        mpc_mul(tmpV2,tmp1,tmpV,rnd)
+                        mpc_mul(tmpV2,tmp1[0],tmpV,rnd)
                         mpc_conj(tmpV,tmpV,rnd)
-                        mpc_mul(tmpV,tmpV,tmp2,rnd)                        
+                        mpc_mul(tmpV,tmpV,tmp2[0],rnd)                        
                         mpc_add(tmpV1.value,tmpV,tmpV2,rnd)
-                        #tmpV1=tmp1*ztmp+tmp2*ztmp.conjugate()
-                        #tmpV1=(tmp1*ztmp+tmp2*ztmp.conjugate())
+                        #tmpV1=tmp1[0]*ztmp+tmp2[0]*ztmp.conjugate()
+                        #tmpV1=(tmp1[0]*ztmp+tmp2[0]*ztmp.conjugate())
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmpV1.value,rnd)
     if verbose>0:
         print "here1"
@@ -1490,9 +1491,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
             print "V[9,9]=",V[9,9]
         if V.nrows()>=30:
             print "V[30,30]=",V[30,30]
-    cdef mpfr_t twopiY
-    mpfr_init2(twopiY,prec)
-    mpfr_mul(twopiY,twopi.value,Y.value,rnd_re)
+    cdef mpfr_t twopiY[1]
+    mpfr_init2(twopiY[0],prec)
+    mpfr_mul(twopiY[0],twopi.value,Y.value,rnd_re)
     ni = V.nrows()-1
     lj = V.ncols()-1
     for n from 0 <= n <= ni:
@@ -1506,17 +1507,17 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     for ai from 0 <= ai < Dl:
         for n from 0 <= n < Ml:
             #a=D[ai+Ds]
-            mpfr_set(nr,Qvv._entries[ai],rnd_re)
-            mpfr_add_si(nr,nr,n+Ms,rnd_re)
-            mpc_set_fr(nri,nr,rnd)
-            mpfr_swap(mpc_realref(nri),mpc_imagref(nri))
+            mpfr_set(nr[0],Qvv._entries[ai],rnd_re)
+            mpfr_add_si(nr[0],nr[0],n+Ms,rnd_re)
+            mpc_set_fr(nri[0],nr[0],rnd)
+            mpfr_swap(mpc_realref(nri[0]),mpc_imagref(nri[0]))
             ni=Ml*ai+n
-            mpfr_mul(nrY2pi.value,nr,twopiY,rnd_re)
+            mpfr_mul(nrY2pi.value,nr[0],twopiY[0],rnd_re)
             if verbose>1:
                 print "ni=",ni
-                mpfr_set(tmp_r.value,nr,rnd_re)
+                mpfr_set(tmp_r.value,nr[0],rnd_re)
                 print "nr=",tmp_r
-            if mpfr_sgn(nr)>=0:
+            if mpfr_sgn(nr[0])>=0:
                 kbes=(-nrY2pi).exp()
             elif not H._holomorphic:
                 mpfr_mul_si(nrY4pi.value,nrY2pi.value,-2,rnd_re)
@@ -1562,20 +1563,20 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                         #summa=CF(0)
                     else:
                         for j from 0 <= j < Ql:
-                            mpc_mul_fr(tmp1,nri,Xm._entries[j],rnd)
-                            mpc_set(tmp.value,tmp1,rnd)
+                            mpc_mul_fr(tmp1[0],nri[0],Xm._entries[j],rnd)
+                            mpc_set(tmp.value,tmp1[0],rnd)
                             #tmp=mmi_cplx[bi]*Zpb[j]-tmp  
-                            mpc_mul(tmp1,mmi_cplx[bi],Zpb._entries[j],rnd)
-                            mpc_sub(tmp.value,tmp1,tmp.value,rnd)
-                            #tmp=mmmi[(beta,m)]*Zpb[j]-nri*Xm[j]
+                            mpc_mul(tmp1[0],mmi_cplx[bi],Zpb._entries[j],rnd)
+                            mpc_sub(tmp.value,tmp1[0],tmp.value,rnd)
+                            #tmp=mmmi[(beta,m)]*Zpb[j]-nri[0]*Xm[j]
                             mpc_exp(tmpc.value,tmp.value,rnd) #=tmp.exp()
-                            mpc_set(tmp1,Cv[j][ai][beta_int[bi]],rnd)
-                            #tmp1=tmp1*Cfak[j][0] TEST
-                            mpc_mul(tmp1,tmp1,Cfak_plus._entries[j],rnd)
+                            mpc_set(tmp1[0],Cv[j][ai][beta_int[bi]],rnd)
+                            #tmp1[0]=tmp1[0]*Cfak[j][0] TEST
+                            mpc_mul(tmp1[0],tmp1[0],Cfak_plus._entries[j],rnd)
                             #ch2=Cv[1-j][ai,betai[beta]]
-                            mpc_mul(tmp1,tmp1,tmpc.value,rnd)
-                            mpc_add(summa.value,summa.value,tmp1,rnd)
-                            #rtmp1.summa=summa+tmpc*tmp1
+                            mpc_mul(tmp1[0],tmp1[0],tmpc.value,rnd)
+                            mpc_add(summa.value,summa.value,tmp1[0],rnd)
+                            #rtmp1[0].summa=summa+tmpc*tmp1[0]
                             bii = minus_ix[beta_int[bi]]
                             #if beta_int[bi] == 0 or beta_int[bi]==N:
                             #    bii = beta_int[bi]
@@ -1584,20 +1585,20 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                             if is_zero(Cv[j][ai][bii])==0:
                                 #t_ch_r==0 or t_ch_i==0:
                                 # if Cv[j][ai,bii]<>0:
-                                mpc_div(tmp1,Cfak_minus._entries[j],Cv[j][ai][bii],rnd)
-                                mpc_set(tmp2,tmpc.value,rnd)
-                                mpc_conj(tmp2,tmp2,rnd)
-                                mpc_mul(tmp1,tmp1,tmp2,rnd)
+                                mpc_div(tmp1[0],Cfak_minus._entries[j],Cv[j][ai][bii],rnd)
+                                mpc_set(tmp2[0],tmpc.value,rnd)
+                                mpc_conj(tmp2[0],tmp2[0],rnd)
+                                mpc_mul(tmp1[0],tmp1[0],tmp2[0],rnd)
 
-                                mpc_add(summa.value,summa.value,tmp1,rnd)
-                                #summa=summa+tmp1*tmpc.conjugate()
+                                mpc_add(summa.value,summa.value,tmp1[0],rnd)
+                                #summa=summa+tmp1[0]*tmpc.conjugate()
 
                 else:
                     for j from 0 <= j < Ql:
                         #ch=(Cv[j][ai,beta_int[bi]]+sym_type*Cv[j][ai,mbeta_int[bi]])
-                        mpc_set(ch,Cv[j][ai][mbeta_int[bi]],rnd)
-                        mpc_mul_si(ch,ch,sym_type,rnd)
-                        mpc_add(ch,ch,Cv[j][ai][beta_int[bi]],rnd)
+                        mpc_set(ch[0],Cv[j][ai][mbeta_int[bi]],rnd)
+                        mpc_mul_si(ch[0],ch[0],sym_type,rnd)
+                        mpc_add(ch[0],ch[0],Cv[j][ai][beta_int[bi]],rnd)
                         if is_zero(Cv[j][ai][beta_int[bi]])==0:
                             mpc_set_si(ch21,1,rnd)
                             #ch21=1/Cv[j][ai,beta_int[bi]]
@@ -1612,25 +1613,25 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                         else:
                             mpc_sub(ch2,ch22,ch21,rnd)
                             #ch2=(ch22-ch21)
-                        if is_zero(ch) and is_zero(ch2):
+                        if is_zero(ch[0]) and is_zero(ch2):
                             continue
-                        mpc_mul_fr(tmp1,nri,Xm._entries[j],rnd)
-                        #tmp=mmmi[(beta,m)]*Zpb[j]-nri*Xm[j]
-                        mpc_set((<MPComplexNumber>tmp).value,tmp1,rnd)
+                        mpc_mul_fr(tmp1[0],nri[0],Xm._entries[j],rnd)
+                        #tmp=mmmi[(beta,m)]*Zpb[j]-nri[0]*Xm[j]
+                        mpc_set((<MPComplexNumber>tmp).value,tmp1[0],rnd)
                         
-                        #tmp=mmi_cplx[bi]*Zpb[j]-tmp # -tmp1
+                        #tmp=mmi_cplx[bi]*Zpb[j]-tmp # -tmp1[0]
                         #tmpc=tmp.exp()
-                        mpc_mul(tmp1,mmi_cplx[bi],Zpb._entries[j],rnd)
-                        mpc_sub(tmp.value,tmp1,tmp.value,rnd)
+                        mpc_mul(tmp1[0],mmi_cplx[bi],Zpb._entries[j],rnd)
+                        mpc_sub(tmp.value,tmp1[0],tmp.value,rnd)
                         mpc_exp(tmpc.value,tmp.value,rnd)
                         
-                        mpc_mul(ch,ch,Cfak_plus._entries[j],rnd)
+                        mpc_mul(ch[0],ch[0],Cfak_plus._entries[j],rnd)
                         mpc_mul(ch2,ch2,Cfak_minus._entries[j],rnd)
-                        mpc_mul(ch,tmpc.value,ch,rnd)
+                        mpc_mul(ch[0],tmpc.value,ch[0],rnd)
                         mpc_conj(tmpc.value,tmpc.value,rnd)
                         mpc_mul(ch2,tmpc.value,ch2,rnd)
-                        mpc_add(ch,ch,ch2,rnd)
-                        mpc_add(summa.value,summa.value,ch,rnd)
+                        mpc_add(ch[0],ch[0],ch2,rnd)
+                        mpc_add(summa.value,summa.value,ch[0],rnd)
                         #summa=summa+tmpc*ch+ch2*tmpc.conjugate()
 
                 mpc_mul(summa.value,summa.value,an.value,rnd)
@@ -1646,43 +1647,43 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                 if n+Ms == m:
                     if mbeta_int[bi]==beta_int[bi]:
                         if ai+Ds==beta_int[bi] and sym_type==1:
-                            mpfr_mul(tmpr_t,twopiY,mm_real[bi],rnd_re)
-                            mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                            mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                            mpc_mul_fr(an.value,an.value,tmpr_t,rnd)
+                            mpfr_mul(tmpr_t[0],twopiY[0],mm_real[bi],rnd_re)
+                            mpfr_neg(tmpr_t[0],tmpr_t[0],rnd_re)
+                            mpfr_exp(tmpr_t[0],tmpr_t[0],rnd_re)
+                            mpc_mul_fr(an.value,an.value,tmpr_t[0],rnd)
                             #an = an*(-mm_real[bi]*twopiY).exp()
                             RHS[ni,0]=RHS[ni,0]- an
                     elif ai+Ds==beta_int[bi]:
-                        mpfr_mul(tmpr_t,twopiY,mm_real[bi],rnd_re)
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                        mpc_mul_fr(an.value,an.value,tmpr_t,rnd)
+                        mpfr_mul(tmpr_t[0],twopiY[0],mm_real[bi],rnd_re)
+                        mpfr_neg(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpfr_exp(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpc_mul_fr(an.value,an.value,tmpr_t[0],rnd)
                         #an = an*(-mm_real[bi]*twopiY).exp()
                         RHS[ni,0]=RHS[ni,0]-an #*(-mm_real[bi]*twopiY).exp()
                     elif ai+Ds == mbeta_int[bi]:
-                        mpfr_mul(tmpr_t,twopiY,mm_real[bi],rnd_re)
-                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                        mpfr_exp(tmpr_t,tmpr_t,rnd_re)
-                        mpc_mul_fr(an.value,an.value,tmpr_t,rnd)
+                        mpfr_mul(tmpr_t[0],twopiY[0],mm_real[bi],rnd_re)
+                        mpfr_neg(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpfr_exp(tmpr_t[0],tmpr_t[0],rnd_re)
+                        mpc_mul_fr(an.value,an.value,tmpr_t[0],rnd)
                         mpc_mul_si(an.value,an.value,sym_type,rnd)
                         #an = sym_type*an*(-mm_real[bi]*twopiY).exp()
                         RHS[ni,0]=RHS[ni,0]-an  #*(-mm_real[bi]*twopiY).exp()
 
 
     # Clear variables
-    mpc_clear(ch)
+    mpc_clear(ch[0])
     mpc_clear(tmpV)
-    mpc_clear(tmp1)
-    mpc_clear(tmp2)
+    mpc_clear(tmp1[0])
+    mpc_clear(tmp2[0])
     mpc_clear(tmpV2)
     mpc_clear(ch2)
     mpc_clear(ch21)
     mpc_clear(ch22)
-    mpfr_clear(nr)
-    mpfr_clear(tmpr_t)
-    mpfr_clear(twopiY)
-    mpc_clear(nri)
-    mpc_clear(tmpc_t)
+    mpfr_clear(nr[0])
+    mpfr_clear(tmpr_t[0])
+    mpfr_clear(twopiY[0])
+    mpc_clear(nri[0])
+    mpc_clear(tmpc_t[0])
     sage_free(beta_int)
     sage_free(mbeta_int)
     sage_free(mm_real)
@@ -1787,8 +1788,8 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     cdef int j,l,n,ai,bi,bii,mbi
     cdef int N,sym_type,verbose,Qs,Qf,Ql,Ms,Mf,Ml,Qfaki
     #cdef list PP0,beta_rat,pp_c,mbeta_rat #,mm_real,mmi_cplx
-    cdef mpfr_t tmpr_t
-    mpfr_init2(tmpr_t,prec)
+    cdef mpfr_t tmpr_t[1]
+    mpfr_init2(tmpr_t[0],prec)
     sym_type = H.sym_type(); verbose = H._verbose
     beta_rat=[]; pp_c=[]; mbeta_rat=[] #; mm_real=[]; mmi_cplx=[]
     cdef mpfr_t *mm_real
@@ -1812,9 +1813,9 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
         print "Symmetry type=",sym_type
         print "D=",D
     if sym_type<>0:
-        Qs=1; Qf=Q; Ql=Qf-Ql; Qfaki=2*Q
+        Qs=1; Qf=Q; Ql=Qf-Qs; Qfaki=2*Q
     else:
-        Qs=1-Q; Qf=Q; Ql=Qf-Ql; Qfaki=4*Q
+        Qs=1-Q; Qf=Q; Ql=Qf-Qs; Qfaki=4*Q
     kint=mpmath.mp.mpf(mpone-weight)
     ## Recall that we have different index sets depending on the symmetry
     cdef int Ds,Df,Dl,s
@@ -1875,18 +1876,18 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     VS = vector(RF,Df-Ds+1).parent()
     Qvv=Vector_real_mpfr_dense(VS,0)
     nrtwopi=RF(0); nrtwo=RF(0)
-    cdef mpc_t tmp1,tmp2
-    mpc_init2(tmp1,prec)
-    mpc_init2(tmp2,prec)
+    cdef mpc_t tmp1[1],tmp2[1]
+    mpc_init2(tmp1[0],prec)
+    mpc_init2(tmp2[0],prec)
     for j from Ds<= j <= Df:
         Qvv[j-Ds]=RF(H.multiplier().Qv[j])
-    cdef mpfr_t nr
-    cdef mpc_t nri,tmpc_t
+    cdef mpfr_t nr[1]
+    cdef mpc_t nri[1],tmpc_t[1]
     cdef Rational a
     a = QQ(0)
-    mpfr_init2(nr,prec)
-    mpc_init2(nri,prec)
-    mpc_init2(tmpc_t,prec)
+    mpfr_init2(nr[0],prec)
+    mpc_init2(nri[0],prec)
+    mpc_init2(tmpc_t[0],prec)
     cdef RealNumber tmparg
     tmparg=RF(1)
     cdef RealNumber nrY2pi,nrY4pi,kbes
@@ -1916,22 +1917,22 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     mparg = mpmath.mp.mpf(0)
     for n from 0 <= n < Ml:
         for ai from 0 <= ai < Dl:
-            mpfr_set_si(nr,n+Ms,rnd_re)
-            mpfr_add(nr,nr,Qvv._entries[ai],rnd_re)
-            mpc_set_fr(nri,nr,rnd)
-            mpfr_swap(mpc_realref(nri),mpc_imagref(nri))
-            mpfr_set(tmp_r.value,nr,rnd_re)
-            mpc_set(ztmp.value,nri,rnd)
+            mpfr_set_si(nr[0],n+Ms,rnd_re)
+            mpfr_add(nr[0],nr[0],Qvv._entries[ai],rnd_re)
+            mpc_set_fr(nri[0],nr[0],rnd)
+            mpfr_swap(mpc_realref(nri[0]),mpc_imagref(nri[0]))
+            mpfr_set(tmp_r.value,nr[0],rnd_re)
+            mpc_set(ztmp.value,nri[0],rnd)
             for j from 0 <= j < Ql:
-                mpc_mul_fr(tmpc_t,nri,Xm._entries[j],rnd)
-                mpc_neg(tmpc_t,tmpc_t,rnd)
-                mpc_exp(fak2[n][ai][j],tmpc_t,rnd)
-            if mpfr_sgn(nr)>0:
+                mpc_mul_fr(tmpc_t[0],nri[0],Xm._entries[j],rnd)
+                mpc_neg(tmpc_t[0],tmpc_t[0],rnd)
+                mpc_exp(fak2[n][ai][j],tmpc_t[0],rnd)
+            if mpfr_sgn(nr[0])>0:
                 for j in range(Ql): 
-                    mpc_mul(tmpc_t,nri,Zpb._entries[j],rnd)
-                    mpc_exp(tmpc_t,tmpc_t,rnd)
-                    mpc_set(fak1[n][ai][j],tmpc_t,rnd)
-            elif mpfr_sgn(nr)==0:
+                    mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
+                    mpc_exp(tmpc_t[0],tmpc_t[0],rnd)
+                    mpc_set(fak1[n][ai][j],tmpc_t[0],rnd)
+            elif mpfr_sgn(nr[0])==0:
                 for j in range(Ql):
                     mpc_set_ui(fak1[n][ai][j],1,rnd)                
     if verbose>5:
@@ -1941,12 +1942,12 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                     mpc_set(ztmp.value,Cv[j][ai][bi],rnd)
                     print "Cv[",j,"][",ai,bi,"]=",ztmp
     cdef int t_ch_r,t_ch_i,t_ch2_r,t_ch2_i,ni,lj,nis
-    cdef mpc_t ch,ch2,ch21,ch22,tmpV,tmpV2
+    cdef mpc_t ch[1],ch2,ch21,ch22,tmpV,tmpV2
     if verbose>0:
         print "precAAA:",prec
     mpc_init2(tmpV2,prec)
     mpc_init2(tmpV,prec)
-    mpc_init2(ch,prec)
+    mpc_init2(ch[0],prec)
     mpc_init2(ch2,prec)
     mpc_init2(ch21,prec)
     mpc_init2(ch22,prec)
@@ -1973,14 +1974,14 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                     raise ArithmeticError,"We have odd symmetry and D={0}".format(D)
                 for j from 0 <= j < Ql:
                     if bi==mbi and sym_type==1:
-                        mpc_set(ch,Cv[j][ai][bi],rnd)
+                        mpc_set(ch[0],Cv[j][ai][bi],rnd)
                         if is_zero(Cv[j][ai][mbi])==0:  #<>0
                             mpc_set_ui(ch2,1,rnd)
                             mpc_div(ch2,ch2,Cv[j][ai][mbi],rnd)
                     else:
-                        mpc_set(ch,Cv[j][ai][mbi],rnd)
-                        mpc_mul_si(ch,ch,sym_type,rnd)
-                        mpc_add(ch,ch,Cv[j][ai][bi],rnd)
+                        mpc_set(ch[0],Cv[j][ai][mbi],rnd)
+                        mpc_mul_si(ch[0],ch[0],sym_type,rnd)
+                        mpc_add(ch[0],ch[0],Cv[j][ai][bi],rnd)
                         mpc_set_si(ch21,0,rnd)
                         mpc_set_si(ch22,0,rnd)
                         if is_zero(Cv[j][ai][bi])==0: # i.e. is non-zero
@@ -1993,27 +1994,27 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                             mpc_add(ch2,ch22,ch21,rnd)
                         else:
                             mpc_sub(ch2,ch22,ch21,rnd)
-                    if is_zero(ch)==0:  ## ch<>0
-                        mpc_set(tmp1,fak1[l][bi][j],rnd)
+                    if is_zero(ch[0])==0:  ## ch<>0
+                        mpc_set(tmp1[0],fak1[l][bi][j],rnd)
                         #if verbose>0:
-                        #    mpc_set(tmpV1.value,tmp1,rnd)
+                        #    mpc_set(tmpV1.value,tmp1[0],rnd)
                         #    print "fak1(",l,bi,j,")=",tmpV1
-                        mpc_mul(tmp1,tmp1,ch,rnd)
+                        mpc_mul(tmp1[0],tmp1[0],ch[0],rnd)
                         #if verbose>0:
-                        #    mpc_set(tmpV1.value,ch,rnd)
+                        #    mpc_set(tmpV1.value,ch[0],rnd)
                         #    print "ch=",tmpV1
                         #    print "Cfak_plus(",j,")=",Cfak_plus[j]
-                        mpc_mul(tmp1,tmp1,Cfak_plus._entries[j],rnd)
+                        mpc_mul(tmp1[0],tmp1[0],Cfak_plus._entries[j],rnd)
                     else:
-                        mpc_set_si(tmp1,0,rnd)
+                        mpc_set_si(tmp1[0],0,rnd)
                     if is_zero(ch2)==0:
-                        mpc_set(tmp2,fak1[l][bi][j],rnd)
-                        mpc_conj(tmp2,tmp2,rnd)
-                        mpc_mul(tmp2,tmp2,ch2,rnd)
-                        mpc_mul(tmp2,tmp2,Cfak_minus._entries[j],rnd)
+                        mpc_set(tmp2[0],fak1[l][bi][j],rnd)
+                        mpc_conj(tmp2[0],tmp2[0],rnd)
+                        mpc_mul(tmp2[0],tmp2[0],ch2,rnd)
+                        mpc_mul(tmp2[0],tmp2[0],Cfak_minus._entries[j],rnd)
                     else:
-                        mpc_set_si(tmp2,0,rnd)
-                    if is_zero(ch) and is_zero(ch2):
+                        mpc_set_si(tmp2[0],0,rnd)
+                    if is_zero(ch[0]) and is_zero(ch2):
                         continue
                     nis= Ml*ai
                     ## Do the case n=0 separately
@@ -2022,11 +2023,11 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                         if verbose>0:
                             mpc_set(tmpV1.value,tmpV,rnd)
                             print "fak2(",0,ai,j,")=",tmpV1
-                            mpc_set(tmpV1.value,tmp1,rnd)
-                            print "tmp1(",j,n,l,")=",tmpV1
-                        mpc_mul(tmpV2,tmp1,tmpV,rnd)
+                            mpc_set(tmpV1.value,tmp1[0],rnd)
+                            print "tmp1[0](",j,n,l,")=",tmpV1
+                        mpc_mul(tmpV2,tmp1[0],tmpV,rnd)
                         mpc_conj(tmpV,tmpV,rnd)
-                        mpc_mul(tmpV,tmpV,tmp2,rnd)                        
+                        mpc_mul(tmpV,tmpV,tmp2[0],rnd)                        
                         mpc_add(tmpV1.value,tmpV,tmpV2,rnd)
                         if verbose>0:
                             print "tmpV1(",j,n,l,")=",tmpV1
@@ -2036,9 +2037,9 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                     for n from 1 <= n < Ml:
                         ni=nis+n
                         mpc_set(tmpV,fak2[n][ai][j],rnd)
-                        mpc_mul(tmpV2,tmp1,tmpV,rnd)
+                        mpc_mul(tmpV2,tmp1[0],tmpV,rnd)
                         mpc_conj(tmpV,tmpV,rnd)
-                        mpc_mul(tmpV,tmpV,tmp2,rnd)                        
+                        mpc_mul(tmpV,tmpV,tmp2[0],rnd)                        
                         mpc_add(tmpV1.value,tmpV,tmpV2,rnd)
                         mpc_add(V._matrix[ni][lj],V._matrix[ni][lj],tmpV1.value,rnd)
     if verbose>0:
@@ -2063,17 +2064,17 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     for ai from 0 <= ai < Dl:
         for n from 0 <= n < Ml:
             #a=D[ai+Ds]
-            mpfr_set(nr,Qvv._entries[ai],rnd_re)
-            mpfr_add_si(nr,nr,n+Ms,rnd_re)
-            mpc_set_fr(nri,nr,rnd)
-            mpfr_swap(mpc_realref(nri),mpc_imagref(nri))
+            mpfr_set(nr[0],Qvv._entries[ai],rnd_re)
+            mpfr_add_si(nr[0],nr[0],n+Ms,rnd_re)
+            mpc_set_fr(nri[0],nr[0],rnd)
+            mpfr_swap(mpc_realref(nri[0]),mpc_imagref(nri[0]))
             ni=Ml*ai+n
-            mpfr_mul(nrY2pi.value,nr,twopiY,rnd_re)
+            mpfr_mul(nrY2pi.value,nr[0],twopiY,rnd_re)
             if verbose>1:
                 print "ni=",ni
-                mpfr_set(tmp_r.value,nr,rnd_re)
+                mpfr_set(tmp_r.value,nr[0],rnd_re)
                 print "nr=",tmp_r
-            if mpfr_sgn(nr)>=0:
+            if mpfr_sgn(nr[0])>=0:
                 kbes=(-nrY2pi).exp()          
             else:
                 if verbose>1:
@@ -2084,19 +2085,19 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
             
 
     # Clear variables
-    mpc_clear(ch)
+    mpc_clear(ch[0])
     mpc_clear(tmpV)
-    mpc_clear(tmp1)
-    mpc_clear(tmp2)
+    mpc_clear(tmp1[0])
+    mpc_clear(tmp2[0])
     mpc_clear(tmpV2)
     mpc_clear(ch2)
     mpc_clear(ch21)
     mpc_clear(ch22)
-    mpfr_clear(nr)
-    mpfr_clear(tmpr_t)
+    mpfr_clear(nr[0])
+    mpfr_clear(tmpr_t[0])
     mpfr_clear(twopiY)
-    mpc_clear(nri)
-    mpc_clear(tmpc_t)
+    mpc_clear(nri[0])
+    mpc_clear(tmpc_t[0])
     #sage_free(beta_int)
     #sage_free(mbeta_int)
     #sage_free(mm_real)
@@ -2362,14 +2363,12 @@ cdef pullback_pts_weil_rep_mpc(H,int Q,RealNumber Y,RealNumber weight,Vector_rea
     cdef mpfr_t xx,yy,xpb,ypb
     cdef mpc_t mptmp1,mptmp2,z0
     cdef dict r_vals
-    cdef mpz_t Nz,cz
     cdef int c2,N2,N22,Nc
     cdef int rjmax,dual_rep,aa,bb
     cdef tuple Tj
     cdef double xt,yt
     cdef int verbose = H._verbose
     cdef int sym_type = H.sym_type()
-    mpz_init(Nz)
     r_vals=dict()
     #sig_on()
     WR = H.multiplier().weil_module()
@@ -2567,7 +2566,6 @@ cdef pullback_pts_weil_rep_mpc(H,int Q,RealNumber Y,RealNumber weight,Vector_rea
     mpfr_clear(Ypt)
     mpc_clear(mptmp1)
     mpc_clear(mptmp2)
-    mpz_clear(Nz)
     #sig_off()
     #return [Xm,Zpb,Cfak]
 
@@ -2577,27 +2575,26 @@ cpdef pullback_pts_vv_mpc(H,int Q,RealNumber Y,RealNumber weight,int verbose=0):
     Calls the cdef function and returns the vectors of pullback points etc.
     """
     cdef int prec = Y.prec()
+    cdef int n,l,st,Qs,Qf,Ql,Ds,Df,Dl,Qfaki
     CF = MPComplexField(prec)
     RF = RealField(prec)
     cdef Vector_real_mpfr_dense Xm
     cdef Vector_complex_dense Zpb,Cfak_plus,Cfak_minus
-    Xm = Vector_real_mpfr_dense(FreeModule(RF,Ql),0)
-    Zpb= Vector_complex_dense(FreeModule(CF,Ql),0)
-    Cfak_plus = Vector_complex_dense(FreeModule(CF,Ql),0)
-    Cfak_minus = Vector_complex_dense(FreeModule(CF,Ql),0)
-    cdef mpc_t ***Cv
-    Cv = NULL
-    Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
-    if Cv==NULL: raise MemoryError
+    cdef mpc_t ***Cv=NULL
     cdef int nc = H.ambient_rank()
-    cdef int n,l,st,Qs,Qf,Ql,Ds,Df,Dl,Qfaki
     st=H.sym_type()
     if st<>0:
         Qs=1; Qf=Q; Ql=Qf-Qs+1; Qfaki=2*Q
     else:
         Qs=1-Q; Qf=Q; Ql=Qf-Qs+1; Qfaki=4*Q
         #Ds=0; Df=nc; Dl=Df-Ds+1
-    Ds=H.D()[0]; Ds=H.D()[-1]; Dl=Df-Ds+1
+    Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
+    if Cv==NULL: raise MemoryError
+    Xm = Vector_real_mpfr_dense(FreeModule(RF,Ql),0)
+    Zpb= Vector_complex_dense(FreeModule(CF,Ql),0)
+    Cfak_plus = Vector_complex_dense(FreeModule(CF,Ql),0)
+    Cfak_minus = Vector_complex_dense(FreeModule(CF,Ql),0)
+    Ds=H.D()[0]; Df=H.D()[-1]; Dl=Df-Ds+1
     for j from 0 <= j < Ql: 
         Cv[j] = NULL
         Cv[j]=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Dl)
@@ -2660,13 +2657,11 @@ cdef pullback_pts_weil_rep_mpc2(H,int Q,RealNumber Y,RealNumber weight,Vector_re
     cdef mpfr_t xx,yy,xpb,ypb
     cdef mpc_t mptmp
     cdef dict r_vals
-    cdef mpz_t Nz,cz
     cdef int c2,N2,N22,Nc
     cdef int rjmax,dual_rep
     cdef tuple Tj
     cdef int verbose = H._verbose
     cdef double xt,yt
-    mpz_init(Nz)
     r_vals=dict()
     #sig_on()
     X = H.multiplier()
@@ -2836,7 +2831,6 @@ cdef pullback_pts_weil_rep_mpc2(H,int Q,RealNumber Y,RealNumber weight,Vector_re
     mpfr_clear(ypb)
     mpfr_clear(Ypt)
     mpc_clear(mptmp)
-    mpz_clear(Nz)
     #sig_off()
     #return [Xm,Zpb,Cfak]
 
@@ -3468,7 +3462,7 @@ def vv_harmonic_wmwf_phase2_2_ef(F,Ns,Is=None,prec=20,Yin=None,do_save=False,Qad
     ##                             tmp=mpmath.exp(lr*Zipb[yj][j])
     ##                             tmp1=tmp*fak[j]
     ##                             ch=ch*Cfak[yj][j][0]; ch2=ch2*Cfak[yj][1-j][0]
-    ##                             tmpsumma=tmpsumma+ch*tmp1+ch2*tmp1.conjugate()
+    ##                             tmpsumma=tmpsumma+ch*tmp1+ch2*tmp1nn.conjugate()
     ##                             if(do_neg):
     ##                                 tmp2=mpmath.exp(lr*Zipb[yj][j]-nrmi*Xm[yj][j])
     ##                                 #tmp2=tmp*fak_neg[j]
@@ -3605,40 +3599,40 @@ cpdef long my_odd_part(long a):
     return _odd_part(a)
 
 cdef long _odd_part(long a):
-    cdef mpz_t az,bz,two
+    cdef mpz_t az[1],bz[1],two[1]
     cdef long b
-    mpz_init(bz)
-    mpz_init_set_si(az,a)
-    mpz_init_set_ui(two,2)
-    mpz_remove(bz,az,two)
-    b = mpz_get_si(bz)
-    mpz_clear(az)
-    mpz_clear(bz)
-    mpz_clear(two)
+    mpz_init(bz[0])
+    mpz_init_set_si(az[0],a)
+    mpz_init_set_ui(two[0],2)
+    mpz_remove(bz[0],az[0],two[0])
+    b = mpz_get_si(bz[0])
+    mpz_clear(az[0])
+    mpz_clear(bz[0])
+    mpz_clear(two[0])
     return b
 
 cpdef long my_gcd(long a,long b):
     return _gcd(a,b)
 
 cdef long _gcd(long a,long b):
-    cdef mpz_t az,bz,gcd
+    cdef mpz_t az[1],bz[1],gcd[1]
     cdef long igcd
-    mpz_init(gcd)
-    mpz_init_set_si(bz,b)
-    mpz_init_set_si(az,a)
-    mpz_gcd (gcd,az,bz)
-    igcd = mpz_get_ui(gcd)
-    mpz_clear(az)
-    mpz_clear(bz)
-    mpz_clear(gcd)
+    mpz_init(gcd[0])
+    mpz_init_set_si(bz[0],b)
+    mpz_init_set_si(az[0],a)
+    mpz_gcd (gcd[0],az[0],bz[0])
+    igcd = mpz_get_ui(gcd[0])
+    mpz_clear(az[0])
+    mpz_clear(bz[0])
+    mpz_clear(gcd[0])
     return igcd
 
 cpdef int my_is_odd(long a):
-    cdef mpz_t az
+    cdef mpz_t az[1]
     cdef int res
-    mpz_init_set_si(az,a)
-    res = mpz_odd_p (az)
-    mpz_clear(az)
+    mpz_init_set_si(az[0],a)
+    res = mpz_odd_p (az[0])
+    mpz_clear(az[0])
     return res
 
 cpdef int my_kronecker_minus_one_red(long c,long Nc):
@@ -3646,12 +3640,12 @@ cpdef int my_kronecker_minus_one_red(long c,long Nc):
     Nc must be positive and divide c otherwise the result will be wrong!
     We do not check this here.
     """
-    cdef mpz_t cz,Ncz
+    cdef mpz_t cz[1]
     cdef int res
-    mpz_init_set_si(cz,c)
-    mpz_tdiv_q_ui(cz,cz,Nc)
-    res = mpz_si_kronecker(-1,cz)
-    mpz_clear(cz)
+    mpz_init_set_si(cz[0],c)
+    mpz_tdiv_q_ui(cz[0],cz[0],Nc)
+    res = mpz_si_kronecker(-1,cz[0])
+    mpz_clear(cz[0])
     return res
     
 

@@ -31,7 +31,7 @@ from sage.libs.mpfr cimport *
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
 rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
+rnd_re = MPFR_RNDN
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
@@ -107,7 +107,7 @@ cdef double complex _I = _Complex_I
 
 # some things that are not in the sage.libs.mpfr
 cdef extern from "mpfr.h":
-    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t)
+    int mpfr_mul_d (mpfr_t, mpfr_t, double, mpfr_rnd_t)
 
 from sage.matrix.matrix_dense cimport *
 from psage.rings.mpc_extras cimport *

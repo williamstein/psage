@@ -400,13 +400,13 @@ cdef class Vector_complex_dense(FreeModuleElement):
         mpfr_init2(s,self._prec)
         res = RealNumber(self._base_ring._base,0)
         if ntype==2:
-            mpfr_set_si(s, 0, GMP_RNDU)
+            mpfr_set_si(s, 0, MPFR_RNDU)
             for i from 0 <= i < self._degree:
-                mpc_abs(x,self._entries[i],GMP_RNDU)
-                mpfr_sqr(x,x,GMP_RNDU)
-                mpfr_add(s,s,x,GMP_RNDU)
-            mpfr_sqrt(s,s,GMP_RNDU)
-            mpfr_set(res.value,s,GMP_RNDU)
+                mpc_abs(x,self._entries[i],MPFR_RNDU)
+                mpfr_sqr(x,x,MPFR_RNDU)
+                mpfr_add(s,s,x,MPFR_RNDU)
+            mpfr_sqrt(s,s,MPFR_RNDU)
+            mpfr_set(res.value,s,MPFR_RNDU)
             mpfr_clear(x); mpfr_clear(s)
             return res
         else:

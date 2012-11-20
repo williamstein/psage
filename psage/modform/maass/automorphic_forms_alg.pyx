@@ -28,15 +28,14 @@ from psage.rings.mpfr_nogil cimport *
 
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
-    
-    
+        
 #from sage.libs.mpfr cimport *
 cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
+cdef mp_rnd_t rnd_re
 import cython
 from cython.parallel cimport parallel, prange
 rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
+rnd_re = MPFR_RNDN
 from sage.rings.complex_mpc cimport MPComplexNumber,MPComplexField_class
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
@@ -1473,7 +1472,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     W['rdim']=H._rdim
     return W
 
-cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Ql, mp_prec_t prec) nogil:
+cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Ql, mpfr_prec_t prec) nogil:
     cdef int j = 0
     cdef mpfr_t tmpar
     mpfr_init2(tmpar,prec)
@@ -1486,7 +1485,7 @@ cdef void setcossin2(mpfr_t * lcos, mpfr_t * lsin, mpfr_t * Xm, mpfr_t nr, int Q
         mpfr_sin(lsin[j],tmpar,rnd_re)
     mpfr_clear(tmpar)
 
-cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mp_prec_t prec) nogil:
+cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec) nogil:
     cdef mpfr_t tmpar,tmpar1,tmpab,tmpcos,tmpsin
     cdef mpc_t tmpc_t
     cdef int jcusp,lj,icusp,j,n, ni

@@ -17,7 +17,7 @@ include "sage/rings/mpc.pxi"
 from sage.all import save,incomplete_gamma,load
 import mpmath    
 from sage.libs.mpfr cimport *
-
+import sys
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
 rnd = MPC_RNDNN
@@ -108,6 +108,14 @@ from sage.all import  Parent,RR,ZZ,QQ,is_even,is_odd
 from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes
 from sage.all import zeta
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
+
+
+cpdef pochammer_over_fak(MPComplexNumber z,int n):
+    cdef MPComplexNumber res
+    cdef int prec = z.parent().prec()
+    res = MPComplexField(prec)(0)
+    _pochammer_over_fak(&res.value,z.value,n,rnd,rnd_re)
+    return res
 
 cdef inline void _pochammer_over_fak(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
     r""" Compute the Pochammer symbol (s)_{n} / n!   """
@@ -768,7 +776,7 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
     if twozn==NULL: raise MemoryError
     if mpfr_cmp_ui(xarg.value,2)==0:
-        if verbose>0:
+        if verbose>1:
             print "alpha=1 n0=1"            
         for n in range(0,lmax-lmin+1):
             mpc_init2(Z[n],prec)        
@@ -778,7 +786,11 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
             mpc_neg(minus_twoz,twoz.value,rnd)
             #twozz=CFF(twoz.real(),twoz.imag())
             # mpz = mpmath.mp.zeta(twozz,xarg)        
-            z = twoz.zeta()
+            if verbose==-7:
+                mpc_set_ui(z.value,1,rnd)
+            else:
+                z = twoz.zeta()
+                
             #z = CF(mpz.real,mpz.imag)
             _mpc_set(&Z[n],z.value,rnd_re)
             mpc_sub_ui(Z[n],Z[n],1,rnd)
@@ -793,16 +805,33 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
             mpz = mpmath.mp.zeta(twozz,xarg)        
             z = CF(mpz.real,mpz.imag)
             _mpc_set(&Z[n],z.value,rnd_re)
+    cdef int tenpercent,chunks
+    if verbose==-5:
+        return 
     if verbose>0:
-        print "Here1"
+        #sys.stdout.write('%d / %d\r' % (i, total))
+        sys.stdout.write('Computed Z\n')
+        sys.stdout.flush()
+        #print "computed Z"
+        tenpercent = int ( float(r2-r1)/float(10))
+        chunks = 0
     cdef int ni,kj,ii
     #for n in range(r1,r2+1):
+    cdef mpc_t **pochammer_vec=NULL
+    pochammer_vec = <mpc_t**>sage_malloc(sizeof(mpc_t*)*(k2-k1))
+    for k in range(k2-k1):
+        pochammer_vec[k] = <mpc_t*>sage_malloc(sizeof(mpc_t)*(r2-r1))
+        for n in range(r2-r1):
+            mpc_init2(pochammer_vec[k][n],prec)            
+            _pochammer_over_fak(&pochammer_vec[k][n],twozn[k],n+r1,rnd,rnd_re)
     for n in range(r2-r1): 
         #for k in range(k1,k2+1):
         for k in range(k2-k1): 
             mpc_set_ui(AA,0,rnd)
             for l in range(k+1):
-                _pochammer_over_fak(&poc,twozn[l],n+r1,rnd,rnd_re)
+                #_pochammer_over_fak(&poc,twozn[l],n+r1,rnd,rnd_re)
+                #mpc_set_ui(poc,1,rnd)
+                _mpc_set(&poc,pochammer_vec[l][n],rnd_re)
                 mpz_bin_uiui(binc,k+k1,l)
                 mpfr_mul_z(poc.re,poc.re,binc,rnd_re)
                 mpfr_mul_z(poc.im,poc.im,binc,rnd_re)
@@ -829,10 +858,15 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
             #    print "A[0,32]=",z
             #    mpfr_set(tmpx.value,fak,rnd_re)
             #    print "fak=",tmpx
-
-                    
+        if verbose>0:
+            if n % tenpercent == 0:
+                #chunks+=1
+                sys.stdout.write('Computing row: %d / %d\r' % (n, r2-r1))
+                sys.stdout.flush()
     if verbose>0:
-        print "About to clear"
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+        #print "About to clear"
     mpc_clear(tt[0]);mpc_clear(tt[1])
     mpc_clear(twos); 
     mpc_clear(tmp); mpc_clear(tmp1)
@@ -853,6 +887,13 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
         for n in range(0,lmax-lmin):
             mpc_clear(twozn[n])
         sage_free(twozn)
+    if pochammer_vec <> NULL:
+        for k in range(k2-k1):
+            if pochammer_vec[k]<>NULL:
+                for n in range(r2-r1):
+                    mpc_clear(pochammer_vec[k][n])
+                sage_free(pochammer_vec[k])
+        sage_free(pochammer_vec)
     sig_off()
 
        

@@ -1488,6 +1488,7 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     cdef mpfr_t*** Ypb_t=NULL
     cdef mpc_t*** Cvec_t=NULL
     cdef mpfr_t**** RCvec_t=NULL
+    cdef int*** CSvec_t=NULL
     cdef int Ql,i,j,k,n,nc,prec
     cdef RealField_class RF
     cdef RealNumber weight,tmp
@@ -1542,6 +1543,17 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
                     mpc_init2(Cvec_t[i][j][n],prec)
                     mpc_set_si(Cvec_t[i][j][n],0,rnd)
     else:
+        CSvec_t = <int***>sage_malloc(sizeof(int**) * nc )
+        if CSvec_t==NULL: raise MemoryError
+        for i from 0<=i<nc:
+            CSvec_t[i] = <int**>sage_malloc(sizeof(int*) * nc )
+            if CSvec_t[i]==NULL:
+                raise MemoryError
+            for j from 0<=j<nc:
+                CSvec_t[i][j] = <int*>sage_malloc(sizeof(int) * Ql )
+                if CSvec_t[i][j]==NULL:
+                    raise MemoryError
+
         RCvec_t = <mpfr_t****>sage_malloc(sizeof( Xpb_t) * nc )
         if RCvec_t==NULL: raise MemoryError
         for i from 0<=i<nc:
@@ -1570,11 +1582,11 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
         if Qs<0:
             pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,Cvec_t)
         else:
-            pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,RCvec_t)
-    cdef dict Xm,Xpb,Ypb,Cvec,pb
+            pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,RCvec_t,CSvec_t)
+    cdef dict Xm,Xpb,Ypb,Cvec,pb,RCvec,CSvec
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
-    RCvec=dict()
+    RCvec=dict(); CSvec={}
     cdef MPComplexNumber ctmp
     cdef RealNumber rtmp,rtmp1,rtmp2,one
     one=RF(1)
@@ -1606,22 +1618,25 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     else:
         for i in range(nc):
             RCvec[i]=dict()
+            CSvec[i]=dict()
             for j in range(nc):
                 RCvec[i][j]=dict()
+                CSvec[i][j]=dict()
                 for n in range(Ql):
                     #RCvec[i][j][n]=[]
                     #print "RCvec0=",RCvec[i][j][n]
                     rtmp1=RF(1);rtmp2=RF(0)
                     mpfr_set(rtmp1.value,RCvec_t[i][j][n][0],rnd_re)
                     mpfr_set(rtmp2.value,RCvec_t[i][j][n][1],rnd_re)
-                    k = mpfr_get_si(RCvec_t[i][j][n][2],rnd_re)
+                    CSvec[i][j][n]=CSvec_t[i][j][n]
+                    #k = mpfr_get_si(RCvec_t[i][j][n][2],rnd_re)
                     #if S._verbose>1:
                     #    print "abs(cvec)=",rtmp1
                     #    print "arg(cvec)=",rtmp2                    
                     #l = [rtmp1,rtmp2,k]
                     #if S._verbose>1:
                     #    print "Rcvec[{0}][{1}][{2}]={3}".format(i,j,n,l)
-                    RCvec[i][j][n]={0:rtmp1,1:rtmp2,2:k}
+                    RCvec[i][j][n]=[rtmp1,rtmp2]
                     #if S._verbose>1:
                     #    print "Rcvec[{0}][{1}][{2}]={3}".format(i,j,n,RCvec[i][j][n])
         pb['cvec']=RCvec
@@ -1665,7 +1680,14 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
                         sage_free(RCvec_t[i][j])
                 sage_free(RCvec_t[i])
         sage_free(RCvec_t)
-    
+    if CSvec_t<>NULL:
+        for i in range(nc):
+            if CSvec_t[i]<>NULL:
+                for j in range(nc):
+                    if CSvec_t[i][j]<>NULL:
+                        sage_free(CSvec_t[i][j])
+                sage_free(CSvec_t[i])
+        sage_free(CSvec_t)
     return pb
 
 @cython.cdivision(True)
@@ -2033,7 +2055,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
     mpfr_clear(YY)
 
 @cython.cdivision(True)
-cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec):
+cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec,int*** CSvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types.
@@ -2433,11 +2455,13 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
                 delta = delta % 2
                 mpfr_set(RCvec[ci][cj][j][0],tmpab,rnd_re)
                 mpfr_set(RCvec[ci][cj][j][1],tmpar,rnd_re)
-                mpfr_set_si(RCvec[ci][cj][j][2],delta,rnd_re)                
+                #mpfr_set_si(RCvec[ci][cj][j][2],delta,rnd_re)
+                CSvec[ci][cj][j]=delta % 2
             else:
                 mpfr_set_ui(RCvec[ci][cj][j][0],1,rnd_re)
                 mpfr_set_si(RCvec[ci][cj][j][1],0,rnd_re)
-                mpfr_set_si(RCvec[ci][cj][j][2],0,rnd_re)                
+                CSvec[ci][cj][j]=0
+                #mpfr_set_si(RCvec[ci][cj][j][2],0,rnd_re)                
 
     for j in range(Ql):
         mpfr_mul(Xm[j],Xm[j],twopi.value,rnd_re)

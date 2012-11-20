@@ -12,16 +12,22 @@
 include 'sage/ext/stdsage.pxi'
 include "sage/ext/cdefs.pxi"
 include 'sage/ext/interrupt.pxi'
-include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
+#include "sage/ext/gmp.pxi"
+#include "sage/rings/mpc.pxi"
+from psage.rings.mpfr_nogil cimport *
 from sage.all import save,incomplete_gamma,load
 import mpmath    
-from sage.libs.mpfr cimport *
+import cython
+from libc.stdlib cimport abort, malloc, free
+    
+from cython.parallel cimport parallel, prange
+
+#from sage.libs.mpfr cimport *
 import sys
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
 rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
+rnd_re = MPFR_RNDN
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
@@ -72,11 +78,13 @@ cdef extern from "complex.h":
     cdef double complex csqrt(double complex)
     cdef double complex cpow(double complex,double complex)
 
-    
-cdef int gcd( int a, int b ):
+
+
+@cython.cdivision(True)
+cdef int gcd( int a, int b ) nogil:
   cdef int c
-  while ( a != 0 ):
-      c = a; a = b%a;  b = c
+  while a <>0:
+      c = a; a = b % a;  b = c
   return b
  
 cdef double complex cexpi(double x):
@@ -93,11 +101,11 @@ cdef double complex _I = _Complex_I
 
     
 # some things that are not in the sage.libs.mpfr
-cdef extern from "mpfr.h":
-    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t) 
+#cdef extern from "mpfr.h":
+#    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t) 
    
 from sage.matrix.matrix_dense cimport *
-from psage.rings.mpc_extras cimport *
+#from psage.rings.mpc_extras cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
@@ -117,7 +125,7 @@ cpdef pochammer_over_fak(MPComplexNumber z,int n):
     _pochammer_over_fak(&res.value,z.value,n,rnd,rnd_re)
     return res
 
-cdef inline void _pochammer_over_fak(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+cdef inline void _pochammer_over_fak(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
     r""" Compute the Pochammer symbol (s)_{n} / n!   """
     cdef int j
     cdef mpc_t x,zz,t[2]
@@ -710,8 +718,8 @@ cpdef Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,i
             mpc_set(resm._matrix[r][k],A[r][k],rnd)
     return resm
     
-
-cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r1,int r2,int k1,int k2, verbose=0):
+@cython.cdivision(True)
+cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r1,int r2,int k1,int k2,int verbose=0):
     r"""    Setup the Matrix approximation of the Gauss transfer operator  """
     cdef int i,j,k,l,n,nn
     cdef mpc_t twos,tmp,tmp1,poc, AA
@@ -807,7 +815,7 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
             _mpc_set(&Z[n],z.value,rnd_re)
     cdef int tenpercent,chunks
     if verbose==-5:
-        return 
+        return    
     if verbose>0:
         #sys.stdout.write('%d / %d\r' % (i, total))
         sys.stdout.write('Computed Z\n')
@@ -821,12 +829,13 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     pochammer_vec = <mpc_t**>sage_malloc(sizeof(mpc_t*)*(k2-k1))
     for k in range(k2-k1):
         pochammer_vec[k] = <mpc_t*>sage_malloc(sizeof(mpc_t)*(r2-r1))
+    for k in prange(k2-k1,nogil=True):
         for n in range(r2-r1):
             mpc_init2(pochammer_vec[k][n],prec)            
             _pochammer_over_fak(&pochammer_vec[k][n],twozn[k],n+r1,rnd,rnd_re)
-    for n in range(r2-r1): 
+    for n in prange(r2-r1,nogil=True): 
         #for k in range(k1,k2+1):
-        for k in range(k2-k1): 
+        for k in range(k2-k1): #
             mpc_set_ui(AA,0,rnd)
             for l in range(k+1):
                 #_pochammer_over_fak(&poc,twozn[l],n+r1,rnd,rnd_re)
@@ -841,17 +850,19 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
 
             mpfr_pow_si(rtemp,rho,n-k+r1-k1,rnd_re)
             if verbose>1:
-                mpc_set(z.value,AA,rnd)
-                print "A[{0}][{1}]={2}".format(n,k,z)
-                mpfr_set(tmpx.value,rtemp,rnd_re)
-                print "r^{0}[{1}][{2}]={3}".format(n-k+r1-k1,n,k,tmpx)
+                #mpc_set(z.value,AA,rnd)
+                printf("A[%d][%d]=%d+i%d",n,k,mpfr_get_d(AA.re,rnd_re),mpfr_get_d(AA.im,rnd_re))
+                #    print "A[{0}][{1}]={2}".format(n,k,z)
+                #mpfr_set(tmpx.value,rtemp,rnd_re)
+                #printf("A[%d][%d]=%d",n,k,z)
+            #    print "r^{0}[{1}][{2}]={3}".format(n-k+r1-k1,n,k,tmpx)
                 
             _mpc_mul_fr(&AA,AA,rtemp,rnd,rnd_re)
             if (n % 2) == 1:
                 mpc_neg(AA,AA,rnd)
-            if verbose>1:
-                mpc_set(z.value,AA,rnd)
-                print "A[{0}][{1}]*r^(n-k)={2}".format(n,k,z)
+            #if verbose>1:
+            #   mpc_set(z.value,AA,rnd)
+            #    print "A[{0}][{1}]*r^(n-k)={2}".format(n,k,z)
             _mpc_set(&A[n][k],AA,rnd_re)
             #if ni==0 and kj==32:
             #    mpc_set(z.value,A[ni][kj],rnd)
@@ -861,11 +872,13 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
         if verbose>0:
             if n % tenpercent == 0:
                 #chunks+=1
-                sys.stdout.write('Computing row: %d / %d\r' % (n, r2-r1))
-                sys.stdout.flush()
+                printf("Computing row: %d / %d\r",n, r2-r1)
+                #sys.stdout.write('Computing row: %d / %d\r' % (n, r2-r1))
+                #sys.stdout.flush()
     if verbose>0:
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+        printf("\n")
+        #sys.stdout.write('\n')
+        #sys.stdout.flush()
         #print "About to clear"
     mpc_clear(tt[0]);mpc_clear(tt[1])
     mpc_clear(twos); 

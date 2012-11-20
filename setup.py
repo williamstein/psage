@@ -188,7 +188,9 @@ for g in [1, 2]:
 my_extensions = [
     Extension('psage.rings.mpc_extras',
               sources = ['psage/rings/mpc_extras.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),
 
     Extension('psage.modform.maass.inc_gamma',
               ['psage/modform/maass/inc_gamma.pyx'],
@@ -226,7 +228,10 @@ my_extensions = [
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs), 
+              include_dirs = numpy_include_dirs,
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),
+              
     
     Extension('psage.modform.maass.vv_harmonic_weak_maass_forms_alg',
               ['psage/modform/maass/vv_harmonic_weak_maass_forms_alg.pyx'],
@@ -250,10 +255,15 @@ my_extensions = [
               libraries = ['m','gmp','mpfr','mpc']),
     Extension('psage.matrix.matrix_complex_dense',
               sources = ['psage/matrix/matrix_complex_dense.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),            
+
     Extension('psage.matrix.linalg_complex_dense',
               sources = ['psage/matrix/linalg_complex_dense.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),
     Extension('psage.modform.maass.poincare_series_alg',
                   ['psage/modform/maass/poincare_series_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
@@ -271,8 +281,7 @@ my_extensions = [
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp'],
-             ) 
+              extra_link_args=['-fopenmp']) 
 ]
 
 ext_modules.extend(my_extensions)

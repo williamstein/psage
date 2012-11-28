@@ -111,6 +111,7 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
     sign=2-n
     k = Integer(2+n)/Integer(2)
     symbols=list()
+    twosyms=list()
     for D in range(min_D,max_D+1):
         print D
         D=(-1)**n*D
@@ -152,7 +153,11 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                                             #ll.append([vv,1,det,0,0])
                                             if mult % 2 == 0 and mult>2:
                                                 for x in range(1,Integer(mult)/Integer(2)):
-                                                        ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
+                                                    if mult-2*x==2 and det in [1,7] and oddity not in [0,2,6]:
+                                                        continue
+                                                    elif mult-2*x==2 and det in [3,5] and oddity not in [2,4,6]:
+                                                        continue
+                                                    ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
                             #print "ll:\n",ll
                             if len(l)==0:
                                 for t in ll:
@@ -210,14 +215,14 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                     if p==2:
                         if eps==-1:
                             eps=3
-                        sym[p].append([0,rank - prank, eps,0,0])
+                        sym[p].insert(0,[0,rank - prank, eps,0,0])
                     else:
                         if eps==-1:
                             for x in Zmod(p):
                                 if not x.is_square():
                                     eps=x
                                     break
-                        sym[p].append([0,rank - prank, eps])
+                        sym[p].insert(0,[0,rank - prank, eps])
             symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,rank,rank).one())
             symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in sym.iteritems()]
             symbol._signature=(2,n)
@@ -229,7 +234,24 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                 #return symbol
                 #for s in symbol._local_symbols:
                 #    s = s.canonical_symbol()
-                global_symbols.append(symbol)
+                append=True
+                for s in symbol._local_symbols:
+                    if s._prime==2:
+                        s2=deepcopy(s)
+                        #print "s=", s
+                        #print "s2=", s2
+                        #print "s2.canonical_symbol() = ",s2.canonical_symbol()
+                        #print "s=", s
+                        #print "s2=", s2
+                        c=s2.canonical_symbol()
+                        if twosyms.count(c)>0:
+                            append=False
+                        else:
+                            twosyms.append(c)    
+                        break
+                if append:
+                    global_symbols.append(symbol)
+                
         #global_symbols=Set(global_symbols)
         if len(global_symbols)>0:
             print "Symbols for D =", D, ": ", len(global_symbols)
@@ -263,6 +285,7 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                 if not simple_symbols.has_key(D):
                     simple_symbols[D]=list()
                 simple_symbols[D].append(symstr)
+                #print sym._local_symbols[0].canonical_symbol()
     return simple_symbols
     
             

@@ -35,6 +35,7 @@ def is_global(M,r,s,return_symbol=False):
             else:
                 sym = [sym[0], sym[1], sym[2] % 8, 1, sym[3] % 8]
                 if sym[1]==1:
+                    print sym
                     if  sym[2].kronecker(2)==sym[4].kronecker(2):
                         sym[2]=sym[4]
                     else:

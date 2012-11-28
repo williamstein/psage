@@ -90,7 +90,7 @@ class VectorValuedModularForms(SageObject):
         g2=self._M.char_invariant(2)
         g2=RR(real(g2[0]*g2[1]))
         #print g2
-        g3=CC(self._M.char_invariant(-3))
+        g3=self._M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
         #print g3
         alpha1 = RR((d / 4)) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / 8)) * g2)
@@ -120,8 +120,8 @@ def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
                     return false
     return true
 
-sys.path.append('/home/stroemberg/Programming/Sage/sage-add-ons3/nils')
-from jacobiforms.all import *
+#sys.path.append('/home/stroemberg/Programming/Sage/sage-add-ons3/nils')
+#from jacobiforms.all import *
 
 def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
     m=index

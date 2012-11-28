@@ -1,7 +1,7 @@
 from sage.quadratic_forms.genera.genus import GenusSymbol_global_ring, Genus_Symbol_p_adic_ring, is_GlobalGenus
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from sage.matrix.matrix_space import MatrixSpace
-from sage.all import ZZ
+from sage.all import ZZ, Zmod
 #from psage.modform.weilrep import VectorValuedModularForms
 
 def is_global(M,r,s,return_symbol=False):
@@ -49,13 +49,20 @@ def is_global(M,r,s,return_symbol=False):
         if prank != n:
             eps= (Dp*Integer(prod([ sym[2] for sym in symbols[p] ]))).kronecker(p)
             if p==2:
+                if eps==-1:
+                    eps=3
                 symbols[p].append([0,n - prank, eps,0,0])
-            else:    
+            else:
+                if eps==-1:
+                    for x in Zmod(p):
+                        if not x.is_square():
+                            x=eps
+                            break
                 symbols[p].append([0,n - prank, eps])
     symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,r+s,r+s).one())
     symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in symbols.iteritems()]
     symbol._signature=(r,s)
-    #print r,s, symbol._local_symbols
+    print r,s, symbol._local_symbols
     isglob=is_GlobalGenus(symbol)
     if return_symbol:
         return symbol, isglob
@@ -64,7 +71,7 @@ def is_global(M,r,s,return_symbol=False):
 
 list_freitag = {
     3: ['2_7^1', '2_3^-1', '2_7^+3', '2^+2.4_7^+1', '2^2.8_3^-1',
-        '2_7^+1.4^2', '2^+4.4_7^+1', '2^4.8_3^-1', '2_7^1.4^2',
+        '2_7^+1.4^2', '2^+4.4_7^+1', '2^4.8_3^-1',
         '2_7^+1.4^+4', '2_7^+1.4^-4', '2_7^+1.3^-2', '2_7^+1.3^4',
         '4_7^1', '2_1^+1.3^+1', '2_1^1.3^-1', '8_7^1'
         ],
@@ -99,114 +106,186 @@ def test_list_freitag(m=-1):
                 print "n = ", n, " ", symbol, ': Dimension('+ str(k) + ') = ', V.dimension_cusp_forms(k), ", ", is_global(M,2,n), '|M|=', M.order()
 
 def search_for_simple_lattices(n=3,min_D=2,max_D=100):
+    simple_symbols=dict()
     rank=2+n
     sign=2-n
     k = Integer(2+n)/Integer(2)
-    symbols=dict()
+    symbols=list()
+    twosyms=list()
     for D in range(min_D,max_D+1):
-        if True:
-            D=(-1)**n*D
-            fac = Integer(D).factor()
-            symbols=dict()
-            maxlen = 0
-            symbols=list()
-            for p, v in fac:
-                psymbols=list()
-                parts=partitions(v)
-                Dp=D//(p**v)
-                for j,vs in enumerate(parts):
-                    #if vs.count(1)>1:
-                    #    continue
-                    prank=len(vs)
-                    if prank <= rank:
-                        l = dict()
-                        if p==2:
-                            l2=dict()
-                            for r in range(prank):
-                                l2[r]=list()
-                                for t in [0,1]:
-                                    if t==1 and is_odd(vs[r]):
-                                        continue
-                                    dets=[1,3,5,7] if t==0 else [7,3]
-                                    for d in dets:
-                                        l2[r].append((t,d))
-                            #print 'l2=', l2
-                            for r in range(prank):
-                                l[r]=list()
-                                for s in l2[r]:
-                                    vv = vs[r] if s[0]==0 else Integer(vs[r])/Integer(2)
-                                    oddity=0 if s[0]==1 else s[1]
-                                    l[r].append((vv,s[0]+1,s[1],1-s[0],oddity))
-                        else:
-                            for r in range(prank):
-                                l[r] = [(vs[r],1,eps) for eps in [-1,1]]
-                        #print l
-                        index=unordered_tuples(range(len(l[0])),prank)
-                        #print index
-                        for i in range(len(index)):
-                            sym={p: [l[r][index[i][r] % len(l[r])] for r in range(prank)]}
-                            #print 'sym=', sym
-                            prank_s = sum([ s[1] for s in sym[p]])
-                            if prank_s < rank:
-                                eps= (Dp*Integer(prod([ s[2] for s in sym[p]]))).kronecker(p)
-                                if p==2:
-                                    sym[p].append((0,rank - prank_s, eps,0,0))
-                                else:    
-                                    sym[p].append((0,rank - prank_s, eps))
-                            if prank_s <= rank:
-                                #print vs, sym
-                                psymbols.append(sym)
-                if len(symbols)==0:
-                    symbols=psymbols
-                else:
-                    symbols_new=list()
-                    for sym in symbols:
-                        for psym in psymbols:
-                            sym.update(psym)
-                            symbols_new.append(sym)
-                    symbols=symbols_new
-            print "Symbols for D=", D, ":"
-            print len(symbols)
-            for sym in symbols:
-                symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,rank,rank).one())
-                symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in sym.iteritems()]
-                symbol._signature=(2,n)
-                isglob = is_GlobalGenus(symbol)
-                #print sym, isglob
-                if True or isglob:
-                    symstr = ''
-                    for p,syms in sym.iteritems():
-                        for s in syms:
-                            if s[0]==0:
-                                continue
-                            if len(symstr)!=0:
-                                symstr=symstr + '.'
-                            symstr = symstr + str(p**s[0])
-                            if p == 2:
-                                sgn = '+' if (Integer(s[2]).kronecker(2) == 1) else '-' 
-                                if s[3]==1:
-                                    symstr = symstr + '_' + str(s[2])
-                                symstr = symstr + '^' + sgn + str(s[1])
-                                #else:
-                                #    symstr = symstr + '^' + str(s[1])
+        print D
+        D=(-1)**n*D
+        fac = Integer(D).factor()
+        symbols=list()
+        for p, v in fac:
+            psymbols=list()
+            parts=partitions(v)
+            Dp=D//(p**v)
+            for vs in parts:
+                #print "partition:", vs
+                l=list() # list of p-symbols corresponding to the partition vs
+                if len(vs) <= rank:
+                    exponents=Set(list(vs))
+                    # now we set up a list ll for each vv in the partition vs
+                    # that contains an entry for each possibility
+                    # and then update l with ll (see below)
+                    if p==2:
+                        for vv in exponents:
+                            mult=vs.count(vv)
+                            ll=list()
+                            for t in [0,1]: # even(0) or odd(1) type
+                                for det in [1,3,5,7]: # the possible determinants
+                                    if mult % 2 == 0 and t==0:
+                                        ll.append([vv,mult,det,0,0])
+                                    if mult==1:
+                                        odds=[det]
+                                    elif mult==2:
+                                        if det in [1,7]:
+                                            odds=[0,2,6]
+                                        else:
+                                            odds=[2,4,6]
+                                    else:
+                                        odds=[o for o in range(8) if o%2==mult%2]
+                                    for oddity in odds:
+                                        if t==1:
+                                            ll.append([vv,mult,det,1,oddity])
+                                        else:
+                                            #ll.append([vv,1,det,0,0])
+                                            if mult % 2 == 0 and mult>2:
+                                                for x in range(1,Integer(mult)/Integer(2)):
+                                                    if mult-2*x==2 and det in [1,7] and oddity not in [0,2,6]:
+                                                        continue
+                                                    elif mult-2*x==2 and det in [3,5] and oddity not in [2,4,6]:
+                                                        continue
+                                                    ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
+                            #print "ll:\n",ll
+                            if len(l)==0:
+                                for t in ll:
+                                    if type(t[0])==list:
+                                        l.append({p: t})
+                                    else:
+                                        l.append({p: [t]})
                             else:
-                                sgn = '+' if (s[2] == 1)  else '-'
-                                symstr = symstr + '^' + sgn + str(s[1])
-                    #print symstr, isglob
-                    #if symstr == '2^+2.4_7^+1':
-                    #    return
-                    M=FiniteQuadraticModule(symstr)
-                    #isglob=is_global(M,2,n)
-                    if isglob:
-                        V=VectorValuedModularForms(M)
-                        d=V.dimension_cusp_forms(k)
-                        if d == 0:
-                            print symstr, isglob
-                    
-                    
-                        
+                                newl=list()
+                                for t in ll:
+                                    for sym in l:
+                                        newsym = deepcopy(sym)
+                                        #print newsym
+                                        newsym[p].append(t)
+                                        #print newsym
+                                        newl.append(newsym)
+                                        #print l
+                                l=newl
+                            #print "l:\n",l
+                    else:
+                        for vv in exponents:
+                            ll=[[vv,vs.count(vv),1],[vv,vs.count(vv),-1]]
+                            if len(l)==0:
+                                for t in ll:
+                                    l.append({p: [t]})
+                            else:
+                                newl=list()
+                                for t in ll:
+                                    for sym in l:
+                                        sym[p].append(t)
+                                        newl.append(sym)
+                                l=newl
+                    #print "l=\n",l
+                    #print "psymbols=\n",psymbols
+                    #print psymbols+l
+                    psymbols=psymbols+l
+            if len(symbols)==0:
+                symbols=psymbols
+            else:
+                symbols_new=list()
+                for sym in symbols:
+                    for psym in psymbols:
+                        newsym=deepcopy(sym)
+                        newsym.update(psym)
+                        symbols_new.append(newsym)
+                symbols=symbols_new
+        global_symbols = []
+        for sym in symbols:
+            for p in sym.keys():
+                prank = sum([s[1] for s in sym[p]])
+                v = sum([ s[0]*s[1] for s in sym[p] ])
+                Dp=D//(p**v)
+                if prank != rank:
+                    eps= (Dp*Integer(prod([ s[2] for s in sym[p] ]))).kronecker(p)
+                    if p==2:
+                        if eps==-1:
+                            eps=3
+                        sym[p].insert(0,[0,rank - prank, eps,0,0])
+                    else:
+                        if eps==-1:
+                            for x in Zmod(p):
+                                if not x.is_square():
+                                    eps=x
+                                    break
+                        sym[p].insert(0,[0,rank - prank, eps])
+            symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,rank,rank).one())
+            symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in sym.iteritems()]
+            symbol._signature=(2,n)
+            #print symbol._local_symbols
+            isglob=is_GlobalGenus(symbol)
+            if isglob:
+                #print "GLOBAL SYMBOL:"
+                #print symbol._local_symbols
+                #return symbol
+                #for s in symbol._local_symbols:
+                #    s = s.canonical_symbol()
+                append=True
+                for s in symbol._local_symbols:
+                    if s._prime==2:
+                        s2=deepcopy(s)
+                        #print "s=", s
+                        #print "s2=", s2
+                        #print "s2.canonical_symbol() = ",s2.canonical_symbol()
+                        #print "s=", s
+                        #print "s2=", s2
+                        c=s2.canonical_symbol()
+                        if twosyms.count(c)>0:
+                            append=False
+                        else:
+                            twosyms.append(c)    
+                        break
+                if append:
+                    global_symbols.append(symbol)
                 
-                    
-            
+        #global_symbols=Set(global_symbols)
+        if len(global_symbols)>0:
+            print "Symbols for D =", D, ": ", len(global_symbols)
+        for sym in global_symbols:
+            symstr = ''
+            #print sym._local_symbols
+            for lsym in sym._local_symbols:
+                p=lsym._prime
+                for s in lsym.symbol_tuple_list():
+                    if s[0]==0:
+                        continue
+                    if len(symstr)!=0:
+                        symstr=symstr + '.'
+                    symstr = symstr + str(p**s[0])
+                    if p == 2:
+                        sgn = '+' if (Integer(s[2]).kronecker(2) == 1) else '-' 
+                        if s[3]==1:
+                            symstr = symstr + '_' + str(s[4])
+                        symstr = symstr + '^' + sgn + str(s[1])
+                            #else:
+                            #    symstr = symstr + '^' + str(s[1])
+                    else:
+                        sgn = '+' if (s[2] == 1)  else '-'
+                        symstr = symstr + '^' + sgn + str(s[1])
+            print symstr
+            M=FiniteQuadraticModule(symstr)
+            V=VectorValuedModularForms(M)
+            d=V.dimension_cusp_forms(k)
+            if d == 0:
+                print symstr, "simple!"
+                if not simple_symbols.has_key(D):
+                    simple_symbols[D]=list()
+                simple_symbols[D].append(symstr)
+                #print sym._local_symbols[0].canonical_symbol()
+    return simple_symbols
     
             

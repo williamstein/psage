@@ -51,7 +51,7 @@ class VectorValuedModularForms(SageObject):
     def __init__(self, A):
         self._M = FiniteQuadraticModule(A)
         n2 = self._M.kernel_subgroup(2).order()
-        self._signature = int(real(log(CC(self._M.char_invariant(1)[0]/sqrt(M.order())))/(2*CC.pi()*CC(0,1)))*8) % 8
+        self._signature = int(real(log(CC(self._M.char_invariant(1)[0]/sqrt(self._M.order())))/(2*CC.pi()*CC(0,1)))*8) % 8
         self._n2 = n2
         m=self._M.order()
         self._m=m

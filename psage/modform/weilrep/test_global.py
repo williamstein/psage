@@ -118,9 +118,9 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
     rank=2+n
     sign=2-n
     k = Integer(2+n)/Integer(2)
-    symbols=list()
-    twosyms=list()
     for D in range(min_D,max_D+1):
+        csymbols=list() # a list of canonical symbols to avoid duplicates
+        symbols=list()
         #print D
         D=(-1)**n*D
         fac = Integer(D).factor()
@@ -179,7 +179,10 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                                     for sym in l:
                                         newsym = deepcopy(sym)
                                         #print newsym
-                                        newsym[p].append(t)
+                                        if type(t[0])==list:
+                                            newsym[p]=newsym[p]+t
+                                        else:
+                                            newsym[p].append(t)
                                         #print newsym
                                         newl.append(newsym)
                                         #print l
@@ -214,6 +217,7 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                 symbols=symbols_new
         global_symbols = []
         for sym in symbols:
+            #print sym
             for p in sym.keys():
                 prank = sum([s[1] for s in sym[p]])
                 v = sum([ s[0]*s[1] for s in sym[p] ])
@@ -243,19 +247,14 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                 #for s in symbol._local_symbols:
                 #    s = s.canonical_symbol()
                 append=True
-                for s in symbol._local_symbols:
+                for j,s in enumerate(symbol._local_symbols):
                     if s._prime==2:
-                        s2=deepcopy(s)
-                        #print "s=", s
-                        #print "s2=", s2
-                        #print "s2.canonical_symbol() = ",s2.canonical_symbol()
-                        #print "s=", s
-                        #print "s2=", s2
-                        c=s2.canonical_symbol()
-                        if twosyms.count(c)>0:
+                        sc=deepcopy(symbol)
+                        sc._local_symbols[j]=sc._local_symbols[j].canonical_symbol()
+                        if csymbols.count(sc)>0:
                             append=False
                         else:
-                            twosyms.append(c)    
+                            csymbols.append(sc)    
                         break
                 if append:
                     global_symbols.append(symbol)

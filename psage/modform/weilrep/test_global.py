@@ -33,12 +33,20 @@ def is_global(M,r,s,return_symbol=False):
                 sym.append(0)
                 sym.append(0)
             else:
-                sym = [sym[0], sym[1], sym[2] % 8, 1, sym[3] % 8]
-                if sym[1]==1:
-                    if  sym[2].kronecker(2)==sym[4].kronecker(2):
-                        sym[2]=sym[4]
+                if sym[3].kronecker(2)==sym[2]:
+                    det=sym[3] % 8
+                else:
+                    if sym[2]==-1:
+                        det=3
                     else:
-                        return False
+                        det=1
+                sym = [sym[0], sym[1], det, 1, sym[3] % 8]
+                #print sym
+                #if sym[1]==1:
+                #    if  sym[2].kronecker(2)==sym[4].kronecker(2):
+                #        sym[2]=sym[4]
+                #    else:
+                #        return False
         #print p, sym
         symbols[p].append(sym)
     D=M.order()*(-1)**s
@@ -56,7 +64,7 @@ def is_global(M,r,s,return_symbol=False):
                 if eps==-1:
                     for x in Zmod(p):
                         if not x.is_square():
-                            x=eps
+                            eps=x
                             break
                 symbols[p].append([0,n - prank, eps])
     symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,r+s,r+s).one())
@@ -113,7 +121,7 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
     symbols=list()
     twosyms=list()
     for D in range(min_D,max_D+1):
-        print D
+        #print D
         D=(-1)**n*D
         fac = Integer(D).factor()
         symbols=list()

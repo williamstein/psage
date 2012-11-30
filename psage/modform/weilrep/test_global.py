@@ -157,15 +157,15 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                                     for oddity in odds:
                                         if t==1:
                                             ll.append([vv,mult,det,1,oddity])
-                                        else:
+                                        #else:
                                             #ll.append([vv,1,det,0,0])
-                                            if mult % 2 == 0 and mult>2:
-                                                for x in range(1,Integer(mult)/Integer(2)):
-                                                    if mult-2*x==2 and det in [1,7] and oddity not in [0,2,6]:
-                                                        continue
-                                                    elif mult-2*x==2 and det in [3,5] and oddity not in [2,4,6]:
-                                                        continue
-                                                    ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
+                                            #if mult % 2 == 0 and mult>2:
+                                            #    for x in range(1,Integer(mult)/Integer(2)):
+                                            #        if mult-2*x==2 and det in [1,7] and oddity not in [0,2,6]:
+                                            #            continue
+                                            #        elif mult-2*x==2 and det in [3,5] and oddity not in [2,4,6]:
+                                            #            continue
+                                            #        ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
                             #print "ll:\n",ll
                             if len(l)==0:
                                 for t in ll:

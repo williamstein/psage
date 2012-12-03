@@ -22,15 +22,19 @@ include "sage/ext/gmp.pxi"
 include "sage/ext/random.pxi"
 #include "sage/rings/mpc.pxi"
 from psage.rings.mpfr_nogil cimport *
+from psage.rings.mpc_extras cimport *
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes
-from psage.rings.mpc_extras cimport *
 
 
-cdef void givens(mpc_t *s, mpc_t *skk, mpfr_t *c, mpc_t *r, mpc_t *f, mpc_t *g, mpc_t *t, mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+import cython
+from cython.parallel import parallel, prange
+
+
+cdef void givens(mpc_t *s, mpc_t *skk, mpfr_t *c, mpc_t *r, mpc_t *f, mpc_t *g, mpc_t *t, mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
     r"""
     Return parameters for Givens rotations rotating the vector (f , g)
     to (r , 0). I.e. [[ c, s],[ -\bar{s}, c]] (f,g)^t = (r,0)^t 
@@ -75,12 +79,12 @@ cdef void givens(mpc_t *s, mpc_t *skk, mpfr_t *c, mpc_t *r, mpc_t *f, mpc_t *g, 
     _mpc_conj(skk, s[0],rnd_re)
 
 
-cdef void RotateLeft_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int min_j,int max_j, mpc_t *t,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+cdef void RotateLeft_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int min_j,int max_j, mpc_t *t,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
     r"""
     Apply the Givens rotation [[ c, s ], [-\bar{s},c]] from the left. Acts on rows i and k from columns min_j to max_j
     """
     cdef int j
-    for j from  min_j <= j < max_j:
+    for j in range(min_j,max_j): #from  min_j <= j < max_j:
         ## the below might seem compliated but is
         ## necessary to minimize number of refs
         _mpc_mul_fr(t, A[i][j], c,rnd, rnd_re)
@@ -92,7 +96,7 @@ cdef void RotateLeft_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int 
         _mpc_sub(&A[k][j], t[1], t[0],rnd_re)
 
 
-cdef void RotateRight_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int min_j, int max_j, mpc_t *t,mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef void RotateRight_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int min_j, int max_j, mpc_t *t,mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
     r"""
     Apply the inverse Givens rotation [[ c, -s ], [\bar{s},c]] from the right. Acts on columns i and k from rows min_j to max_j
     """
@@ -111,7 +115,7 @@ cdef void RotateRight_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int
 # QR-decomposition.
 
 
-cdef QR_set init_QR(prec):
+cdef QR_set init_QR(int prec) nogil:
     r"""
     Initialize all variables in a QR_set.
     """
@@ -138,7 +142,7 @@ cdef QR_set init_QR(prec):
     return res
 
 
-cdef void clear_QR(QR_set * q):
+cdef void clear_QR(QR_set * q) nogil:
     r"""
     Clear all variables in a QR_set.
     """
@@ -162,7 +166,10 @@ cdef void clear_QR(QR_set * q):
     mpfr_clear(q.c_t)
 
 
-cdef void qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+
+
+
+cdef int qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
     r"""
     Compute QR-decomposition of an m x n matrix using complex givens rotations.
     Overwrites A with R and keeps the information about Q
@@ -174,11 +181,13 @@ cdef void qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd,
     cdef mpfr_t x
     cdef MPComplexNumber z
     z=MPComplexField(prec)(1)
-    assert  m >= n
+    if m<n:
+        return 1
     mpc_init2(t,prec)
     mpfr_init2(x,prec)
-    for j from 0 <= j < n:
-        for i from j+1 <= i < m:
+    #for j from 0 <= j < n:
+    for j in range(0,n):
+        for i in range(j+1,m): #from j+1 <= i < m:
             givens(&q.s, &q.skk, &q.c, &q.r,&A[j][j], &A[i][j],q.t,rnd,rnd_re)
             _mpc_div(&t,A[i][j],A[j][j],q.t,rnd_re)
             _mpc_conj(&t,t,rnd_re)
@@ -186,7 +195,7 @@ cdef void qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd,
                 RotateLeft_( q.s, q.skk, q.c, A, j, i, j+1, n, q.t,rnd,rnd_re)
             _mpc_set(&A[i][j], t,rnd_re)
             _mpc_set(&A[j][j], q.r,rnd_re)
-            mpc_set(z.value,q.s,MPC_RNDNN)
+            mpc_set(z.value,q.s,MPC_RNDNN)       
             # print "q.s=",z
             # mpc_set(z.value,q.skk,MPC_RNDNN)
             # print "q.skk=",z
@@ -203,26 +212,24 @@ cdef void qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd,
 
             # mpc_set(z.value,q.r,MPC_RNDNN)
             # print "q.r=",z
-            
+    mpc_clear(t); mpfr_clear(x)
     # Now A consists of R on the n x n upper-triangular part
     # and the A[i][j]'s are t_ij corresponding to each step of the
+    return 0
 
-
-
-
-
-cdef _swap_rows(mpc_t** A, int *m, int *n):
+cdef int _swap_rows(mpc_t** A, int *m, int *n) nogil:
     cdef mpc_t* tmprow = A[m[0]]
     A[n[0]] = A[m[0]]
     A[m[0]] = tmprow
-    
-cdef _swap_columns(mpc_t** A, int *nrows, int i, int m):
-    cdef int k
-    for k from 0<= k < nrows[0]:
-        mpc_swap(A[k][i],A[k][m])
-          
+    return 0
 
-cdef void _qr_step(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, mpc_t mu,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+cdef int _swap_columns(mpc_t** A, int *nrows, int i, int m) nogil:
+    cdef int k
+    for k in range(nrows[0]): #from 0<= k < nrows[0]:
+        mpc_swap(A[k][i],A[k][m])
+    return 0
+
+cdef int _qr_step(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, mpc_t mu,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
     r"""
     Compute one QR-step:
      Q * R = A + mu * Id
@@ -230,13 +237,17 @@ cdef void _qr_step(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, mpc_
      
     """
     cdef int j
-    assert start[0] >= 0
-    assert end[0] <= nrows[0]
-    for j from start[0] <= j < end[0]:
+    if start[0]<0:
+        return -2
+    if end[0]>nrows[0]:
+        return 2
+    #assert start[0] >= 0
+    #assert end[0] <= nrows[0]
+    for j in range(start[0],end[0]):
         #_mpc_sub(&A[j][j], A[j][j], mu,rnd_re)
         mpc_sub(A[j][j], A[j][j], mu,rnd)
 
-    for j from start[0] <= j < end[0]:
+    for j in range(start[0],end[0]):
         if j < end[0] - 1:
             #/*if (mpc_zero(A[j + 1][j]))   continue; */
             givens(&q.s, &q.skk, &q.c, &q.r, &A[j][j], &A[j + 1][j],q.t,rnd,rnd_re)
@@ -248,22 +259,28 @@ cdef void _qr_step(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, mpc_
         _mpc_set(&q.s_t, q.s,rnd_re)
         _mpc_set(&q.skk_t, q.skk,rnd_re)
         mpfr_set(q.c_t, q.c, rnd_re)
-    for j from start[0] <= j < end[0]:
+    for j in range(start[0],end[0]):
         mpc_add(A[j][j], A[j][j], mu,rnd) #_re)
-
+    return 0
 #/* l1 = a, l2 = d*/
 #
-cdef int Eigenvalue2(mpc_t * l1, mpc_t * l2, mpc_t a, mpc_t b, mpc_t c, mpc_t d, mpc_t t[3],mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
-    
-    if (mpc_zero_p(b) or mpc_zero_p(c)):
+cdef int Eigenvalue2(mpc_t * l1, mpc_t * l2, int *nsteps,mpc_t a, mpc_t b, mpc_t c, mpc_t d, mpc_t t[3],mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+    r"""
+    Calculate the eigenvalue of a 2x2 submatrix (a b // c d).
+    Note that nsteps is 1 if we have zero entries so that we only need to
+    do one more qr-step. If nsteps=2 then we need two qr-steps.
+    """
+    if mpc_zero_p(b) or mpc_zero_p(c):
         _mpc_set(l1, a,rnd_re)
         _mpc_set(l2, d,rnd_re)
+        nsteps[0]=1
         return 0
-    if (mpc_zero_p(a) and mpc_zero_p(d)) :
+    if mpc_zero_p(a) and mpc_zero_p(d):
         _mpc_mul(l2, b, c,t,rnd, rnd_re)
         mpc_sqrt(l1[0], l2[0], rnd)
         mpc_neg(l2[0], l1[0],rnd)
-        return 2
+        nsteps[0]=1
+        return 0 #2
     _mpc_sub(l2, a, d,rnd_re)
     #_mpc_div_ui(l2, l2[0], 2,rnd)
     mpc_div_ui(l2[0], l2[0], 2,rnd)
@@ -278,47 +295,53 @@ cdef int Eigenvalue2(mpc_t * l1, mpc_t * l2, mpc_t a, mpc_t b, mpc_t c, mpc_t d,
     _mpc_add(&t[0], l1[0], l2[0],rnd_re)
     _mpc_sub(l2, l1[0], l2[0],rnd_re)
     _mpc_set(l1, t[0],rnd_re)
-    return 3
+    nsteps[0]=2
+    return 0
 
-cdef void _qr_double_step(mpc_t ** A, int *nrows, int *start, int *end, QR_set * q, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef int _qr_double_step(mpc_t ** A, int *nrows, int *start, int *end, QR_set * q, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
     r"""
     Apply the QR-step wth shifts given by both eigenvalues of
     the lower right 2x2 submatrix.
     """
     cdef int n
     n = end[0] - 1
-    cdef int r
+    cdef int r,e
     cdef mpc_t mu
     cdef int prec = mpc_get_prec(A[0][0])
     if n<=0:
-        return
-    r = Eigenvalue2(&q.mu1, &q.mu2, A[n - 1][n - 1], A[n - 1][n], A[n][n - 1], A[n][n], q.t,rnd,rnd_re)
+        return -1
+    Eigenvalue2(&q.mu1, &q.mu2, &r,A[n - 1][n - 1], A[n - 1][n], A[n][n - 1], A[n][n], q.t,rnd,rnd_re)
     #print "mu1 =",print_mpc(q.mu1)
     #print "mu2 =",print_mpc(q.mu2)
-    _qr_step(A, nrows, start, end, q, q.mu2, rnd, rnd_re)
-    if (r == 3):
-        _qr_step(A, nrows, start, end, q, q.mu1, rnd, rnd_re)
+    e = _qr_step(A, nrows, start, end, q, q.mu2, rnd, rnd_re)
+    if e<>0:
+        return e
+    if r>1:
+        e = _qr_step(A, nrows, start, end, q, q.mu1, rnd, rnd_re)
+    return e
 
-
-cdef void _qr_single_step(mpc_t ** A, int *nrows, int *start, int *end, QR_set * q, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef int _qr_single_step(mpc_t ** A, int *nrows, int *start, int *end, QR_set * q, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
     r"""
     A is an nrows x nrows complex matrix.
     """
-    cdef int n
+    cdef int n,e
     n = end[0] - 1
     cdef int r
     cdef int prec = mpc_get_prec(A[0][0])
+    if n<-1:
+        #printf(" n=%d", n)
+        return -1
     if n<=0:
-        return
+        return 0
     _wilkinson_shift(&q.mu2, &A[n - 1][n - 1], &A[n - 1][n], &A[n][n - 1], &A[n][n],prec,rnd,rnd_re, q.t,q.x)
     #print "mu=",print_mpc(q.mu2)
-    _qr_step(A, nrows, start, end, q, q.mu2, rnd, rnd_re)
+    e = _qr_step(A, nrows, start, end, q, q.mu2, rnd, rnd_re)
+    return e
+    
 
 
 
-
-
-cdef void _wilkinson_shift(mpc_t *mu,mpc_t* a,mpc_t* b,mpc_t* c,mpc_t* d,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re, mpc_t *zz, mpfr_t *xx):
+cdef void _wilkinson_shift(mpc_t *mu,mpc_t* a,mpc_t* b,mpc_t* c,mpc_t* d,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re, mpc_t *zz, mpfr_t *xx) nogil:
     r"""
     Computes the eigenvalue of [[a,b],[c,d]] closest to d.
     Algorithm 2.7 in Matrix Algorithms by G. W. Stewart
@@ -347,11 +370,12 @@ cdef void _wilkinson_shift(mpc_t *mu,mpc_t* a,mpc_t* b,mpc_t* c,mpc_t* d,int pre
     _mpc_div_fr(q,c[0],s[0],rnd_re)
     _mpc_mul(q,q[0],p[0],zz+3,rnd,rnd_re)
     #q=(b/s)*(c/s)
-    mpc_abs(x[0],q[0],rnd_re)
+    #mpc_abs(x[0],q[0],rnd_re)
     #mpc_imag(y[0],q[0],rnd_re)
     #print "s=",print_mpfr(s[0])
     #print "x=",print_mpfr(x[0]),mpfr_zero_p(x[0])
-    if mpfr_zero_p(x[0])==0:
+    # if abs(q[0])<>0:
+    if mpfr_zero_p(q[0].re)==0 or mpfr_zero_p(q[0].im)==0:
         #print "here 4!"
         _mpc_div_fr(z,a[0],s[0],rnd_re)
         #print "a/s=",print_mpc(z[0])
@@ -376,12 +400,13 @@ cdef void _wilkinson_shift(mpc_t *mu,mpc_t* a,mpc_t* b,mpc_t* c,mpc_t* d,int pre
         _mpc_sub(mu,mu[0],z[0],rnd_re)
         #mu = mu - s*(q/(p+r))
 
-cdef void set_zero(mpc_t** A, int *nrows, mpfr_t delta, mpc_t * t,mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef void set_zero(mpc_t** A, int *nrows, mpfr_t delta, mpc_t * t,mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
     cdef int j
     cdef mpfr_t x
     mpfr_init(x)
-    for j from  1 <= j < nrows[0]:
-        if (mpc_zero_p(A[j][j - 1])):
+    for j in range(1,nrows[0]): #from  1 <= j < nrows[0]:
+        #if mpc_zero_p(A[j][j - 1]):
+        if mpfr_zero_p(A[j][j - 1].re)<>0 or mpfr_zero_p(A[j][j - 1].im)<>0:
             continue
         #/*if (mpfr_cmpabs(A[j][j - 1][0].re,delta) < 0):
         #   if(mpfr_cmpabs(A[j][j - 1][0].im,delta) < 0):
@@ -407,11 +432,11 @@ cdef void set_zero(mpc_t** A, int *nrows, mpfr_t delta, mpc_t * t,mpc_rnd_t rnd,
         #    mpfr_div(t[0].re,t[0].re,x,rnd_re)
         mpfr_mul(t[0].re, t[0].re, delta, rnd_re)
         mpc_abs(t[0].im, A[j][j - 1],rnd_re)
-        if (mpfr_cmp(t[0].im, t[0].re) <= 0):
+        if mpfr_cmp(t[0].im, t[0].re) <= 0:
             mpc_set_si(A[j][j - 1], 0, rnd)
+    mpfr_clear(x)
 
-
-cdef void get_submatrix(int *s, int *e, mpc_t** A, int *nrows):
+cdef void get_submatrix(int *s, int *e, mpc_t** A, int *nrows) nogil:
     cdef int j
     e[0] = 0
     s[0] = 0
@@ -433,81 +458,10 @@ cdef void get_submatrix(int *s, int *e, mpc_t** A, int *nrows):
 
 
 
-cdef void get_eigenvalues(mpc_t* res, mpc_t** A,int n,int prec, mpc_t t[2], mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
-    cdef int i
-    #cdef mpc_t t[2]
-    #mpc_init2(t[0],prec)
-    #mpc_init2(t[1],prec)
-    #t = mpc_init()
-    #print "A[",n-1,n-1,"]=",print_mpc(A[n-1][n-1])
-    #print "n=",n
-    for i from 0 <= i < n:
-        if (i + 1 < n):
-            #print "A[",i+1,i,"]=",print_mpc(A[i+1][i])
-            if (not mpc_zero_p(A[i + 1][i])):
-                Eigenvalue2(&res[i],&res[i + 1],A[i][i], A[i][i + 1], A[i + 1][i],A[i + 1][i + 1], t,rnd,rnd_re)
-                #print "res2[",i,"]=",print_mpc(res[i])
-                #print "res2[",i+1,"]=",print_mpc(res[i+1])
-                i+=1
-                continue
-        _mpc_set(&res[i], A[i][i],rnd_re)
-        #print "A[",i,i,"]=",print_mpc(A[i][i])
+      #print "A[",i,i,"]=",print_mpc(A[i][i])
         #print "res[",i,"]=",print_mpc(res[i])
 
-
-cdef void _eigenvalues(mpc_t* res, mpc_t** A,int nrows,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
-    r"""
-    A is a square nrows x nrows Matrix 
-    
-    """
-    #/*int i = 0 */
-    cdef mpfr_t delta, delta2
-    cdef int ii,j
-    cdef QR_set q 
-    cdef int start, end    
-    cdef double pl
-    # see if we have to add to the precision
-    cdef int prec_add =_get_additional_precision(A, nrows, nrows, delta, prec,rnd, rnd_re)
-    #prec = prec + prec_add 
-    #print "adding precision",prec_add
-    q  = init_QR(prec)
-    mpfr_init2(delta,prec)
-    mm_get_delta(&delta,rnd_re)
-    #print "delta=",print_mpfr(delta)
-    _hessenberg_reduction(A,nrows, q, prec, rnd, rnd_re)
-    #print "Hessenberg(A)="
-    #for i from 0 <= i < nrows: # we never need more than n steps
-    #    for ii from 0 <= ii < nrows: # we never need more than n steps
-    #        print "A[{0}][{1}]=".format(i,ii),print_mpc(A[i][ii])
-    #begin_pline("computing eigenvalues")
-    end = 1
-    for i from 0 <= i < 1000*nrows*nrows:
-        # How many steps do we really need?
-        set_zero(A, &nrows, delta, &q.r,rnd,rnd_re)
-        get_submatrix(&start, &end, A, &nrows)
-        #_qr_double_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
-        _qr_single_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
-        #print "After qr_single step: ",i
-        #for j from 0 <= j < nrows: # we never need more than n steps
-        #    for ii from 0 <= ii < nrows: # we never need more than n steps
-        #print "A[{0}][{1}]=".format(j,ii),print_mpc(A[j][ii])
-        if end == 0:
-            #print "Stopping!"
-            break
-        #for ii from 0 <= ii <10:
-        #    QR_double_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
-    #print "A=",print_mat(A,nrows,nrows)
-    if end<>0:
-        clear_QR(&q)
-        mpfr_clear(delta)
-        raise ArithmeticError,"QR-algorithm did not cinverge in {0} steps!".format(i)
-    get_eigenvalues(res, A,nrows,prec,q.t,rnd,rnd_re)
-    clear_QR(&q)
-    mpfr_clear(delta)
-
-
-
-cdef void _hessenberg_reduction(mpc_t** A, int nrows, QR_set  q,int prec, mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt = 0):
+cdef int _hessenberg_reduction(mpc_t** A, int nrows, QR_set  q,int prec, mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt = 0):
     r"""
     Input a square nrows x nrows complex matrix.
     At return the matrix A is in upper Hessenberg form.
@@ -541,8 +495,108 @@ cdef void _hessenberg_reduction(mpc_t** A, int nrows, QR_set  q,int prec, mpc_rn
             if rt:
                 #print "Setting A[",i,"][",j,"]=",print_mpc(t)
                 mpc_set(A[i][j], t,rnd)
+    mpc_clear(t)
+    return 0
 
-cdef _reconstruct_matrix(mpc_t** Q, mpc_t** A, int m, int n, int k, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+
+cdef int get_eigenvalues(mpc_t* res, mpc_t** A,int n,int prec, mpc_t t[2], mpc_rnd_t rnd,mpfr_rnd_t rnd_re,int verbose=0):
+    cdef MPComplexNumber z
+    cdef int i,r,e
+    z = MPComplexField(prec)(0)
+    #for i in range(n):
+    for i from 0<=i<n:  ## note: Keep this iteration!! Otherwise it doesn't work...
+        #print "i=",i
+        if (i + 1 < n):
+            #print "A[",i+1,i,"]=",print_mpc(A[i+1][i])
+            if not mpc_zero_p(A[i + 1][i]):
+                e = Eigenvalue2(&res[i],&res[i + 1],&r,A[i][i], A[i][i + 1], A[i + 1][i],A[i + 1][i + 1],t,rnd,rnd_re)
+                if verbose>0:
+                    mpc_set(z.value,res[i],rnd)
+                    print "res[",i,"]=",z
+                    mpc_set(z.value,res[i+1],rnd)
+                    print "res[",i+1,"]=",z
+                if e<>0:
+                    return e
+                if verbose>0:
+                    mpc_set(z.value,A[i][i],rnd)
+                    print "A[",i,i,"]=",z
+                    mpc_set(z.value,A[i+1][i+1],rnd)
+                    print "A[",i+1,i+1,"]=",z
+                i+=1
+                continue
+        if verbose>0:
+            print "i=",i
+            mpc_set(z.value,A[i][i],rnd)       
+            print "A[",i,i,"]=",z            
+        _mpc_set(&res[i], A[i][i],rnd_re)
+    for i in range(n):
+        mpc_set(z.value,res[i],rnd)
+        #print "Res[",i,"]=",z
+
+    return 0
+  
+cdef int _eigenvalues(mpc_t* res, mpc_t** A,int nrows,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re,int verbose=0):
+    r"""
+    A is a square nrows x nrows Matrix 
+    
+    """
+    #/*int i = 0 */
+    cdef mpfr_t delta, delta2
+    cdef int ii,j,e
+    cdef QR_set q 
+    cdef int start, end    
+    cdef double pl
+    # see if we have to add to the precision
+    cdef int prec_add =_get_additional_precision(A, nrows, nrows, delta, prec,rnd, rnd_re)
+    #prec = prec + prec_add 
+    #print "adding precision",prec_add
+    q  = init_QR(prec)
+    mpfr_init2(delta,prec)
+    mm_get_delta(&delta,rnd_re)
+    #print "delta=",print_mpfr(delta)
+    _hessenberg_reduction(A,nrows, q, prec, rnd, rnd_re)
+    #print "Hessenberg(A)="
+    #for i from 0 <= i < nrows: # we never need more than n steps/
+    #    for ii from 0 <= ii < nrows: # we never need more than n steps
+    #        print "A[{0}][{1}]=".format(i,ii),print_mpc(A[i][ii])
+    #begin_pline("computing eigenvalues")
+    end = 1
+    for i from 0 <= i < 1000*nrows*nrows:
+        # How many steps do we really need?
+        set_zero(A, &nrows, delta, &q.r,rnd,rnd_re)
+        get_submatrix(&start, &end, A, &nrows)
+        #_qr_double_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
+        e = _qr_single_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
+        if e<>0:
+            clear_QR(&q)
+            mpfr_clear(delta)
+            if verbose>0:
+                print "exiting with code:{0}".format(e)
+            return e
+        #print "After qr_single step: ",i
+        #for j from 0 <= j < nrows: # we never need more than n steps
+        #    for ii from 0 <= ii < nrows: # we never need more than n steps
+        #print "A[{0}][{1}]=".format(j,ii),print_mpc(A[j][ii])
+        if end == 0:
+            #print "Stopping!"
+            break
+        #for ii from 0 <= ii <10:
+        #    QR_double_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
+    #print "A=",print_mat(A,nrows,nrows)
+    if end<>0:
+        clear_QR(&q)
+        mpfr_clear(delta)
+        raise ArithmeticError,"QR-algorithm did not cinverge in {0} steps!".format(i)
+    e = get_eigenvalues(res, A,nrows,prec,q.t,rnd,rnd_re)
+    clear_QR(&q)
+    mpfr_clear(delta)
+    return e
+
+
+
+
+
+cdef int _reconstruct_matrix(mpc_t** Q, mpc_t** A, int m, int n, int k, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
     r"""
     Use parameters in A[i,j] to reconstruct the matrix Q
     as  a product of Givens rotations.
@@ -556,8 +610,8 @@ cdef _reconstruct_matrix(mpc_t** Q, mpc_t** A, int m, int n, int k, int prec, mp
     mpc_init2(tt[0],prec); mpc_init2(tt[1],prec)
     mpc_init2(tt[2],prec); mpc_init2(tt[3],prec)
     mpc_init2(t,prec)
-    for i from 0<= i < m:
-        for j from 0 <= j < n:
+    for i in range(m): #from 0<= i < m:
+        for j in range(n):
             if i<>j:
                 mpc_set_ui(Q[i][j],0,rnd)
         mpc_set_ui(Q[i][i],1,rnd)
@@ -582,8 +636,12 @@ cdef _reconstruct_matrix(mpc_t** Q, mpc_t** A, int m, int n, int k, int prec, mp
             mpc_neg(s,s,rnd)
             mpc_neg(sc,sc,rnd)
             RotateLeft_(s, sc, c, Q, j+k-1 ,  i, j+k-1, n, tt,rnd,rnd_re)
-
-cdef void solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+    mpc_clear(s);mpc_clear(sc);mpc_clear(t)
+    mpfr_clear(x);mpfr_clear(c)
+    mpc_clear(tt[0]);mpc_clear(tt[1]);mpc_clear(tt[2]);mpc_clear(tt[3])
+    return 0
+            
+cdef int solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
     r"""
     Solve Rx=b where R is n x n upper-triangular matrix
     and b is a vector of length n.
@@ -591,7 +649,8 @@ cdef void solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t r
     """
     cdef mpc_t s[2]
     cdef mpc_t t[2]
-    cdef mpc_t *v
+    cdef mpc_t *v=NULL
+    cdef int i,j
     mpc_init2(s[0],prec)
     mpc_init2(s[1],prec)
     mpc_init2(t[0],prec)
@@ -606,6 +665,7 @@ cdef void solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t r
     for i in xrange(n-2,-1,-1):
         mpc_set_si(s[0],0,rnd)
         v =<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+        if v==NULL: return -1
         for j from i <= j < n:
             mpc_init2(v[j],prec)
             mpc_set(v[j],R[i][j],rnd)
@@ -627,6 +687,7 @@ cdef void solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t r
     mpc_clear(s[1])
     mpc_clear(t[0])
     mpc_clear(t[1])
+    return 0
     
 
 
@@ -638,10 +699,11 @@ cpdef my_div(x,y):
     mpc_div(xt,xt,yt,MPC_RNDNN)
     z = x.parent().one()
     mpc_set(z.value,xt,MPC_RNDNN)
+    mpc_clear(xt); mpc_clear(yt)
     return z
 
 
-cdef void _norm(mpfr_t norm,mpc_t** A, int nrows,int ncols, int prec,mpfr_rnd_t rnd_re,int ntype):
+cdef int _norm(mpfr_t norm,mpc_t** A, int nrows,int ncols, int prec,mpfr_rnd_t rnd_re,int ntype) nogil:
     r"""
     """
     cdef mpfr_t x
@@ -666,14 +728,14 @@ cdef void _norm(mpfr_t norm,mpc_t** A, int nrows,int ncols, int prec,mpfr_rnd_t 
         mpfr_set_si(norm,-1,rnd_re)
         # raise NotImplementedError,"Only infinty and 2-norm is currently implemented"
     mpfr_clear(x)
+    return 0
 
 
 
 
 
 
-
-cdef _get_additional_precision(mpc_t** A,int m, int n, mpfr_t mpeps, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
+cdef int _get_additional_precision(mpc_t** A,int m, int n, mpfr_t mpeps, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
     r"""
     Computes the number of extra bits of precision needed
     to compute eigenvalues accuraetly.
@@ -702,7 +764,9 @@ cdef _get_additional_precision(mpc_t** A,int m, int n, mpfr_t mpeps, int prec, m
     mpfr_log2(amax,amax,rnd_re)
     mpfr_abs(amax,amax,rnd_re)
     mpfr_add_ui(amax,amax,1,rnd_re)
-    return  mpfr_get_ui(amax,MPFR_RNDD)+30 # truncating
+    i = mpfr_get_ui(amax,MPFR_RNDD)+30 # truncating
+    mpfr_clear(x); mpfr_clear(y); mpfr_clear(v);mpfr_clear(amax)
+    return i  
 
 
 ###
@@ -716,290 +780,246 @@ cdef void mm_get_delta(mpfr_t *delta,mpfr_rnd_t rnd_re):
     mpfr_sub_si(delta[0], delta[0], 1, rnd_re)
 
 
-## cdef inline void mpc_z_to_pol(mpc_t * res, mpc_t z,mpfr_rnd_t rnd_re):
-##     #assert_nsame(res[0].re, z.re)
-##     mpfr_hypot(res[0].re, z.re, z.im, rnd_re)
-##     mpfr_atan2(res[0].im, z.im, z.re, rnd_re)
+###
+### TODO: Parallel interfaces using open MP #####
+###  Main problem with parallelization: The RotateLeft and Right propagate changes. It is necesary to do some kind of preliminary block decomposition.
+###
 
 
-
-## ## This is about 20% faster than standard mpc_mul
-## cdef inline void _mpc_mul(mpc_t* z, mpc_t a, mpc_t b, mpc_t *t, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
-##     # __inline__ void compl_mul(complex_t * z, complex_t a, complex_t b)
-##     #assert_nsame(z->re, a.re);
-##     #assert_nsame(z->re, b.re);
-##     if mpfr_zero_p(a.re):
-##         if mpfr_zero_p(a.im):
-##             mpc_set_si(z[0], 0, rnd)
-##             return
-##         if mpfr_zero_p(b[0].im):
-##             mpfr_set_si(z[0].re, 0, rnd_re)
-##         else:
-##             mpfr_mul(z[0].re, a.im, b[0].im, rnd_re)
-##             mpfr_neg(z[0].re, z[0].re, rnd_re)            
-##         if mpfr_zero_p(b[0].re):
-##             mpfr_set_si(z[0].im, 0, rnd_re)
-##         else:
-##             mpfr_mul(z[0].im, a.im, b[0].re, rnd_re)
-##         return
-##     if mpfr_zero_p(a.im):
-##         if mpfr_zero_p(b[0].re):
-##             mpfr_set_si(t[0].re, 0, rnd_re)
-##         else:
-##             mpfr_mul(t[0].re, a.re, b[0].re, rnd_re)
-##         if mpfr_zero_p(b[0].im):
-##             mpfr_set_si(t[0].im, 0, rnd_re)
-##         else:
-##             mpfr_mul(t[0].im, a.re, b[0].im, rnd_re)
-##         mpfr_set(z[0].re,t[0].re,rnd_re)
-##         mpfr_set(z[0].im,t[0].im,rnd_re)
-##         return
-##     if mpfr_zero_p(b[0].re):
-##         if mpfr_zero_p(b[0].im):
-##             mpc_set_si(z[0], 0, rnd)
-##             return
-##         mpfr_mul(t[0].re, a.im, b[0].im, rnd_re)
-##         mpfr_neg(t[0].re, t[0].re, rnd_re)
-##         mpfr_mul(z[0].im, a.re, b[0].im, rnd_re)
-##         mpfr_set(z[0].re,t[0].re,rnd_re)
-##         return
-##     if mpfr_zero_p(b[0].im):
-##         mpfr_mul(z[0].re, a.re, b[0].re, rnd_re)
-##         mpfr_mul(z[0].im, a.im, b[0].re, rnd_re)
-##         return
-##     mpfr_mul(t[0].re, a.re, b[0].re, rnd_re)
-## #/* z[0].re = a.re*b[0].re */
-##     mpfr_mul(t[0].im, a.im, b[0].im, rnd_re)
-## #/* z[0].im = a.im*b[0].im */
-##     mpfr_sub(t[0].re, t[0].re, t[0].im, rnd_re)
-## #/* z->re = a.re*b[0].re - a.im*b[0].im */
-
-##     mpfr_mul(t[0].im, a.im, b[0].re, rnd_re)
-## #/* z->im = a.im*b[0].re */
-##     mpfr_fma(z[0].im, a.re, b[0].im, t[0].im, rnd_re)	#/* z->im = a.re*b[0].im + a.im*b[0].re */
-##     mpfr_set(z[0].re,t[0].re,rnd_re)
-
-
-
-
-## cdef inline void _mpc_mul_fr(mpc_t* z, mpc_t a, mpfr_t b, mpc_rnd_t rnd, mpfr_rnd_t rnd_re):
-##     cdef int kk
-##     mpfr_mul(z[0].re, a.re, b, rnd_re)
-##     mpfr_mul(z[0].im, a.im, b, rnd_re)
-##     return
-
-
-## cdef inline void _mpc_div(mpc_t * z, mpc_t a, mpc_t b, mpc_t t[2], mpfr_rnd_t rnd_re):
-##     r"""
-
+# cdef int qr_decomp_par(mpc_t** A,int m, int n, int prec, mpfr_t eps, int nthreads,int static,mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
+#     if static==1:
+#         return qr_decomp_par_s(A,m,n,prec,eps,nthreads,rnd,rnd_re)
+#     elif static==0:
+#         return qr_decomp_par_d(A,m,n,prec,eps,nthreads,rnd,rnd_re)
+#     else:
+#         return -1
     
-    
-##     z = a/b
-##     This works if z is a pointer to a but not b.
-##     """
-##     # note that this is  if we apply divsion by self
-##     # t is a temporary variable
-##     #	assert_nsame(z->re, a.re);
-##     #	assert_nsame(z->re, b.re);
-##     # if 1
-##     #	m_assert(!mpfr_zero_p(b.re) || !mpfr_zero_p(b.im))
-##     if mpfr_zero_p(a.re):
-##         if mpfr_zero_p(a[0].im): 
-##             mpc_set_si(z[0], 0, rnd)
-##             return
-##         if mpfr_zero_p(b[0].re):
-##             mpfr_set_si(z[0].im, 0, rnd_re)
-##             mpfr_div(z[0].re, a[0].im, b[0].im, rnd_re)
-##             return
+
+
+# cdef int qr_decomp_par_d(mpc_t** A,int m, int n, int prec, mpfr_t eps, int nthreads,int static,mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
+#     r"""
+#     Compute QR-decomposition of an m x n matrix using complex givens rotations.
+#     Overwrites A with R and keeps the information about Q
+#     in the zero-set entries.
+#     """
+#     cdef QR_set q 
+#     cdef int i,j,k
+#     cdef mpc_t t
+#     cdef mpfr_t x
+#     cdef MPComplexNumber z
+#     if m < n:
+#         return 1
+#     q = init_QR(prec)
+#     z=MPComplexField(prec)(1)
+#     mpc_init2(t,prec)
+#     mpfr_init2(x,prec)
+#     for j in prange(0,n,schedule='dynamic',num_threads=nthreads):
+#         for i in range(j+1,m): #from j+1 <= i < m:
+#             givens(&q.s, &q.skk, &q.c, &q.r,&A[j][j], &A[i][j],q.t,rnd,rnd_re)
+#             _mpc_div(&t,A[i][j],A[j][j],q.t,rnd_re)
+#             _mpc_conj(&t,t,rnd_re)
+#             if j< n-1:
+#                 RotateLeft_( q.s, q.skk, q.c, A, j, i, j+1, n, q.t,rnd,rnd_re)
+#             _mpc_set(&A[i][j], t,rnd_re)
+#             _mpc_set(&A[j][j], q.r,rnd_re)
+#             mpc_set(z.value,q.s,MPC_RNDNN)
+#     mpfr_clear(t); mpfr_clear(x)
+#     return 0
+
+
+
+
+
+
+# cdef int _eigenvalues_par(mpc_t* res, mpc_t** A,int nrows,int prec,int nthreads, int static,int verbose,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
+#     r"""
+#     A is a square nrows x nrows Matrix 
+#     Note: we can't make the main loop parallel since it is iterative (the number of steps might also vdepend on the precision). 
+#     """
+#     #/*int i = 0 */
+#     cdef mpfr_t delta
+#     cdef int ii,j,e
+#     cdef QR_set q 
+#     cdef int start, end    
+#     cdef double pl
+#     # see if we have to add to the precision
+#     cdef int prec_add =_get_additional_precision(A, nrows, nrows, delta, prec,rnd, rnd_re)
+#     if static<>0 and static<>1: return -1        
+#     #prec = prec + prec_add 
+#     #print "adding precision",prec_add
+#     q  = init_QR(prec)
+#     mpfr_init2(delta,prec)
+#     mm_get_delta(&delta,rnd_re)
+#     #print "delta=",print_mpfr(delta)
+#     _hessenberg_reduction_par(A,nrows, q, prec, nthreads,static,rnd,rnd_re)
+#     end = 1
+#     for i from 0 <= i < 1000*nrows*nrows:
+#         # How many steps do we really need?
+#         set_zero(A, &nrows, delta, &q.r,rnd,rnd_re)
+#         get_submatrix(&start, &end, A, &nrows)
+#         #_qr_double_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
+#         if static==1:           
+#             e = _qr_single_step_par_s(A, &nrows, &start, &end, &q, nthreads, rnd, rnd_re)
+#         else:
+#             e = _qr_single_step_par_d(A, &nrows, &start, &end, &q, nthreads, rnd, rnd_re)
             
-##         if mpfr_zero_p(b[0].im):
-##             mpfr_set_si(z[0].re, 0, rnd_re)
-##             mpfr_div(z[0].im, a[0].im, b[0].re, rnd_re)
-##             return
-##         mpfr_mul(t[0].re, a[0].im, b[0].im, rnd_re)
-##         mpfr_mul(t[0].im, a[0].im, b[0].re, rnd_re)
-        
-##         mpfr_mul(t[1].re, b[0].re, b[0].re, rnd_re)
-##         mpfr_fma(t[1].re, b[0].im, b[0].im, t[0].re, rnd_re)
-##         mpfr_div(z[0].re, t[0].re, t[1].re, rnd_re)
-##         mpfr_div(z[0].im, t[0].im, t[1].re, rnd_re)
-##         return
+#         if e<>0:
+#             clear_QR(&q)
+#             mpfr_clear(delta)
+#             return e
+#         if end == 0:
+#             #print "Stopping!"
+#             break
+#         #for ii from 0 <= ii <10:
+#         #    QR_double_step(A, &nrows, &start, &end, &q, rnd, rnd_re)
+#     #print "A=",print_mat(A,nrows,nrows)
+#     if end<>0:
+#         clear_QR(&q)
+#         mpfr_clear(delta)
+#         raise ArithmeticError,"QR-algorithm did not cinverge in {0} steps!".format(i)
+#     e = get_eigenvalues_par(res, A,nrows,prec,q.t,nthreads,static,rnd,rnd_re)
+#     clear_QR(&q)
+#     mpfr_clear(delta)
+#     return e
+
+# cdef int _hessenberg_reduction_par(mpc_t** A, int nrows, QR_set  q,int prec,int nthreads,int static, mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt = 0) nogil:
+#     if static==1:
+#         return _hessenberg_reduction_par_s(A,nrows,q,prec,nthreads,rnd,rnd_re,rt)
+#     elif static==0:
+#         return _hessenberg_reduction_par_d(A,nrows,q,prec,nthreads,rnd,rnd_re,rt)
+#     else:
+#         return -1
+
+## To do this in parallel we need to make a preliminary block decomposition
+# cdef int _hessenberg_reduction_par_d(mpc_t** A, int nrows, QR_set  q,int prec,int nthreads,mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt = 0) nogil:
+#     r"""
+#     Input a square nrows x nrows complex matrix.
+#     At return the matrix A is in upper Hessenberg form.
+#     If rt=1 then the matrix transforming A to Hessenberg form can be
+#     reconstructed as a sequence of Givens rotations given by parameters
+#     't' in the part of A below the second subdiagonal.
+#     """
+#     cdef int i,j
+#     cdef mpc_t t
+#     mpc_init2(t,prec)
+#     #for j from 0<= j < nrows - 2:
+#     for j in prange(nrows-2,schedule='dynamic',num_threads=nthreads):
+#         for i in range(j+2,nrows): #from j + 2 <=  i < nrows:
+#             if mpc_zero_p(A[i][j])<>0:
+#                 continue
+#             givens(&q.s, &q.skk, &q.c, &q.r,&A[j + 1][j], &A[i][j],q.t, rnd,rnd_re)
+#             if rt<>0:
+#                 _mpc_div(&t,A[i][j],A[j+1][j],q.t,rnd_re)
+#                 mpc_conj(t,t,rnd)
+#             mpc_set_si(A[i][j], 0, rnd)
+#             mpc_set(A[j + 1][j], q.r,rnd)
+#             RotateLeft_( q.s, q.skk, q.c, A, j + 1, i, j + 1, nrows, q.t,rnd,rnd_re)
+#             # we have to rotate from right too so that we keep the eigenvalues
+#             RotateRight_(q.s, q.skk, q.c, A, j + 1, i, 0, nrows, q.t,rnd,rnd_re)
+#             if rt<>0:
+#                 #print "Setting A[",i,"][",j,"]=",print_mpc(t)
+#                 mpc_set(A[i][j], t,rnd)
+#     mpc_clear(t)
+#     return 0
+
+# cdef int _qr_single_step_par(mpc_t ** A, int *nrows, int *start, int *end, QR_set * q, int nthreads,int static,mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil:
+#     r"""
+#     A is an nrows x nrows complex matrix.
+#     """
+#     cdef int n,e
+#     n = end[0] - 1
+#     cdef int r
+#     cdef int prec = mpc_get_prec(A[0][0])
+#     if n<=0:
+#         return -1
+#     _wilkinson_shift(&q.mu2, &A[n - 1][n - 1], &A[n - 1][n], &A[n][n - 1], &A[n][n],prec,rnd,rnd_re, q.t,q.x)
+#     #print "mu=",print_mpc(q.mu2)
+#     if static==1:
+#         e = _qr_step_par_s(A, nrows, start, end, q, q.mu2, nthreads,rnd, rnd_re)
+#     elif static==0:
+#         e = _qr_step_par_d(A, nrows, start, end, q, q.mu2, nthreads,rnd, rnd_re)
+#     else:
+#         return -1
+#     return e
     
+### These routines can probably be made parallelizable with some more thought.... TODO!
+# cdef int _qr_step_par_s(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, int nthreads,mpc_t mu,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
+#     r"""
+#     Compute one QR-step:
+#      Q * R = A + mu * Id
+#      A     = R * Q +mu * Id
+     
+#     """
+#     cdef int j
+#     if start[0]<0:
+#         return -1
+#     if end[0]>nrows[0]:
+#         return 1
+#     for j in prange(start[0],end[0],schedule='static',num_threads=nthreads):
+#         #_mpc_sub(&A[j][j], A[j][j], mu,rnd_re)
+#         mpc_sub(A[j][j], A[j][j], mu,rnd)
 
-##     if mpfr_zero_p(a[0].im):
-##         if mpfr_zero_p(b[0].re):
-##             mpfr_set_si(z[0].re, 0, rnd_re)
-##             mpfr_div(z[0].im, a[0].re, b[0].im, rnd_re)
-##             mpfr_neg(z[0].im, z[0].im, rnd_re)
-##             return
-##         if mpfr_zero_p(b[0].im):
-##             mpfr_set_si(z[0].im, 0, rnd_re)
-##             mpfr_div(z[0].re, a[0].re, b[0].re, rnd_re)
-##             return
-##         mpfr_mul(t[0].re, a[0].re, b[0].re, rnd_re)
-##         mpfr_mul(t[0].im, a[0].re, b[0].im, rnd_re)
-##         mpfr_neg(t[0].im, t[0].im, rnd_re)
-        
-##         mpfr_mul(t[1].re, b[0].re, b[0].re, rnd_re)
-##         mpfr_fma(t[1].re, b[0].im, b[0].im, t[0].re, rnd_re)
-##         mpfr_div(z[0].re, t[0].re, t[1].re, rnd_re)
-##         mpfr_div(z[0].im, t[0].im, t[1].re, rnd_re)
-##         return
-##     if mpfr_zero_p(b[0].re):
-##         mpfr_div(t[0].re, a[0].im, b[0].im, rnd_re)
-        
-##         mpfr_div(t[0].im, a[0].re, b[0].im, rnd_re)
-##         mpfr_neg(t[0].im, t[0].im, rnd_re)
-##         mpfr_set(z[0].re,t[0].re,rnd_re)
-##         mpfr_set(z[0].im,t[0].im,rnd_re)
-##         return
-##     if mpfr_zero_p(b[0].im):
-##         _mpc_div_fr(&z[0], a, b[0].re,rnd_re)
-##         return
-##     # endif
-##     mpfr_mul(t[0].im, a[0].im, b[0].re, rnd_re)
-## #/* t[0].im = a.im*b.re */
-##     mpfr_mul(t[0].re, a[0].re, b[0].im, rnd_re)
-## #/* t[0].re = a.re*b.im */
-##     mpfr_sub(t[0].im, t[0].im, t[0].re, rnd_re)
-## #/* z.im = a.im*b.re - a.re*b.im */
-    
-##     mpfr_mul(t[0].re, a[0].re, b[0].re, rnd_re)
-## #/* t[0].re = a.re*b.re */
-##     mpfr_fma(t[0].re, a[0].im, b[0].im, t[0].re, rnd_re)
-## #/* z.im = a.re*b.re + a.im*b.im */
-##     mpfr_mul(t[1].re, b[0].re, b[0].re, rnd_re)
-##     mpfr_fma(t[1].re, b[0].im, b[0].im, t[1].re, rnd_re)
-    
-##     assert(not mpfr_zero_p(t[0].re))
-##     mpfr_div(z[0].re, t[0].re, t[1].re, rnd_re)
-##     mpfr_div(z[0].im, t[0].im, t[1].re, rnd_re)
+#     for j in prange(start[0],end[0],schedule='static',num_threads=nthreads):
+#         if j < end[0] - 1:
+#             #/*if (mpc_zero(A[j + 1][j]))   continue; */
+#             givens(&q.s, &q.skk, &q.c, &q.r, &A[j][j], &A[j + 1][j],q.t,rnd,rnd_re)
+#             mpc_set_si(A[j + 1][j], 0, rnd)
+#             _mpc_set(&A[j][j], q.r,rnd_re)
+#             RotateLeft_(q.s, q.skk, q.c, A, j, j + 1, j + 1, end[0], q.t,rnd,rnd_re)
+#         if j > start[0]:
+#             RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)	
+#         _mpc_set(&q.s_t, q.s,rnd_re)
+#         _mpc_set(&q.skk_t, q.skk,rnd_re)
+#         mpfr_set(q.c_t, q.c, rnd_re)
+#     for j in range(start[0],end[0]):
+#         mpc_add(A[j][j], A[j][j], mu,rnd) #_re)
+#     return 0
 
+# cdef int _qr_step_par_d(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, int nthreads,mpc_t mu,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
+#     r"""
+#     Compute one QR-step:
+#      Q * R = A + mu * Id
+#      A     = R * Q +mu * Id
+     
+#     """
+#     cdef int j
+#     if start[0]<0:
+#         return -1
+#     if end[0]>nrows[0]:
+#         return 1
+#     for j in prange(start[0],end[0],schedule='dynamic',num_threads=nthreads):
+#         #_mpc_sub(&A[j][j], A[j][j], mu,rnd_re)
+#         mpc_sub(A[j][j], A[j][j], mu,rnd)
 
+#     for j in prange(start[0],end[0],schedule='dynamic',num_threads=nthreads):
+#         if j < end[0] - 1:
+#             #/*if (mpc_zero(A[j + 1][j]))   continue; */
+#             givens(&q.s, &q.skk, &q.c, &q.r, &A[j][j], &A[j + 1][j],q.t,rnd,rnd_re)
+#             mpc_set_si(A[j + 1][j], 0, rnd)
+#             _mpc_set(&A[j][j], q.r,rnd_re)
+#             RotateLeft_(q.s, q.skk, q.c, A, j, j + 1, j + 1, end[0], q.t,rnd,rnd_re)
+#         if j > start[0]:
+#             RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)	
+#         _mpc_set(&q.s_t, q.s,rnd_re)
+#         _mpc_set(&q.skk_t, q.skk,rnd_re)
+#         mpfr_set(q.c_t, q.c, rnd_re)
+#     for j in range(start[0],end[0]):
+#         mpc_add(A[j][j], A[j][j], mu,rnd) #_re)
+#     return 0
+#
+#
+#  TODO: Implement parallel versions of this routine. To do this it is necessary to rearrange the rows of A so that the ones with zero on diagonal are lumped together (since we can't use variable step length in parallel)
 
-
-## cdef inline void _mpc_add(mpc_t *res, mpc_t a, mpc_t b,mpfr_rnd_t rnd_re):
-##     mpfr_add(res[0].re, a[0].re, b[0].re, rnd_re)
-##     mpfr_add(res[0].im, a[0].im, b[0].im, rnd_re)
-
-
-## cdef inline void _mpc_sub(mpc_t *res, mpc_t a, mpc_t b,mpfr_rnd_t rnd_re):
-##     mpfr_sub(res[0].re, a[0].re, b[0].re, rnd_re)
-##     mpfr_sub(res[0].im, a[0].im, b[0].im, rnd_re)
-
-
-## cdef inline void _mpc_div_fr(mpc_t * r, mpc_t a, mpfr_t d, mpfr_rnd_t rnd):
-##     mpfr_div(r[0].re, a[0].re, d, rnd)
-##     mpfr_div(r[0].im, a[0].im, d, rnd)
-
-
-## cdef inline void _mpc_div_ui(mpc_t *res,mpc_t z, unsigned int i, mpfr_rnd_t rnd_re):
-##     mpfr_div_ui(res[0].re,z.re,i,rnd_re)
-##     mpfr_div_ui(res[0].im,z.im,i,rnd_re)
-
-
-
-## cdef inline void _mpc_set(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re):
-##     mpfr_set(res[0].re, z[0].re,rnd_re)
-##     mpfr_set(res[0].im, z[0].im,rnd_re)
-
-## cdef inline void _mpc_conj(mpc_t *res, mpc_t z, mpfr_rnd_t rnd_re):
-##     mpfr_set(res[0].re, z[0].re,rnd_re)
-##     mpfr_set(res[0].im, z[0].im,rnd_re)
-##     mpfr_neg(res[0].im, res[0].im,rnd_re)
-
-## # Note: mpc_abs and mpc_sqrt are more or less optimal.
-## #       we don't need to make any new versions of these
-
-
-## cdef inline void _pochammer(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
-##     r"""
-##     Pochammer symbol
-##     """
-##     cdef int j
-##     cdef int prec= mpc_get_prec(z)
-##     cdef mpc_t x
-##     cdef mpc_t t[2]
-##     mpc_init2(t[0],prec+10)
-##     mpc_init2(t[1],prec+10)
-##     mpc_init2(x,prec+10)
-##     mpc_set_ui(res[0],1,rnd)
-##     for j from 0 <= j < n:
-##         #mpc_add_ui(z.re,z.re,1,rnd_re)
-##         mpc_add_ui(x,z,j,rnd)
-##         _mpc_mul(res,res[0],x,t,rnd,rnd_re)
-##     mpc_clear(t[0])
-##     mpc_clear(t[1])
-##     mpc_clear(x)
-
-## def mpc_pochammer(MPComplexNumber z,n):
-##     assert isinstance(z,MPComplexNumber)
-##     cdef mpc_t x
-##     cdef MPComplexNumber res
-##     #assert ZZ(n)==n
-##     F = z.parent()
-##     mpc_init2(x,F.prec())
-##     res = F.one()
-##     rnd_re = _mpfr_rounding_modes.index(F.rounding_mode_real())
-##     rnd = _mpc_rounding_modes.index(F.rounding_mode())
-##     _pochammer(&x,z.value,n,rnd,rnd_re)
-##     mpc_set(res.value,x,rnd)
-##     mpc_clear(x)
-##     return res
-
-## cdef print_mat(mpc_t **A,int m,int n): #, mpc_rnd_t rnd):
-##     r""" """
-
-##     from sage.rings.complex_mpc import MPComplexField
-##     cdef MPComplexNumber z
-##     cdef int i,j,prec
-##     prec = mpc_get_prec(A[0][0])
-##     z = MPComplexField(prec)(1)
-##     s = "["
-##     for i from 0 <= i < m:
-##         s+="["
-##         for j from 0 <= j < m:        
-##             mpc_set(z.value,A[i][j],MPC_RNDNN)
-##             s+=str(z)
-##             if j<m-1:
-##                 s+=", "
-##         s+="]"
-##         if i<m-1:
-##             s+=",\n"
-##     s+="]"
-##     print s
-
-## cdef print_mpc(mpc_t z):
-##     from sage.rings.complex_mpc import MPComplexField
-##     cdef int prec
-##     cdef MPComplexNumber zz
-##     prec = mpc_get_prec(z)
-##     zz = MPComplexField(prec)(1)
-##     mpc_set(zz.value,z,MPC_RNDNN)
-##     return str(zz)
-
-## def print_mpfr(mpfr_t x):
-##     cdef int prec
-##     cdef RealNumber xx
-##     prec = mpfr_get_prec(x)
-##     xx = RealField(prec)(1)
-##     mpfr_set(xx.value,x,GMP_RNDN)
-##     return str(xx)
-
-
-## cdef void mpc_sign(mpc_t *res, mpc_t *z,mpfr_rnd_t rnd_re):
-##     r"""
-##     The complex sign function. Returns z/abs(z)=exp(i*Arg(z))
-##     """
-##     mpc_abs(res[0].re, z[0],rnd_re)
-##     if mpfr_zero_p(res[0].re):
-##         mpfr_set_ui(res[0].re,1,rnd_re)
-##         mpfr_set_ui(res[0].im,0,rnd_re)
-##         #assert not 
-##     else:
-##         mpfr_div(res[0].im, z[0].im, res[0].re, rnd_re)
-##         mpfr_div(res[0].re, z[0].re, res[0].re, rnd_re)
-
+# cdef int get_eigenvalues_par_d(mpc_t* res, mpc_t** A,int n,int prec, mpc_t t[2], int nthreads,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
+#     cdef int i,r
+#     for i in prange(n,schedule='dynamic',num_threads=nthreads):
+#         if (i + 1 < n):
+#             if (not mpc_zero_p(A[i + 1][i])):
+#                 Eigenvalue2(&res[i],&res[i + 1],A[i][i], A[i][i + 1], A[i + 1][i],A[i + 1][i + 1], &r,t,rnd,rnd_re)
+#                 i+=1
+#                 continue
+#         _mpc_set(&res[i], A[i][i],rnd_re)
+#     return 0
 
 ## ##
 ## ## Test the standard mpc_mul and mpc_add against the

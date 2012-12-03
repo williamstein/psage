@@ -5,7 +5,7 @@ include "sage/ext/cdefs.pxi"
 from mpfr_nogil cimport *
 
 
-cdef inline int mpc_zero_p(mpc_t z):
+cdef inline int mpc_zero_p(mpc_t z) nogil:
     return mpfr_zero_p(z.re) and mpfr_zero_p(z.im)
 
 cdef inline int _mpc_mul(mpc_t* z, mpc_t a, mpc_t b, mpc_t *t, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil

@@ -42,8 +42,6 @@ from sage.rings.complex_field import ComplexField
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber
-#cdef int ngens
-#cdef int* gen_orders
 
 cpdef cython_el_index(c, gen_orders):
     cdef long ii, jj = 0

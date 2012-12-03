@@ -18,7 +18,7 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from psage.modules.finite_quadratic_module import *
+from psage.modules import *
 from sage.all import SageObject
 import sys
 
@@ -50,9 +50,9 @@ class VectorValuedModularForms(SageObject):
 
     def __init__(self, A):
         self._M = FiniteQuadraticModule(A)
+        self._W = WeilModule(self._M)
         n2 = self._M.kernel_subgroup(2).order()
-        s1 = self._M.char_invariant(1)
-        self._signature = int(real(log(CC(s1[0]*s1[1]*sqrt(self._M.order())))/(2*CC.pi()*CC(0,1)))*8) % 8
+        self._signature = self._W.signature()
         self._n2 = n2
         m=self._M.order()
         self._m=m

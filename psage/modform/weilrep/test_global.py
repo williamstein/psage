@@ -1,7 +1,7 @@
 from sage.quadratic_forms.genera.genus import GenusSymbol_global_ring, Genus_Symbol_p_adic_ring, is_GlobalGenus
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from sage.matrix.matrix_space import MatrixSpace
-from sage.all import ZZ, Zmod
+from sage.all import ZZ, Zmod, sys
 #from psage.modform.weilrep import VectorValuedModularForms
 
 def is_global(M,r,s,return_symbol=False):
@@ -284,6 +284,7 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                         sgn = '+' if (s[2] == 1)  else '-'
                         symstr = symstr + '^' + sgn + str(s[1])
             print symstr
+            sys.stdout.flush()
             M=FiniteQuadraticModule(symstr)
             V=VectorValuedModularForms(M)
             d=V.dimension_cusp_forms(k)

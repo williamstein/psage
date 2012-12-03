@@ -32,7 +32,7 @@ class VectorValuedModularForms(SageObject):
 
         As input we use any input that one can use for a finite quadratic module.
 
-        For instance a genus symbol
+        (For instance a genus symbol.)
 
         ::
 
@@ -56,8 +56,8 @@ class VectorValuedModularForms(SageObject):
         self._n2 = n2
         m=self._M.order()
         self._m=m
-        d= 1/2*(m+n2) # |discriminant group/{+/-1}|
-        self._d=d
+        d = 1/2*(m+n2) # |discriminant group/{+/-1}|
+        self._d = d
         self._alpha3=None
         self._alpha4=None
 

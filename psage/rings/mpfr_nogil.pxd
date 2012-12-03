@@ -1,5 +1,13 @@
+r"""
+This file contains various import with the nogil flag
+
+"""
+
+
 
 from sage.libs.gmp.all cimport mp_exp_t, mp_size_t, gmp_randstate_t, mpz_t, mpq_t
+
+
 
 ## First stuff from sage/libs/mpfr.pxd
 cdef extern from "mpfr.h" nogil:
@@ -459,6 +467,7 @@ cdef extern from "mpc.h" nogil:
     int  mpc_cmp_si_si (mpc_t, long int, long int)
     int  mpc_cmp_si (mpc_t, long int)
 
+    
     # Projection
     int mpc_real (mpfr_t rop, mpc_t op, mpfr_rnd_t rnd)
     int mpc_imag (mpfr_t rop, mpc_t op, mpfr_rnd_t rnd)
@@ -545,3 +554,35 @@ cdef extern from "gmp.h" nogil:
 cdef extern from "stdio.h" nogil:
     cdef extern void printf(char *fmt,...) nogil
     
+
+
+## standard sage
+cdef extern from "stdsage.h" nogil:
+    ctypedef void PyObject
+    
+    # Global tuple -- useful optimization
+    void init_global_empty_tuple()
+    object PY_NEW(object t)
+    object PY_NEW_SAME_TYPE(object t)
+    
+    void* PY_TYPE(object o)
+    bint PY_TYPE_CHECK(object o, object t)
+    bint PY_TYPE_CHECK_EXACT(object o, object t)
+    
+    object IS_INSTANCE(object o, object t)
+    void PY_SET_TP_NEW(object t1, object t2)
+    bint HAS_DICTIONARY(object o)
+    bint PY_IS_NUMERIC(object o)
+    
+
+# Memory management
+cdef extern from "stdsage.h" nogil:
+    void  sage_free(void *p)
+    void* sage_realloc(void *p, size_t n)
+    void* sage_malloc(size_t)
+    void* sage_calloc(size_t nmemb, size_t size)
+    void  init_csage()
+    void  init_csage_module()
+    void  init_memory_functions()
+
+#init_csage_module()

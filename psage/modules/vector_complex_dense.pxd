@@ -3,8 +3,8 @@ include '../ext/cdefs.pxi'
 include "../rings/mpc.pxi"
 #include "../ext/gmp.pxi"
 
-from sage.modules.free_module_element cimport *
-
+from sage.modules.free_module_element cimport FreeModuleElement
+from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.rings.complex_mpc cimport MPComplexField_class,MPComplexNumber
 from sage.rings.real_mpfr cimport RealNumber
 from psage.rings.mpfr_nogil cimport *

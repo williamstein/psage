@@ -54,8 +54,8 @@ from sage.all import find_root
 #from sage.all import cos as scos
 #from libc.math cimport sin as dsin
 #from libc.math cimport cos as dcos
-import numpy as np
 cimport numpy as cnp
+import numpy as np
 #cimport cython
 
 

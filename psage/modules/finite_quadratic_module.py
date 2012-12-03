@@ -551,7 +551,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         jd = self.jordan_decomposition()
         ci = ci1 = 1
         for c in jd:
-            # c: basis, ( prime p,  valuation of p-power n, dimension r, determinant d over p [, oddity o]) 
+            # c: basis, ( prime p,  valuation of p-power n, dimension r, determinant d over p [, 2-signature o]) 
             p,n,r,d = c[1][:4]
             #print "c=",c
             if _p and p != _p:
@@ -3166,11 +3166,6 @@ class JordanDecomposition( SageObject):
             genus = [p, n, r, eps]
             if 2 == p and self.is_type_I(F):
                 t = F.trace()%8
-                if( (not is_square(q)) and (eps==-1 )):
-                    k=1 
-                else:
-                    k=0
-                t = (t + 4*k) % 8
                 genus.append(t)
             jd[q] = ( basis, tuple(genus))
             ol.append( (p,n))
@@ -3200,6 +3195,7 @@ class JordanDecomposition( SageObject):
             The following is guaranteed. Returned is a list of pairs
             basis, ( prime p,  valuation of p-power n, dimension r, determinant e over p[, oddity o]),
             where $n > 0$, ordered lexicographically by $p$, $n$.
+            Note that the definition of the oddity here is such that q_t^{e_qn_q} has oddity t.
 
         EXAMPLES NONE
         """
@@ -3401,7 +3397,7 @@ def test_fqm_random(fqbound=100,nbound=10,cbound=10,size_bd=50,verbose=0):
         print "Tested {0} modules!".format(ntest)
     return True
 
-def test_one_F(FQ='4_1'):
+def test_one_F(FQ='4_1',verbose=0):
     if not hasattr(FQ,"Q"):
         FQ = FiniteQuadraticModule(FQ)
     N = FQ.level()

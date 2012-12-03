@@ -402,7 +402,7 @@ class WeilModule (FormalSums):
             if p!=2:
                 pexc[q]=(r*(q-1 )+4 *k) % 8 
             else:
-                odts[q] = t # Can we have more than one 2-adic component at one time?
+                odts[q]=((t+4 *k) % 8 )
                 if t<>0:
                     types[q]="I" # odd
                 else:

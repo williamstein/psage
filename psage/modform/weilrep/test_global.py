@@ -33,13 +33,20 @@ def is_global(M,r,s,return_symbol=False):
                 sym.append(0)
                 sym.append(0)
             else:
-                sym = [sym[0], sym[1], sym[2] % 8, 1, sym[3] % 8]
-                if sym[1]==1:
-                    print sym
-                    if  sym[2].kronecker(2)==sym[4].kronecker(2):
-                        sym[2]=sym[4]
+                if sym[3].kronecker(2)==sym[2]:
+                    det=sym[3] % 8
+                else:
+                    if sym[2]==-1:
+                        det=3
                     else:
-                        return False
+                        det=1
+                sym = [sym[0], sym[1], det, 1, sym[3] % 8]
+                #print sym
+                #if sym[1]==1:
+                #    if  sym[2].kronecker(2)==sym[4].kronecker(2):
+                #        sym[2]=sym[4]
+                #    else:
+                #        return False
         #print p, sym
         symbols[p].append(sym)
     D=M.order()*(-1)**s
@@ -57,7 +64,7 @@ def is_global(M,r,s,return_symbol=False):
                 if eps==-1:
                     for x in Zmod(p):
                         if not x.is_square():
-                            x=eps
+                            eps=x
                             break
                 symbols[p].append([0,n - prank, eps])
     symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,r+s,r+s).one())
@@ -111,10 +118,10 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
     rank=2+n
     sign=2-n
     k = Integer(2+n)/Integer(2)
-    symbols=list()
-    twosyms=list()
     for D in range(min_D,max_D+1):
-        print D
+        csymbols=list() # a list of canonical symbols to avoid duplicates
+        symbols=list()
+        #print D
         D=(-1)**n*D
         fac = Integer(D).factor()
         symbols=list()
@@ -150,15 +157,15 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                                     for oddity in odds:
                                         if t==1:
                                             ll.append([vv,mult,det,1,oddity])
-                                        else:
+                                        #else:
                                             #ll.append([vv,1,det,0,0])
-                                            if mult % 2 == 0 and mult>2:
-                                                for x in range(1,Integer(mult)/Integer(2)):
-                                                    if mult-2*x==2 and det in [1,7] and oddity not in [0,2,6]:
-                                                        continue
-                                                    elif mult-2*x==2 and det in [3,5] and oddity not in [2,4,6]:
-                                                        continue
-                                                    ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
+                                            #if mult % 2 == 0 and mult>2:
+                                            #    for x in range(1,Integer(mult)/Integer(2)):
+                                            #        if mult-2*x==2 and det in [1,7] and oddity not in [0,2,6]:
+                                            #            continue
+                                            #        elif mult-2*x==2 and det in [3,5] and oddity not in [2,4,6]:
+                                            #            continue
+                                            #        ll.append([[vv,2*x,det,0,0],[vv,mult-2*x,det,1,oddity]])                                                
                             #print "ll:\n",ll
                             if len(l)==0:
                                 for t in ll:
@@ -172,7 +179,10 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                                     for sym in l:
                                         newsym = deepcopy(sym)
                                         #print newsym
-                                        newsym[p].append(t)
+                                        if type(t[0])==list:
+                                            newsym[p]=newsym[p]+t
+                                        else:
+                                            newsym[p].append(t)
                                         #print newsym
                                         newl.append(newsym)
                                         #print l
@@ -207,6 +217,7 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                 symbols=symbols_new
         global_symbols = []
         for sym in symbols:
+            #print sym
             for p in sym.keys():
                 prank = sum([s[1] for s in sym[p]])
                 v = sum([ s[0]*s[1] for s in sym[p] ])
@@ -236,19 +247,14 @@ def search_for_simple_lattices(n=3,min_D=2,max_D=100):
                 #for s in symbol._local_symbols:
                 #    s = s.canonical_symbol()
                 append=True
-                for s in symbol._local_symbols:
+                for j,s in enumerate(symbol._local_symbols):
                     if s._prime==2:
-                        s2=deepcopy(s)
-                        #print "s=", s
-                        #print "s2=", s2
-                        #print "s2.canonical_symbol() = ",s2.canonical_symbol()
-                        #print "s=", s
-                        #print "s2=", s2
-                        c=s2.canonical_symbol()
-                        if twosyms.count(c)>0:
+                        sc=deepcopy(symbol)
+                        sc._local_symbols[j]=sc._local_symbols[j].canonical_symbol()
+                        if csymbols.count(sc)>0:
                             append=False
                         else:
-                            twosyms.append(c)    
+                            csymbols.append(sc)    
                         break
                 if append:
                     global_symbols.append(symbol)

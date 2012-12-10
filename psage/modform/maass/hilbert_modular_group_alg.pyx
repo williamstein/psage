@@ -406,10 +406,11 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     sage_free(integer_lattice[1][i])
             sage_free(integer_lattice[1])
         sage_free(integer_lattice)
-    ## Reduce c at the end.
-    
+    ## We do not want to reduce c at the end.
+    #for cc in G.cusps():
+    #    if c.is_Gamma0_equivalent(cc,G._K.ideal(1)):
     return c,delta_min
-    
+    #raise ArithmeticError,"Could not get reduced cusp!"
 
 elements_of_F_with_norm = {}
 current_cached_field=0
@@ -1137,9 +1138,10 @@ cdef class  Hn(object):
     
     def acton_by(self,A):
         r"""
-        act on self by the matrix A in SL(2,K)
+        act on self by the matrix A in GL^+(2,K)
         """
-        assert A.det()==1
+        ## Make sure that we act on upper half-planes
+        assert A.det().is_totally_positive() 
         res=[]
         prec = self._prec
         if isinstance(A[0,0],Rational):
@@ -1377,10 +1379,10 @@ cpdef cusp_coordinates(G,cuspi,Hn z,int prec=53,int verbose=0):
 
     Xmat = matrix(RF,degree)
     Xrhs = vector(RF,degree)
-    if verbose>2:
-        print "Ymat=",Ymat
-        print "Yrhs=",Yrhs
-    Xmat = G.translation_module(cuspi)
+    if verbose>2 and degree<>2:
+            print "Ymat=",Ymat
+            print "Yrhs=",Yrhs
+    Xmat = G.translation_module(G.cusps()[cuspi])
     for i in range(degree):
         Xrhs[i] = zz.x(i)
     X = Xmat.solve_right(Xrhs)

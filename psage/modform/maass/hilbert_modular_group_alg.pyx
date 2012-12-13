@@ -19,33 +19,39 @@ Cython algorithms for Hilbert modular groups
 Used by routines in development.
 
 """
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
-include "sage/rings/mpc.pxi"
-
-#cimport sage.libs.ntl.ntl_ZZ_decl.ZZ_c
-#from sage.libs.ntl.ntl_ZZ_decl cimport ZZ_c
-#from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ
-#include "sage/libs/ntl/decl.pxi"
+# include 'sage/ext/stdsage.pxi'
+# include "sage/ext/cdefs.pxi"
+# include 'sage/ext/interrupt.pxi'
+# include "sage/ext/gmp.pxi"
+# #include "sage/rings/mpc.pxi"
 
 
-
-#from sage.libs.ntl.decl 
-#from sage.rings.integer cimport ZZ
-
-from sage.all import real,NFCusp,copy,RR,CC,RealNumber,ComplexNumber,real,imag,vector,matrix
-
+#from sage.all import real,NFCusp,copy,RR,CC,RealNumber,ComplexNumber,real,imag,vector,Matrix
+#from sage.all import ComplexField,RealField,Infinity,Rational,Integer,QQ
+from sage.rings.infinity import Infinity
+from sage.matrix.all import Matrix
+from sage.modules.all import vector
 from sage.rings.real_mpfr import is_RealNumber
 from sage.rings.complex_number import is_ComplexNumber
-from sage.all import ComplexField,RealField,Infinity,Rational,Integer,QQ
 from sage.groups.perm_gps.permgroup_element import is_PermutationGroupElement
-
 from sage.rings.number_field.number_field_element import is_NumberFieldElement
-#from sage.rings.number_field.number_field_element cimport NumberFieldElement
-#from sage.rings.number_field.number_field_element cimport NumberFieldElement
-#from sage.rings.number_field.number_field_element_quadratic cimport NumberFieldElement_quadratic
+from sage.modular.cusps_nf import NFCusp
+from sage.rings.real_mpfr import RR
+from sage.libs.mpfr cimport *
+cdef mpc_rnd_t rnd
+cdef mpfr_rnd_t rnd_re
+rnd = MPC_RNDNN
+rnd_re = GMP_RNDN
+from sage.functions.other import real,imag
+from sage.rings.rational import Rational
+from sage.rings.rational_field import QQ
+from sage.rings.integer import Integer
 
+from sage.rings.complex_field import ComplexField
+from sage.rings.complex_mpc cimport MPComplexNumber
+from sage.rings.complex_mpc import MPComplexField
+from sage.rings.real_mpfr cimport RealNumber,RealField_class
+from sage.rings.real_mpfr import RealField
 #ctypedef Hn 
 #include "gen.pxd"
 #try:
@@ -783,7 +789,7 @@ cpdef in_SL2OK(M):
 #                     continue
 #                 res.append((i,j))
 
-cdef class  Hn(object):
+cdef class  Hn_dble(object):
     r"""
     Class of elements in products of complex upper  half-planes
     with additional ring structure given by:
@@ -933,7 +939,7 @@ cdef class  Hn(object):
     def __copy__(self):
         x = self.real_list()
         y = self.imag_list()
-        return Hn(x,y,self._degree,self._prec,self._verbose)
+        return Hn_dble(x,y,self._degree,self._prec,self._verbose)
         
     def __repr__(self):
         return str(list(self))
@@ -958,27 +964,27 @@ cdef class  Hn(object):
         r"""
         Add two points in the upper half-plane produce another point
         """
-        if not is_Hn(other):
-            other = Hn(other)
+        if not is_Hn_dble(other):
+            other = Hn_dble(other)
         x = self.real_list(); y = self.imag_list()
         assert self.degree()==other.degree()
         for i in range(self.degree()):
             x[i]+=other.x(i)
             y[i]+=other.y(i)
-        return Hn(x,y)
+        return Hn_dble(x,y)
 
     def __sub__(self,other):
         r"""
         Substract two points in the upper half-plane may sometimes produce another point.
         """
-        if not is_Hn(other):
-            other = Hn(other)
+        if not is_Hn_dble(other):
+            other = Hn_dble(other)
         x = self.real_list(); y = self.imag_list()
         assert self.degree()==other.degree()
         for i in range(self.degree()):
             x[i]-=other.x(i)
             y[i]-=other.y(i)
-        return Hn(x,y)
+        return Hn_dble(x,y)
                 
     def __imag__(self):
         return self.imag()
@@ -1108,10 +1114,10 @@ cdef class  Hn(object):
             raise IndexError
         
     cpdef imag(self):        
-        return Hn(self._ylist)
+        return Hn_dble(self._ylist)
 
     cpdef real(self):
-        return Hn(self._xlist)
+        return Hn_dble(self._xlist)
 
     def __list__(self):
         res = []
@@ -1130,7 +1136,7 @@ cdef class  Hn(object):
         for i in range(self._degree):
             si = s.list()[i]-1
             znew[si]=self.z(i)
-        return Hn(znew)
+        return Hn_dble(znew)
 
 
 
@@ -1202,7 +1208,7 @@ cdef class  Hn(object):
             distances=[]
             for i in range(self.degre()):
                 ab1 =abs(self.z(i)-w.z(i))
-                ab2 =abs(self.z(i)-ComplexField(self._prec)(w.x(i),-w.y(i)))
+                ab2 =abs(self.z(i)-MPComplexField(self._prec)(w.x(i),-w.y(i)))
                 l = log((ab1+ab2)/(ab2-ab1))
                 distances.append(l)
 
@@ -1228,7 +1234,7 @@ cdef class  Hn(object):
             c = z.complex_embeddings(self._prec)
             for i in range(self.degree()):
                 norm += abs(self.z(i)-c[i])**2
-        elif is_Hn(z):
+        elif is_Hn_dble(z):
             for i in range(self.degree()):
                 norm += abs(self.z(i)-z.z(i))**2
         elif not isinstance(z,list):  ## Assume z is a complex number...
@@ -1255,13 +1261,654 @@ cdef class  Hn(object):
             for i in range(self.degree()):
                 self._x[i]+=c[i]
                 self._xlist[i]+=c[i]
-        elif is_Hn(x):
+        elif is_Hn_dble(x):
             for i in range(self.degree()):
                 self._x[i]+=x._x[i]
                 self._xlist[i]+=x._xlist[i]
         elif is_RealNumber(x):
             for i in range(self.degree()):
                 self._x[i]+=x
+                self._xlist[i]+=x
+        else:
+            raise NotImplementedError,"Can not add Hn and %s of type %s!" %(x,type(x))
+        
+    def __div__(self,other):
+        if hasattr(other,'_is_Hn') and self._degree == other._degree:            
+            res = [self.z(i)/other.z(i) for i in xrange(self._degree) ]
+        elif hasattr(other,'complex_embeddings') and other.parent().degree()==self._degree:
+            w = other.complex_embeddings(self._prec)
+            res = [self.z(i)/w[i] for i in range(self.degree()) ]
+        elif isinstance(other,list) and len(other)==self.degree():
+                res = [self.z(i)/other[i] for i in range(self.degree()) ]
+        else:
+            raise NotImplementedError,"Can not divide Hn by %s of type %s!" %(other,type(other))
+        return Hn_dble(res)
+
+
+    def __rmul__(self,other):
+        if isinstance(other,type(self)):
+            assert self._degree == other._degree
+            res = [self.z(i)*other.z(i) for i in xrange(self._degree) ]
+        elif hasattr(other,'complex_embeddings'):
+            w = other.complex_embeddings(self._prec)
+            if len(w) == self._degree:
+                res = [w[i]*self.z(i) for i in xrange(self._degree) ]
+        elif isinstance(other,list) and len(other)==self._degree:
+                res = [self.z(i)*other[i] for i in xrange(self._degree) ]
+        else:
+            res = [self.z(i)*other for i in xrange(self._degree) ]
+        return Hn_dble(res)
+
+    def __lmul__(self,other):
+        if isinstance(other,type(self)):
+            assert self.degree() == other.degree()
+            res = [self.z(i)*other.z(i) for i in range(self.degree()) ]
+        elif hasattr(other,'complex_embeddings'):
+            w = other.complex_embeddings(self._prec)
+            assert len(w) == self.degree()
+            res = [w[i]*self.z(i) for i in range(self.degree()) ]
+        elif isinstance(other,list) and len(other)==self.degree():
+            res = [self.z(i)*other[i] for i in range(self.degree()) ]
+        else:
+            res = [self.z(i)*other for i in range(self.degree()) ]
+        return Hn_dble(res)
+
+
+    def __mul__(self,other):
+        if isinstance(other,type(self)):
+            assert self.degree() == other._degree
+            res = [self.z(i)*other.z(i) for i in range(self.degree()) ]
+        elif hasattr(other,'complex_embeddings'):
+            w = other.complex_embeddings(self.prec())
+            assert len(w) == self.degree()
+            res = [w[i]*self.z(i) for i in range(self.degree()) ]
+        elif isinstance(other,list) and len(other)==self.degree():
+            res = [self.z(i)*other[i] for i in range(self.degree()) ]
+        else:
+            res = [self.z(i)*other for i in range(self.degree()) ]
+        return Hn_dble(res)
+
+
+
+cdef class  Hn(object):
+    r"""
+    Class of elements in products of complex upper  half-planes
+    with additional ring structure given by:
+    - component-wise multiplication and division
+    - multiplication and division by elements of a number field of the same degree as the dimension.
+
+    TODO: Inherit from Ring or something? (for speed probably NO!)
+
+    """
+    def __cinit__(self,x,y=[],degree=0,prec=53,verbose=0):
+        r"""
+        Init self from a list or an algebraic point.
+        """
+        self._verbose = verbose
+        u = []
+        if isinstance(x,list) and isinstance(y,list) and y<>[] and x<>[]:
+            self._degree = len(x)
+            assert len(y)==self._degree
+        elif not isinstance(x,list):
+            y=[]
+            if hasattr(x,'complex_embeddings'):
+                for a,b in  x.complex_embeddings(prec):
+                    if b>0:
+                        u.append(a)
+                        y.append(b)
+                self._prec=prec
+                degree=len(u)
+            elif hasattr(x,'_is_Hn'):
+                u = x.x(); y = x.y()                
+                self._prec=x._prec
+            else:
+                raise TypeError,"Can not construct point in H^n from %s!" % x
+
+        else:
+            ## WE now have to see if we are called with one of the three possibilities:
+            ## v=[xlist,ylist]=[[x[0],x[1],...,],[y[0],y[1],...]]
+            y = []
+            if isinstance(x[0],list):
+                if verbose>0:
+                    print "x[0] is list"
+                if(len(x))<>2:
+                    raise ValueError
+                u = x[0]; y = x[1]
+                degree = len(x)
+            ## v=zlist=[z[0],z[1],...,]
+            ## Fast cases first
+            elif isinstance(x[0],complex):
+                if verbose>0:
+                    print "x[0] is complex"
+                degree = len(x)
+                for i in range(degree):
+                    u.append(x[i].real)
+                    y.append(x[i].imag)
+            elif is_ComplexNumber(x[0]):
+                if verbose>0:
+                    print "x[0] is ComplexNumber"
+                degree = len(x)
+                for i in range(degree):
+                    u.append(x[i].real())
+                    y.append(x[i].imag())
+            elif isinstance(x[0],float) or is_RealNumber(x[0]):
+                degree = len(x)
+                for i in range(degree):
+                    u.append(x[i])
+                    y.append(0)
+            elif isinstance(x,list):
+                degree = len(x)
+                try: 
+                    for i in range(degree):
+                        u.append(real(x[i]))
+                        y.append(imag(x[i]))
+                    self._degree = len(x)
+                except:
+                    raise TypeError,"Can not construct point in H^n from %s!" % x
+            else:
+                raise TypeError,"Can not construct point in H^n from %s!" % x
+        if u<>[]:
+            self._xlist = u
+        else:
+            self._xlist = x
+        self._ylist = y
+        self._prec = 53  ## Nothing else implemented for now
+        if verbose>0:
+            print "Set x=",self._xlist
+            print "Set y=",self._ylist
+            print "set degree=",degree
+        self._degree = degree
+        assert len(self._xlist)==self._degree and len(self._ylist)==self._degree
+        ## norms and indicators
+        mpfr_set_ui(self._imag_norm,0,rnd_re)
+        mpfr_set_ui(self._real_norm,0,rnd_re)
+        mpc_set_ui(self._norm,0,rnd)
+        self._imag_norm_set = 0
+        self._real_norm_set = 0
+        self._norm_set = 0
+        self.c_new(self._xlist,self._ylist)
+        if verbose>0:
+            print "c_new successful!"
+        
+
+    def __init__(self,x,y=[],degree=0,prec=53,verbose=0):
+        pass
+        
+    cdef c_new(self,list x,list y):
+        cdef RealNumber tmpx
+        RF = RealField(self._prec)
+        self._x = NULL; self._y=NULL
+        self._x = <mpfr_t*>sage_malloc(sizeof(mpfr_t)*self._degree)
+        if self._x==NULL:
+            raise MemoryError
+        self._y = <mpfr_t*>sage_malloc(sizeof(mpfr_t)*self._degree)
+        if self._y==NULL:
+            raise MemoryError
+        self._z = <mpc_t*>sage_malloc(sizeof(mpc_t)*self._degree)
+        if self._z==NULL:
+            raise MemoryError
+        cdef int i
+        for i in range(self._degree):
+            mpfr_init2(self._x[i],self._prec)
+            tmpx = RF(x[i])
+            mpfr_set(self._x[i],tmpx.value,rnd_re)
+            mpfr_init2(self._y[i],self._prec)
+            tmpx = RF(y[i])
+            mpfr_set(self._y[i],tmpx.value,rnd_re)            
+            #self._y[i] = <double>y[i]
+            if tmpx<0:
+                raise ValueError,"Not in H^n^*! y[{0}]={1}".format(i,tmpx)
+            mpc_init2(self._z[i],self._prec)
+            mpc_set_fr_fr(self._z[i],self._x[i],self._y[i],rnd)
+        if self._verbose>0:
+            print "allocated x and y!"
+
+    def __dealloc__(self):
+        self._free()
+            
+    cdef _free(self):
+        cdef int i
+        if self._x<>NULL:
+            for i in range(self._degree):
+                mpfr_clear(self._x[i])
+            sage_free(self._x)
+        if self._y<>NULL:
+            for i in range(self._degree):
+                mpfr_clear(self._y[i])
+            sage_free(self._y)
+        if self._z<>NULL:
+            for i in range(self._degree):
+                mpc_clear(self._z[i])
+            sage_free(self._z)
+        self._degree = 0        
+
+    def __richcmp__(self, right, int op):
+        res=1
+        if op <>2 and op <>3:
+            raise NotImplementedError,"Ordering of points in H^n is not implemented!"
+        if type(self)<>type(right):
+            res=0
+        elif right.degree() <> self.degree():
+            res=0
+        else:
+            for i in range(self.degree()):
+                if self.x(i)<>right.x(i) or self.y(i)<>right.y(i):
+                    res = 0
+                    break
+            
+        if op==3: # != # op=2 is ==
+            if res==0:
+                return True
+            else:
+                return False
+        if res==0:
+            return False
+        else:
+            return True
+
+    def __copy__(self):
+        x = self.real_list()
+        y = self.imag_list()
+        return Hn(x,y,self._degree,self._prec,self._verbose)
+        
+    def __repr__(self):
+        return str(list(self))
+
+    def __getitem__(self,i):        
+        if isinstance(i,(int,Integer)) and i>=0 and i<self._degree:
+            return self.z(i)
+        else:
+            raise IndexError
+        
+  
+    def __add__(self,other):
+        r"""
+        Add two points in the upper half-plane produce another point
+        """
+        if not is_Hn(other):
+            other = Hn(other)
+        x = self.real_list(); y = self.imag_list()
+        assert self.degree()==other.degree()
+        for i in range(self.degree()):
+            x[i]+=other.x(i)
+            y[i]+=other.y(i)
+        return Hn(x,y)
+
+    def __sub__(self,other):
+        r"""
+        Substract two points in the upper half-plane may sometimes produce another point.
+        """
+        if not is_Hn(other):
+            other = Hn(other)
+        x = self.real_list(); y = self.imag_list()
+        assert self.degree()==other.degree()
+        for i in range(self.degree()):
+            x[i]-=other.x(i)
+            y[i]-=other.y(i)
+        return Hn(x,y)
+                
+    def __imag__(self):
+        return self.imag()
+
+    def __real__(self):
+        return self.real()
+    
+    def __len__(self):
+        return self.degree()
+
+
+    def addto(self,other):
+        #x = self.real_list(); y = self.imag_list()
+        cdef MPComplexNumber tmpc
+        cdef RealNumber tmpx
+        RF = RealNumber(self._prec)
+        CF = MPComplexField(self._prec)
+        tmpx = RF(0)
+        tmpc = CF(0)
+        if hasattr(other,'complex_embeddings'):
+            c = other.complex_embeddings(self._prec)
+            assert len(c)==self.degree()
+            for i in range(self.degree()):
+                tmpx = RF(c[i].real())
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                tmpx = RF(c[i].imag())
+                mpfr_add(self._y[i],self._y[i],tmpx.value,rnd_re)
+                tmpc = RF(c[i])
+                mpc_add(self._z[i],self._z[i],tmpc.value,rnd)
+                #self._x[i]+=c[i].real()
+                #self._y[i]+=c[i].imag()
+        elif hasattr(other,'_xlist'):
+            assert self.degree()==other.degree()
+            for i in range(self.degree()):
+                tmpx = RF(other.x(i))
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                tmpx = RF(other.y(i))
+                mpfr_add(self._y[i],self._y[i],tmpx.value,rnd_re)
+                tmpc = RF(other.z(i))
+                mpc_add(self._z[i],self._z[i],tmpc.value,rnd)
+                #self._y[i]+=other.y(i)
+        elif is_ComplexNumber(other):
+            for i in range(self.degree()):
+                tmpc = CF(other)
+                mpfr_add(self._x[i],self._x[i],tmpc.value.re,rnd_re)
+                mpfr_add(self._y[i],self._y[i],tmpc.value.im,rnd_re)
+                mpc_add(self._z[i],self._z[i],tmpc.value,rnd)
+        else:
+            raise NotImplementedError,"Can not add Hn and %s of type %s!" %(other,type(other))
+        for i in range(self.degree()):
+            mpfr_set(tmpx.value,self._x[i],rnd_re)
+            self._xlist[i]=tmpx
+            mpfr_set(tmpx.value,self._y[i],rnd_re)
+            self._ylist[i]=tmpx
+            
+        #return Hn(res)
+
+    def prec(self):
+        return self._prec
+
+    cpdef imag_norm(self):
+        cdef int i
+        cdef RealNumber res
+        res = RealField(self._prec)(0)
+        if self._imag_norm_set==0:
+            mpfr_set_ui(self._imag_norm,1,rnd_re)
+            for i in range(self._degree):
+                mpfr_mul(self._imag_norm,self._imag_norm,self._y[i],rnd_re)
+                #self._imag_norm = self._imag_norm*self._y[i]
+            self._imag_norm_set=1
+        mpfr_set(res.value,self._imag_norm,rnd_re)
+        return res
+
+
+    cpdef real_norm(self):        
+        cdef int i
+        cdef RealNumber res
+        if self._real_norm_set==0:
+            mpfr_set_ui(self._real_norm,1,rnd_re)
+            for i in range(self._degree):
+                mpfr_mul(self._real_norm,self._real_norm,self._x[i],rnd_re)
+            self._real_norm_set=1
+        res = RealField(self._prec)(0)
+        mpfr_set(res.value,self._real_norm,rnd_re)
+        return res
+
+    cpdef imag_list(self):
+        return self._ylist
+
+
+    cpdef real_list(self):
+        return self._xlist
+
+    cpdef norm(self):
+        cdef int i
+        cdef MPComplexNumber ctmp 
+        if self._norm_set==0:
+            mpc_set_si(self._norm,1,rnd)
+            for i in range(self._degree):
+                mpc_mul(self._norm,self._norm,self._z[i],rnd)
+            self._norm_set=1
+        ctmp = MPComplexField(self._prec)
+        mpc_set(ctmp.value,self._norm,rnd)
+        return ctmp
+
+    cpdef vector_norm(self):
+        r"""
+        Return the Euclidean norm of self as a vector in C^n
+        """
+        cdef int i
+        cdef mpfr_t res_t,tmpx
+        cdef RealNumber res
+        mpfr_init2(res_t,self._prec)
+        mpfr_init2(tmpx,self._prec)
+        mpfr_set_si(res_t,0,rnd_re)
+        for i in range(self._degree):
+            mpc_norm(tmpx,self._z[i],rnd_re)
+            mpfr_add(res_t,res_t,tmpx,rnd_re)
+        mpfr_sqrt(res_t,res_t,rnd_re)
+        res = RealField(self._prec)(0)
+        mpfr_set(res.value,res_t,rnd_re)
+        mpfr_clear(res_t)
+        mpfr_clear(tmpx)
+        return res
+
+    cpdef trace(self):
+        cdef MPComplexNumber res
+        cdef mpc_t res_t
+        mpc_init2(res_t,self._prec)
+        mpc_set_si(res_t,0,rnd)
+        cdef int i
+        for i in range(self._degree):
+            mpc_add(res_t,res_t,self._z[i],rnd)
+            #res = res+self._x[i]+_I*self._y[i]
+        res = MPComplexField(self._prec)
+        mpc_set(res.value,res_t,rnd)
+        return res
+
+    cpdef real_trace(self):
+        cdef mpfr_t res_t
+        cdef RealNumber res
+        mpfr_init2(res_t,self._prec)
+        mpfr_set_si(res_t,0,rnd_re)
+        cdef int i
+        for i in range(self._degree):
+            mpfr_add(res_t,res_t,self._x[i],rnd_re)
+            #res = res+self._x[i]
+        res = RealField(self._prec)(0)
+        mpfr_set(res.value,res_t,rnd_re)
+        mpfr_clear(res_t)
+        return res
+
+    cpdef imag_trace(self):
+        cdef mpfr_t res_t
+        cdef RealNumber res
+        mpfr_init2(res_t,self._prec)
+        mpfr_set_si(res_t,0,rnd_re)
+        cdef int i
+        for i in range(self._degree):
+            mpfr_add(res_t,res_t,self._y[i],rnd_re)
+            #res = res+self._x[i]
+        res = RealField(self._prec)(0)
+        mpfr_set(res.value,res_t,rnd_re)
+        mpfr_clear(res_t)
+        return res
+
+   
+
+    cpdef degree(self):
+        return self._degree
+    
+    
+    cpdef x(self,int i):
+        cdef RealNumber x
+        x = RealField(self._prec)(0)
+        if i>=0 and i<self._degree:
+            mpfr_set(x.value,self._x[i],rnd_re)
+            return x
+        else:
+            raise IndexError
+
+    cpdef y(self,int i):
+        cdef RealNumber y
+        y = RealField(self._prec)(0)
+        if i>=0 and i<self._degree:
+            mpfr_set(y.value,self._y[i],rnd_re)
+            return y
+        else:
+            raise IndexError
+
+    cpdef z(self,int i):
+        cdef MPComplexNumber z
+        z = MPComplexField(self._prec)(0)
+        if i>=0 and i<self._degree:
+            mpc_set(z.value,self._z[i],rnd)
+            return z
+        else:
+            raise IndexError
+        
+    cpdef imag(self):        
+        return Hn(self._ylist)
+
+    cpdef real(self):
+        return Hn(self._xlist)
+
+    def __list__(self):
+        res = []
+        for i in range(self.degree()):
+            res.append(self.z(i))
+        return res
+
+
+    
+    def permute(self,s):
+        r"""
+        The permutation group acts by permuting the components.
+        """
+        assert is_PermutationGroupElement(s)
+        znew = [0 for i in range(self._degree)]
+        for i in range(self._degree):
+            si = s.list()[i]-1
+            znew[si]=self.z(i)
+        return Hn(znew)
+
+
+
+
+    
+    def acton_by(self,A):
+        r"""
+        act on self by the matrix A in GL^+(2,K)
+        """
+        ## Make sure that we act on upper half-planes
+        assert A.det().is_totally_positive() 
+        res=[]
+        prec = self._prec
+        if isinstance(A[0,0],Rational):
+            a = [A[0,0] for i in range(self._degree)]
+            b = [A[0,1] for i in range(self._degree)]
+            c = [A[1,0] for i in range(self._degree)]
+            d = [A[1,1] for i in range(self._degree)]
+        elif is_NumberFieldElement(A[0,0]):
+            a = A[0,0].complex_embeddings(prec)
+            b = A[0,1].complex_embeddings(prec)
+            c = A[1,0].complex_embeddings(prec)
+            d = A[1,1].complex_embeddings(prec)
+        for i in range(self._degree):
+            den = self.z(i)*c[i]+d[i]
+            if den<>0:
+                w = (self.z(i)*a[i]+b[i])/den
+            else:
+                w = Infinity
+            res.append(w)
+        return Hn(res)
+
+
+
+
+
+    
+    def parent(self):
+        return None
+
+        
+        
+    def is_in_upper_half_plane(self):
+        r"""
+        Returns true if all components are in the upper half-plane.
+        """
+        for y in self._ylist:
+            if y<0:
+                return False
+        return True
+    
+    #def log(self):
+    #    res = map(log,list(self))
+    #    return Hn(res)
+        
+    def hyp_dist(self,w,dtype=1):
+        r"""
+        If self and w are in the upper half-plane then
+        return d(self.z(i),z.z(i))
+        dtype = 0 => dist = dist1+dist2
+        dtype = 1 => dist = max(dist1,dist2)
+        TODO: FASTER VERSION...
+        """
+        if dtype == 1:
+            maxd = 0
+        if hasattr(w,'_xlist') and w._degree == self._degree:
+            if w.z == self.z:
+                return 0
+            distances=[]
+            for i in range(self.degre()):
+                ab1 =abs(self.z(i)-w.z(i))
+                ab2 =abs(self.z(i)-ComplexField(self._prec)(w.x(i),-w.y(i)))
+                l = log((ab1+ab2)/(ab2-ab1))
+                distances.append(l)
+
+            if dtype==0:
+                return sum(distances)
+            else:
+                return max(distances)
+
+    def reflect(self):
+        r"""
+        z -> -conjugate(z)
+        """
+        for i in range(self.degree()):
+            mpfr_neg(self._x[i],self._x[i],rnd_re) #=-self._x[i]
+            self._xlist[i]=-self._xlist[i]
+
+    cpdef diff_abs_norm(self,z):
+        r"""
+        Return the euclidean norm of the difference of self and z as vectors in C^n: ||self-z||
+        """
+        cdef RealNumber norm
+        norm = RealField(self._prec)(0)
+        if hasattr(z,'complex_embeddings'):
+            c = z.complex_embeddings(self._prec)
+            for i in range(self.degree()):
+                norm += abs(self.z(i)-c[i])**2
+        elif is_Hn(z):
+            for i in range(self.degree()):
+                norm += abs(self.z(i)-z.z(i))**2
+        elif not isinstance(z,list):  ## Assume z is a complex number...
+            try:
+                for i in range(self.degree()):
+                    norm += abs(self.z(i)-z)**2
+            except:
+                raise NotImplementedError,"Can not substract point in Hn and %s of type %s!" %(z,type(z))
+        else:
+            raise NotImplementedError,"Can not substract point in Hn and %s of type %s!" %(z,type(z))
+        return sqrt(norm)
+
+
+
+
+    ### Below this point some algorithms might be inapproprate leftovers... 
+    ### 
+    cpdef addto_re(self,x):
+        r"""
+        Add the real x to self
+        """
+        cdef RealNumber tmpx
+        tmpx = RealField(self._prec)(0)
+        #cdef Hn tmphn
+        if hasattr(x,'complex_embeddings'):
+            c = x.complex_embeddings(self._prec)
+            for i in range(self.degree()):
+                tmpx = RealField(self._prec)(c[i].real())
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                self._xlist[i]+=c[i].real()
+        elif is_Hn(x):
+            for i in range(self.degree()):
+                tmpx = RealField(self._prec)(x.x(i))
+                #self._x[i]+=x._x[i]
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                self._xlist[i]+=tmpx
+        elif is_RealNumber(x):
+            for i in range(self.degree()):
+                tmpx = RealField(self._prec)(x)
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                #self._x[i]+=x
                 self._xlist[i]+=x
         else:
             raise NotImplementedError,"Can not add Hn and %s of type %s!" %(x,type(x))
@@ -1326,8 +1973,17 @@ cdef class  Hn(object):
 
 cpdef is_Hn(z):
     if hasattr(z,"real_list"):
-        return 1
+        if not isinstance(z._x,float):
+            return 1
     return 0
+
+cpdef is_Hn_dble(z):
+    if hasattr(z,"real_list"):
+        if isinstance(z._x,float):
+            return 1
+    return 0
+
+
 
 
 cpdef cusp_coordinates(G,cuspi,Hn z,int prec=53,int verbose=0):
@@ -1367,8 +2023,8 @@ cpdef cusp_coordinates(G,cuspi,Hn z,int prec=53,int verbose=0):
         Y = [log(zz.y(0)*Y0)/RF(2)/G._Lambda[0,0]]
     else:
         tmp = ny**(-1.0/<double>degree)  
-        Yrhs = vector(RF,degree-1)        
-        Ymat = matrix(RF,degree-1)
+        Yrhs = vector(RF,degree-1)
+        Ymat = Matrix(RF,degree-1,degree-1)
         for i in range(degree-1):
             for j in range(degree-1):
                 Ymat[i,j]=G._Lambda[i,j]
@@ -1377,7 +2033,7 @@ cpdef cusp_coordinates(G,cuspi,Hn z,int prec=53,int verbose=0):
             Yrhs[i] = log(zz.y(i)*tmp)/RF(2)
         Y = Ymat.solve_right(Yrhs)
 
-    Xmat = matrix(RF,degree)
+    Xmat = Matrix(RF,degree,degree)
     Xrhs = vector(RF,degree)
     if verbose>2 and degree<>2:
             print "Ymat=",Ymat

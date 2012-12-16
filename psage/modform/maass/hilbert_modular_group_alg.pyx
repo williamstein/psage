@@ -1384,7 +1384,7 @@ cdef class  Hn(object):
                 for i in range(degree):
                     u.append(x[i].real)
                     y.append(x[i].imag)
-            elif is_ComplexNumber(x[0]):
+            elif hasattr(x[0],"imag"):
                 if verbose>0:
                     print "x[0] is ComplexNumber"
                 degree = len(x)
@@ -1404,7 +1404,7 @@ cdef class  Hn(object):
                         y.append(imag(x[i]))
                     self._degree = len(x)
                 except:
-                    raise TypeError,"Can not construct point in H^n from %s!" % x
+                    raise TypeError,"Can not construct point in H^n from %s! of type %s " % (x,type(x[0]))
             else:
                 raise TypeError,"Can not construct point in H^n from %s!" % x
         if u<>[]:
@@ -1481,7 +1481,15 @@ cdef class  Hn(object):
                 mpc_clear(self._z[i])
             sage_free(self._z)
         self._degree = 0        
-
+        if self._imag_norm_set==1:
+            mpfr_clear(self._imag_norm)
+        if self._real_norm_set==1:
+            mpfr_clear(self._real_norm)
+        if self._norm_set==1:
+            mpc_clear(self._norm)
+            
+            
+        
     def __richcmp__(self, right, int op):
         res=1
         if op <>2 and op <>3:
@@ -1611,6 +1619,7 @@ cdef class  Hn(object):
         cdef RealNumber res
         res = RealField(self._prec)(0)
         if self._imag_norm_set==0:
+            mpfr_init2(self._imag_norm,self._prec)
             mpfr_set_ui(self._imag_norm,1,rnd_re)
             for i in range(self._degree):
                 mpfr_mul(self._imag_norm,self._imag_norm,self._y[i],rnd_re)
@@ -1624,6 +1633,7 @@ cdef class  Hn(object):
         cdef int i
         cdef RealNumber res
         if self._real_norm_set==0:
+            mpfr_init2(self._real_norm,self._prec)
             mpfr_set_ui(self._real_norm,1,rnd_re)
             for i in range(self._degree):
                 mpfr_mul(self._real_norm,self._real_norm,self._x[i],rnd_re)
@@ -1643,6 +1653,7 @@ cdef class  Hn(object):
         cdef int i
         cdef MPComplexNumber ctmp 
         if self._norm_set==0:
+            mpc_init2(self._norm,self._prec)
             mpc_set_si(self._norm,1,rnd)
             for i in range(self._degree):
                 mpc_mul(self._norm,self._norm,self._z[i],rnd)
@@ -1973,14 +1984,14 @@ cdef class  Hn(object):
 
 cpdef is_Hn(z):
     if hasattr(z,"real_list"):
-        if not isinstance(z._x,float):
-            return 1
+        #if not isinstance(z._imag_norm,float):
+        return 1
     return 0
 
 cpdef is_Hn_dble(z):
     if hasattr(z,"real_list"):
-        if isinstance(z._x,float):
-            return 1
+        #if isinstance(z._imag_norm,float):
+        return 1
     return 0
 
 

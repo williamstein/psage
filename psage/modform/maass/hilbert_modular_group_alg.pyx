@@ -443,6 +443,33 @@ cpdef check_cached_field(F):
             elements_of_norm={}
     else:
         current_cached_field = F
+
+cpdef list_elements_of_norm(K,int norm,int check=0,int verbose=0):
+    cdef gen F
+    F = K.pari_bnf()
+    cdef int degree = K.degree()
+    cdef list power_basis
+    power_basis = K.power_basis()
+    if verbose>0:
+        print "basis=",power_basis
+    cdef int basislen = len(power_basis)
+    cdef double **basis_embeddings = NULL
+    basis_embeddings = <double**>sage_malloc(basislen*sizeof(double*))
+    if basis_embeddings==NULL:
+        raise MemoryError    
+    for i in range(basislen):
+        basis_embeddings[i] = <double*>sage_malloc(degree*sizeof(double*))
+        for j in range(degree):
+            xi =  power_basis[i].complex_embeddings()[j].real()
+            #cbase.append(xi.real())        
+            basis_embeddings[i][j]=float(xi)
+    cdef list res
+    res = elements_of_norm(F,norm,degree,basis_embeddings,check)
+    for i in range(basislen):
+        sage_free(basis_embeddings[i])
+    sage_free(basis_embeddings)
+    return res
+    
 ## Cached version ##
 ## I think this is better than 
 cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
@@ -455,9 +482,11 @@ cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
     if check==1:
         check_cached_field(F)
     if not elements_of_F_with_norm.has_key(n):
-        elts = F.bnfisintnorm(n)
+        if n==0:
+            elts = F.nfbasistoalg(0).list()
+        else:            
+            elts = F.bnfisintnorm(n)
         elements_of_F_with_norm[n]=[]
-
         for a in elts:
             v = a.list()
             numv = len(v)

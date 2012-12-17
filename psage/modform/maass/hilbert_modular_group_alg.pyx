@@ -181,6 +181,16 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         for j in range(degree):
             integer_lattice[0][i][j]=float(B0[i][j])
             integer_lattice[1][i][j]=float(B1[i][j])
+    ## We know that if Norm(y)>1 then oo is the closest cusp
+    ny = yv[0]
+    for i in range(1,degree):
+        ny=ny*yv[i]
+    if ny>1.0:
+        if verbose>0:
+            print "oo is the closest cusp since Ny={0}>1".format(ny)
+        c = NFCusp(G._K,G._K(1),G._K(0))
+        delta_min = ny**-0.5
+        return c,delta_min
     get_initial_cusp_distance_c(xv,yv,ny,degree,rho_v,sigma_v,&d,nc,cusp_reps,integer_lattice,denom_max,delta0,verbose)
     cdef int h = G._K.class_number()
     #cdef NumberFieldElement_quadratic rho_min,sigma_min

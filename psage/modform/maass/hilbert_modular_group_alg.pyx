@@ -230,6 +230,13 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         for i in range(degree):
             print "sigmamax_loc[{0}]={1}".format(i,nsigmamax_loc[i])
     F = G._K.pari_bnf()
+    ## Get positive units
+    cdef list pos_norm_units
+    pos_norm_units=[G._K(1).list()]
+    for u in G._K.units():
+        if u.norm()>0:
+            pos_norm_units.append(u)
+    
     # Gens for K as a vector space over R
     ## Make sure that we don't have a prevsious field in cache
     check_cached_field(F)
@@ -321,7 +328,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                         if rhoemb[i]-nrhomax_loc[i]>0.0:
                             if nr==5 and ns==-1 and verbose>1:
                                 print "rhoemb too large!"
-             
+
                                 print "rhoemb=",rhoemb[i],type(rhoemb[i])
                                 print "nrhomax_loc=",nrhomax_loc[i],type(nrhomax_loc[i])
                                 print "diff={0}".format(rhoemb[i]-nrhomax_loc[i])
@@ -334,7 +341,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     for i in range(degree):
                         if rhoemb[i]<nrhomin_loc[i]:
                             do_cont = i
-                            
+
                             if nr==5 and ns==-1 and verbose>0:
                                 print "rhoemb too small!"
                                 #print "v=",v
@@ -429,6 +436,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     #raise ArithmeticError,"Could not get reduced cusp!"
 
 elements_of_F_with_norm = {}
+units_of_F_of_positive_norm = []
 current_cached_field=0
 
 cpdef check_cached_field(F):
@@ -436,11 +444,13 @@ cpdef check_cached_field(F):
     Call this routine before in any call to elements_of_norm
     if you want to ensure that the field is correct.
     """
-    global current_cached_field
+    global current_cached_field,elements_of_F_with_norm,units_of_F_of_positive_norm
+
     if current_cached_field<>0:
         if F<>current_cached_field:
             current_cached_field = F
-            elements_of_norm={}
+            elements_of_F_with_norm={}
+            units_of_F_of_positive_norm=[]
     else:
         current_cached_field = F
 
@@ -473,7 +483,10 @@ cpdef list_elements_of_norm(K,int norm,int check=0,int verbose=0):
 ## Cached version ##
 ## I think this is better than 
 cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
-    global elements_of_F_with_norm
+    r"""
+    Return all elements of norm n, modulo units square
+    """
+    global elements_of_F_with_norm,units_of_F_of_positive_norm
     cdef int i,j
     cdef int numv
     cdef list v,emb
@@ -481,6 +494,16 @@ cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
     cdef gen a,elts
     if check==1:
         check_cached_field(F)
+    if units_of_F_of_positive_norm ==[]:
+        units_of_F_of_positive_norm=[F.bnfunit()[0]**0]
+        #i = 0
+        #print "F=",F
+        #print "unit=",F.bnfunit()
+        for a in F.bnfunit():
+            if a.norm()>0:
+                units_of_F_of_positive_norm.append(a)
+    print "units=",units_of_F_of_positive_norm
+    ## How to check totally positivity in pari?
     if not elements_of_F_with_norm.has_key(n):
         if n==0:
             elts = F.nfbasistoalg(0).list()
@@ -488,19 +511,25 @@ cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
             elts = F.bnfisintnorm(n)
         elements_of_F_with_norm[n]=[]
         for a in elts:
-            v = a.list()
-            numv = len(v)
-            if numv<degree:
-                for i in range(numv,degree):
-                    v.append(0)
-            emb = []
-            for i in range(degree):
-                x = 0
-                for j in range(numv):
-                    x+=float(v[j])*basis[j][i]
-                emb.append(float(x))
+            for ep in units_of_F_of_positive_norm:
+                #print "n=",n
+                #print "a=",a
+                #print "ep=",ep
+                v = F.nfbasistoalg_lift(ep*a).list()
+                numv = len(v)
+                if numv<degree:
+                    for i in range(numv,degree):
+                        v.append(0)
+                emb = []
+                for i in range(degree):
+                    x = 0
+                    for j in range(numv):
+                        print "v[{0}]={1}".format(j,v[j])
+                        print "basis[{0}][{1}]={2}".format(j,i,basis[j][i])
+                        x+=float(v[j])*basis[j][i]
+                    emb.append(float(x))
 
-            elements_of_F_with_norm[n].append((v,emb))
+                elements_of_F_with_norm[n].append((v,emb))
     return elements_of_F_with_norm[n]
 
 cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):

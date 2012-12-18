@@ -435,6 +435,359 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     return c,delta_min
     #raise ArithmeticError,"Could not get reduced cusp!"
 
+
+
+cpdef get_closest_cusps_on_bd(Hn z,G,int denom_max=3,int verbose=0):
+    r"""
+    Assuming z is on the boundary return the two equidistant cusps.
+    """
+    cdef int degree,ns,nr,i,j,nsigmamax
+    degree=G._degree
+    #basis = G._OK.basis()
+    cdef double d,ny,cK,delta,delta_min,delta0,x
+    cdef double GdeltaK=G.deltaK()
+    cdef double *xv, *yv
+    cdef int inrhomax,inrhomin,break_rho,break_sigma
+    cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
+    cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
+    cdef double *c1=NULL,*c2=NULL,*c3=NULL
+    cdef double *nsigmamax_loc
+    cdef int np,do_cont
+    nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
+    nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
+    nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
+    s2y2 = <double *>sage_malloc(degree*sizeof(double))
+    rhoemb = <double *>sage_malloc(degree*sizeof(double))
+    semb = <double *>sage_malloc(degree*sizeof(double))
+    xv = <double *>sage_malloc(degree*sizeof(double))
+    yv = <double *>sage_malloc(degree*sizeof(double))
+    c1 = <double *>sage_malloc(degree*sizeof(double))
+    c2 = <double *>sage_malloc(degree*sizeof(double))
+    c3 = <double *>sage_malloc(degree*sizeof(double))
+    nrhomax = 1.0;  nrhomin = 1.0
+    
+    if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
+        raise MemoryError
+    for i in range(degree):
+        xv[i]=z.x(i); yv[i]=z.y(i)
+    #basis = [G._K(1)]; basis.extend(G._K.gens())
+    cdef list power_basis
+    power_basis = G._K.power_basis()
+    if verbose>0:
+        print "basis=",power_basis
+    cdef int basislen = len(power_basis)
+    cdef double **basis_embeddings = NULL
+    basis_embeddings = <double**>sage_malloc(basislen*sizeof(double*))
+    if basis_embeddings==NULL:
+        raise MemoryError    
+    for i in range(basislen):
+        basis_embeddings[i] = <double*>sage_malloc(degree*sizeof(double*))
+        for j in range(degree):
+            xi =  power_basis[i].complex_embeddings()[j].real()
+            #cbase.append(xi.real())        
+            basis_embeddings[i][j]=float(xi)
+            if verbose>0:
+                print "basis_embeddings[{0}][{1}]={2}".format(i,j,basis_embeddings[i][j])
+    ## Get initial estimate by comparing with 
+    ny = z.imag_norm()
+    cK = G.cK()
+    if verbose>0:
+        print "cK={0}".format(cK)
+        print "N(y)=",ny
+    delta0 = 2.0**(3-G._prec)
+    cdef int *rho_v, *sigma_v
+    rho_v = <int*>sage_malloc(degree*sizeof(int))
+    sigma_v = <int*>sage_malloc(degree*sizeof(int))
+    cdef int *** cusp_reps=NULL
+    cdef int nc = G.ncusps()
+    cusp_reps = <int***>sage_malloc(nc*sizeof(int**))
+    cdef int nbasis = len(G._K.integral_basis())
+    for i in range(nc):
+        cusp_reps[i] = <int**>sage_malloc(2*sizeof(int*))
+        cusp_reps[i][0] = <int*>sage_malloc(nbasis*sizeof(int))
+        cusp_reps[i][1] = <int*>sage_malloc(degree*sizeof(int))
+        if i==0:
+            cusp_reps[i][0][0]=1
+            cusp_reps[i][1][0]=1
+            for j in range(1,nbasis):
+                cusp_reps[i][0][j]=0
+                cusp_reps[i][1][j]=0
+        else:
+            for j in range(nbasis):
+                cusp_reps[i][0][j]=G.cusps()[i].numerator().vector()[j]
+                cusp_reps[i][1][j]=G.cusps()[i].denominator().vector()[j]
+
+    # containse both the basis matrix and its inverse
+    cdef double*** integer_lattice=NULL
+    integer_lattice =  <double***>sage_malloc(2*sizeof(double**))
+    if integer_lattice == NULL: raise MemoryError
+    integer_lattice[0] =  <double**>sage_malloc(degree*sizeof(double*))
+    integer_lattice[1] =  <double**>sage_malloc(degree*sizeof(double*))
+    B0 = G.translation_module(0,inv=0)
+    B1 = G.translation_module(0,inv=1)
+    BA = G.translation_module(0,ret_type='alg')
+    for i in range(degree):
+        integer_lattice[0][i] =  <double*>sage_malloc(degree*sizeof(double))
+        integer_lattice[1][i] =  <double*>sage_malloc(degree*sizeof(double))
+        for j in range(degree):
+            integer_lattice[0][i][j]=float(B0[i][j])
+            integer_lattice[1][i][j]=float(B1[i][j])
+    ## We know that if Norm(y)>1 then oo is the closest cusp
+    ny = yv[0]
+    for i in range(1,degree):
+        ny=ny*yv[i]
+    if ny>1.0:
+        if verbose>0:
+            print "oo is the closest cusp since Ny={0}>1".format(ny)
+        c = NFCusp(G._K,G._K(1),G._K(0))
+        delta_min = ny**-0.5
+        return c,delta_min
+    ## Get an estimate which the closest cusp has to fulfil
+    get_initial_cusp_distance_c_new(xv,yv,ny,degree,rho_v,sigma_v,&d,nc,cusp_reps,integer_lattice,denom_max,delta0,verbose)
+    cdef int h = G._K.class_number()
+    #cdef NumberFieldElement_quadratic rho_min,sigma_min
+    #rho_min = G._K(0) # NumberFieldElement_quadratic(G._K,0)
+    #sigma_min = G._K(1) #NumberFieldElement_quadratic(G._K,0)
+    closest_cusps=[]
+    rho_min  = BA[0]*rho_v[0] 
+    sigma_min= BA[0]*sigma_v[0]
+    if verbose>0:
+        for i in range(degree):
+            print "rho_v[{0}]={1}".format(i,rho_v[i])
+            print "sigma_v[{0}]={1}".format(i,sigma_v[i])
+    for i in range(1,degree):
+        if rho_v[i]<>0:
+            rho_min+=BA[i]*rho_v[i]
+        if sigma_v[i]<>0:
+            sigma_min+=BA[i]*sigma_v[i]
+    if verbose>0:
+        print "Initial values:"
+        print "rho_min=",rho_min
+        print "sigma_min=",sigma_min
+        print "d=",d
+    np = 0
+    nsigmamax = ceil(cK**degree*d/ny**0.5)
+    #nsigmamax_loc = [] #; yv=copy(z.y); xv=copy(z.x)
+    #tmp = cK*ny**(-1/(2*n))
+    tmp = float(RR(cK)*RR(d)**(RR(1)/RR(degree)))
+    delta_min = d #ny**-0.5
+    for i in range(degree):
+        nsigmamax_loc[i]=tmp/yv[i]
+    # and the bounds for rho (TODO: add ref to notation in paper?)
+    for i in range(degree):
+        c1[i]=cK**2*yv[i]*d**(RR(2)/RR(degree))
+        c2[i]=yv[i]**2
+        c3[i]=z.x(i)
+    if verbose>0:
+        print "sigmamax=",nsigmamax
+        for i in range(degree):
+            print "sigmamax_loc[{0}]={1}".format(i,nsigmamax_loc[i])
+    F = G._K.pari_bnf()
+    ## Get positive units
+    cdef list pos_norm_units
+    pos_norm_units=[G._K(1).list()]
+    for u in G._K.units():
+        if u.norm()>0:
+            pos_norm_units.append(u)
+    
+    # Gens for K as a vector space over R
+    ## Make sure that we don't have a prevsious field in cache
+    check_cached_field(F)
+    for ns in range(-nsigmamax,nsigmamax):
+        if ns==0: continue
+        break_sigma=0
+        list_of_sigmas =  elements_of_norm(F,ns,degree,basis_embeddings)
+        if verbose>1:
+            print "ns=",ns
+        if verbose>2:
+            print "sigmas of norm ns=",list_of_sigmas
+        #for sigma in list_of_sigmas:
+        for sigmat in list_of_sigmas:            
+            for i in range(degree):
+                semb[i] = float(sigmat[1][i])
+            if verbose>1:
+                sigma = G._K(0)
+                for i in range(degree):
+                    sigma+=G._K(sigmat[0][i])*power_basis[i]
+                print "semb="
+                for i in range(degree):
+                    print "semb[{0}]={1}".format(i,semb[i])
+                print "sigmat[0]=",sigmat[0]
+                print "basis=",power_basis
+                print "semb0=",G._K(sigma).complex_embeddings()
+                print "sigma=",sigma
+            do_cont=-1
+            for i in range(degree):
+                if fabs(semb[i])>nsigmamax_loc[i]:
+                    do_cont=i
+                    break
+            if do_cont>=0:
+                continue
+            elif verbose>1:                    
+                print "sigma[{0}]={1} OK comp to :{2}!".format(do_cont,semb[do_cont],nsigmamax_loc[i])            
+            ## List the rhos
+            nrhomax = 1.0;  nrhomin = 1.0
+            for i in range(degree):
+                nrhomax_loc[i]=0
+                nrhomin_loc[i]=0
+            #nrhomax_loc=[]; nrhomin_loc=[]
+                
+            for i in range(degree):
+                if c1[i]-c2[i]*semb[i]<0:
+                    s="c2:{0}*{1}={2}".format(i,c2[i],semb[i],c2[i]*semb[i])
+                    if verbose>0:
+                        print "c1[{0}]={1}".format(i,c1[i])
+                        print s
+                            
+                    raise ArithmeticError,s
+                tmp1 = sqrt(c1[i]-c2[i]*semb[i])
+                tmp2 = semb[i]*xv[i]
+                tmpL = tmp2-tmp1
+                tmpH = tmp2+tmp1
+                nrhomax_loc[i]=tmpH; nrhomax *= tmpH
+                nrhomin_loc[i]=tmpL; nrhomin *= tmpL
+            if nrhomax<nrhomin:
+                tmp = nrhomin
+                nrhomin = nrhomax
+                nrhomax = tmp
+            if nrhomax<0:
+                inrhomax=floor(nrhomax)
+            else:
+                inrhomax=ceil(nrhomax)
+            if nrhomin<0:
+                inrhomin=floor(nrhomin)
+            else:
+                inrhomin=ceil(nrhomin)
+            if verbose>1: # and ns==-1:
+                print "nrhomin({0})={1}".format(sigma,nrhomin)
+                print "nrhomax({0})={1}".format(sigma,nrhomax)
+                for i in range(degree):
+                    print "nrhomin_loc({0})".format(nrhomin_loc[i])
+                    print "nrhomax_loc({0})".format(nrhomax_loc[i])
+            for i in range(degree):
+                s2y2[i]=float(semb[i]**2*yv[i]**2)
+            for nr in range(inrhomin,inrhomax):
+                if nr==0:
+                    continue
+                break_rho=0
+                if verbose>2:
+                    print "nr=",nr
+                list_of_rhos =  elements_of_norm(F,nr,degree,basis_embeddings)
+                for rhot in list_of_rhos:
+                    for i in range(degree):
+                        rhoemb[i]=RR(rhot[1][i])
+                    do_cont = -1
+                    for i in range(degree):
+                        if rhoemb[i]-nrhomax_loc[i]>0.0:
+                            if nr==5 and ns==-1 and verbose>1:
+                                print "rhoemb too large!"
+
+                                print "rhoemb=",rhoemb[i],type(rhoemb[i])
+                                print "nrhomax_loc=",nrhomax_loc[i],type(nrhomax_loc[i])
+                                print "diff={0}".format(rhoemb[i]-nrhomax_loc[i])
+                            do_cont = i
+                            break
+                    if do_cont > -1:
+                        if verbose>1:
+                            print "rho[{0}]={1} too large comp to :{2}!".format(do_cont,rhoemb[do_cont],nrhomax_loc[i])
+                        continue
+                    for i in range(degree):
+                        if rhoemb[i]<nrhomin_loc[i]:
+                            do_cont = i
+
+                            if nr==5 and ns==-1 and verbose>0:
+                                print "rhoemb too small!"
+                                #print "v=",v
+                                print "rhoemb=",rhoemb[i],type(rhoemb[i])
+                                #print "emb/K=",G._K(rho).complex_embeddings()
+                                print "nrhomin_loc=",nrhomin_loc[i],type(nrhomin_loc[i])
+                            break
+                    if do_cont > -1:
+                        if verbose>1:
+                            print "rho[{0}]={1} too small comp to :{2}!".format(do_cont,rhoemb[do_cont],nrhomin_loc[i])
+                        continue
+                    delta = 1                        
+                    for i in range(degree):
+                        delta*=(-semb[i]*xv[i]+rhoemb[i])**2+s2y2[i]
+                    delta=sqrt(delta/ny)
+                    np+=1
+                    if verbose>0:
+                        print "delta=",delta
+                    if delta < delta_min-delta0:
+                        sigma_min = G._K(0)
+                        rho_min = G._K(0)
+                        for i in range(degree):
+                            sigma_min+=G._K(sigmat[0][i])*power_basis[i]
+                            rho_min+=G._K(rhot[0][i])*power_basis[i]
+                        delta_min = delta
+                        if verbose>0:                                
+                            print "Got smaller delta at s={0} r={1}, delta={2}".format(sigma_min,rho_min,delta_min)
+                        if delta<GdeltaK:
+                            ## WE don't have to search anymore...
+                            if verbose>0:
+                                print "Tested {0} pairs!".format(np)
+                                print "We have distance smaller than delta_K={0}".format(G.deltaK())
+                            #c = NFCusp(G._K,rho_min,sigma_min)
+                            break_rho=1
+                            break
+                            #return c,delta_min
+                if break_rho==1:
+                    break_sigma=1
+                    break
+            if break_sigma==1:
+                break
+        if break_sigma==1:
+            break        
+    #return sigma_min,rho_min,delta_min
+    if verbose>0:
+        print "Tested {0} pairs!".format(np)
+        print "rho_min=",rho_min
+        print "sigma_min=",sigma_min
+    # Reduce:
+    if sigma_min<>0:
+        cc = rho_min / sigma_min
+        rho_min = cc.numerator()
+        sigma_min = cc.denominator()
+    ci = G._K.ideal(rho_min,sigma_min)
+    if ci<>1:
+        g = ci.gens_reduced()[0]
+        rho_min = rho_min/g
+        sigma_min = sigma_min/g
+    c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
+    sage_free(semb)
+    sage_free(rhoemb)
+    sage_free(nrhomax_loc)
+    sage_free(nrhomin_loc)
+    sage_free(s2y2)
+    sage_free(rho_v); sage_free(sigma_v)
+    sage_free(c1);sage_free(c2);sage_free(c3)
+    if cusp_reps<>NULL:
+        for j in range(nc):
+            if cusp_reps[j]<>NULL:
+                if cusp_reps[j][0]<>NULL:
+                    sage_free(cusp_reps[j][0])
+                if cusp_reps[j][1]<>NULL:
+                    sage_free(cusp_reps[j][1])
+                sage_free(cusp_reps[j])
+        sage_free(cusp_reps)
+    if integer_lattice<>NULL:
+        if integer_lattice[0]<>NULL:
+            for i in range(degree):
+                if integer_lattice[0][i]<>NULL:
+                    sage_free(integer_lattice[0][i])
+            sage_free(integer_lattice[0])
+        if integer_lattice[1]<>NULL:
+            for i in range(degree):
+                if integer_lattice[1][i]<>NULL:
+                    sage_free(integer_lattice[1][i])
+            sage_free(integer_lattice[1])
+        sage_free(integer_lattice)
+    ## We do not want to reduce c at the end.
+    #for cc in G.cusps():
+    #    if c.is_Gamma0_equivalent(cc,G._K.ideal(1)):
+    return c,delta_min
+    #raise ArithmeticError,"Could not get reduced cusp!"
+
 elements_of_F_with_norm = {}
 units_of_F_of_positive_norm = []
 current_cached_field=0
@@ -502,7 +855,7 @@ cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
         for a in F.bnfunit():
             if a.norm()>0:
                 units_of_F_of_positive_norm.append(a)
-    print "units=",units_of_F_of_positive_norm
+    #print "units=",units_of_F_of_positive_norm
     ## How to check totally positivity in pari?
     if not elements_of_F_with_norm.has_key(n):
         if n==0:
@@ -636,8 +989,6 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     yv = <double*>sage_malloc(degree*sizeof(double))
     if xv==NULL or yv==NULL or rho==NULL or sigma==NULL:
         raise MemoryError
-    ## Check cusp at infinity
-    ## Check cusp at infinity
     if verbose>0:
         for i in range(degree):
             print "x[{0}]={1}".format(i,x[i])
@@ -645,6 +996,7 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
             print "ny={0}".format(ny)
 
     ## First check the cusp representatives
+    ## rho_min and sigma_min should contain coordinates as vector with respect to the integer basis
     cdef double dmin = 0.0
     for j in range(nc):    
         for i in range(degree):
@@ -735,14 +1087,7 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
                         sigma_min[i]=0 
                     else:
                         sigma_min[0]=q #sigma[i]
-            # for ci in range(1,nc):
-            #     for i in range(degree):
-            #         rho[i]=cusp_reps[ci][0][i]+<double>j
-            #         sigma[i]=cusp_reps[ci][1][i]+<double>ii
-            #     d2 = delta_cusp_c(x,y,rho,sigma,ny,degree)
-            #     if verbose>0:
-            #         print "dist(z,c{0}+{1})={2}".format(ci,float(j)/float(ii),d2)
-
+ 
     sage_free(xv)
     sage_free(yv)
     sage_free(rho)
@@ -753,19 +1098,132 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
             print "rho_min[{0}]={1}".format(i,rho_min[i])
             print "sigma_min[{0}]={1}".format(i,sigma_min[i])
     d[0] = dmin
-    #    print "d1=",d1
-    #    print "d2=",d2
-    #for i in range(degree):
-    #    rho_min[i]=0; sigma_min[i]=0
-    #if d2 < d1 and d2 < d0:
-    #    rho_min[0]=j; sigma_min[0]=1; d[0]=d2
-    #    #return j,0,1,0,d2    
-    #elif d1 < d0:
-    #    rho_min[0]=0; sigma_min[0]=1; d[0]=d1
-    #    #return 0,0,1,0,d1
-    #else:
-    #    rho_min[0]=1; sigma_min[0]=0; d[0]=d0
-    #return 1,0,0,0,d0
+
+
+cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,int*** cusp_reps,double*** integer_lattice, int denom_max=3,double eps0=1e-12,int verbose=0):
+    cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
+    cdef double d0,d1,d2
+    cdef int i,j,k
+
+    rho = <double*>sage_malloc(degree*sizeof(double))
+    sigma = <double*>sage_malloc(degree*sizeof(double))
+    xv = <double*>sage_malloc(degree*sizeof(double))
+    yv = <double*>sage_malloc(degree*sizeof(double))
+    if xv==NULL or yv==NULL or rho==NULL or sigma==NULL:
+        raise MemoryError
+    if verbose>0:
+        for i in range(degree):
+            print "x[{0}]={1}".format(i,x[i])
+            print "y[{0}]={1}".format(i,y[i])
+            print "ny={0}".format(ny)
+
+    ## First check the cusp representatives
+    ## rho_min and sigma_min should contain coordinates as vector with respect to the integer basis
+    cdef double dmin = 0.0
+    for j in range(nc):    
+        for i in range(degree):
+            rho[i]=0
+            for k in range(degree):
+                rho[i]+=cusp_reps[i][0][k]*integer_lattice[0][i][j]
+                sigma[i]+=cusp_reps[i][1][k]*integer_lattice[0][i][j]
+        d0 = delta_cusp_c(x,y,rho,sigma,ny,degree)
+        if verbose>0:
+            print "dist(z,c{0})={1}".format(j,d0)
+        if j==0:
+            dmin = d0
+            for i in range(degree):
+                #rho[i]+=v[j]*integer_lattice[0][i][j]
+                rho_min[i]=cusp_reps[0][0][i]
+                sigma_min[i]=cusp_reps[0][1][i]
+                if verbose>0:
+                    print "0rho_min[{0}]={1}".format(i,rho_min[i])
+                    print "0sigma_min[{0}]={1}".format(i,sigma_min[i])
+        else:
+            if d0<dmin-eps0:
+                dmin = d0
+                for i in range(degree):
+                    rho_min[i]=int(rho[i])
+                    sigma_min[i]=int(sigma[i])
+                    if verbose>0:
+                        print "1rho_min[{0}]={1}".format(i,rho_min[i])
+                        print "1sigma_min[{0}]={1}".format(i,sigma_min[i])
+
+    ## Check cusp at zero
+    for i in range(degree):
+        rho[i]=0.0; sigma[i]=1.0
+    d1 = delta_cusp_c(x,y,rho,sigma,ny,degree)
+    if verbose>0:
+        print "dist(z,0)=",d1
+    if d1<dmin-eps0:
+        dmin = d1
+        for i in range(degree):
+            rho_min[i]=int(rho[i])
+            sigma_min[i]=int(sigma[i])
+    ## Check cusp at a point 'approximating' x
+    ## TODO: Do this in a systematic way. Rational approximation?
+    cdef int jmin=0
+    cdef int ii,ci
+    cdef double dist,dist_min=1
+    cdef double* xcoord
+    xcoord = <double*>sage_malloc(degree*sizeof(double))
+    for i in range(degree):
+        xcoord[i]=0.0
+        for j in range(degree):
+            xcoord[i]+=x[j]*integer_lattice[1][i][j]
+        if verbose>0:
+            print "xcoord[{0}]={1}".format(i,xcoord[i])
+    ## Then we try to go through points in P_1(K) with rational denominators and which are close to the given point
+    ## These have coordinates of the form y_i = p/q with |y_i - x_i|<=1/2
+    ## i.e. for fixed q:   q*x_i-q/2 <= p <= q*x+q/2
+
+    cdef int p,q
+    cdef double qhalf
+    ## Specialize to quadratic number fields
+    for q in range(1,denom_max):
+        pmax = []; pmin=[]
+        qhalf = float(q)*0.5
+        for i in range(degree):
+            pmax.append(xcoord[i]*float(q)+qhalf)
+            pmin.append(xcoord[i]*float(q)-qhalf)
+        if verbose>0:
+            print "pmin=",pmin
+            print "pmax=",pmax
+        pcoeffs = get_vectors_integer_in_range(degree,pmin,pmax,verbose)
+        if verbose>1 and len(pcoeffs)<100:
+            print "pcoeffs=",pcoeffs
+        for v in pcoeffs:
+            for i in range(degree):
+                rho[i]=0
+                for j in range(degree):
+                    rho[i]+=v[j]*integer_lattice[0][i][j]
+                sigma[i]=<double>q
+            d2 = delta_cusp_c(x,y,rho,sigma,ny,degree)
+            if verbose>0:
+                rhol=[];vv=[]
+                for i in range(degree):
+                    rhol.append(rho[i]/float(q))
+                    vv.append(QQ(v[i])/QQ(q))
+                print "dist(z,{0}:{1})={2}\t {3}\t{4}".format(rhol,q,d2,v,vv)
+            if d2<dmin-eps0:
+                dmin = d2
+                for i in range(degree):
+                    rho_min[i]=v[i];
+                    if i>0:
+                        sigma_min[i]=0 
+                    else:
+                        sigma_min[0]=q #sigma[i]
+ 
+    sage_free(xv)
+    sage_free(yv)
+    sage_free(rho)
+    sage_free(sigma)
+    if verbose>0:
+        print "dmin=",dmin
+        for i in range(degree):
+            print "rho_min[{0}]={1}".format(i,rho_min[i])
+            print "sigma_min[{0}]={1}".format(i,sigma_min[i])
+    d[0] = dmin
+
     
 cpdef delta_cusp(Hn z,ca,cb,int degree,int verbose=0):
     cdef double *x,*y,*rho,*sigma
@@ -795,8 +1253,8 @@ cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double 
     Compute distance to cusp given by rho/sigma in a number field.
     INPUT:
     
-    - `sigma` --  vector of embeddinga of sigma
-    - `rho` --  vector of embeddinga of rho
+    - `sigma` --  vector of embeddings of sigma
+    - `rho` --  vector of embeddings of rho
     - `z` --  vector of pairs [x_i,y_i] in the upper half-plane
     """
     cdef double delta = 1.0
@@ -932,7 +1390,13 @@ cdef class  Hn_dble(object):
                         y.append(imag(x[i]))
                     self._degree = len(x)
                 except:
-                    raise TypeError,"Can not construct point in H^n from %s!" % x
+                    raise TypeError,"Can not construct point in H^n from list:%s!" % x
+            elif hasattr(x,"_z_hn"):
+                u = x._z_hn._xlist
+                y = x._z_hn._ylist
+            elif hasattr(x,"_xlist"):
+                u = x._xlist
+                y = x._ylist
             else:
                 raise TypeError,"Can not construct point in H^n from %s!" % x
         if u<>[]:
@@ -1414,6 +1878,7 @@ cdef class  Hn(object):
         """
         self._verbose = verbose
         u = []
+        self._prec = prec
         if isinstance(x,list) and isinstance(y,list) and y<>[] and x<>[]:
             self._degree = len(x)
             assert len(y)==self._degree
@@ -1424,12 +1889,22 @@ cdef class  Hn(object):
                     if b>0:
                         u.append(a)
                         y.append(b)
-                self._prec=prec
                 degree=len(u)
+                if verbose>0:
+                    print "u=",u
             elif hasattr(x,'_is_Hn'):
-                u = x.x(); y = x.y()                
+                u = x.x(); y = x.y()
+                degree = len(x)
                 self._prec=x._prec
-            else:
+            elif hasattr(x,"_z_hn"):
+                u = x._z_hn._xlist
+                y = x._z_hn._ylist
+                degree = len(y)
+            elif hasattr(x,"_xlist"):
+                u = x._xlist
+                y = x._ylist
+                degree = len(y)
+            if degree <= 0:
                 raise TypeError,"Can not construct point in H^n from %s!" % x
 
         else:
@@ -1499,7 +1974,7 @@ cdef class  Hn(object):
             print "c_new successful!"
         
 
-    def __init__(self,x,y=[],degree=0,prec=53,verbose=0):
+    def __init__(self,x,y=[],degree=0,prec=53,verbose=0,**kwds):
         pass
         
     cdef c_new(self,list x,list y):
@@ -1726,7 +2201,7 @@ cdef class  Hn(object):
             for i in range(self._degree):
                 mpc_mul(self._norm,self._norm,self._z[i],rnd)
             self._norm_set=1
-        ctmp = MPComplexField(self._prec)
+        ctmp = MPComplexField(self._prec)(0)
         mpc_set(ctmp.value,self._norm,rnd)
         return ctmp
 

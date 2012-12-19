@@ -536,34 +536,45 @@ cpdef get_closest_cusps_on_bd(Hn z,G,int denom_max=3,int verbose=0):
     ny = yv[0]
     for i in range(1,degree):
         ny=ny*yv[i]
-    if ny>1.0:
+    if ny>1.0+delta0:
         if verbose>0:
             print "oo is the closest cusp since Ny={0}>1".format(ny)
         c = NFCusp(G._K,G._K(1),G._K(0))
         delta_min = ny**-0.5
-        return c,delta_min
+        return [c],delta_min
     ## Get an estimate which the closest cusp has to fulfil
-    get_initial_cusp_distance_c_new(xv,yv,ny,degree,rho_v,sigma_v,&d,nc,cusp_reps,integer_lattice,denom_max,delta0,verbose)
+    min_cusps = get_initial_cusp_distance_c_new(xv,yv,ny,degree,&d,nc,cusp_reps,integer_lattice,denom_max,delta0,verbose)
     cdef int h = G._K.class_number()
     #cdef NumberFieldElement_quadratic rho_min,sigma_min
     #rho_min = G._K(0) # NumberFieldElement_quadratic(G._K,0)
     #sigma_min = G._K(1) #NumberFieldElement_quadratic(G._K,0)
+    cdef int nm
     closest_cusps=[]
-    rho_min  = BA[0]*rho_v[0] 
-    sigma_min= BA[0]*sigma_v[0]
-    if verbose>0:
+    cdef int num_min=0
+    rho_min=[]
+    sigma_min=[]
+    for j in range(len(min_cusps)):
         for i in range(degree):
-            print "rho_v[{0}]={1}".format(i,rho_v[i])
-            print "sigma_v[{0}]={1}".format(i,sigma_v[i])
-    for i in range(1,degree):
-        if rho_v[i]<>0:
-            rho_min+=BA[i]*rho_v[i]
-        if sigma_v[i]<>0:
-            sigma_min+=BA[i]*sigma_v[i]
+            rho_v[i]=min_cusps[j][0][i]
+            sigma_v[i]=min_cusps[j][1][i]
+
+        rho_min[num_min]  = [BA[0]*rho_v[0] ]
+        sigma_min[num_min]= [BA[0]*sigma_v[0]]
+        if verbose>0:
+            for i in range(degree):
+                print "rho_v[{0}]={1}".format(i,rho_v[i])
+                print "sigma_v[{0}]={1}".format(i,sigma_v[i])
+        for i in range(1,degree):
+            if rho_v[i]<>0:
+                rho_min[num_min]+=BA[i]*rho_v[i]
+            if sigma_v[i]<>0:
+                sigma_min[num_min]+=BA[i]*sigma_v[i]
+        num_min+=1
     if verbose>0:
         print "Initial values:"
-        print "rho_min=",rho_min
-        print "sigma_min=",sigma_min
+        for i in range(num_min):
+            print "rho_min[{0}]={1}".format(i,rho_min[i])
+        print "sigma_min[{0}]={1}".format(i,sigma_min[i])
         print "d=",d
     np = 0
     nsigmamax = ceil(cK**degree*d/ny**0.5)
@@ -714,23 +725,33 @@ cpdef get_closest_cusps_on_bd(Hn z,G,int denom_max=3,int verbose=0):
                     if verbose>0:
                         print "delta=",delta
                     if delta < delta_min-delta0:
-                        sigma_min = G._K(0)
-                        rho_min = G._K(0)
+                        ## We got a new minimal distance so need to replace the list
+                        
+                        sigma_min = [G._K(0)]
+                        rho_min = [G._K(0)]
                         for i in range(degree):
-                            sigma_min+=G._K(sigmat[0][i])*power_basis[i]
-                            rho_min+=G._K(rhot[0][i])*power_basis[i]
+                            sigma_min[0]+=G._K(sigmat[0][i])*power_basis[i]
+                            rho_min[0]+=G._K(rhot[0][i])*power_basis[i]
                         delta_min = delta
                         if verbose>0:                                
-                            print "Got smaller delta at s={0} r={1}, delta={2}".format(sigma_min,rho_min,delta_min)
-                        if delta<GdeltaK:
-                            ## WE don't have to search anymore...
+                            print "Got smaller delta at s={0} r={1}, delta={2}".format(sigma_min[0],rho_min[0],delta_min)
+                        if delta<GdeltaK-delta0:
+                            #    ## WE don't have to search anymore...
                             if verbose>0:
                                 print "Tested {0} pairs!".format(np)
                                 print "We have distance smaller than delta_K={0}".format(G.deltaK())
                             #c = NFCusp(G._K,rho_min,sigma_min)
                             break_rho=1
                             break
-                            #return c,delta_min
+                    elif (delta-delta_min)<delta0:
+                        ## Append a new minimal cusp
+                        sigma_min.append(G._K(0))
+                        rho_min.append(G._K(0))
+                        for i in range(degree):
+                            sigma_min[num_min]+=G._K(sigmat[0][i])*power_basis[i]
+                            rho_min[num_min]+=G._K(rhot[0][i])*power_basis[i]
+                        num_min+=1
+                        #return c,delta_min
                 if break_rho==1:
                     break_sigma=1
                     break
@@ -741,19 +762,24 @@ cpdef get_closest_cusps_on_bd(Hn z,G,int denom_max=3,int verbose=0):
     #return sigma_min,rho_min,delta_min
     if verbose>0:
         print "Tested {0} pairs!".format(np)
-        print "rho_min=",rho_min
-        print "sigma_min=",sigma_min
+        for i in range(num_min):
+            print "rho_min[{0}]={1}".format(i,rho_min[i])
+            print "sigma_min[{0}]={1}".format(i,sigma_min[i])
     # Reduce:
-    if sigma_min<>0:
-        cc = rho_min / sigma_min
-        rho_min = cc.numerator()
-        sigma_min = cc.denominator()
-    ci = G._K.ideal(rho_min,sigma_min)
-    if ci<>1:
-        g = ci.gens_reduced()[0]
-        rho_min = rho_min/g
-        sigma_min = sigma_min/g
-    c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
+    cusp_res=[]
+    for i in range(num_min):
+        if sigma_min[i]<>0:
+            cc = rho_min[i] / sigma_min[i]
+            rho_min[i] = cc.numerator()
+            sigma_min[i] = cc.denominator()
+        ci = G._K.ideal(rho_min[i],sigma_min[i])
+        if ci<>1:
+            g = ci.gens_reduced()[0]
+            rho_min[i] = rho_min[i]/g
+            sigma_min[i] = sigma_min[i]/g
+        c = NFCusp(G._K,G._K(rho_min[i]),G._K(sigma_min[i]))
+        if c not in cusp_res:
+            cusp_res.append(c)
     sage_free(semb)
     sage_free(rhoemb)
     sage_free(nrhomax_loc)
@@ -785,7 +811,7 @@ cpdef get_closest_cusps_on_bd(Hn z,G,int denom_max=3,int verbose=0):
     ## We do not want to reduce c at the end.
     #for cc in G.cusps():
     #    if c.is_Gamma0_equivalent(cc,G._K.ideal(1)):
-    return c,delta_min
+    return cusp_res,delta_min
     #raise ArithmeticError,"Could not get reduced cusp!"
 
 elements_of_F_with_norm = {}
@@ -835,7 +861,7 @@ cpdef list_elements_of_norm(K,int norm,int check=0,int verbose=0):
     
 ## Cached version ##
 ## I think this is better than 
-cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
+cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0,int verbose=0):
     r"""
     Return all elements of norm n, modulo units square
     """
@@ -877,8 +903,9 @@ cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
                 for i in range(degree):
                     x = 0
                     for j in range(numv):
-                        print "v[{0}]={1}".format(j,v[j])
-                        print "basis[{0}][{1}]={2}".format(j,i,basis[j][i])
+                        if verbose>0:
+                            print "v[{0}]={1}".format(j,v[j])
+                            print "basis[{0}][{1}]={2}".format(j,i,basis[j][i])
                         x+=float(v[j])*basis[j][i]
                     emb.append(float(x))
 
@@ -1100,11 +1127,15 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     d[0] = dmin
 
 
-cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,int*** cusp_reps,double*** integer_lattice, int denom_max=3,double eps0=1e-12,int verbose=0):
+cdef list get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,double* d,int nc,int*** cusp_reps,double*** integer_lattice, int denom_max=3,double eps0=1e-12,int verbose=0):
     cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
     cdef double d0,d1,d2
     cdef int i,j,k
-
+    cdef list rho_min,sigma_min,min_cusps
+    rho_min=[];sigma_min=[];min_cusps=[]
+    for i in range(degree):
+        rho_min.append(0)
+        sigma_min.append(0)
     rho = <double*>sage_malloc(degree*sizeof(double))
     sigma = <double*>sage_malloc(degree*sizeof(double))
     xv = <double*>sage_malloc(degree*sizeof(double))
@@ -1124,8 +1155,8 @@ cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,in
         for i in range(degree):
             rho[i]=0
             for k in range(degree):
-                rho[i]+=cusp_reps[i][0][k]*integer_lattice[0][i][j]
-                sigma[i]+=cusp_reps[i][1][k]*integer_lattice[0][i][j]
+                rho[i]+=cusp_reps[j][0][k]*integer_lattice[0][i][k]
+                sigma[i]+=cusp_reps[j][1][k]*integer_lattice[0][i][k]
         d0 = delta_cusp_c(x,y,rho,sigma,ny,degree)
         if verbose>0:
             print "dist(z,c{0})={1}".format(j,d0)
@@ -1138,6 +1169,7 @@ cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,in
                 if verbose>0:
                     print "0rho_min[{0}]={1}".format(i,rho_min[i])
                     print "0sigma_min[{0}]={1}".format(i,sigma_min[i])
+                min_cusps=[(rho_min,sigma_min)]
         else:
             if d0<dmin-eps0:
                 dmin = d0
@@ -1147,18 +1179,30 @@ cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,in
                     if verbose>0:
                         print "1rho_min[{0}]={1}".format(i,rho_min[i])
                         print "1sigma_min[{0}]={1}".format(i,sigma_min[i])
-
+                min_cusps=[(rho_min,sigma_min)]
+            elif abs(d0-dmin)<eps0:
+                for i in range(degree):
+                    rho_min[i]=int(rho[i])
+                    sigma_min[i]=int(sigma[i])
+                    if verbose>0:
+                        print "1rho_min[{0}]={1}".format(i,rho_min[i])
+                        print "1sigma_min[{0}]={1}".format(i,sigma_min[i])
+                min_cusps.append((rho_min,sigma_min))
     ## Check cusp at zero
     for i in range(degree):
         rho[i]=0.0; sigma[i]=1.0
     d1 = delta_cusp_c(x,y,rho,sigma,ny,degree)
     if verbose>0:
         print "dist(z,0)=",d1
-    if d1<dmin-eps0:
-        dmin = d1
+    if  d1 < dmin + eps0:
         for i in range(degree):
             rho_min[i]=int(rho[i])
-            sigma_min[i]=int(sigma[i])
+            sigma_min[i]=int(sigma[i])        
+        if d1<dmin-eps0:
+            dmin = d1
+            min_cusps=[(rho_min,sigma_min)]
+        else:
+            min_cusps.append((rho_min,sigma_min))
     ## Check cusp at a point 'approximating' x
     ## TODO: Do this in a systematic way. Rational approximation?
     cdef int jmin=0
@@ -1204,14 +1248,18 @@ cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,in
                     rhol.append(rho[i]/float(q))
                     vv.append(QQ(v[i])/QQ(q))
                 print "dist(z,{0}:{1})={2}\t {3}\t{4}".format(rhol,q,d2,v,vv)
-            if d2<dmin-eps0:
-                dmin = d2
+            if d2 < dmin + eps0:
                 for i in range(degree):
                     rho_min[i]=v[i];
                     if i>0:
                         sigma_min[i]=0 
                     else:
                         sigma_min[0]=q #sigma[i]
+                if d2<dmin-eps0:
+                    dmin = d2
+                    min_cusps=[(rho_min,sigma_min)]
+                else:
+                    min_cusps.append((rho_min,sigma_min))
  
     sage_free(xv)
     sage_free(yv)
@@ -1219,11 +1267,12 @@ cdef get_initial_cusp_distance_c_new(double* x,double *y,double ny,int degree,in
     sage_free(sigma)
     if verbose>0:
         print "dmin=",dmin
-        for i in range(degree):
-            print "rho_min[{0}]={1}".format(i,rho_min[i])
-            print "sigma_min[{0}]={1}".format(i,sigma_min[i])
+        for j in range(len(min_cusps)):
+            for i in range(degree):
+                print "rho_min[{0}]={1}".format(i,min_cusps[j][0][i])
+                print "sigma_min[{0}]={1}".format(i,min_cusps[j][1][i])
     d[0] = dmin
-
+    return min_cusps
     
 cpdef delta_cusp(Hn z,ca,cb,int degree,int verbose=0):
     cdef double *x,*y,*rho,*sigma

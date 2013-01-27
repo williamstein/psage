@@ -228,7 +228,7 @@ class WeilModule (FormalSums):
         Coerce object into an appopriate child object
         of self if possible.
 
-        We ccoerce
+        We coerce
         - an element of $A$ into an elemnt of $K[A]$.
 
         EXAMPLES

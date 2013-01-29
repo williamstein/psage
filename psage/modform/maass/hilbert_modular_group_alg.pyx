@@ -2483,7 +2483,37 @@ cdef class  Hn(object):
             raise NotImplementedError,"Can not substract point in Hn and %s of type %s!" %(z,type(z))
         return sqrt(norm)
 
+    cpdef addto_im(self,x):
+        r"""
+        Add the list of reals x to imaginary part of self
+        """
+        cdef RealNumber tmpx
+        if not isinstance(x,list):
+            raise ValueError,"Need to call addto with list!"
+        assert len(x) == self._degree
+        tmpx = RealField(self._prec)(0)
 
+        #cdef Hn tmphn
+        if hasattr(x,'complex_embeddings'):
+            c = x.complex_embeddings(self._prec)
+            for i in range(self.degree()):
+                tmpx = RealField(self._prec)(c[i].real())
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                self._xlist[i]+=c[i].real()
+        elif is_Hn(x):
+            for i in range(self.degree()):
+                tmpx = RealField(self._prec)(x.x(i))
+                #self._x[i]+=x._x[i]
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                self._xlist[i]+=tmpx
+        elif is_RealNumber(x):
+            for i in range(self.degree()):
+                tmpx = RealField(self._prec)(x)
+                mpfr_add(self._x[i],self._x[i],tmpx.value,rnd_re)
+                #self._x[i]+=x
+                self._xlist[i]+=x
+        else:
+            raise NotImplementedError,"Can not add Hn and %s of type %s!" %(x,type(x))
 
 
     ### Below this point some algorithms might be inapproprate leftovers... 

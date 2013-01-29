@@ -37,6 +37,7 @@ cdef class Hn_dble(object):
     cpdef degree(self)
     cpdef diff_abs_norm(self,z)
     cpdef addto_re(self,x)
+#    cpdef addto_im(self,x)
 
 cdef class Hn(object):
     cdef mpfr_t *_x
@@ -73,3 +74,4 @@ cdef class Hn(object):
     cpdef degree(self)
     cpdef diff_abs_norm(self,z)
     cpdef addto_re(self,x)
+    cpdef addto_im(self,x)

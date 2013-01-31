@@ -170,6 +170,9 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             if False == G.is_square() or False == G.is_symmetric():
                 raise ValueError, "%s: list not a symmetric square matrix" %G
             C0 = G*R; C = R.transpose()*C0; v = vector([C[i,i] for i in range(C.nrows())])
+            #print "C0=",C0
+            #print "C=",C
+            #print "v=",v
             if C0.denominator() > 2 or C.denominator() > 2 or v.denominator() > 1:
                 raise ValueError, "(%s,%s): not a compatible pair" %(R,G)
         AbelianGroup.__init__( self)
@@ -185,10 +188,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         MS = MatrixSpace (ZZ,R.nrows(),R.ncols())
         R = MS(R)
         # We keep the initializing pair $(R,G)$
-        
+        #print "R=",R
         self.__iM = R
+        #print "G=",G
         self.__iG = self._reduce_mat(G);
-
+        #print "G=",self._reduce_mat(G)
+        #print "G=",self.__iG
         # We replace $__iM$ by the unique $__R$ in $__iM * GL(n,\ZZ)$ which is
         # in lower Hermite normal form (i.e. is lower triangular and the rows
         # are reduced modulo their rightmost nonzero element).
@@ -1457,7 +1462,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 if i == j:
                     B[i,j] = FiniteQuadraticModule_ambient._reduce( A[i,j])
                 else:
-                    B[i,j] = FiniteQuadraticModule_ambient._reduce( 2*A[i,j])/2
+                    B[i,j] = QQ(FiniteQuadraticModule_ambient._reduce( 2*A[i,j]))/QQ(2)
+                    #??B[i,j] = QQ(FiniteQuadraticModule_ambient._reduce( A[i,j]))
         return B
 
 

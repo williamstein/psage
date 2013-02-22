@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -19,7 +19,8 @@ Cython algorithms for Maass waveforms.
 Used by routines in maass_forms.py
 
 """
-include 'sage/ext/stdsage.pxi'
+
+include 'sage/ext/stdsage.pxi' 
 include "sage/ext/cdefs.pxi"
 include 'sage/ext/interrupt.pxi'
 #include "sage/ext/gmp.pxi"
@@ -129,6 +130,7 @@ from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpf
 
 from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mpc_new
 
+from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par
 
 cpdef eval_maass_lp(F,x,y):
     r"""
@@ -427,7 +429,7 @@ cdef compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef compute_V_cplx_dp_sym(double complex **V,
+cdef int compute_V_cplx_dp_sym(double complex **V,
                            int N1,
                            double *Xm,
                            double ***Xpb,
@@ -466,11 +468,9 @@ cdef compute_V_cplx_dp_sym(double complex **V,
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,s,Qs,Qf,Mf,Ms
     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,besarg,lr,nr
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
-    #cdef double **Qfak=NULL
-
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
-    pi=M_PI #<double>RealField(53).pi() #3.141592653589793238
+    pi=M_PI 
     sqrtY=sqrt(Y)
     two=<double>(2)
     Y2pi=Y*pi*two
@@ -529,7 +529,6 @@ cdef compute_V_cplx_dp_sym(double complex **V,
                 ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
     for jcusp in range(nc):
-        #print "alphas[",jcusp,"]=",alphas[jcusp]
         for n from 0<=n<Ml:
             nvec[jcusp][n]=<double>(n+Mv[jcusp][0])+alphas[jcusp]
     cdef int twoQm1
@@ -553,17 +552,6 @@ cdef compute_V_cplx_dp_sym(double complex **V,
                     if Ypb[icusp][jcusp][j]==0: #not Xpb.has_key((icusp,jcusp,j):
                         continue
                     argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
-                    # if symmetric_cusps[icusp]<>-1:
-                    #     argpb1=nvec[jcusp][n]*Xpb[icusp][jcusp][twoQm1-j]
-                    #     if symmetric_cusps[jcusp]==0:
-                    #         ef1[icusp][jcusp][n][j]=cos(argpb)+cos(argpb1)
-                    #     elif symmetric_cusps[jcusp]==1:
-                    #         ef1[icusp][jcusp][n][j]=_I*(sin(argpb)-sin(argpb1))
-                    #     elif symmetric_cusps[icusp]==1:
-                    #         ef1[icusp][jcusp][n][j]=cexpi(argpb)-cexpi(argpb1)
-                    #     else:
-                    #         ef1[icusp][jcusp][n][j]=cexpi(argpb)+cexpi(argpb1)
-                    # else:
                     if symmetric_cusps[jcusp]==0:
                         ef1[icusp][jcusp][n][j]=cos(argpb)
                     elif symmetric_cusps[jcusp]==1:
@@ -582,7 +570,6 @@ cdef compute_V_cplx_dp_sym(double complex **V,
     if kbesvec==NULL:
         raise MemoryError
     for jcusp from 0<=jcusp<nc:
-        #print "allocating kbesvec[",jcusp,"] of size:",Mv[jcusp][2]
         kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
             raise MemoryError
@@ -590,7 +577,6 @@ cdef compute_V_cplx_dp_sym(double complex **V,
             kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
-
     if verbose>0:
         print "here0"
         print "Ml=",Ml
@@ -1185,44 +1171,6 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if verbose>0:
         print "INPUT: R={0}, Y={1}, M={2}, Q={3}, Norm={4}, gr={5}, norm_c={6}, cusp_ev={7}, eps={8}".format(<double>R,<double>Y,M,Q, Norm,gr,norm_c,cusp_ev,eps)
     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N,&Ml,&Ql,M,Q,verbose)
-    # for i from 0<=i<nc:
-    #     symmetric_cusps[i]=0
-    #     #print "sym_type=",sym_type
-    #     symmetries=S.even_odd_symmetries()
-    #     if sym_type<>-1 and symmetries[i][0]<>0:
-    #         if symmetries[i][1]==1:
-    #             symmetric_cusps[i]=int(sym_type)
-    #         elif sym_type==0 and symmetries[i][1]==-1:
-    #             symmetric_cusps[i]=1
-    #         elif sym_type==1 and symmetries[i][1]==-1:
-    #             symmetric_cusps[i]=0
-    #         Mv[i][0]=0; Mv[i][1]=M;  Mv[i][2]=M+1
-    #         #Qv[i][0]=1; Qv[i][1]=Q;  Qv[i][2]=Q
-    #         Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
-    #         N=N+M+1
-    #     else:
-    #         #print "S._group._symmetrizable_cusp[",i,"]=",S._group._symmetrizable_cusp[i]
-    #         symmetric_cusps[i]=-1
-    #         #sym_type=-1
-    #         Mv[i][0]=-M; Mv[i][1]=M;  Mv[i][2]=2*M+1
-    #         Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
-    #         N=N+2*M+1
-    #     if Mv[i][2]>Ml:
-    #         Ml=Mv[i][2]
-    #     if Qv[i][2]>Ql:
-    #         Ql=Qv[i][2]
-
-    #     if verbose>0:
-    #         #print "symmetries=",symmetries
-    #         print "sym_cusps_evs[",i,"]=",symmetric_cusps[i]
-    # if Ql==Q:
-    #     Qs=1; Qf=Q
-    # else:
-    #     Qs=1-Q; Qf=Q
-    # if Ml==M+1:
-    #     Ms=1; Mf=M
-    # else:
-    #     Ms=-M; Mf=M
     Qs = 1-Q; Qf = Q
     if verbose>0:
         print "N=",N," Ml=",Ml," Ql=",Ql
@@ -4274,7 +4222,7 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
     return res
 
 
-cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2=0,dict Norm={},int gr=0,int num_tests=5):
+cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2=0,dict Norm={},int gr=0,int num_tests=5,int ncpus=1):
     r"""
     An efficient method to get coefficients in the double complex case.
     """
@@ -4423,7 +4371,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     if Y2==0:
         Y2=0.94*Y
 
-    compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+#    compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     cdef int Mmax=max(Ml,num_tests)
     res[-1]=dict()
     for i from 0<=i<Mmax:

@@ -34,3 +34,4 @@ cdef class Hn(object):
     cpdef degree(self)
     cpdef diff_abs_norm(self,z)
     cpdef addto_re(self,x)
+    cpdef is_in_upper_half_plane(self)

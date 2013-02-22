@@ -61,7 +61,7 @@ class MaassWaveForms (AutomorphicFormSpace):
     Describes a space of Maass waveforms (cuspforms)
     """
     #def __init__(self,G,prec=500,ST=None,character=None,verbose=0,weight=0,**kwds):
-    def __init__(self,G,weight=0,multiplier="",ch=0,sym_type=None,cusp_evs=None,hecke=False,verbose=0,dprec=None,prec=None,**kwds):
+    def __init__(self,G,weight=0,multiplier="",ch=0,sym_type=None,cusp_evs=None,hecke=False,verbose=0,dprec=None,prec=53,**kwds):
         r"""
         Creates an ambient space of Maass waveforms
 
@@ -85,7 +85,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         self._ch=ch
         self._hecke=hecke
         if dprec==None and prec==None:
-            dprec=53; prec=15
+            dprec=15; prec=53
         elif dprec==None:
             dprec=floor(RR(prec)/3.4)
         else:
@@ -378,6 +378,17 @@ class MaassWaveForms (AutomorphicFormSpace):
                 print "NN=",NN
             
             C = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN)
+            ## Make sure that the coefficient have Sage types
+            CF = ComplexField(self._prec)
+            for i in C.keys():
+                for j in C[i].keys():
+                    if isinstance(C[i][j],dict):
+                        for n in C[i][j].keys():
+                            c = C[i][j][n]
+                            C[i][j][n] = CF(c)
+                    else:
+                        c = C[i][j]
+                        C[i][j] = CF(c)
             F=MaassWaveformElement(self,R,C=C,compute=False)
             return F
             #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
@@ -1204,7 +1215,10 @@ class MaassWaveForms (AutomorphicFormSpace):
         Smallest M0 which we can use if we want to test using Hecke relations.
         """
         if is_Hecke_triangle_group(self._group):
-            self._smallest_M0=int(12*self._group._lambdaq)
+            if self._group.is_Gamma0():
+                self._smallest_M0=int(12)
+            else:
+                self._smallest_M0=int(12*self._group._lambdaq)
         if self._smallest_M0>0:
             return self._smallest_M0
         a = self.get_primitive_p()
@@ -1214,13 +1228,14 @@ class MaassWaveForms (AutomorphicFormSpace):
         return self._smallest_M0
 
 
-    def test_Hecke_relation(self,C={},a=0,b=0):
+    def test_Hecke_relation(self,C={},a=0,b=0,signed=False):
         r"""Testing Hecke relations for the Fourier coefficients in C
 
         INPUT:
         -''C'' -- dictionary of complex (Fourier coefficients)
         -''a'' -- integer
         -''b'' -- integer
+        -''signed'' -- Boolean. True if we want to return a positive or negative number
 
         OUTPUT:
         -''diff'' -- real : |C(a)C(b)-C(ab)| if (a,b)=1
@@ -1268,10 +1283,14 @@ class MaassWaveForms (AutomorphicFormSpace):
                 print "|rhs|=",abs(rhs)
                 print "|lhs|=",abs(lhs)
                 print "self._prec=",self._prec
+                print "rhs/lhs-1=",rhs/lhs-1.0
             if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
                 return -1
             if abs(lhs)>0:
-                return abs(rhs/lhs-1.0)
+                if signed:
+                    return rhs/lhs-1
+                else:
+                    return abs(rhs/lhs-1)
         return -1
 
 
@@ -1786,12 +1805,17 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
                 X=get_coeff_fast_cplx_dp_sym(S,RR(R),RR(Y),int(M),int(Q),Norm)
             else:
                 X=get_coeff_fast_real_dp(S,RR(R),RR(Y),int(M),int(Q),Norm)
+            ## We still want the variables to have Sage types and not primitive python types
+            for i in X.keys():
+                for j in X[j].keys():
+                    for n in X[i][j].keys():
+                        c = CC(X[i][j][n])
+                        X[i][j][n] = c
         else:
             raise NotImplementedError,"High precision is currently not (efficiently) inplemented!"
         ## The parameters used to compute the current set of coefficients.xs
         self._M0 = M
         self._Y  = Y
-        #X = coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
         # If we compute more than one Maass form at one time we simply put the coefficients in the first component
         # And rearrange them later in the "get_element" routine.
         if overwrite or dim>1:

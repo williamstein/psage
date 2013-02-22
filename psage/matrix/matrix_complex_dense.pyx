@@ -7,20 +7,10 @@ Dense matrices over the complex field.
 
 EXAMPLES
 """
-#from sage.modules.vector_rational_dense cimport Vector_rational_dense
-
 include "../ext/interrupt.pxi"
-include "../ext/stdsage.pxi"
 include "../ext/cdefs.pxi"
 include "../ext/gmp.pxi"
 include "../ext/random.pxi"
-#include "../rings/mpc.pxi"
-
-#include "gmp.pxi"
-#include "random.pxi"
-#include "rings/mpc.pxi"
-#include "stdsage.pxi"
-#include "cdefs.pxi"
 
 # set rounding to be nearest integer
 # TODO: make t possible to change rounding
@@ -29,38 +19,27 @@ rnd = MPC_RNDNN
 
 
 
-#cimport sage.structure.element
-cimport psage.matrix.linalg_complex_dense
-from psage.matrix.linalg_complex_dense cimport qr_decomp,_reconstruct_matrix,solve_upper_triangular
-#from psage.matrix.linalg_complex_dense cimport *
-#from linalg_complex_dense cimport *
-#from linalg_complex_dense cimport *
-
-from psage.modules.vector_complex_dense cimport * #Vector_complex_dense
-
-
-#from sage.structure.sequence import Sequence
 from sage.rings.complex_mpc cimport MPComplexNumber
+from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
-#from sage.rings.real_mpfr import RealField
 from sage.rings.real_mpfr import RealField as RFF
 from sage.matrix.matrix cimport Matrix
-from sage.matrix.matrix_generic_dense cimport * #Matrix_generic_dense
-from sage.matrix.matrix_dense cimport * #Matrix_dense
-from sage.all import MatrixSpace
 
-from  sage.modules.free_module_element import vector
-#from matrix_integer_dense import _lift_crt
+from psage.modules.vector_complex_dense cimport Vector_complex_dense
+from psage.matrix.linalg_complex_dense cimport _eigenvalues,qr_decomp,_norm,_hessenberg_reduction,init_QR,QR_set
+from psage.rings.mpc_extras cimport *
+from psage.matrix.linalg_complex_dense cimport qr_decomp,_reconstruct_matrix,solve_upper_triangular
+from psage.modules.vector_complex_dense cimport Vector_complex_dense
+
 from sage.structure.element cimport ModuleElement, RingElement, Element, Vector
+
+from sage.all import MatrixSpace
+from  sage.modules.free_module_element import vector
 from sage.all import FreeModule
-#from sage.rings.integer cimport Integer
 from sage.functions.other import ceil
-#from sage.functions import log
 from sage.rings.ring import is_Ring
-#from sage.rings.integer_ring import ZZ, is_IntegerRing
-#from sage.rings.finite_rings.constructor import FiniteField as GF
-#from sage.rings.finite_rings.integer_mod_ring import is_IntegerModRing
 from sage.rings.rational_field import QQ
+from sage.rings.complex_double import CDF
 from sage.rings.arith import gcd,valuation
 from sage.matrix.matrix import is_Matrix
 from sage.structure.element import is_Vector
@@ -69,9 +48,6 @@ from sage.matrix.matrix2 import cmp_pivots, decomp_seq
 from sage.matrix.matrix0 import Matrix as Matrix_base
 
 from sage.misc.misc import verbose, get_verbose, prod
-from psage.modules.vector_complex_dense cimport *
-from psage.matrix.linalg_complex_dense cimport *
-from psage.rings.mpc_extras cimport *
 
 ## #########################################################
 
@@ -91,7 +67,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     # x * cdef _unpickle
     ########################################################################
 
-    def __cinit__(self, parent,entries=0, coerce=True, copy=True):
+    def __cinit__(self, parent,entries=0, coerce=True, copy=True,verbose=0):
         """
         Create and allocate memory for the matrix.
         
@@ -117,19 +93,31 @@ cdef class Matrix_complex_dense(Matrix_dense):
            you're doing.
         """
         # This is called before __init__
+        self._entries_are_allocated = 0
+        self._double_matrix_is_set = 0
+        self._verbose=int(verbose)
+        if self._verbose>0:
+            print "in cinit"
+        if self._verbose>1:
+            print "entries=",entries
         cdef double x
         if not isinstance(parent,sage.matrix.matrix_space.MatrixSpace):
+            if verbose>0:
+                print "no matrix space!"
             raise ValueError,"Need MatrixSpace as parent!" 
 
         Matrix_dense.__init__(self, parent) #,entries=entries) #coerce=coerce,copy=copy)
         cdef Py_ssize_t i, k
         self._entries = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
-
+        if self._verbose>0:
+            print "entries alloc!"
         if self._entries == NULL:
             raise MemoryError, "Out of memory allocating entries for a matrix of size {0} x {1}".format(self._nrows,self._ncols)
         sig_on()        
         self._matrix =  <mpc_t **> sage_malloc(sizeof(mpc_t*) * self._nrows)
         sig_off()
+        if self._verbose>0:
+            print "matrix alloc!"
         if self._matrix == NULL:
             sage_free(self._entries)
             self._entries = NULL
@@ -141,31 +129,28 @@ cdef class Matrix_complex_dense(Matrix_dense):
             self._matrix[i] = self._entries + k
             k = k + self._ncols
         #cdef int prec
+        if self._verbose>0:
+            print "here0: base = ",self._parent._base
         #prec=self.parent().base_ring().prec()
-        self._base_ring = self._parent._base
-        self._prec= self._base_ring.__prec
+        self._prec= self._base_ring.prec()
+        self._base_ring = MPComplexField(self._prec)
+
         ## TODO: acces rounding modes of parents
+        mpfr_init2(self._mpeps,self._prec)
         self._rnd=MPC_RNDNN ## self._base_ring.__rnd
         #print "here! rnd=",self._rnd
-        self._rnd_re=GMP_RNDN #self._base_ring.__real_field.__rnd
+        self._rnd_re=MPFR_RNDN #self._base_ring.__real_field.__rnd
         #print "here! rnd_re=",self._rnd_re
-        self._rnd_im=GMP_RNDN # self._base_ring.__imag_field.__rnd
+        self._rnd_im=MPFR_RNDN # self._base_ring.__imag_field.__rnd
         #print "here! rnd_im=",self._rnd_im
         ## we also set something like an "effective" machine epsilon
         self._base_for_str_rep=32
         self._truncate=0
-        #x = <double>
-        #print "eps=",x
         RF=self._base_ring._base
         ## This is an "efficient" epsilon for self.
         ## i.e. we allow for sloppy implementations...
-        ## 
-        self._eps = RF(2)**RF(3.5-self._prec)
-        #j = mpfr_get_emin()
-        #print "min_exp=",j
-        #self._eps = RF(2)**RF(self._prec-j)
-        #print "eps=",self._eps
-        mpfr_init2(self._mpeps,self._prec)
+        ##
+        self._eps = RF(2)**RF(1-self._prec)
         mpfr_set(self._mpeps,self._eps.value,self._rnd_re)
         if self._nrows<>self._ncols:
             self._is_square = 0
@@ -174,48 +159,46 @@ cdef class Matrix_complex_dense(Matrix_dense):
 
         self._transformation_to_hessenberg=NULL
         self._error_qr=RF(0)
-        #print "eps=",self._eps
-        #print "prec1=",self._prec
-        
-        #self.__prec=53 #<int>prec
-        #print "prec2=",self.__prec,type(self.__prec)
-        # print "prec=",self._prec
-        for i from 0 <= i < self._nrows * self._ncols:
-            #print "entries[",i,"]=",<int>(self._entries[i])
-            #mpc_init(self._entries[i])
-            mpc_init2(self._entries[i],self._prec)
 
+        for i from 0 <= i < self._nrows * self._ncols:
+            mpc_init2(self._entries[i],self._prec)
+        self._entries_are_allocated = 1
+        if self._verbose>0:
+            print "allocated {0}".format(self._nrows * self._ncols)
 
     def  __dealloc__(self):
+        mpfr_clear(self._mpeps)
         if self._entries == NULL:
             return 
         cdef Py_ssize_t i
-        for i from 0 <= i < self._nrows * self._ncols:
-            mpc_clear(self._entries[i])
+        if self._entries_are_allocated == 1:
+            for i from 0 <= i < self._nrows * self._ncols:
+                if self._verbose>1:
+                    print "dealloc i=",i
+                mpc_clear(self._entries[i])
         sage_free(self._entries)
-        sage_free(self._matrix)
-        mpfr_clear(self._mpeps)
+        if self._matrix<> NULL:
+            sage_free(self._matrix)
+
     
-    def __init__(self, parent, entries=0, coerce=True, copy=True):
+    def __init__(self, parent, entries=0, coerce=True, copy=True,verbose=0):
     
         cdef Py_ssize_t i,j
         cdef MPComplexNumber z
-        #print "In __init__!!"
-        prec=self.parent().base_ring().prec()
-        base_ring=self.parent().base_ring()
-        self._base_ring=base_ring
+        if self._verbose>0:
+            print "in init"
         self._norms=dict()
+        self._double_matrix=None
+        self._double_matrix_is_set=0
         if isinstance(entries, (list, tuple)):
             if len(entries) != self._nrows * self._ncols:
                 raise TypeError, "entries has the wrong length"
-
-
             sig_on()
             if coerce:
                 #print  "len=",self._nrows * self._ncols
                 for i from 0 <= i < self._nrows * self._ncols:
                     # TODO: Should use an unsafe un-bounds-checked array access here.
-                    z = MPComplexNumber(self.base_ring(),entries[i])
+                    z = self._base_ring(entries[i])
                     mpc_set(self._entries[i], z.value, self._rnd)
             else: 
                 for i from 0 <= i < self._nrows * self._ncols:
@@ -226,12 +209,16 @@ cdef class Matrix_complex_dense(Matrix_dense):
         else: 
             # is it a scalar?
             try:
-                # Try to coerce entries to a scalar (an integer)
-                z = MPComplexNumber(self.base_ring(),entries)
+                # Try to coerce entries to a scalar 
+                if self._verbose>0:
+                    print "entries=",entries,type(entries)
+                    print "base_ring=",self.base_ring()
+                z = self._base_ring(entries)
                 is_list = False
-            except TypeError:
+            except TypeError as er:
+                # print "er=",er
                 #print "did not work!"
-                raise TypeError, "entries must be coercible to a list or integer"
+                raise TypeError, "entries must be coercible to a list or complex number. got:{0} of type:{1}!".format(entries,type(entries))
             
             if not z.is_zero():
                 if self._nrows != self._ncols:
@@ -538,11 +525,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
         if truncate<>self._truncate:
             self._truncate=truncate
         # we want to store the base used for pickling
+        mpfr_init2(x,self._prec)
+        mpfr_init2(y,self._prec)
+
         sig_on()
         if self._nrows <> 0 and self._ncols <> 0:
             # how long is the entire string going to be?
-            mpfr_init2(x,self._prec)
-            mpfr_init2(y,self._prec)
             n = 2*self._nrows*self._ncols # = number of real entries
             reqdigits=self._reqdigits(base,truncate)
             #print "required digits is:",reqdigits
@@ -618,6 +606,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             #print "len(data)=",len(data)
             #print "s=",str(s)
         sig_off()
+        mpfr_clear(x); mpfr_clear(y)
         sage_free(s)
         return data
 
@@ -680,9 +669,11 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpfr_set(tmpr.value,y,self._rnd_re)
             #print "y=",tmpr            
             if yi==-1 or xi==-1:
+                mpfr_clear(x); mpfr_clear(y)
                 raise RuntimeError, "invalid pickle data s=%s" %str(s)
             mpc_set_fr_fr(self._entries[i], x,y,self._rnd)
             l=l+2
+        mpfr_clear(x); mpfr_clear(y)
         
     def __richcmp__(Matrix self, right, int op):
         
@@ -700,7 +691,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 return 1
             else:
                 raise NotImplementedError,"Can not compare Matrix_complex_dense with {0}!".format(type(right))
-            return 0
+            #return 0
         else:
             return self._richcmp(right, op)
         
@@ -740,7 +731,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         """
         cdef Py_ssize_t i
         cdef MPComplexNumber _x
-        _x = MPComplexNumber(self.base_ring(),right)
+        _x = self.base_ring()(right)
         cdef Matrix_complex_dense M
         M = Matrix_complex_dense.__new__(Matrix_complex_dense, self._parent, None, None, None)
         for i from 0 <= i < self._nrows * self._ncols:
@@ -759,7 +750,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         """
         cdef Py_ssize_t i
         cdef MPComplexNumber _x
-        _x = MPComplexNumber(self.base_ring(),left)
+        _x = self.base_ring()(left)
         cdef Matrix_complex_dense M
         M = Matrix_complex_dense.__new__(Matrix_complex_dense, self._parent, None, None, None)
         for i from 0 <= i < self._nrows * self._ncols:
@@ -999,7 +990,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
              return Matrix_complex_dense._multiply_classical(self,right)
          #return right._vector_times_matrix(self)
          if not isinstance(right,MPComplexNumber):
-             z = MPComplexNumber(self._base_ring,right)
+             z = self._base_ring(right)
          else:
              z = right
          return self._lmul_(z)
@@ -1099,6 +1090,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 mpc_set(res._matrix[k][j],self._matrix[j][k],self._rnd)
                 mpc_set(res._matrix[j][k],self._matrix[k][j],self._rnd)
             mpc_set(res._matrix[j][j],self._matrix[j][j],self._rnd)
+        mpc_clear(tmp)
         return res
 
 
@@ -1213,14 +1205,18 @@ cdef class Matrix_complex_dense(Matrix_dense):
             errest = self.norm()*eta*nn**(1+eta)**(nn-RF(1))
             self._error_qr=errest
         return self._error_qr
-        
-    cpdef tuple qr_decomposition(self,int overwrite=0, int check=0):
+
+    #def qr_decomposition(self,overwrite=0,check=0,num_threads=1,schedule=0):
+    #    return self._qr_decomposition(overwrite,check,num_threads,schedule)
+    
+    cpdef tuple qr_decomposition(self,int overwrite=0, int check=0,int num_threads=1,int schedule=0):
         r"""
         Computes the QR-dcomposition of self using Givens rotations.
         INPUT:
 
          - overwrite -- set to 1 if you don't mind self._matrix being overwritten.
                         othrwise 0.
+        NOTE: num_threads>1 is not implemented.
         """
         cdef int n,m,i,j,ii
         cdef mpc_t** Q
@@ -1230,6 +1226,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef mpc_t s,sc,t
         cdef mpfr_t x,y,c
         cdef mpc_t tt[3]
+        if num_threads>1:
+            raise NotImplementedError,"Parallel linear algebra is not implemented!"
         mpc_init2(s,self._prec); mpc_init2(t,self._prec)
         mpc_init2(sc,self._prec)        
         mpfr_init2(x,self._prec);mpfr_init2(y,self._prec)
@@ -1240,17 +1238,22 @@ cdef class Matrix_complex_dense(Matrix_dense):
             qr_decomp(self._matrix,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
         else:
             A = <mpc_t **> sage_malloc(sizeof(mpc_t*) * n)
+            if A==NULL:
+                raise MemoryError            
             for i from 0 <= i <  n:
                 A[i]=<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
                 for j from 0 <= j < n:
                     mpc_init2(A[i][j],self._prec+100)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
-            qr_decomp(A,n,n,self._prec+100,self._mpeps,self._rnd,self._rnd_re)
+            if num_threads==1:
+                qr_decomp(A,n,n,self._prec+100,self._mpeps,self._rnd,self._rnd_re)
+            else:
+                raise NotImplementedError,"Parallel linear algebra is not implemented!"
+                #qr_decomp_par(A,n,n,self._prec+100,self._mpeps,num_threads,schedule,self._rnd,self._rnd_re)
             #if i<>1:
             #    raise ArithmeticError,"Could not compute QR-decomposition of self!"
             # reconstruct Q,R from self or A
             # RR=Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
-
             RR=Matrix_complex_dense(self._parent,None,None)
             QQ=Matrix_complex_dense(self._parent,None,None)
         #QQ=Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
@@ -1277,16 +1280,18 @@ cdef class Matrix_complex_dense(Matrix_dense):
         if prec<0 and -prec>self._prec:
             QQ.set_prec(-prec)
             RR.set_prec(-prec)
-        
+        mpc_clear(s); mpc_clear(t); mpc_clear(sc)   
+        mpfr_clear(x);mpfr_clear(y); mpfr_clear(c)
         return QQ,RR
     
 
-    cpdef hessenberg(self,int return_transformation=0,int check=0):
+    cpdef hessenberg(self,int return_transformation=0,int check=0,int num_threads=1,int schedule=0):
         r"""
         Reduce self to Hessenberg form and optionally store
         the transformations.
         This method should primarily be used when we need the
-        transformations. 
+        transformations.
+        NOTE: num_threads>1 is not implemented
         """
         cdef int i,j,n,m
         cdef QR_set q = init_QR(self._prec)
@@ -1295,7 +1300,13 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef mpfr_t x,c
         m = self._nrows
         n = self._ncols
-        _hessenberg_reduction(self._matrix, n, q, self._prec, self._rnd, self._rnd_re, return_transformation)
+        if num_threads>1:
+            raise NotImplementedError,"Parallel linear algebra is not implemented!"
+        if num_threads==1:
+            _hessenberg_reduction(self._matrix, n, q, self._prec, self._rnd, self._rnd_re, return_transformation)
+        else:
+            raise NotImplementedError,"Parallel linear algebra is not implemented!"
+            #_hessenberg_reduction_par(self._matrix, n, q, self._prec, num_threads,schedule,self._rnd, self._rnd_re, return_transformation)       
         if return_transformation:
             Q = Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
             _reconstruct_matrix(Q._matrix,self._matrix, m, n, 2, self._prec, self._rnd, self._rnd_re)
@@ -1323,12 +1334,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
         assert self._is_square
         n = self._nrows
          # we shouldn't need more tries than this
-        for ii from 0 <= ii <n*n:
+        for ii in range(n*n):
             last=1
-            for i from 0 <= i <n:
+            for i in range(n):
                 mpfr_set_ui(c,0,self._rnd_re)
                 mpfr_set_ui(r,0,self._rnd_re)
-                for j from 0 <= j < n:
+                for j in range(n):
                     mpc_abs(x,self._matrix[j][i],self._rnd_re)
                     mpfr_add(c,c,x,self._rnd_re)
                     mpc_abs(x,self._matrix[i][j],self._rnd_re)
@@ -1354,7 +1365,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                         # if((c+r)/f<0.95*s):
                         last=0
                         mpfr_ui_div(g,1,f,self._rnd_re) #=ctx.one()/f
-                        for j from 0 <= j <n:
+                        for j in range(n):
                             #print "i,j=",i,j
                             #mpfr_set(tmpr.value,g,self._rnd_re)
                             #print "g=",tmpr
@@ -1369,8 +1380,10 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 continue
             else:
                 break
-
-
+        mpc_clear(z)
+        mpfr_clear(c);mpfr_clear(r);mpfr_clear(f);mpfr_clear(g);mpfr_clear(t)
+        mpfr_clear(s);mpfr_clear(x);mpfr_clear(q)
+        
 
         
     ## ### test various properties of self
@@ -1388,7 +1401,6 @@ cdef class Matrix_complex_dense(Matrix_dense):
         """
         cdef int t
         cdef mpfr_t y
-
         t=_is_hessenberg(self._entries,self._nrows,self._prec,self._mpeps,self._rnd,self._rnd_re,y,show_err)
         if t==0 and show_err:
             maxerr=mpfr_get_d(y,self._rnd_re)
@@ -1412,6 +1424,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpfr_set(err.value,maxerr,self._rnd_re)
             mpfr_clear(maxerr)
             return (t,err)
+        mpfr_clear(maxerr)
         return t
         
     
@@ -1440,14 +1453,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef mpc_t z,w,s
         cdef mpfr_t x,one
         cdef int i,j,kk
-        mpc_init2(s,self._prec)
-        mpc_init2(z,self._prec)
-        mpc_init2(w,self._prec)
-        mpfr_init2(x,self._prec)
-        mpfr_init2(one,self._prec)        
         #assert self._is_square
         if self._is_square==0:
             return 0
+        mpc_init2(s,self._prec);   mpc_init2(z,self._prec)
+        mpc_init2(w,self._prec);   mpfr_init2(x,self._prec)
+        mpfr_init2(one,self._prec)
         mpfr_set_ui(one,1,self._rnd_re)
         #n = (self*self.transpose().conjugate()-self._parent.one()).norm()
         for i from 0 <= i < self._nrows:
@@ -1460,12 +1471,15 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 if i<>j:
                     mpc_abs(x,s,self._rnd_re)
                     if mpfr_cmp(x,self._mpeps)>0:
+                        mpc_clear(s);mpc_clear(z);mpc_clear(w);mpfr_clear(x);mpfr_clear(one)
                         return 0
                 if i==j:
                     mpc_sub_fr(s,s,one,self._rnd)
                     mpc_abs(x,s,self._rnd_re)
                     if mpfr_cmp(x,self._mpeps)>0:
+                        mpc_clear(s);mpc_clear(z);mpc_clear(w);mpfr_clear(x);mpfr_clear(one)
                         return 0
+        mpc_clear(s);mpc_clear(z);mpc_clear(w);mpfr_clear(x);mpfr_clear(one)
         return 1
 
     cpdef int is_unitary(self,int return_err=0):
@@ -1482,7 +1496,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpfr_set(err.value,maxerr,self._rnd_re)
             mpfr_clear(maxerr)
             return (t,err)
-        
+        mpfr_clear(maxerr)
         return t
         
     
@@ -1525,11 +1539,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
         
 
 
-    cpdef Vector_complex_dense solve(self,Vector_complex_dense b,int overwrite=0):
+    cpdef Vector_complex_dense solve(self,Vector_complex_dense b,int overwrite=0,int num_threads=1,int schedule=0):
         r"""
         Self should be n x n. 
         Solve self*X=b using QR-decomposition.
         If overwrite = 1 then we overwrite A in the process off solving.
+        Note: num_threads>1 is not implemented.
         """
         #cdef mpc_t** Q
         #cdef mpc_t** R
@@ -1538,6 +1553,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         assert self._is_square
         cdef int n = self._nrows
         assert len(b)==n
+        if num_threads>1: raise NotImplementedError,"Parallel linear algebra is not implemented!"
         cdef mpc_t s,sc
         cdef mpc_t t[3],w[2]
         cdef mpfr_t c,x
@@ -1549,12 +1565,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
         #print "prec=",self._prec
         #print "b=",b
         mpc_init2(s,self._prec); mpc_init2(sc,self._prec)
-        mpc_init2(t[0],self._prec)
-        mpc_init2(t[1],self._prec)
-        mpc_init2(t[2],self._prec)
+        mpc_init2(t[0],self._prec); mpc_init2(t[1],self._prec); mpc_init2(t[2],self._prec)
         mpfr_init2(c,self._prec); mpfr_init2(x,self._prec) 
-        mpc_init2(w[0],self._prec)
-        mpc_init2(w[1],self._prec)
+        mpc_init2(w[0],self._prec); mpc_init2(w[1],self._prec)
         #if not overwrite:
         #
         v = <mpc_t *> sage_malloc(sizeof(mpc_t) * n)
@@ -1563,7 +1576,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpc_init2(v[i],self._prec)
             mpc_set(v[i],b._entries[i],self._rnd)
         if overwrite == 1:
-            qr_decomp(self._matrix,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
+            if num_threads==1:
+                qr_decomp(self._matrix,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
+            else:
+                raise NotImplementedError,"Parallel linear algebra isnot yet implemented!"
+                #with nogil:
+                #    qr_decomp_par(self._matrix,n,n,self._prec,self._mpeps,num_threads,schedule,self._rnd,self._rnd_re)
         else:
             A = <mpc_t **> sage_malloc(sizeof(mpc_t*) * n)
             for i from 0 <= i <  n:
@@ -1571,7 +1589,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 for j from 0 <= j < n:
                     mpc_init2(A[i][j],self._prec)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
-            qr_decomp(A,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
+            if num_threads==1:
+                qr_decomp(A,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
+            else:
+                raise NotImplementedError,"Parallel linear algebra isnot yet implemented!"
+                #with nogil:
+                #    qr_decomp_par(A,n,n,self._prec,self._mpeps,num_threads,schedule,self._rnd,self._rnd_re)
         # compute b' = Q.conjugate().transpose()*b 
         #
         #        for j in xrange(n-2,-1,-1):
@@ -1630,18 +1653,16 @@ cdef class Matrix_complex_dense(Matrix_dense):
         for i from 0 <= i < n:
             mpc_clear(v[i])
         sage_free(v)
-        mpc_clear(s); mpc_clear(sc); mpc_clear(t[0])
-        mpc_clear(t[1]); mpc_clear(t[2])
+        mpc_clear(s); mpc_clear(sc)
+        mpc_clear(t[0]); mpc_clear(t[1]); mpc_clear(t[2])
         mpfr_clear(c); mpfr_clear(x)
+        mpc_clear(w[0]);mpc_clear(w[1])
         if overwrite <> 1:
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
                     mpc_clear(A[i][j])
             sage_free(A)
         return res
-
-
-
   
 
 
@@ -1687,15 +1708,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
         #print "prec=",self._prec
         #print "b=",b
         mpc_init2(s,self._prec); mpc_init2(sc,self._prec)
-        mpc_init2(t[0],self._prec)
-        mpc_init2(t[1],self._prec)
-        mpc_init2(t[2],self._prec)
+        mpc_init2(t[0],self._prec); mpc_init2(t[1],self._prec); mpc_init2(t[2],self._prec)
         mpfr_init2(c,self._prec); mpfr_init2(x,self._prec) 
-        mpc_init2(w[0],self._prec)
-        mpc_init2(w[1],self._prec)
-        #if not overwrite:
-        #
-        #print "overwrite=",overwrite
+        mpc_init2(w[0],self._prec); mpc_init2(w[1],self._prec)
         if overwrite==1:
             qr_decomp(self._matrix,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
         else:
@@ -1710,9 +1725,6 @@ cdef class Matrix_complex_dense(Matrix_dense):
             for k from 0 <= k < B._ncols:
                 mpc_set(res._matrix[j][k],B._matrix[j][k],self._rnd)
         # compute b' = Q.conjugate().transpose()*b 
-        #
-        #        for j in xrange(n-2,-1,-1):
-        #            for i in xrange(n-1,j,-1):
         v =<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
         for j from 0 <= j < n:
             mpc_init2(v[j],self._prec)
@@ -1783,9 +1795,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
         for j from 0 <= j < n:
             mpc_clear(v[j])
         sage_free(v)
-        mpc_clear(s); mpc_clear(sc); mpc_clear(t[0])
-        mpc_clear(t[1]); mpc_clear(t[2])
+        mpc_clear(s); mpc_clear(sc); mpc_clear(t[0]); mpc_clear(t[1]); mpc_clear(t[2])
         mpfr_clear(c); mpfr_clear(x)
+        mpc_clear(w[0]);mpc_clear(w[1])
         if overwrite <> 1:
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
@@ -1793,14 +1805,21 @@ cdef class Matrix_complex_dense(Matrix_dense):
             sage_free(A)
         return res
 
-    cpdef list eigenvalues(self,int check=0,int sorted=0,int overwrite=0):
+    cpdef list eigenvalues(self,int check=0,int sorted=0,int overwrite=0,int num_threads=1,int schedule=0):
         r"""
         Compute the eigenvalues of self.
         sorted = 0  => return unsorted list
         sorted = 1  => return sorted list according to abs-value
         sorted = 2  => return sorted list according to first real, then imaginary value
+        num_threads = 1 => use one thread (i.e. no parallelization)
+                 = n>1 -- use n threads. 
+                 =-1   -- use automatic number of threads
+        schedule = 0 => dynamic scheduling
+                 = 1 => static scheduling
+        NOTE: num_threads >1 is not implemented
         """
         from sage.all import deepcopy
+        if num_threads>1: raise NotImplementedError,"Parallel linear algebra is not implemented!"
         cdef mpc_t* evs
         cdef list res
         cdef int i
@@ -1808,6 +1827,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef mpfr_t tmp
         cdef mpc_t** A
         assert self._is_square
+        assert schedule == 0 or schedule == 1
         mpfr_init2(tmp,self._prec)
         #from linalg_complex_dense cimport Eigenvalues_of_M
         z = self._base_ring(1)
@@ -1821,20 +1841,31 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 for j from 0 <= j < self._nrows:
                     mpc_init2(A[i][j],self._prec)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
-            _eigenvalues(evs,A,self._nrows,self._prec,self._rnd,self._rnd_re)
+            if num_threads==1:
+                _eigenvalues(evs,A,self._nrows,self._prec,self._rnd,self._rnd_re,self._verbose)
+            else:
+                raise NotImplementedError,"Parallel linear algebra is not implemented!"
+                #_eigenvalues_par(evs,A,self._nrows,self._prec,num_threads,schedule,self._verbose,self._rnd,self._rnd_re)
             #for i in range(self._nrows):
             #    print "evs[",i,"]=",print_mpc(evs[i])
             sage_free(A)
         else:
-            _eigenvalues(evs,self._matrix,self._nrows,self._prec,self._rnd,self._rnd_re)
+            if num_threads==1:
+                _eigenvalues(evs,self._matrix,self._nrows,self._prec,self._rnd,self._rnd_re,self._verbose)
+            else:
+                raise NotImplementedError,"Parallel linear algebra is not implemented!"
+                #_eigenvalues_par(evs,self._matrix,self._nrows,self._prec,num_threads,schedule,self._verbose,self._rnd,self._rnd_re)
+                #_eigenvalues_par(evs,A,self._nrows,self._prec,self._rnd,self._rnd_re,nthreads)
         z=self._base_ring(1)
         res  = list()
         for i from 0 <= i < self._nrows:
-            z = MPComplexNumber(self._base_ring,0)
+            z = self._base_ring(0)
             mpc_abs(tmp,evs[i],self._rnd_re)
             if mpfr_cmp(tmp,self._eps.value)>0:
                 mpc_set(z.value,evs[i],self._rnd)
-            #print "z[",i,"]=",z,type(z)
+            if self._verbose>0:
+                mpc_set(z.value,evs[i],self._rnd)
+                print "z[",i,"]=",z,type(z)
             #res.append(deepcopy(z))
             res.append(z)
             
@@ -1854,17 +1885,19 @@ cdef class Matrix_complex_dense(Matrix_dense):
         mpfr_clear(tmp)
         return res
 
-
-    cpdef list eigenvectors(self,int check=1,int overwrite=0,int sorted=0,int verbose=0,int depth=0,double old_tol=0.0,double old_eps=0.0):
+    cpdef list eigenvectors(self,int check=1,int overwrite=0,int sorted=0,int verbose=0,int depth=0,double old_tol=0.0,double old_eps=0.0,int num_threads=1,int schedule=0):
         r"""
         Ineffective (I guess...) method of computing eigenvectors one by one
-        sorted = 0 = > eigenvalues are sorted according to abs-value
 
-        sorted = 1 = > eigenvalues are sorted according to first real, then imaginary value
+        INPUT::
+        
+        
+         - 'sorted' -- integer (default 0). Set to 0 = > eigenvalues are sorted according to abs-value
+                       sorted = 1 = > eigenvalues are sorted according to first real, then imaginary value
+                       sorted = -1 = > eigenvalues are sorted according to first imaginary, then real value
 
-        sorted = -1 = > eigenvalues are sorted according to first imaginary, then real value
-
-
+         - 'check' -- integer (default 0). Set to 1 => Increase precision until machine epsilon precision is reached.
+        
         """
         assert self._is_square
         from sage.all import deepcopy
@@ -1880,6 +1913,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef dict swaps
         cdef tuple pivots
         swaps={}
+        if num_threads>1: raise NotImplementedError,"Parallel linear algebra is not implemented!"
         ## This is the error we estimate from the eigenvalues
         tolfak=10.0
         if depth>1 and check==0:
@@ -1892,12 +1926,14 @@ cdef class Matrix_complex_dense(Matrix_dense):
             tol = self._base_ring._base(old_tol)
         else:
             tol = new_tol
-        new_eps = self.eps()
+        ## Note that if A is known to self.eps() then we can never expect more than this precision
+        ## in the eigenvalue or eigenvector 
+        new_eps = self.nrows()*self.eps()
         if old_eps>0 and old_eps<1.0:
             eps = self._base_ring._base(old_eps)
         else:
             eps = new_eps    
-        evs=self.eigenvalues(sorted=sorted)
+        evs=self.eigenvalues(sorted=sorted,num_threads=num_threads,schedule=schedule)
         #_eigenvalues(evs,self._matrix,self._nrows,self._prec,self._rnd,self._rnd_re)
         if verbose>0:
             print "tol=",tol
@@ -2030,7 +2066,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 # Now solve the dependent variables
                 for j from 0<=j<R.rank():
                     #print "Rank-j-1=",R.rank()-j-1
-                    if verbose>0:
+                    if verbose>1:
                         print "R[",R.rank()-j-1,"][",self._ncols-i-1,"]=",R[R.rank()-j-1][self._ncols-i-1]
                     eigenvec[R.rank()-j-1]=-R[R.rank()-j-1][self._ncols-i-1]
                 if verbose>0:
@@ -2057,14 +2093,15 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 if verbose>0:
                     if len(swaps)>0:
                         print "after swap: swaps={0}".format(swaps)
-                        print "after swap: eigenvector=",eigenvec
+                        #print "after swap: eigenvector=",eigenvec
                 vecs.append(eigenvec)  
             #mpc_set(z.value,evs[evi],rnd)
             if verbose>0:
                 for v in vecs:
-                    print "v=",v
-                    print "|(A-lambda*I)v|=",self*v
-                    print "||QR-(A-lambdaI)||=",(Q*R-self).norm()
+                    #if verbose>1:
+                    #    print "v=",v
+                    #print "|(A-lambda*I)v|=",self*v-
+                    print "||QR-A||=",(Q*R-self).norm()
             for i from 0<=i<self._nrows:
                 mpc_add(self._matrix[i][i],self._matrix[i][i],z.value,rnd)
             if check>=1:
@@ -2082,7 +2119,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                             print "R*v=",R*v
                             print "(QR)*v=",(Q*R)*v
                             print "self=",self
-                            print "tol*||v||=",tol*v.norm()
+                        print "tol*||v||=",tol*v.norm()
                     #if test.norm()<=self._ncols*eps:
                     if test.norm()<=tol*v.norm():
                         continue
@@ -2127,13 +2164,6 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 z2 = self._base_ring(z)
             res.append((z2,vecs2))
             # Reset self
-        #if evs<>NULL:
-        #    for i from 0<=i<self._nrows:
-        #        if evs[i]<>NULL:
-        #            mpc_clear(evs[i])
-        #    sage_free(evs)
-        #res.sort(cmp=my_abscmp2)
-        #mpfr_clear(tmp)
         if check>=1:  ## We also check that we have the correct number of eigenvalues (with mult)
             i = 0
             for z,l in res:
@@ -2156,6 +2186,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef int i 
         cdef MPComplexNumber z
         from sage.all import deepcopy
+        raise NotImplementedError
         res  = list()
         #from linalg_complex_dense cimport Eigenvalues_of_M
         z = self._base_ring(1)
@@ -2169,7 +2200,6 @@ cdef class Matrix_complex_dense(Matrix_dense):
             res.append(deepcopy(z))
         res.sort(cmp=my_abscmp)
         return res
-    
 
     def set_prec(self,int prec):
         r"""
@@ -2190,81 +2220,29 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 mpc_set(self._matrix[i][j],z,self._rnd)
         RF= self._base_ring._base
         self._error_qr=RF(0)
-        self._eps = RF(2)**RF(5-self._prec)
+        self._eps = RF(2)**RF(1-self._prec)
         mpfr_init2(self._mpeps,self._prec)
         mpfr_set(self._mpeps,self._eps.value,self._rnd_re)
         mpc_clear(z)
 
-
-
-    ## cpdef Matrix_complex_dense mat_solve(self,Matrix_complex_dense B):
-    ##     r"""
-    ##     Solve AX=B using QR-decomposition.
-    ##     """
-    ##     cdef Matrix_complex_dense Q,R,BB,res
-    ##     res=Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
-    ##     Q,R = self.qr_decomp()
-    ##     BB = Q.inverse()*B
-    ##     cdef int i,n,prec
-    ##     n = self.nrows()
-    ##     prec = self.parent().base_ring().prec()
+    def to_double(self):
+        r"""
+        Return a Matrix_complex_double_dense approximation to self.
+        """
+        if self._double_matrix_is_set==0:            
+            dbl_entries=[]
+            for i in range(self._nrows):
+                for j in range(self._ncols):
+                    z = self.get_unsafe(i,j)
+                    dbl_entries.append(CDF(z.real(),z.imag()))
+            MS = MatrixSpace(CDF,self._nrows,self._ncols)
+            self._double_matrix = Matrix(MS,dbl_entries)
+        return self._double_matrix
+                    
         
-    ##     for i from 0 <= i < BB.columns():
-    ##         b = Vector_complex_dense(BB.column(i).parent(),BB.column(i))
-    ##         solve_upper_triangular(R._matrix, b._entries,n,prec,self._rnd,self._rnd_re)
-    ##         for j from 0 <= j < n:
-    ##             res[j,i]=b[j]
-    ##     return res
-
-
-
-
-         
-            
-
-    
-
-
-
-
-
-#define RotateRight(s,skk,c,A,i,k,t) \
-
-
-
-
-
-
-
-
-    ## def random_unitary_matrix(self):
-    ##     r"""
-    ##     Returns a random unitary matrix. 
-    ##     """
-    ##     assert self._is_square
-    ##     U = Matrix(self._base_ring,self._nrows)
-    ##     # make a random choice of vectors and use Gram-Schmidt to orthogonolize
-    ##     V = VectorSpace(self._base_ring,self._nrows)
-    ##     v = dict(); u=dict()
-    ##     for i in xrange(n):
-    ##         v[i] = V.random_element()
-    ##         nv= v[i].norm()
-    ##         v[i]=v[i]/nv
-    ##     # check that the v's are indeed linear independent
-    ##     VV= V.vector_space_span(v.values())
-    ##     assert VV.dimension()==V.dimension()
-    ##     for i in xrange(n):
-    ##         u[i] = v[i]
-    ##         for j in xrange(i):
-    ##             u[i]=u[i]-u[j]*u[i].scalar_product(u[j])
-    ##             u[i]=u[i]/u[i].norm()
-    ##     for i in xrange(n):
-    ##         for j in xrange(n):
-    ##             U[i,j]=u[i][j]
-    ##     return U
-
-
-
+    def to_numpy(self):
+        return self.to_double().numpy()
+        
 
 ####  Helper functions
         
@@ -2279,7 +2257,7 @@ cpdef test_matrix_met(int n=20):
     for i in xrange(100):
         B=A.qr_decomp()
 
-cdef _my_sign(mpc_t alpha, mpc_t z, prec,mpc_rnd_t rnd_cplx,mp_rnd_t rnd_re):
+cdef _my_sign(mpc_t alpha, mpc_t z, prec,mpc_rnd_t rnd_cplx,mpfr_rnd_t rnd_re):
     r""" Sign of a complex number: sign(z)=exp(iArg(z))
     """
     #cdef mpc_t alpha
@@ -2292,7 +2270,7 @@ cdef _my_sign(mpc_t alpha, mpc_t z, prec,mpc_rnd_t rnd_cplx,mp_rnd_t rnd_re):
     mpc_set_fr_fr(alpha,y,arg,rnd_cplx)
     mpc_exp(alpha,alpha,rnd_cplx)
     mpfr_clear(arg)
-    #mpfr_clear(y)
+    mpfr_clear(y)
 
     
 cpdef my_lexcmp_re(MPComplexNumber a,MPComplexNumber b,int reverse=0):
@@ -2333,36 +2311,6 @@ cpdef my_lexcmp_im(MPComplexNumber a,MPComplexNumber b,int reverse=0):
         return -1
     return 0
 
-    #  if cmpreal==1:
-    #     t1 = mpfr_cmp(mpc_realref(a.value),mpc_realref(b.value))
-    #     if t1<0:
-    #         return -1
-    #     if t1==0:
-    #         t2 = mpfr_cmp(mpc_imagref(a.value),mpc_imagref(b.value))
-    #         if t2<0:
-    #             return -1
-    #         elif t2>0:
-    #             return 1
-    #         else:
-    #             return 0
-    #     elif t1>0:
-    #         return 1
-    # else:
-    #     t1 = mpfr_cmp(mpc_imagref(a.value),mpc_imagref(b.value))
-    #     if t1<0:
-    #         return -1
-    #     if t1==0:
-    #         t2 = mpfr_cmp(mpc_realref(a.value),mpc_realref(b.value))
-    #         if t2<0:
-    #             return -1
-    #         elif t2>0:
-    #             return 1
-    #         else:
-    #             return 0
-    #     elif t1>0:
-    #         return 1
-    
-
 cpdef my_abscmp(a,b,reverse=0):
     r"""
     Compare |a| and |b| for complex a and b.
@@ -2400,7 +2348,7 @@ cpdef my_abscmp2(a,b,reverse=0):
 cdef _norm_vector(mpfr_t* norm, mpc_t* v,int n,mpfr_rnd_t rnd_re):
     cdef int i
     cdef mpfr_t x
-    i = <mp_prec_t> mpc_get_prec(v[0])
+    i = <int> mpc_get_prec(v[0])
     #print "prec=",i
     mpfr_init2(x,i)
     mpfr_set_ui(norm[0],0,rnd_re)
@@ -2432,6 +2380,7 @@ cdef int _is_hermitian(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_
     mpc_init2(z,prec)
     mpc_init2(w,prec)
     mpfr_init2(x,prec)
+    mpc_clear(z); mpc_clear(w); mpfr_clear(x)
     for i from 0 <= i < n:
         for j from 0 <= j < n:
             mpc_set(z, A[i*n+j],rnd)
@@ -2439,7 +2388,9 @@ cdef int _is_hermitian(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_
             mpc_sub(z,w,A[j*n+i],rnd)
             mpc_abs(x,z,rnd_re)
             if mpfr_cmp(x,eps)>0:
+                mpc_clear(z); mpc_clear(w); mpfr_clear(x)
                 return 0
+    mpc_clear(z); mpc_clear(w); mpfr_clear(x)
     return 1
 
 cdef int _is_unitary(mpc_t** A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_rnd_t rnd_re,mpfr_t maxerr,int return_err=0):
@@ -2451,10 +2402,8 @@ cdef int _is_unitary(mpc_t** A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_r
     cdef MPComplexNumber tmpc
     from sage.rings.complex_mpc import MPComplexField
     tmpc = MPComplexField(prec)(0)
-    mpc_init2(s,prec)
-    mpc_init2(z,prec)
-    mpc_init2(w,prec)
-    mpfr_init2(x,prec)
+    mpc_init2(s,prec);  mpc_init2(z,prec)
+    mpc_init2(w,prec);  mpfr_init2(x,prec)
     mpfr_init2(one,prec)
     if return_err:
         mpfr_set_ui(maxerr,0,rnd_re)
@@ -2476,6 +2425,7 @@ cdef int _is_unitary(mpc_t** A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_r
                 if mpfr_cmp(x,eps)>0:
                     mpc_set(tmpc.value,s,rnd)
                     print "|Qt[",i,",",j,"]|=",abs(tmpc)
+                    mpc_clear(s); mpc_clear(z); mpc_clear(w); mpfr_clear(x);mpfr_clear(one)
                     return 0
             if i==j:
                 mpc_sub_fr(s,s,one,rnd)
@@ -2486,8 +2436,9 @@ cdef int _is_unitary(mpc_t** A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_r
                 if mpfr_cmp(x,eps)>0:
                     mpc_set(tmpc.value,s,rnd)
                     print "Qt[",i,",",j,"]=",tmpc
+                    mpc_clear(s); mpc_clear(z); mpc_clear(w); mpfr_clear(x);mpfr_clear(one)
                     return 0
-
+    mpc_clear(s); mpc_clear(z); mpc_clear(w); mpfr_clear(x);mpfr_clear(one)
     return 1
 
 
@@ -2501,8 +2452,7 @@ cdef int _is_upper_triangular(mpc_t** A,int n,int prec, mpfr_t eps, mpc_rnd_t rn
     cdef MPComplexNumber tmpc
     from sage.rings.complex_mpc import MPComplexField
     tmpc = MPComplexField(prec)(0)
-    mpc_init2(z,prec)
-    mpfr_init2(x,prec)
+    mpc_init2(z,prec); mpfr_init2(x,prec)
     if return_err:
         mpfr_set_ui(maxerr,0,rnd_re)
     for i from 1<=i < n:
@@ -2515,9 +2465,10 @@ cdef int _is_upper_triangular(mpc_t** A,int n,int prec, mpfr_t eps, mpc_rnd_t rn
             if mpfr_cmp(x,eps)>0:
                 mpc_set(tmpc.value,z,rnd)
                 #print "|R[",i,",",j,"]|=",tmpc
+                mpc_clear(z); mpfr_clear(x)
                 return 0
 
-        
+    mpc_clear(z); mpfr_clear(x)
     return 1
 
 
@@ -2545,7 +2496,9 @@ cdef int _is_hessenberg(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr
             if mpfr_cmp(x,eps)>0:
                 #mpc_set(tmpc.value,z,rnd)
                 #print "|R[",i,",",j,"]|=",tmpc
+                mpc_clear(z); mpfr_clear(x)
                 return 0
+    mpc_clear(z); mpfr_clear(x)
     return 1
     
 
@@ -2572,7 +2525,7 @@ cdef int _pivot_element(int k, int r, mpc_t** A,int  *nrows,int *ncols,int *prec
         if mpfr_cmp(xtmp,xmax) > 0 :
             mpfr_set(xmax,xtmp,rnd_re)
             kpiv=i
-
+    mpfr_clear(xmax);mpfr_clear(xtmp)
     return kpiv
 
 
@@ -2603,6 +2556,7 @@ cdef int _pivot_element2(int k, int r, mpc_t* A,int  nrows,int ncols,int prec,mp
             #print "|xmax|=",tmpr
             # permuting rows k and kpiv
     #print "kpiv=",kpiv
+    mpfr_clear(xmax);mpfr_clear(xtmp)
     return kpiv
 
 
@@ -2657,6 +2611,7 @@ cdef Gershgorin_disks(mpc_t* B, int n, int prec,mpfr_rnd_t rnd_re):
                     mpfr_add(r,r,x,rnd_re)
             mpfr_set(rr.value,r,rnd_re)
             res[i]=deepcopy(rr)
+        mpfr_clear(r);mpfr_clear(x)
         return res
 
             
@@ -2674,11 +2629,8 @@ cdef int _is_unitary2(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_r
     cdef MPComplexNumber tmpc
     from sage.rings.complex_mpc import MPComplexField
     tmpc = MPComplexField(prec)(0)
-    mpc_init2(s,prec)
-    mpc_init2(z,prec)
-    mpc_init2(w,prec)
-    mpfr_init2(x,prec)
-    mpfr_init2(one,prec)
+    mpc_init2(s,prec);  mpc_init2(z,prec)
+    mpc_init2(w,prec);  mpfr_init2(x,prec); mpfr_init2(one,prec)
     if return_err:
         mpfr_set_ui(maxerr,0,rnd_re)
     mpfr_set_ui(one,1,rnd_re)
@@ -2699,6 +2651,8 @@ cdef int _is_unitary2(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_r
                 if mpfr_cmp(x,eps)>0:
                     mpc_set(tmpc.value,s,rnd)
                     print "Qt[",i,",",j,"]=",tmpc
+                    mpc_clear(s);mpc_clear(z);mpc_clear(w)
+                    mpfr_clear(x); mpfr_clear(one)
                     return 0
             if i==j:
                 mpc_sub_fr(s,s,one,rnd)
@@ -2709,8 +2663,11 @@ cdef int _is_unitary2(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_r
                 if mpfr_cmp(x,eps)>0:
                     mpc_set(tmpc.value,s,rnd)
                     print "Qt[",i,",",j,"]=",tmpc
+                    mpc_clear(s);mpc_clear(z);mpc_clear(w)
+                    mpfr_clear(x); mpfr_clear(one)
                     return 0
-
+    mpc_clear(s);mpc_clear(z);mpc_clear(w)
+    mpfr_clear(x); mpfr_clear(one)
     return 1
 
 
@@ -2737,9 +2694,10 @@ cdef int _is_upper_triangular2(mpc_t* A,int n,int prec, mpfr_t eps, mpc_rnd_t rn
             if mpfr_cmp(x,eps)>0:
                 mpc_set(tmpc.value,z,rnd)
                 print "|R[",i,",",j,"]|=",tmpc
+                mpfr_clear(x);mpc_clear(z)
                 return 0
 
-        
+    mpfr_clear(x);mpc_clear(z)        
     return 1
 
 def random_matrix_eigenvalues(F,n):
@@ -2793,3 +2751,49 @@ def random_unitary_matrix(F,n):
         for j in xrange(n):
             U[i,j]=u[i][j]
     return U
+
+
+def RandomComplexMatrix(sz,prec=53,**kwds):
+    r"""
+    Compute a random matrix of type Matrix_complex_dense
+    """
+    CF = MPComplexField(prec)
+    MS = MatrixSpace(CF,sz,sz)
+    A = Matrix_complex_dense(MS,MS.random_element(**kwds).list())
+    return A
+
+def test_eigenvalues(num_test=5,sz=10,prec=102,verbose=0):
+    r"""
+    Test the computation of eigenvalues.
+    """
+    eps = 2.0**-prec
+    if verbose>0:
+        print "eps=",eps
+    for j in range(num_test):
+        A = RandomComplexMatrix(sz,prec)
+        ev = A.eigenvalues(check=1)
+        tr = sum(ev)
+        tr1 = A.trace()
+        er = abs(tr-tr1)
+        if verbose>0:
+            print "er=",er
+        assert er < eps
+
+def test_eigenvalues(num_test=5,sz=10,prec=102,verbose=0):
+    r"""
+    Test the computation of eigenvalues.
+    """
+    CF = MPComplexField(prec)
+    MS = MatrixSpace(CF,sz,sz)
+    eps = sz*2.0**(5-prec)
+    if verbose>0:
+        print "eps=",eps
+    for j in range(num_test):
+        A = RandomComplexMatrix(sz,prec)
+        ev = A.eigenvalues(check=1)
+        tr = sum(ev)
+        tr1 = A.trace()
+        er = abs(tr-tr1)
+        if verbose>0:
+            print "er=",er
+        assert er < eps

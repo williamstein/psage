@@ -31,19 +31,9 @@ Conventions for return codes:
  
 """
 
-#include "sage/ext/cdefs.pxi"
-#include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
-#include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
-#include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
-
-
 ## For multiprecision support
-from sage.libs.mpfr cimport *
-cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
-#rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
+rnd_re = MPFR_RNDN
 cdef int nmax = 10000
 from sage.rings.real_mpfr cimport RealNumber
 from sage.rings.real_mpfr cimport RealField_class
@@ -149,7 +139,8 @@ cpdef RealNumber ei_taylor(RealNumber x, int verbose=0):
         return res
     else:
         raise ArithmeticError,"Taylor expansion method for exponential integral failed with code:{0}".format(ok)
-    
+
+
 cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
     r"""
     Compute the exponential integral of x via asymptotic formula
@@ -168,7 +159,7 @@ cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
 ### 
 #cdef RealNumber incgamma_pint(int n,RealNumber x):
 ## Changed that these return 1 on success and 0 on fail (to avoid try -- catch clauses)
-cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
+cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
     r"""
     Incomplete Gamma, Gamma(n,x) with n positive integer.
     Uses the formula:
@@ -176,8 +167,8 @@ cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     This is just a finite sum so the only error should come from precision of the mpfr-functions and operations.
     """
     cdef mpfr_t tmp,tmp2,tmp_fak
-    cdef int j,prec
-    cdef RealField_class RF
+    cdef int j
+    cdef mpfr_prec_t prec
     prec = mpfr_get_prec(x)
     #res = RF(-x)
     mpfr_neg(res,x,rnd_re)
@@ -197,7 +188,6 @@ cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
         #tmp=tmp+tmp2
         mpfr_mul_ui(tmp_fak,tmp_fak,j,rnd_re)
         #tmp_fak=tmp_fak*jj
-
     # res = exp(-x)*tmp_fak*tmp
     # res = -x
     #mpfr_neg(res.value,x,rnd_re)
@@ -211,53 +201,53 @@ cdef int incgamma_pint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
     return 0
 
 ## Gamma(n,x) with n<0 and real x>0
-cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
+cdef int incgamma_nint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
     r"""
     Incomplete Gamma, Gamma(n,x) with n negative integer.
     We use Gamma(0,x)=-Ei(-x) for x>0
     """
     if n!=0:
-        raise NotImplementedError,"Doesn't work right now..."
-    cdef int prec = mpfr_get_prec(x)
-    cdef int wp = prec + 20
+        return -1
+    cdef mpfr_prec_t prec, wp
     cdef int ok = 1
     cdef mpfr_t xabs_t, wp_t
-    mpfr_init2(xabs_t, wp)
-    mpfr_init2(wp_t, wp)
+    prec = mpfr_get_prec(x)
+    wp=prec+20
+    mpfr_init2(xabs_t, prec)
+    mpfr_init2(wp_t, prec)
+    mpfr_set_ui(wp_t,wp,rnd_re)
     mpfr_abs(xabs_t, x, rnd_re)
     #cdef int xabs = mpfr_get_ui(xabs_t,rnd_re)
     cdef mpfr_t xnew
-    cdef int rh = ceil(wp*0.693) + 10
+    cdef int rh
+    mpfr_mul_d(wp_t, wp_t,0.693, rnd_re)
+    rh = mpfr_get_ui(wp_t,rnd_re)
     if mpfr_cmp_ui(xabs_t,rh) > 0:
         mpfr_init2(xnew,wp)
         mpfr_neg(xnew,x,rnd_re)
         ok = ei_asymp_c(res,xnew,verbose)
     else:
-        mpfr_set_ui(wp_t,wp,rnd_re)
         mpfr_mul_ui(xabs_t,xabs_t,2,rnd_re)
+        mpfr_set_ui(wp_t,wp,rnd_re)
         mpfr_add(wp_t,wp_t,xabs_t,rnd_re)
         mpfr_init2(xnew,mpfr_get_ui(wp_t,rnd_re))
         mpfr_set_prec(res,mpfr_get_ui(wp_t,rnd_re))
         mpfr_neg(xnew,x,rnd_re)
-        if verbose >1:
-            print "wp={0}".format(mpfr_get_ui(wp_t,rnd_re))
         ok = ei_taylor_c(res,xnew,verbose)
     mpfr_neg(res,res,rnd_re)
     mpfr_clear(xabs_t)
     mpfr_clear(wp_t)
     mpfr_clear(xnew)
-    if verbose>1:
-        print "incgama_nint_c: ok={0}".format(ok)
     return ok
 
 
-
-cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
+cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0) nogil:
     r"""
     Compute the exponential integral of x via asymptotic formula.
     """
     cdef mpfr_t tmp,tmp2,summa,r,eps
-    cdef int k,prec
+    cdef int k
+    cdef mpfr_prec_t prec
     #cdef RealField_class RF
     cdef int ok = 1
     prec = mpfr_get_prec(x)
@@ -310,10 +300,10 @@ cdef int ei_asymp_c(mpfr_t res, mpfr_t x, int verbose=0):
     return ok
 
 
-cdef int ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
+cdef int ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0) nogil:
     cdef int ok=1
     cdef mpfr_t lnx
-    cdef int prec = mpfr_get_prec(x)
+    cdef mpfr_prec_t prec = mpfr_get_prec(x)
     mpfr_init2(lnx, prec)
     ok = Ei_ml_c(res, x)
     #if verbose>0:
@@ -327,13 +317,13 @@ cdef int ei_taylor_c(mpfr_t res, mpfr_t x, int verbose=0):
     return ok
 
 
-cdef int Ei_ml_c(mpfr_t res,mpfr_t x):
+cdef int Ei_ml_c(mpfr_t res,mpfr_t x) nogil:
     r"""
     Compute the exponential integral of x  - ln|x|
     """
     cdef mpfr_t tmp,summa,eps
-    cdef int k,prec
-    cdef RealField_class RF
+    cdef int k
+    cdef mpfr_prec_t prec
     cdef mpfr_t ec
     cdef int ok = 1
     prec=mpfr_get_prec(x)
@@ -377,10 +367,10 @@ cdef int Ei_ml_c(mpfr_t res,mpfr_t x):
     #print 'Ei(',x,')=',summa
     return ok
 
-cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
-    cdef RealField_class RF
+cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0) nogil:
     cdef mpfr_t sqpi,sqx
-    cdef int prec,ok = 1
+    cdef int ok = 1
+    cdef mpfr_prec_t prec
     if n > 0:
         #return
         ok = incgamma_phint_c(res,n,x,verbose)
@@ -399,8 +389,8 @@ cdef int incgamma_hint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     return ok
 ### sqrt(pi)* erfc(sqrt(x))  is used at several places
 
-cdef mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0):
-    cdef int prec = mpfr_get_prec(x)
+cdef int mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0) nogil:
+    cdef mpfr_prec_t prec = mpfr_get_prec(x)
     cdef mpfr_t sqpi
     mpfr_init2(sqpi,prec)
     mpfr_const_pi(sqpi,rnd_re)
@@ -409,12 +399,12 @@ cdef mpfr_sqpi_erfc_sqx(mpfr_t res,mpfr_t x,int verbose=0):
     mpfr_erfc(res,res,rnd_re)
     mpfr_mul(res,res,sqpi,rnd_re)
     mpfr_clear(sqpi)
+    return 0
 
 
-cdef int incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
-    cdef RealNumber jj,nn,mm
-    cdef RealField_class RF
-    cdef int j,m,prec
+cdef int incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0) nogil:
+    cdef int j,m
+    cdef mpfr_prec_t prec
     cdef mpfr_t half_m_n,summa,tmp,term,tmp2,sqx
     cdef int ok = 0
     #assert n>=0
@@ -496,11 +486,10 @@ cdef int incgamma_phint_c(mpfr_t res, int n,mpfr_t x,int verbose=0):
 
 #!!  incgamma(-n+1/2,x)
 #      !! for integer n>0 and real x>0
-cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
-    cdef RealNumber tmpr
-    cdef int j,prec
-    cdef RealField_class RF
-    cdef mpfr_t tmp,summa,tmp2,tmp3,half,half_m_n,lnx
+cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0) nogil:
+    cdef int j
+    cdef mpfr_prec_t prec
+    cdef mpfr_t tmp,summa,tmp2,tmp3,half,half_m_n,lnx,tmpr
     cdef int ok = 0
     #assert n>=0
     if n < 0:
@@ -508,8 +497,7 @@ cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     #write(*,*) 'ERROR: incgamma_nhint for n>0! n=',n
     #RF=x._parent
     prec = mpfr_get_prec(x)
-    if verbose>0:
-        tmpr=RealField(prec)(1)
+    mpfr_init2(tmpr,prec)
     mpfr_init2(lnx,prec)
     mpfr_init2(tmp,prec)
     mpfr_init2(tmp2,prec)
@@ -533,15 +521,9 @@ cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
         mpfr_add(summa,summa,tmp2,rnd_re)
         mpfr_mul(tmp,tmp,x,rnd_re)
     #tmp2=mppochammer(RF(0.5),n)
-    if verbose>0:
-        mpfr_set(tmpr.value,summa,rnd_re)
-        print "sum=",tmpr
     _mppochammer_mpfr(tmp2,half,n)
     mpfr_sqpi_erfc_sqx(tmp3,x)
     mpfr_div(tmp2,tmp3,tmp2,rnd_re)
-    if verbose>0:
-        mpfr_set(tmpr.value,tmp2,rnd_re)
-        print "tmp=",tmpr
     #tmp2=RF.pi().sqrt()/tmp2*erfc(x.sqrt())
     if n%2==1:
         mpfr_neg(tmp2,tmp2,rnd_re)
@@ -550,15 +532,8 @@ cdef int incgamma_nhint_c(mpfr_t res,int n,mpfr_t x,int verbose=0):
     mpfr_neg(tmp,x,rnd_re)
     mpfr_exp(tmp3,tmp,rnd_re)
     # tmp3 = x**(1/2-n)*exp(-x)
-    if verbose>0:
-        mpfr_set(tmpr.value,tmp2,rnd_re)
-        print "tmp2=",tmpr
     mpfr_neg(summa,summa,rnd_re)
     mpfr_mul(tmp3,tmp3,summa,rnd_re)
-    if verbose>0:
-        mpfr_set(tmpr.value,tmp3,rnd_re)
-        print "tmp2=",tmpr
-
     mpfr_add(tmp2,tmp2,tmp3,rnd_re)
     #print 'incG(',n,'+0.5,',x,'=',tmp
     mpfr_set(res,tmp2,rnd_re)
@@ -617,11 +592,12 @@ cpdef RealNumber pochammer(RealNumber a,int k):
     _mppochammer_mpfr(res.value,a.value, k)
     return res
 
-cdef void _mppochammer_mpfr(mpfr_t res, mpfr_t a,int k):
+cdef void _mppochammer_mpfr(mpfr_t res, mpfr_t a,int k) nogil:
     r"""
     res should be initialized outside
     """
-    cdef int j,prec
+    cdef int j
+    cdef mpfr_prec_t prec
     cdef mpfr_t tmp
     prec = mpfr_get_prec(a)
     #mpfr_init2(res,prec)
@@ -635,7 +611,3 @@ cdef void _mppochammer_mpfr(mpfr_t res, mpfr_t a,int k):
             mpfr_mul(res,res,tmp,rnd_re)
             # res=res*(a+<double>j)
     mpfr_clear(tmp)
-
-
-
-

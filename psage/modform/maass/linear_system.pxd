@@ -1,7 +1,8 @@
 include "sage/ext/interrupt.pxi" 
 include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
-include "sage/rings/mpc.pxi"
+#include "sage/rings/mpc.pxi"
+from psage.rings.mpfr_nogil cimport *
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.rings.complex_mpc cimport MPComplexField_class
 from sage.rings.real_mpfr cimport RealField_class,RealNumber

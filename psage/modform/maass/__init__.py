@@ -4,7 +4,7 @@ from mysubgroups_alg import SL2Z_elt,factor_matrix_in_sl2z,ncf_to_SL2Z_element
 from permutation_alg import MyPermutation,MyPermutationIterator
 from mysubgroup import MySubgroup,HeckeTriangleGroup,nearest_integer_continued_fraction
 from maass_forms import MaassWaveForms,EisensteinSeries,scattering_determinant_Hecke_triangle
-
+from maass_forms_alg import get_Y_for_M_dp,get_Y_and_M_dp,get_coeff_fast_cplx_dp_sym
 from lpkbessel import besselk_dp
 
 from hilbert_modular_group_alg import Hn

@@ -1,25 +1,27 @@
-include "sage/ext/stdsage.pxi"
+#include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
-include "sage/rings/mpc.pxi"
+#include "sage/rings/mpc.pxi"
 #include "sage/ext/gmp.pxi"
-from psage.modules.vector_complex_dense cimport *
-
-
-from sage.matrix.matrix_dense cimport * #Matrix_dense
+from psage.rings.mpfr_nogil cimport *
+from psage.modules.vector_complex_dense cimport Vector_complex_dense
+from sage.matrix.matrix_dense cimport Matrix_dense
 from sage.structure.element cimport Vector
-from sage.rings.complex_mpc cimport * #MPComplexField_class,MPComplexNumber
+from sage.rings.complex_mpc cimport MPComplexField_class,MPComplexNumber
 from sage.rings.real_mpfr cimport RealNumber
+from sage.matrix.matrix_complex_double_dense cimport Matrix_complex_double_dense
 
 cdef class Matrix_complex_dense(Matrix_dense):
 
     #cdef mpc_t tmp
     cdef mpc_t *_entries
+    cdef int _entries_are_allocated
     cdef mpc_t ** _matrix
     cdef object __pivots
     cdef Vector _matrix_times_vector_(matrix_left, Vector v_right)
     cdef Vector _matrix_times_vector_complex_dense(matrix_left, Vector_complex_dense v_right)
     cdef Vector _vector_times_matrix_(matrix_right, Vector v_left)
     cdef int _prec
+    cdef int _verbose
     cdef RealNumber _eps
     cdef RealNumber _error_qr
     cdef mpfr_t _mpeps
@@ -32,6 +34,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
     cpdef int base_for_str_rep(self)
     cpdef int set_base_for_str_rep(self,int base)
     cdef int _truncate
+    cdef int _double_matrix_is_set
+    cdef Matrix_complex_double_dense _double_matrix
     #cdef MPComplexField_class _base_ring
     #cdef object _base_ring
 
@@ -39,25 +43,16 @@ cdef class Matrix_complex_dense(Matrix_dense):
     #cpdef Matrix_complex_dense transformation_to_hessenberg(self)
     
     # cdef int _rescale(self, mpz_t a) except -1
-
     #cdef pickle(self)
     cdef _pickle_version0(self)
     cdef _unpickle_version0(self, data)    
     cpdef _export_as_string(self, int base=?,int truncate=?)
     cpdef _reqdigits(self,int base=?,int truncate=?)
 
-    #cpdef MPComplexNumber _wilkinson_shift(self,MPComplexNumber a,MPComplexNumber b,MPComplexNumber c,MPComplexNumber d)
-    #cpdef _wilkinson_shift(self,mpc_t mu, mpc_t a,mpc_t b,mpc_t c,mpc_t d)
-
     cpdef int _pivot_element(self,int k,int r)
-
-    #cpdef MPComplexNumber _wilkinson_shift2(self,MPComplexNumber a,MPComplexNumber b,MPComplexNumber c,MPComplexNumber d)
-
-    
-    #cpdef (Matrix_complex_dense,Matrix_complex_dense) qr_decomp(self,int check=?)
     cpdef RealNumber error_qr(self)
-    cpdef tuple qr_decomposition(self, int overwrite=?, int check=?)
-    cpdef hessenberg(self,int return_transformation=?, int check=?)
+    cpdef tuple qr_decomposition(self, int overwrite=?, int check=?,int num_threads=?,int schedule=?)
+    cpdef hessenberg(self,int return_transformation=?, int check=?,int num_threads=?,int schedule=?)
 
     cpdef Vector_complex_dense row(self,int n)
     cpdef Vector_complex_dense column(self,int n)
@@ -78,8 +73,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
     cpdef RealNumber norm(self,int ntype=*)
     cdef void _norm(self,mpfr_t,int ntype)
     cpdef dict _norms
-    cpdef list eigenvalues(self,int check=?,int sorted=?,int overwrite=?)
-    cpdef list eigenvectors(self,int check=?,int overwrite=?,int sorted=?,int verbose=?,int depth=?,double old_tol=?,double old_eps=?)
+    cpdef list eigenvalues(self,int check=?,int sorted=?,int overwrite=?,int num_threads=?,int schedule=?)
+    cpdef list eigenvectors(self,int check=?,int overwrite=?,int sorted=?,int verbose=?,int depth=?,double old_tol=?,double old_eps=?,int num_threads=?,int schedule=?)
     cpdef list eigenvalues2(self)
     cpdef conjugate_transpose(self)
     cdef _conjugate_transpose(self, Matrix_complex_dense res)    
@@ -88,7 +83,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     cpdef det(self)
     cpdef prec(self)
   
-    cpdef Vector_complex_dense solve(self,Vector_complex_dense b,int overwrite=?)
+    cpdef Vector_complex_dense solve(self,Vector_complex_dense b,int overwrite=?,int num_threads=?,int schedule=?)
     cpdef Matrix_complex_dense mat_solve(self,Matrix_complex_dense B,int overwrite=*)
     cpdef Matrix_complex_dense inverse(self,int overwrite=?)
 

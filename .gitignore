@@ -12,7 +12,9 @@ MANIFEST
 *.cpp
 *~
 *.aux
+*.html
 *.dvi
+*.html
 *.log
 *.toc
 *auto

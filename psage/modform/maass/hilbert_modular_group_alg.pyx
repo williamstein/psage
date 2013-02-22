@@ -30,7 +30,6 @@ include "sage/rings/mpc.pxi"
 #include "sage/libs/ntl/decl.pxi"
 
 
-
 #from sage.libs.ntl.decl 
 #from sage.rings.integer cimport ZZ
 
@@ -80,8 +79,11 @@ cdef extern from "complex.h":
 
 cdef double complex _I = _Complex_I
 
+def test1(x,y):
+    pass
 
-    
+cpdef test(x,y):
+    pass
 
 cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     r""" Locate the closest cusp of G to z.
@@ -414,7 +416,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
 elements_of_F_with_norm = {}
 current_cached_field=0
 
-cpdef check_cached_field(F):
+def check_cached_field(F):
     r"""
     Call this routine before in any call to elements_of_norm
     if you want to ensure that the field is correct.
@@ -1118,7 +1120,7 @@ cdef class  Hn(object):
             res.append(self.z(i))
         return res
 
-
+####  HERE
     
     def permute(self,s):
         r"""
@@ -1171,11 +1173,13 @@ cdef class  Hn(object):
 
         
         
-    def is_in_upper_half_plane(self):
+    cpdef is_in_upper_half_plane(self):
         r"""
         Returns true if all components are in the upper half-plane.
         """
-        for y in self.y:
+        cdef double y
+        for i in range(self._degree):
+            y = self._y[i]
             if y<0:
                 return False
         return True
@@ -1183,7 +1187,7 @@ cdef class  Hn(object):
     #def log(self):
     #    res = map(log,list(self))
     #    return Hn(res)
-        
+##    HERE 2
     def hyp_dist(self,w,dtype=1):
         r"""
         If self and w are in the upper half-plane then
@@ -1392,7 +1396,7 @@ cpdef cusp_coordinates(G,cuspi,Hn z,int prec=53,int verbose=0):
         print "X=",X
     return (Y0,Y,X)
 
-
+###END
 
 # cpdef cusp_coordinates_arb_cusp(G,cusp,Hn z,int prec=53,int verbose=0):
 #     r"""

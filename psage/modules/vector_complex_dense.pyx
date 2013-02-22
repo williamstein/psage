@@ -46,28 +46,18 @@ TESTS:
 include '../ext/interrupt.pxi'
 include '../ext/stdsage.pxi'
 
-
 # set rounding to be nearest integer
 # TODO: make t possible to change rounding 
 cdef mpc_rnd_t rnd
 rnd = MPC_RNDNN
 
-
-
-
-
 from sage.structure.element cimport Element, ModuleElement, RingElement, Vector
 from sage.all import FreeModule
 from sage.rings.integer cimport Integer
-#from sage.rings.rational cimport Rational
-#from sage.rings.complex_mpc cimport MPComplexNumber,MPComplexField
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc cimport MPComplexField_class
 from sage.modules.free_module_element cimport FreeModuleElement
-from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.rings.real_mpfr cimport RealNumber
-
-#from free_module_element import vector
 
 cdef class Vector_complex_dense(FreeModuleElement):
     cdef bint is_dense_c(self):
@@ -400,13 +390,13 @@ cdef class Vector_complex_dense(FreeModuleElement):
         mpfr_init2(s,self._prec)
         res = RealNumber(self._base_ring._base,0)
         if ntype==2:
-            mpfr_set_si(s, 0, GMP_RNDU)
+            mpfr_set_si(s, 0, MPFR_RNDU)
             for i from 0 <= i < self._degree:
-                mpc_abs(x,self._entries[i],GMP_RNDU)
-                mpfr_sqr(x,x,GMP_RNDU)
-                mpfr_add(s,s,x,GMP_RNDU)
-            mpfr_sqrt(s,s,GMP_RNDU)
-            mpfr_set(res.value,s,GMP_RNDU)
+                mpc_abs(x,self._entries[i],MPFR_RNDU)
+                mpfr_sqr(x,x,MPFR_RNDU)
+                mpfr_add(s,s,x,MPFR_RNDU)
+            mpfr_sqrt(s,s,MPFR_RNDU)
+            mpfr_set(res.value,s,MPFR_RNDU)
             mpfr_clear(x); mpfr_clear(s)
             return res
         else:

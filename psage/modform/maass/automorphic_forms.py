@@ -899,7 +899,7 @@ class AutomorphicFormSpace(Parent):
     ##     D=solve_system_for_harmonic_weak_Maass_waveforms(V,N,deb=True)
     ##     F._coeffs=D
     ##     return F
-    def _get_element(self,principal_part,digs=10,dbase_prec=None,SetC=None,SetY=None,SetM=None,SetQ=None,do_mpmath=0,get_mat=False,use_sym=1,get_c=False,gr=0,version=0):
+    def _get_element(self,principal_part,digs=10,dbase_prec=None,SetC=None,SetY=None,SetM=None,SetQ=None,do_mpmath=0,get_mat=False,use_sym=1,get_c=False,gr=0,version=0,threads=1):
         r"""
         INPUT:
         
@@ -1023,7 +1023,7 @@ class AutomorphicFormSpace(Parent):
                 Ymp = mpmath.mp.mpf(Ymp)
                 V=setup_matrix_for_harmonic_Maass_waveforms_sv_bak_22(self,Ymp,M,Q,ppart)
             elif (version==0 or gr==1):
-                V=setup_matrix_for_harmonic_Maass_waveforms(self,Ymp,M,Q,ppart,use_sym=use_sym)
+                V=setup_matrix_for_harmonic_Maass_waveforms(self,Ymp,M,Q,ppart,use_sym=use_sym,threads=threads)
             else:
                 C = setup_and_solve_for_harmonic_Maass_waveforms(self,Ymp,M,Q,ppart,cset=setc)
         else:
@@ -3308,7 +3308,7 @@ def set_norm_harmonic_weak_maass_forms2(H,P,C=None):
 
 
 
-def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
+def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
     r"""
     Solve the linear system to obtain the Fourier coefficients of Maass forms
 
@@ -3482,7 +3482,8 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
                 print "LHS.cols=",LHS.ncols()                
                 raise IndexError,"Matrix / coefficients is set up wrong!"
             #print "LHS[",r,k,"]=",LHS[r-roffs,k-coffs]
-    #return LHS,RHS
+    if gr==1:
+        return LHS,RHS
     smin=smallest_inf_norm(LHS)
     if verbose>0:
         print "sminfn=",smin

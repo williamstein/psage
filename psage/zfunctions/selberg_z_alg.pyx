@@ -12,16 +12,22 @@
 include 'sage/ext/stdsage.pxi'
 include "sage/ext/cdefs.pxi"
 include 'sage/ext/interrupt.pxi'
-include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
+#include "sage/ext/gmp.pxi"
+#include "sage/rings/mpc.pxi"
+from psage.rings.mpfr_nogil cimport *
 from sage.all import save,incomplete_gamma,load
 import mpmath    
-from sage.libs.mpfr cimport *
+import cython
+from libc.stdlib cimport abort, malloc, free
+    
+from cython.parallel cimport parallel, prange
 
+#from sage.libs.mpfr cimport *
+import sys
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
 rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
+rnd_re = MPFR_RNDN
 from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
@@ -33,6 +39,7 @@ from sage.rings.integer import Integer,is_Integer
 from sage.all import exp,I,CC,vector
 from sage.functions.transcendental import zeta
 from sage.all import find_root
+from psage.rings.mpc_extras cimport _mpc_mul,_mpc_mul_fr,_mpc_add,_mpc_set
 ## Since I want to import sinand cos from math.h 
 #from sage.all import sin as ssin
 #from sage.all import cos as scos
@@ -71,11 +78,13 @@ cdef extern from "complex.h":
     cdef double complex csqrt(double complex)
     cdef double complex cpow(double complex,double complex)
 
-    
-cdef int gcd( int a, int b ):
+
+
+@cython.cdivision(True)
+cdef int gcd( int a, int b ) nogil:
   cdef int c
-  while ( a != 0 ):
-      c = a; a = b%a;  b = c
+  while a <>0:
+      c = a; a = b % a;  b = c
   return b
  
 cdef double complex cexpi(double x):
@@ -92,11 +101,11 @@ cdef double complex _I = _Complex_I
 
     
 # some things that are not in the sage.libs.mpfr
-cdef extern from "mpfr.h":
-    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t) 
+#cdef extern from "mpfr.h":
+#    int mpfr_mul_d (mpfr_t, mpfr_t, double, mp_rnd_t) 
    
 from sage.matrix.matrix_dense cimport *
-from psage.rings.mpc_extras cimport *
+#from psage.rings.mpc_extras cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
@@ -108,7 +117,15 @@ from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes
 from sage.all import zeta
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 
-cdef inline void _pochammer_over_fak(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re):
+
+cpdef pochammer_over_fak(MPComplexNumber z,int n):
+    cdef MPComplexNumber res
+    cdef int prec = z.parent().prec()
+    res = MPComplexField(prec)(0)
+    _pochammer_over_fak(&res.value,z.value,n,rnd,rnd_re)
+    return res
+
+cdef inline void _pochammer_over_fak(mpc_t *res, mpc_t z, int n,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil:
     r""" Compute the Pochammer symbol (s)_{n} / n!   """
     cdef int j
     cdef mpc_t x,zz,t[2]
@@ -661,6 +678,236 @@ cdef setup_approximation_sym(mpc_t** A, int M,  mpz_t** Nij, int dim, int q, int
 #     P=fak1*mpmath.mp.exp(H1+E1+P1)
 #     return ComplexField(prec)(P.real,P.imag)
 
+
+cpdef Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,int k1=0,int k2=0,int verbose=0,ret="dict"):
+    r"""
+    Compute Gauss transfer operator matrix operator approximation A[r,k] with r1<=r<=r2 and k1<=k<=k2.
+    """
+    cdef int prec = s.parent().prec()
+    cdef MPComplexNumber tmpc
+    cdef RealNumber alpha,rho
+    cdef mpc_t** A=NULL    
+    cdef int r,k
+    alpha = RealField(prec)(1)
+    rho = RealField(prec)(1.5)
+    if verbose>0:
+        print "alpha=",alpha
+        print "rho=",rho
+    if k2==0 and r2==0 and r1>0:
+        k2 = r1; r2=r1; k1=0
+        r1=0
+    A = <mpc_t**> sage_malloc(sizeof(mpc_t*)*(r2-r1))
+    for r in range(0,r2-r1):
+        A[r] = <mpc_t*> sage_malloc(sizeof(mpc_t)*(k2-k1))
+        for k in range(0,k2-k1):
+            mpc_init2(A[r][k],prec)
+    setup_Gauss_c(A,s.value,t.value,alpha.value,rho.value,r1,r2,k1,k2,verbose)
+    cdef dict resd
+    if ret=="dict":
+        resd = {}
+        tmpc = MPComplexField(prec)(1)
+        for r in range(0,r2-r1):
+            for k in range(0,k2-k1):
+                mpc_set(tmpc.value,A[r][k],rnd)
+                resd[(r,k)]=1*tmpc
+        return resd
+    MS = MatrixSpace(MPComplexField(prec),r2-r1,k2-k1)
+    resm = Matrix_complex_dense(MS,0)
+    for r in range(0,r2-r1):
+        for k in range(0,k2-k1):
+            mpc_set(resm._matrix[r][k],A[r][k],rnd)
+    return resm
+    
+@cython.cdivision(True)
+cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r1,int r2,int k1,int k2,int verbose=0):
+    r"""    Setup the Matrix approximation of the Gauss transfer operator  """
+    cdef int i,j,k,l,n,nn
+    cdef mpc_t twos,tmp,tmp1,poc, AA
+    cdef int prec = mpfr_get_prec(s)
+    cdef mpc_t tt[2]
+    cdef mpc_t *Z=NULL,*twozn=NULL
+    cdef mpfr_t *ajpow
+    cdef MPComplexNumber twoz,tmpz,z
+    cdef ComplexNumber twozz
+    cdef mpz_t binc
+    cdef mpfr_t fak1,fak2,fak,rtemp
+    cdef RealNumber tmpx
+    cdef int lmin,lmax
+    lmin = r1+k1; lmax = r2+k2
+    sig_on()
+    RF = RealField(prec)
+    CF = MPComplexField(prec)
+    CFF = ComplexField(prec)
+    twoz = CF(0); tmpz = CF(0); z = CF(0)
+    twozz = CFF(0); tmpx = RF(0)
+    mpmath.mp.prec=prec
+    if verbose>0:
+        print "prec=",prec
+        mpfr_set(tmpx.value,alpha,rnd_re)
+        print "alpha=",tmpx
+        mpfr_set(tmpx.value,rho,rnd_re)
+        print "rho=",tmpx
+        print "r1,r2=",r1,r2
+        print "k1,k2=",k1,k2
+    mpfr_init2(fak1,prec);mpfr_init2(fak2,prec);mpfr_init2(fak,prec)
+    mpfr_init2(rtemp,prec)
+    mpz_init(binc)
+    mpc_init2(AA,prec)
+    mpc_init2(poc,prec)
+    mpc_init2(tmp,prec); mpc_init2(tmp1,prec)
+    mpc_init2(twos,prec)
+    mpc_init2(tt[0],prec); mpc_init2(tt[1],prec)
+    #mpc_init2(t[2],prec); mpc_init2(t[3],prec)
+    mpc_set_fr_fr(twos,s,t,rnd)
+    mpc_mul_ui(twos,twos,2,rnd)
+    tmpz=CF(0)
+    #z = CF(0)
+    twoz = MPComplexField(prec+20)(0)
+    mpc_set(twoz.value,twos,rnd)
+    ## Recall that sizeof(mpc_t ***) does not work
+    # ajpow[n]=(-alpha)**n
+    ajpow=<mpfr_t *> sage_malloc(sizeof(mpfr_t)*(k2))
+    if ajpow==NULL: raise MemoryError
+    for n in range(k2):
+        mpfr_init2(ajpow[n],prec)
+        mpfr_neg(ajpow[n],alpha,rnd_re)
+        mpfr_pow_si(ajpow[n],ajpow[n],n,rnd_re)
+
+    cdef RealNumber xarg
+    cdef mpc_t zarg,minus_twoz
+    mpc_init2(zarg,prec)
+    mpc_init2(minus_twoz,prec)    
+    xarg = RF(0)
+    mpfr_add_ui(xarg.value,alpha,1,rnd_re)
+    Z  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
+    if Z==NULL: raise MemoryError
+    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
+    if twozn==NULL: raise MemoryError
+    if mpfr_cmp_ui(xarg.value,2)==0:
+        if verbose>1:
+            print "alpha=1 n0=1"            
+        for n in range(0,lmax-lmin+1):
+            mpc_init2(Z[n],prec)        
+            mpc_init2(twozn[n],prec)
+            mpc_add_ui(twozn[n],twos,n+lmin,rnd)
+            _mpc_set(&twoz.value,twozn[n],rnd_re)
+            mpc_neg(minus_twoz,twoz.value,rnd)
+            #twozz=CFF(twoz.real(),twoz.imag())
+            # mpz = mpmath.mp.zeta(twozz,xarg)        
+            if verbose==-7:
+                mpc_set_ui(z.value,1,rnd)
+            else:
+                z = twoz.zeta()
+                
+            #z = CF(mpz.real,mpz.imag)
+            _mpc_set(&Z[n],z.value,rnd_re)
+            mpc_sub_ui(Z[n],Z[n],1,rnd)
+    else:
+        for n in range(0,lmax-lmin+1):
+            mpc_init2(Z[n],prec)        
+            mpc_init2(twozn[n],prec)
+            mpc_add_ui(twozn[n],twos,n+lmin,rnd)
+            _mpc_set(&twoz.value,twozn[n],rnd_re)
+            mpc_neg(minus_twoz,twoz.value,rnd)
+            twozz=CFF(twoz.real(),twoz.imag())
+            mpz = mpmath.mp.zeta(twozz,xarg)        
+            z = CF(mpz.real,mpz.imag)
+            _mpc_set(&Z[n],z.value,rnd_re)
+    cdef int tenpercent,chunks
+    if verbose==-5:
+        return    
+    if verbose>0:
+        #sys.stdout.write('%d / %d\r' % (i, total))
+        sys.stdout.write('Computed Z\n')
+        sys.stdout.flush()
+        #print "computed Z"
+        tenpercent = int ( float(r2-r1)/float(10))
+        chunks = 0
+    cdef int ni,kj,ii
+    #for n in range(r1,r2+1):
+    cdef mpc_t **pochammer_vec=NULL
+    pochammer_vec = <mpc_t**>sage_malloc(sizeof(mpc_t*)*(k2-k1))
+    for k in range(k2-k1):
+        pochammer_vec[k] = <mpc_t*>sage_malloc(sizeof(mpc_t)*(r2-r1))
+    for k in prange(k2-k1,nogil=True):
+        for n in range(r2-r1):
+            mpc_init2(pochammer_vec[k][n],prec)            
+            _pochammer_over_fak(&pochammer_vec[k][n],twozn[k],n+r1,rnd,rnd_re)
+    for n in prange(r2-r1,nogil=True): 
+        #for k in range(k1,k2+1):
+        for k in range(k2-k1): #
+            mpc_set_ui(AA,0,rnd)
+            for l in range(k+1):
+                #_pochammer_over_fak(&poc,twozn[l],n+r1,rnd,rnd_re)
+                #mpc_set_ui(poc,1,rnd)
+                _mpc_set(&poc,pochammer_vec[l][n],rnd_re)
+                mpz_bin_uiui(binc,k+k1,l)
+                mpfr_mul_z(poc.re,poc.re,binc,rnd_re)
+                mpfr_mul_z(poc.im,poc.im,binc,rnd_re)
+                _mpc_mul(&poc,poc,Z[l+n],tt,rnd,rnd_re)
+                _mpc_mul_fr(&poc,poc,ajpow[k-l],rnd,rnd_re)
+                _mpc_add(&AA,AA,poc,rnd_re)
+
+            mpfr_pow_si(rtemp,rho,n-k+r1-k1,rnd_re)
+            if verbose>1:
+                #mpc_set(z.value,AA,rnd)
+                printf("A[%d][%d]=%d+i%d",n,k,mpfr_get_d(AA.re,rnd_re),mpfr_get_d(AA.im,rnd_re))
+                #    print "A[{0}][{1}]={2}".format(n,k,z)
+                #mpfr_set(tmpx.value,rtemp,rnd_re)
+                #printf("A[%d][%d]=%d",n,k,z)
+            #    print "r^{0}[{1}][{2}]={3}".format(n-k+r1-k1,n,k,tmpx)
+                
+            _mpc_mul_fr(&AA,AA,rtemp,rnd,rnd_re)
+            if (n % 2) == 1:
+                mpc_neg(AA,AA,rnd)
+            #if verbose>1:
+            #   mpc_set(z.value,AA,rnd)
+            #    print "A[{0}][{1}]*r^(n-k)={2}".format(n,k,z)
+            _mpc_set(&A[n][k],AA,rnd_re)
+            #if ni==0 and kj==32:
+            #    mpc_set(z.value,A[ni][kj],rnd)
+            #    print "A[0,32]=",z
+            #    mpfr_set(tmpx.value,fak,rnd_re)
+            #    print "fak=",tmpx
+        if verbose>0:
+            if n % tenpercent == 0:
+                #chunks+=1
+                printf("Computing row: %d / %d\r",n, r2-r1)
+                #sys.stdout.write('Computing row: %d / %d\r' % (n, r2-r1))
+                #sys.stdout.flush()
+    if verbose>0:
+        printf("\n")
+        #sys.stdout.write('\n')
+        #sys.stdout.flush()
+        #print "About to clear"
+    mpc_clear(tt[0]);mpc_clear(tt[1])
+    mpc_clear(twos); 
+    mpc_clear(tmp); mpc_clear(tmp1)
+    mpc_clear(poc)
+    mpc_clear(zarg); mpc_clear(minus_twoz)
+    mpfr_clear(fak1);mpfr_clear(fak2);mpfr_clear(fak)
+    mpfr_clear(rtemp)
+    mpc_clear(AA)
+    if Z<>NULL:
+        for n in range(r2-r1+1):
+            mpc_clear(Z[n])
+        sage_free(Z)
+    if ajpow<>NULL:
+        for k in range(k2):
+            mpfr_clear(ajpow[k])
+        sage_free(ajpow)    
+    if twozn<>NULL:
+        for n in range(0,lmax-lmin):
+            mpc_clear(twozn[n])
+        sage_free(twozn)
+    if pochammer_vec <> NULL:
+        for k in range(k2-k1):
+            if pochammer_vec[k]<>NULL:
+                for n in range(r2-r1):
+                    mpc_clear(pochammer_vec[k][n])
+                sage_free(pochammer_vec[k])
+        sage_free(pochammer_vec)
+    sig_off()
 
        
 cpdef my_floor(double x):

@@ -1,16 +1,9 @@
 include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
-#include "sage/rings/mpc.pxi"
-
-#from psage.modules.vector_complex_dense cimport *
-
-#cdef void givens(mpc_t *s, mpc_t *skk, mpfr_t *c, mpc_t *r, mpc_t *f, mpc_t *g, mpc_t *t, mpc_rnd_t rnd,mpfr_rnd_t rnd_re)
-
-#cdef void RotateLeft_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int min_j,int max_j, mpc_t *t,mpc_rnd_t rnd, mpfr_rnd_t rnd_re)
-
-#cdef void RotateRight_(mpc_t s, mpc_t skk, mpfr_t c,mpc_t** A, int i, int k, int min_j, int max_j, mpc_t *t,mpc_rnd_t rnd, mpfr_rnd_t rnd_re)
 
 from psage.rings.mpc_extras cimport *
+cimport cpython
+
 
 ctypedef struct QR_set:
     mpc_t s
@@ -25,21 +18,28 @@ ctypedef struct QR_set:
     mpc_t mu1
     mpc_t mu2
 
-cdef QR_set init_QR(prec)
+cdef QR_set init_QR(int prec) nogil
 
 #cdef print_mat(mpc_t **A,int m,int n)
 
-cdef void qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_rnd_t rnd_re)
+cdef int qr_decomp(mpc_t** A,int m, int n, int prec, mpfr_t eps, mpc_rnd_t rnd, mpfr_rnd_t rnd_re)
 
-cdef void _eigenvalues(mpc_t* res, mpc_t** A,int nrows,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re)
+cdef int _eigenvalues(mpc_t* res, mpc_t** A,int nrows,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re,int verbose=?)
 
-cdef _reconstruct_matrix(mpc_t** Q, mpc_t** A, int n, int m, int k, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re)
+cdef int _reconstruct_matrix(mpc_t** Q, mpc_t** A, int n, int m, int k, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil
 
-cdef void _hessenberg_reduction(mpc_t** A, int nrows, QR_set  q,int prec, mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt =?)
+cdef int _hessenberg_reduction(mpc_t** A, int nrows, QR_set  q,int prec, mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt =?)
 
-cdef void _norm(mpfr_t norm,mpc_t** A, int nrows,int ncols, int prec,mpfr_rnd_t rnd_re,int ntype)
+#cdef void _hessenberg_reduction_par(mpc_t** A, int nrows, QR_set  q,int prec, int nthreads,mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt =?) nogil
 
-cdef void solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re)
+cdef int _norm(mpfr_t norm,mpc_t** A, int nrows,int ncols, int prec,mpfr_rnd_t rnd_re,int ntype) nogil
+
+cdef int solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil
+
+## TODO: Parallel routines
+#cdef int qr_decomp_par(mpc_t** A,int m, int n, int prec, mpfr_t eps, int nthreads,int static,mpc_rnd_t rnd, mpfr_rnd_t rnd_re) nogil
+#cdef int _eigenvalues_par(mpc_t* res, mpc_t** A,int nrows,int prec,int nthreads,int static,int verbose,mpc_rnd_t rnd,mpfr_rnd_t rnd_re) nogil
+#cdef int _hessenberg_reduction_par(mpc_t** A, int nrows, QR_set  q,int prec,int nthreads,int static,mpc_rnd_t rnd,mpfr_rnd_t rnd_re, int rt = ?) nogil
 
 ## cdef void _wilkinson_shift(mpc_t* mu,mpc_t* a,mpc_t* b,mpc_t* c,mpc_t* d,int prec,mpc_rnd_t rnd,mpfr_rnd_t rnd_re, mpc_t zz[4], mpfr_t xx[4])
 

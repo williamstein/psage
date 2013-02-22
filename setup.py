@@ -205,6 +205,13 @@ my_extensions = [
               ['psage/modform/maass/permutation_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
     
+    Extension('psage.modform.maass.maass_forms_parallel_alg',
+              ['psage/modform/maass/maass_forms_parallel_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp'],
+              include_dirs = numpy_include_dirs),
+
     Extension('psage.modform.maass.pullback_algorithms',
               ['psage/modform/maass/pullback_algorithms.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],

@@ -58,8 +58,9 @@ from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from mysubgroups_alg cimport pullback_to_psl2z_mat_c,pullback_to_psl2z_mat,_apply_sl2z_map_mpfr
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
-from inc_gamma cimport incgamma_hint_c
+#from inc_gamma cimport incgamma_hint_c
 from inc_gamma import incgamma_hint  ## gamma(n+1/2,x)
+from psage.modform.maass.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
 import mpmath
 #from vv_harmonic_weak_maass_forms import rn_from_D
 #from sage.all import cached_method,cached_function
@@ -1200,7 +1201,19 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
         Qs=1; Qf=Q; Ql=Qf-Qs+1; Qfaki=2*Q
     else:
         Qs=1-Q; Qf=Q; Ql=Qf-Qs+1; Qfaki=4*Q
-    kint=mpmath.mp.mpf(mpone-weight)
+    cdef int kinti
+    cdef int is_int=0
+    cdef int is_half_int=0
+    cdef RealNumber kint
+    kint = mpone - weight
+    if floor(kint)==pceil(kint):
+        kinti = int(kint); is_int = 1
+    if is_int==0:
+        ## Check if kint is half-integral.
+        if floor(2*kint)==pceil(2*kint):
+            is_half_int = 1
+            kinti = int(kint-RF(0.5))   
+ 
     ## Recall that we have different index sets depending on the symmetry
     cdef int Ds,Df,Dl,s
     if sym_type==1:
@@ -1310,6 +1323,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                 mpc_init2(fak2[n][ai][j],prec)
 
     cdef tuple tu
+    cdef int ok=0
     mparg = mpmath.mp.mpf(0)
     for n from 0 <= n < Ml:
         for ai from 0 <= ai < Dl:
@@ -1340,10 +1354,23 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                     mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
                     mpc_exp(tmp1[0],tmpc_t[0],rnd)
                     mpfr_mul(tmparg.value,mpc_imagref(Zpb._entries[j]),nrtwo.value,rnd_re)
-                    tu = mpfr_to_mpfval(tmparg.value)
-                    mparg._set_mpf(tu)
-                    testmp= mpctx.gammainc(kint,mparg)
-                    mpfr_from_mpfval(kbes.value,testmp._mpf_)
+                    ok = 0
+                    if is_int==1:
+                        if kinti>0:
+                            ok = incgamma_pint_c(kbes.value,kinti,tmparg.value,verbose)
+                        else:
+                            ok = incgamma_nint_c(kbes.value,kinti,tmparg.value,verbose)
+                    elif is_half_int==1:
+                        ok = incgamma_hint_c(kbes.value,kinti,tmparg.value,verbose)
+                    if not ok:
+                        tu = mpfr_to_mpfval(tmparg.value)
+                        mparg._set_mpf(tu)
+                        testmp=mpctx.gammainc(kint,tmparg)
+                        mpfr_from_mpfval(kbes.value,testmp._mpf_)
+                    #tu = mpfr_to_mpfval(tmparg.value)
+                    #mparg._set_mpf(tu)                    
+                    #testmp= mpctx.gammainc(kint,mparg)
+                    #mpfr_from_mpfval(kbes.value,testmp._mpf_)
                     #mpgamma = mpctx.gammainc(kint,tmparg)
                     mpc_mul_fr(tmp1[0],tmp1[0],kbes.value,rnd)
                     mpc_set(fak1[n][ai][j],tmp1[0],rnd)
@@ -1510,10 +1537,19 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                 mpfr_mul_si(nrY4pi.value,nrY2pi.value,-2,rnd_re)
                 #if verbose>0:
                 #    print "nrY4pi=",nrY4pi
-                tu = mpfr_to_mpfval(nrY4pi.value)
-                mparg._set_mpf(tu)
-                testmp=mpctx.gammainc(kint,nrY4pi)
-                mpfr_from_mpfval(kbes.value,testmp._mpf_)
+                ok = 0
+                if is_int==1:
+                    if kinti>0:
+                        ok = incgamma_pint_c(kbes.value,kinti,nrY4pi.value,verbose)
+                    else:
+                        ok = incgamma_nint_c(kbes.value,kinti,nrY4pi.value,verbose)
+                elif is_half_int==1:
+                    ok = incgamma_hint_c(kbes.value,kinti,nrY4pi.value,verbose)
+                if not ok:
+                    tu = mpfr_to_mpfval(nrY4pi.value)
+                    mparg._set_mpf(tu)
+                    testmp=mpctx.gammainc(kint,nrY4pi)
+                    mpfr_from_mpfval(kbes.value,testmp._mpf_)
                 kbes=kbes*(-nrY2pi).exp()
             else:
                 #continue

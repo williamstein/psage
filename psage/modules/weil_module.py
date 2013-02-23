@@ -186,6 +186,10 @@ class WeilModule (FormalSums):
     def _neg_index(self,ii):
         return cython_neg_index(ii,self._gen_orders)
 
+    def neg_index(self,x):
+        r""" Return the index of minus x in the list of basis elements in self."""
+        return self._neg_index(x)
+    
     @cached_method
     def _elt(self,ii):
         return cython_elt(ii,self._gen_orders)

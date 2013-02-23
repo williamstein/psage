@@ -302,7 +302,7 @@ class AutomorphicFormSpace(Parent):
             s+=" with trivial multiplier "
         #if(self._character<>trivial and self._character<>trivial_character(self._group.level())):            
         #    s+=" and character: "+str(self._character)+" "
-        s+="on "
+        s+=" on "
         if(self._from_group):
             s+=str(self._from_group)
         else:
@@ -454,7 +454,7 @@ class AutomorphicFormSpace(Parent):
         if(not self._alphas.has_key(i)):
             if(self._multiplier == None or self._multiplier.is_trivial()):
                 self._alphas[i]=[RF(0),CF(1)]
-            else:
+            elif self.multiplier().ambient_rank()==1:
                 #p=self._group._cusps[i]
                 A=self._group._cusp_data[i]['stabilizer']
                 tmp = self.rep(A)
@@ -465,6 +465,28 @@ class AutomorphicFormSpace(Parent):
                 #ar=mpmath.arg(v)/mpmath.pi()/mpmath.mpf(2)
                 ar=v.argument()/RF.pi()/RF(2)
                 self._alphas[i]=[ar,v]
+            else: ## This is nw a matrix-valued representation
+                A=self._group._cusp_data[i]['stabilizer']
+                mat = self.rep(A)[0]
+                tmp = []
+                for n in range(mat.nrows()):
+                    a = mat[n,n]
+                    if hasattr(a,"complex_embedding"):
+                        v=a.complex_embedding(self._prec)
+                    else:
+                        v=CF(tmp)
+                    ar=v.argument()/RF.pi()/RF(2)
+                    ## Find the exact alpha
+                    l = a.multiplicative_order()
+                    if l < Infinity:
+                        z = CyclotomicField(l).gens()[0]
+                        for k in range(l):
+                            if z**k == v:
+                                break
+                        tmp.append((ar,v,k,l))
+                    else:
+                        tmp.append((ar,v))
+                self._alphas[i]=tmp
         return self._alphas[i]
 
     def alphas(self):
@@ -796,11 +818,12 @@ class AutomorphicFormSpace(Parent):
                 elif x<0 and self._holomorphic:
                     N['SetCs'][i].append((j,0))
                     N['Vals'][i][(j,0)]=0 #P[(0,0)]            
-            
-            for (r,n) in Cl[i].keys():
-                if(N['SetCs'][i].count((r,n))==0):
-                    N['SetCs'][i].append((r,n))
-                    N['Vals'][i][(r,n)]=Cl[i][(r,n)] 
+
+            if isinstance(Cl[i],dict):
+                for (r,n) in Cl[i].keys():
+                    if(N['SetCs'][i].count((r,n))==0):
+                        N['SetCs'][i].append((r,n))
+                        N['Vals'][i][(r,n)]=Cl[i][(r,n)] 
         return N
 
 
@@ -828,13 +851,22 @@ class AutomorphicFormSpace(Parent):
         #print "pp1=",pp
         for P in pp: #rincipal_part:
             for (r,n) in P.keys():
+                # Remember that the principal part (i,j):c means different things for scalar and vector-valued forms, i.e. i is the cusp in the first case and the component in the second
                 a = P[(r,n)]
-                aln = n + self.alpha(r)[0]
                 if(a>maxa):
                     maxa=a
-                if(aln < maxn):
-                    maxr = r
-                    maxn = aln
+                if self.multiplier().ambient_rank()>1:
+                    if r >=0 and r< self.multiplier().rank():
+                        aln = n + self.alpha(0)[r][0]
+                        if aln < maxn:
+                            maxr = r
+                            maxn = aln
+                else:
+                    aln = n + self.alpha(r)[0]
+                    if aln < maxn:
+                        maxr = r
+                        maxn = aln
+
         if self._verbose > 1:
             print "maxa=",maxa
             print "maxn=",maxn
@@ -842,6 +874,8 @@ class AutomorphicFormSpace(Parent):
         if not self._holomorphic or self._weak:
             maxa = maxa * len(pp)
             pp_max = {(maxr,maxn):maxa}
+            if self._verbose > 1:
+                print "pp_max=",pp_max
             #[Y,M]=self.get_Y_and_M(prec,principal_part=pp)
             [Y,M]=get_Y_and_M_for_hwmf(self._group,pp_max,self._weight,digs)
         else:
@@ -2763,58 +2797,21 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
     def __init__(self,G,weight=0,multiplier=None,holomorphic=False,weak=True,cuspidal=False,verbose=0,**kwds):
         r""" Initialize the space of automorphic forms.
         """
-        if(isinstance(G,MySubgroup)):
-            self._group=G
-            self._from_group=G._G
-        else:
-            if is_int(G):
-                self._group=MySubgroup(Gamma0(G))
-                self._from_group=Gamma0(G)
-            elif( hasattr(G,'is_subgroup') and G.is_subgroup(SL2Z)):
-                self._group=MySubgroup(G)
-                self._from_group=G
-            elif( hasattr(G,'_is_space_of_automorphic_functions')):
-                # We can use the inverse of the \xi_k operator to map M_{k,rho} to H_{2-k,\bar{rho}} and 
-                self._group=G._group
-                self._from_group=G._from_group
-                self._verbose = G._verbose
-                weight=QQ(2)-QQ(G.weight())
-                x=G.character()
-                if x.is_trivial():
-                    character=trivial_character(self._group.level())
-                elif(isinstance(x,sage.modular.dirichlet.DirichletCharacter)):
-                    if(x.order()<=2):
-                        character=x
-                    else:
-                        # the conjugate character
-                        character=x.parent()[0]/x   
-                elif(isinstance(x,type(trivial))):  # if x is a function
-                    character = x
-                else:
-                    raise ValueError, "Unknown character! x:%s" % x
-            else:
-                raise ValueError, "Could not initialize space from G:%s" % G
-            
-            
-        # We need a level divisible by 4
-        if multiplier==None:
-            if is_int(weight):
-                multiplier=TrivialMultiplier(self._group)
-            else:
-                if(self._group.level() % 4 <>0):
-                    raise ValueError," Need level divisible by 4. Got:%s " % self._group.level()
-                #if ( int(2*weight) % 4 == 1):
-                multiplier=ThetaMultiplier(self._group,weight=weight)
-                #else:
-                #    multiplier=ThetaMultiplier(self._group,dual=True)
-        self._class_name ="HarmonicWeakMaassForms"
-        if self._from_group:
-            GG = self._from_group
-        else:
-            GG = self._group
-        #AutomorphicFormSpace.__init__(self,GG,weight=weight,multiplier=multiplier,character=character,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,dprec=dprec,verbose=verbose)
-        AutomorphicFormSpace.__init__(self,GG,weight=weight,multiplier=multiplier,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,verbose=verbose,**kwds)
+        if isinstance(G,AutomorphicFormSpace):
+            multiplier = G.multiplier().dual_multiplier()
+            weight = QQ(2)-QQ(G.weight())
+        elif multiplier==None or not isinstance(multiplier,MultiplierSystem):
+            multiplier = extract_multiplier(G,weight,**kwds)
+        self._group = multiplier.group()
+        self._from_group=self._group._G
+        ## Make sure we have consistent weight
+        if not multiplier.is_consistent(weight):
+            raise ValueError,"Weight {0} and multiplier are not consistent!".format(weight)
         
+        self._class_name ="HarmonicWeakMaassForms"
+        #AutomorphicFormSpace.__init__(self,GG,weight=weight,multiplier=multiplier,character=character,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,dprec=dprec,verbose=verbose)
+        AutomorphicFormSpace.__init__(self,self._group,weight=weight,multiplier=multiplier,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,verbose=verbose,**kwds)
+
 
     def modular_forms_subspace(self,cuspidal_subspace=False):
         r"""
@@ -3112,13 +3109,48 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
     NOTE: can not specify 
     
     """
-    M = HarmonicWeakMaassForms(G,weight=weight,weak=True,verbose=verbose)
+    M = extract_hwmf_space(G,weight,**kwds)
+    print "M=",M
+    #M = HarmonicWeakMaassForms(G,weight=weight,weak=True,verbose=verbose)
     pp = extract_princial_part(M,principal_part)
     F = M.get_element(principal_part=pp,**kwds)
     return F
 
+def extract_hwmf_space(X,weight=0,**kwds):
+    multiplier = extract_multiplier(X,weight,**kwds)
+    if vv==1:
+        return VVHarmonicWeakMaassForms(multiplier,weight,**kwds)
+    else:
+        return HarmonicWeakMaassForms(multiplier,weight,**kwds)
 
+def extract_multiplier(X,weight=0,**kwds):
+    vv = 0    
+    if kwds.get('vector-valued',0)==1 or kwds.get('vv',0)==1:
+        vv = 1
+    if isinstance(X,MultiplierSystem):
+        rank = X.rank()
+        multiplier = X
+    else: 
+        ## Try to construct an appropriate multiplier
+        try:
+            if isinstance(X,WeilModule):
+                multiplier = WeilRepMultiplier(X,weight)
+            elif vv == 0:
+                if isinstance(X,(int,Integer)):
+                    G = MySubgroup(Gamma0(X))                
+                elif not isinstance(X,MySubgroup):
+                    G = MySubgroup(X)
+                if is_int(weight):
+                    multiplier = TrivialMultiplier(X,weight)
+                elif is_int(2*weight):
+                    multiplier = ThetaMultiplier(G,weight=weight)
+            else:
+                multiplier = WeilRepMultiplier(X,weight) ## Weil rep. of Z, x-> X*x^2
+        except ArithmeticError:
+            raise ValueError,"Could not construct space from {0}".format(X)
+    return multiplier
 
+            
 def extract_princial_part(M,principal_part):
     r"""
     Compute the principal part in the format we want for the constructors.

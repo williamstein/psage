@@ -735,24 +735,23 @@ class WeilRepMultiplier(MultiplierSystem):
         self._weight = weight
         self._use_symmetry = use_symmetry
         self._kwargs = kwargs
-        self._sgn = (-1)**int(dual)
+        self._sgn = (-1)**int(dual)        
+        half = QQ(1)/QQ(2)
+        threehalf = QQ(3)/QQ(2)
         if use_symmetry:
-            t=2*weight
-            try:
-                Integer(t)
-            except:
-                raise ValueError, "Need half-integral value of weight! Got k=%s" %(weight)
-            ti=Integer(float(t))
-            if (ti % 4) == 1:
-                if (self._sgn*self._weil_module.signature()) % 4 == 1:
-                    sym_type = 1
-                else:
-                    sym_type= -1
+            ## First find weight mod 2:
+            twok= QQ(2)*QQ(weight)
+            if not twok.is_integral():
+                raise ValueError,"Only integral or half-integral weights implemented!"
+            kmod2 = QQ(twok % 4)/QQ(2)
+            sig_mod_4 = self._weil_module.signature() % 4
+            sym_type = 0
+            if (kmod2,sig_mod_4) in [(half,1),(threehalf,3),(0,0),(1,2)]:
+                sym_type = 1
+            elif (kmod2,sig_mod_4) in [(half,3),(threehalf,1),(0,2),(1,0)]:
+                sym_type = -1
             else:
-                if (self._sgn*self._weil_module.signature()) % 4 == 3:
-                    sym_type = 1
-                else:
-                    sym_type= -1
+                raise ValueError,"The Weil module with signature {0} is incompatible with the weight {1}!".format( self._weil_module.signature(),weight)
             ## Deven and Dodd contains the indices for the even and odd basis
             Deven=[]; Dodd=[]
             if sym_type==1:
@@ -820,7 +819,7 @@ class WeilRepMultiplier(MultiplierSystem):
                 if self._weil_module.signature() % 4 == (1 - self._sym_type) % 4:
                     return twok % 4 == 0
                 else:
-                    return twok % 4 == 1
+                    return twok % 4 == 2
         if is_even(twok) and  is_even(self._weil_module.signature()):
                 return True
         if is_odd(twok) and  is_odd(self._weil_module.signature()):

@@ -49,7 +49,7 @@ import mpmath.matrices.matrices
 mpmath.matrices.matrices.matrix = mpmath.matrix
 import random
 import tempfile,os
-from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign
+from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign,Newforms
 from sage.rings.complex_mpc import MPComplexField,MPComplexNumber
 
 from mysubgroup import *
@@ -277,7 +277,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                 min_d=maxD
                 ## We need to make sure that all discriminants below maxD are accounted for
                 for r in self.index_set():
-                    D=self.D_from_rn((r,m))
+                    D=D_from_rn(self.multiplier(),(r,m))
                     if D < min_d:
                         min_d=D
                 if(min_d >= maxD):
@@ -1447,6 +1447,7 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
                         continue
                     if verbose>3:
                         print "r,k=",r,k
+                        print "r-roffs,k-coffs=",r-roffs,k-coffs
                     LHS[r-roffs,k-coffs]=V[r,k]
         #print "LHS[",r,k,"]=",LHS[r-roffs,k-coffs]
     #else:
@@ -1824,7 +1825,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
     r"""
     A harmonic weak Maass form.
     """
-    def __init__(self,M,principal_part=None,C=None,prec=None,Lv=None):
+    def __init__(self,M,principal_part=None,C=None,prec=53,Lv=None):
         r"""
         Initialize a harmonic weak Maass form element.
         INPUT:
@@ -2767,13 +2768,15 @@ def one_rn_from_D(WR,D):
     """            
     Dv=QQ(D)/QQ(WR.level())
     sig=1
-    if WR._is_dual_rep:
+    if WR.is_dual():
         sig=-1
     for r in WR.D():
         x=WR.Qv[r]
-        if(is_int(Dv-x)):
+        nn = Dv-sig*x
+        print "D/N -{0} Q({1})={2}".format(sig,r,x)
+        if is_int(nn):
             rr=WR.D().index(r)
-            n=sig*int(Dv-x)
+            n=int(Dv-sig*x)
             return (rr,n)
     return None
 
@@ -2789,7 +2792,7 @@ def D_from_rn(WR,t):
                 lout.append(D)
         return lout
     else:
-        return one_D_from_rn(WR,t)
+        return _one_D_from_rn(WR,t)
 
 
 @cached_function
@@ -2809,7 +2812,7 @@ def _one_D_from_rn(WR,t):
     else:
         raise TypeError,"Need (r,n) in proper format forcoefficients! I.e. n integer and r in D or integer!"
     #print "x=",x
-    if sWR._is_dual_rep:
+    if WR.is_dual():
         sig=-1
     D=sig*WR.level()*(n+sig*x)
     return D

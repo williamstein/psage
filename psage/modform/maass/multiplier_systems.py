@@ -728,7 +728,7 @@ class WeilRepMultiplier(MultiplierSystem):
             raise ValueError,"{0} is not a Weil module!".format(WR)
         self._sym_type = 0
 
-        if group <>SL2Z:
+        if group.level() <>1:
             raise NotImplementedError,"Only Weil representations of SL2Z implemented!"
         self._group = MySubgroup(1)
         self.Qv=[]
@@ -784,6 +784,9 @@ class WeilRepMultiplier(MultiplierSystem):
         #return self._weil_module.rho(A)
         return self._weil_module.matrix(A)
 
+    def sym_type(self):
+        return self._sym_type
+    
     def dual_multiplier(self):
         r"""
         Returns the dual multiplier of self.

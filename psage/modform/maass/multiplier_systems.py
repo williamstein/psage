@@ -744,7 +744,10 @@ class WeilRepMultiplier(MultiplierSystem):
             if not twok.is_integral():
                 raise ValueError,"Only integral or half-integral weights implemented!"
             kmod2 = QQ(twok % 4)/QQ(2)
-            sig_mod_4 = self._weil_module.signature() % 4
+            if dual:
+                sig_mod_4 = -self._weil_module.signature() % 4
+            else:
+                sig_mod_4 = self._weil_module.signature() % 4
             sym_type = 0
             if (kmod2,sig_mod_4) in [(half,1),(threehalf,3),(0,0),(1,2)]:
                 sym_type = 1

@@ -816,10 +816,14 @@ class WeilRepMultiplier(MultiplierSystem):
         if not twok.is_integral():
             return False
         if self._sym_type <>0:
-            if is_odd(self._weil_module.signature()):                
-                return (twok % 4 == (self._sym_type*self._weil_module.signature()) % 4)
+            if self.is_dual():
+                sig_mod_4 = -self._weil_module.signature() % 4
             else:
-                if self._weil_module.signature() % 4 == (1 - self._sym_type) % 4:
+                sig_mod_4 = self._weil_module.signature() % 4
+            if is_odd(self._weil_module.signature()):                
+                return (twok % 4 == (self._sym_type*sig_mod_4 %4))
+            else:
+                if sig_mod_4 == (1 - self._sym_type) % 4:
                     return twok % 4 == 0
                 else:
                     return twok % 4 == 2

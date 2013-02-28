@@ -352,7 +352,8 @@ build_system.setup(
 
                 'psage.rh',
                 'psage.rh.mazur_stein',
-                'psage.rings'
+                'psage.rings',
+                'psage.zfunctions'
                 ],
     platforms = ['any'],
     download_url = 'NA',

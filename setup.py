@@ -351,7 +351,7 @@ build_system.setup(
                 'psage.number_fields.sqrt5',
 
                 'psage.rh',
-                'psage.rh.mazur_stein'
+                'psage.rh.mazur_stein',
                 'psage.rings'
                 ],
     platforms = ['any'],

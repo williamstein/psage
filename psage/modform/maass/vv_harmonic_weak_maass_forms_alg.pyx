@@ -4063,12 +4063,9 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
 
 
 
-def test():
-    w=WeilRepMultiplier(11,1/2,dual=True)
-    PP = {(7,-5):1}
-    M=HarmonicWeakMaassForms(w,weight=1/2,verbose=1);M
-    W=vv_harmonic_wmwf_setupV_ef(M,PP,0.5,10,20,kappa=0.5,sym_type=-1,prec=53,verbose=1)
-    N = N=M.set_normalization_vv([PP],[{(0,0):0}])
-    C=vv_harmonic_weak_maass_forms.solve_system_for_vv_harmonic_weak_Maass_waveforms_new(M,W,N)
 
-    return C
+def vv_harmonic_wmwf_phase2_tst1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
+    try:
+        CC=vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is,prec,Yin)
+        return CC
+    except KeyboardInterrupt:

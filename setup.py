@@ -327,7 +327,7 @@ build_system.setup(
                 'psage.lmfdb.ellcurves',
                 'psage.lmfdb.ellcurves.sqrt5',
 
-		'psage.matrix',
+         		'psage.matrix',
 
                 'psage.modform',
 
@@ -345,13 +345,14 @@ build_system.setup(
                 'psage.modform.jacobiforms',
                 'psage.modform.maass',
 
-		'psage.modules',
+        		'psage.modules',
 
                 'psage.number_fields',
                 'psage.number_fields.sqrt5',
 
                 'psage.rh',
                 'psage.rh.mazur_stein'
+                'psage.rings'
                 ],
     platforms = ['any'],
     download_url = 'NA',

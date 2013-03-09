@@ -3813,3 +3813,11 @@ cdef one_rn_from_D(int N,int sig,int l,double Df,double* Qv,int* r,int* n,int ve
             break
 
 
+
+
+def vv_harmonic_wmwf_phase2_tst1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
+    try:
+        CC=vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is,prec,Yin)
+        return CC
+    except KeyboardInterrupt:
+

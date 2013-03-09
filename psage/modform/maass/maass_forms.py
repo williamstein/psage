@@ -360,6 +360,8 @@ class MaassWaveForms (AutomorphicFormSpace):
     def get_element(self,R,Mset=None,Yset=None,dim=1,ndigs=12,set_c=None,**kwds):
         #if sym_type==None:
         #    sym_type=self._sym_type
+        eps = 10**(1-ndigs)
+        gr=kwds.get('gr',0)
         try: 
             if RR(R).is_infinity() or RR(R).is_NaN() or R<0.0:
                 raise Exception
@@ -376,8 +378,20 @@ class MaassWaveForms (AutomorphicFormSpace):
                 print "Y0=",Y0
                 print "M0=",M0
                 print "NN=",NN
-            
-            C = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN)
+            if Y0==0.0 and M0==0:
+                Y0,M0=get_Y_and_M_dp(self,R,eps)
+            if Y0==0.0 and M0<>0:
+                Y0=get_Y_for_M_dp(S,R,M0,eps)
+            if Y0<>0 and M0==0:
+                M0=get_M_for_maass_dp(R,Y0,eps)                
+            if self.weight()==0:
+                C = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN,gr=gr)
+            else:
+                C = get_coeff_fast_cplx_dp(self,R,Y0,M0,0,NN,gr=gr)
+            if gr<>0:
+                return C
+            if verbose>0:
+                print "NN=",NN
             ## Make sure that the coefficient have Sage types
             CF = ComplexField(self._prec)
             for i in C.keys():
@@ -648,8 +662,8 @@ class MaassWaveForms (AutomorphicFormSpace):
          {'Vals': {0: {0: 0, 1: 1, 2: 0}, 1: {0: 0, 1: 0, 2: 1}}, 'comp_dim': 2, 'num_set': 3, 'SetCs': [0, 1, 2]}
          
          """
-        if set_c<>[] and set_c<>None:
-            raise NotImplementedError,"We haven't implemented set c yet!"
+        #if set_c<>[] and set_c<>None:
+        #    raise NotImplementedError,"We haven't implemented set c yet!"
         C=dict()
         Vals=dict()
         #  set coeffs c(0),c(1),...,c(k-1) if not cuspidal
@@ -670,7 +684,13 @@ class MaassWaveForms (AutomorphicFormSpace):
                 for l in range(0,k):
                     SetCs[j].append((0,l))
                 #SetCs[j]=range(0,k)
-        # if(cuspidal):  # have to set other cusps too
+        for j in range(k):
+            for r,n in set_c[j].keys():
+                SetCs[j].append((r,n))
+                if not Vals.has_key[j]:
+                    Vals[j]={}
+                Vals[j][(r,n)]=set_c[j][(r,n)]
+                    # if(cuspidal):  # have to set other cusps too
         #    for i  in range(1,len(G.cusps())+1):
         #       SetCs.append(0+Ml*i)
         if cuspidal:

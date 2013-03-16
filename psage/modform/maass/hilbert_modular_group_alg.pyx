@@ -50,8 +50,10 @@ from sage.rings.number_field.number_field_element import is_NumberFieldElement
 #try:
 #from gen cimport gen
 #except:
+from sage.libs.pari.gen import pari
 from sage.libs.pari.gen cimport gen
 import cython
+
 #include "hilbert_modular_group_algs.pxd"
 cdef extern from "math.h":
     double fabs(double)
@@ -93,7 +95,9 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     #basis = G._OK.basis()
     cdef double d,ny,cK,delta,delta_min,delta0,x
     cdef double GdeltaK=G.deltaK()
-
+    cdef gen F
+    F = G._K.pari_bnf()
+    
     cdef double *xv, *yv
     cdef int inrhomax,inrhomin,break_rho,break_sigma
     cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
@@ -147,8 +151,13 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     rho_v = <int*>sage_malloc(degree*sizeof(int))
     sigma_v = <int*>sage_malloc(degree*sizeof(int))
     cdef double *** cusp_reps=NULL
+    #cdef double *** cusp_reps_coord=NULL
+    cdef double disc
+    disc = <double> float(G.number_field().discriminant())
     cdef int nc = G.ncusps()
     cusp_reps = <double***>sage_malloc(nc*sizeof(double**))
+    #cusp_reps_coord = <double***>sage_malloc(nc*sizeof(double**))
+ 
     for i in range(nc):
         cusp_reps[i] = <double**>sage_malloc(2*sizeof(double*))
         cusp_reps[i][0] = <double*>sage_malloc(degree*sizeof(double))
@@ -161,7 +170,19 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
             for j in range(degree):
                 cusp_reps[i][0][j]=G.cusps()[i].numerator().complex_embeddings()[j]
                 cusp_reps[i][1][j]=G.cusps()[i].denominator().complex_embeddings()[j]
-
+    # for i in range(nc):
+    #     cusp_reps_coord[i] = <double**>sage_malloc(2*sizeof(double*))
+    #     cusp_reps_coord[i][0] = <double*>sage_malloc(degree*sizeof(double))
+    #     cusp_reps_coord[i][1] = <double*>sage_malloc(degree*sizeof(double))
+    #     if i==0:
+    #         for j in range(degree):
+    #             cusp_reps_coord[i][0][j]=1.0
+    #             cusp_reps_coord[i][1][j]=0.0
+    #     else:
+    #         for j in range(degree):
+    #             cusp_reps_coord[i][0][j]=G.cusps()[i].numerator().vector()[j]
+    #             cusp_reps_coord[i][1][j]=G.cusps()[i].denominator().vector()[j]
+ 
     # containse both the basis matrix and its inverse
     cdef double*** integer_lattice=NULL
     integer_lattice =  <double***>sage_malloc(2*sizeof(double**))
@@ -177,7 +198,8 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         for j in range(degree):
             integer_lattice[0][i][j]=float(B0[i][j])
             integer_lattice[1][i][j]=float(B1[i][j])
-    get_initial_cusp_distance_c(xv,yv,ny,degree,rho_v,sigma_v,&d,nc,cusp_reps,integer_lattice,denom_max,delta0,verbose)
+#    get_initial_cusp_distance_c(F,xv,yv,ny,degree,rho_v,sigma_v,&d,nc,cusp_reps,cusp_reps_coord,integer_lattice,disc,denom_max,delta0,verbose)
+    get_initial_cusp_distance_c(xv,yv,ny,degree,rho_v,sigma_v,&d,nc,cusp_reps,integer_lattice,disc,denom_max,delta0,verbose)
     cdef int h = G._K.class_number()
     #cdef NumberFieldElement_quadratic rho_min,sigma_min
     rho_min = G._K(0) # NumberFieldElement_quadratic(G._K,0)
@@ -205,7 +227,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     tmp = float(RR(cK)*RR(d)**(RR(1)/RR(degree)))
     delta_min = d #ny**-0.5
     for i in range(degree):
-        nsigmamax_loc[i]=tmp/yv[i]
+        nsigmamax_loc[i]=tmp/sqrt(yv[i])
     # and the bounds for rho (TODO: add ref to notation in paper?)
     for i in range(degree):
         c1[i]=cK**2*yv[i]*d**(RR(2)/RR(degree))
@@ -260,9 +282,9 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                 
             for i in range(degree):
                 if c1[i]-c2[i]*semb[i]<0:
-                    s="c2:{0}*{1}={2}".format(i,c2[i],semb[i],c2[i]*semb[i])
+                    s="c1[{0}]={1} \n".format(i,c1[i])
+                    s+="c2[{0}]:{1}*{2}={3}".format(i,c2[i],semb[i],c2[i]*semb[i])
                     if verbose>0:
-                        print "c1[{0}]={1}".format(i,c1[i])
                         print s
                             
                     raise ArithmeticError,s
@@ -396,6 +418,16 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     sage_free(cusp_reps[j][1])
                 sage_free(cusp_reps[j])
         sage_free(cusp_reps)
+    # if cusp_reps_coord<>NULL:
+    #     for j in range(nc):
+    #         if cusp_reps_coord[j]<>NULL:
+    #             if cusp_reps_coord[j][0]<>NULL:
+    #                 sage_free(cusp_reps_coord[j][0])
+    #             if cusp_reps_coord[j][1]<>NULL:
+    #                 sage_free(cusp_reps_coord[j][1])
+    #             sage_free(cusp_reps_coord[j])
+    #     sage_free(cusp_reps_coord)
+
     if integer_lattice<>NULL:
         if integer_lattice[0]<>NULL:
             for i in range(degree):
@@ -470,6 +502,9 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
     cdef int i,i0,i1,j0,j1
     cdef int *rho_min=NULL,*sigma_min=NULL
     cdef list rho_v=[],sigma_v=[]
+    cdef double disc
+    cdef gen F
+    #F = G._K.pari_bnf()
     xv = <double*>sage_malloc(degree*sizeof(double))
     yv = <double*>sage_malloc(degree*sizeof(double))
     rho_min = <int*>sage_malloc(degree*sizeof(int))
@@ -482,8 +517,11 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
         ny = ny*y[i]
 
     cdef double *** cusp_reps=NULL
+    #cdef double *** cusp_reps_coord=NULL
     cdef int nc = G.ncusps()
+    disc = <double> float(G.number_field().discriminant())
     cusp_reps = <double***>sage_malloc(nc*sizeof(double**))
+    #cusp_reps_coord = <double***>sage_malloc(nc*sizeof(double**))
     for i in range(nc):
         cusp_reps[i] = <double**>sage_malloc(2*sizeof(double*))
         cusp_reps[i][0] = <double*>sage_malloc(degree*sizeof(double))
@@ -496,6 +534,18 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
             for j in range(degree):
                 cusp_reps[i][0][j]=G.cusps()[i].numerator().complex_embeddings()[j]
                 cusp_reps[i][1][j]=G.cusps()[i].denominator().complex_embeddings()[j]
+    # for i in range(nc):
+    #     cusp_reps_coord[i] = <double**>sage_malloc(2*sizeof(double*))
+    #     cusp_reps_coord[i][0] = <double*>sage_malloc(degree*sizeof(double))
+    #     cusp_reps_coord[i][1] = <double*>sage_malloc(degree*sizeof(double))
+    #     if i==0:
+    #         for j in range(degree):
+    #             cusp_reps_coord[i][0][j]=1.0
+    #             cusp_reps_coord[i][1][j]=0.0
+    #     else:
+    #         for j in range(degree):
+    #             cusp_reps_coord[i][0][j]=G.cusps()[i].numerator().vector()[j]
+    #             cusp_reps_coord[i][1][j]=G.cusps()[i].denominator().vector()[j]
     
     # containse both the basis matrix and its inverse
     cdef double*** integer_lattice=NULL
@@ -514,7 +564,8 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
             integer_lattice[1][i][j]=float(B1[i][j])
        
         
-    get_initial_cusp_distance_c(xv,yv,ny,degree,rho_min,sigma_min,&d,nc,cusp_reps,integer_lattice,denom_max,eps0,verbose)
+#    get_initial_cusp_distance_c(F,xv,yv,ny,degree,rho_min,sigma_min,&d,nc,cusp_reps,cusp_reps_coord,integer_lattice,disc,denom_max,eps0,verbose)
+    get_initial_cusp_distance_c(xv,yv,ny,degree,rho_min,sigma_min,&d,nc,cusp_reps,integer_lattice,disc,denom_max,eps0,verbose)
     sigma_res=G._K(0);    rho_res=G._K(0)
     for i in range(degree):
         sigma_res+=BA[i]*sigma_min[i]
@@ -536,6 +587,15 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
                     sage_free(cusp_reps[j][1])
                 sage_free(cusp_reps[j])
         sage_free(cusp_reps)
+    # if cusp_reps_coord<>NULL:
+    #     for j in range(nc):
+    #         if cusp_reps_coord[j]<>NULL:
+    #             if cusp_reps_coord[j][0]<>NULL:
+    #                 sage_free(cusp_reps_coord[j][0])
+    #             if cusp_reps_coord[j][1]<>NULL:
+    #                 sage_free(cusp_reps_coord[j][1])
+    #             sage_free(cusp_reps_coord[j])
+    #     sage_free(cusp_reps_coord)
 
     if integer_lattice<>NULL:
         if integer_lattice[0]<>NULL:
@@ -552,7 +612,10 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
         
     return rho_res,sigma_res,d
 
-cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,double*** cusp_reps,double*** integer_lattice, int denom_max=3,double eps0=1e-12,int verbose=0):
+# F is a pari big number field.
+#cdef get_initial_cusp_distance_c(gen F,double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,double*** cusp_reps,double*** cusp_reps_coord,double*** integer_lattice, double disc, int denom_max=3,double eps0=1e-12,int verbose=0):
+
+cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,double*** cusp_reps,double*** integer_lattice, double disc, int denom_max=3,double eps0=1e-12,int verbose=0):
     cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
     cdef double d0,d1,d2
     cdef int i,j
@@ -573,11 +636,21 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
 
     ## First check the cusp representatives
     cdef double dmin = 0.0
-    for j in range(nc):    
+    #vr = pari.vector(degree)
+    #vs = pari.vector(degree)
+    cdef gen idp
+    for j in range(nc):
+
         for i in range(degree):
             rho[i]=cusp_reps[j][0][i]
             sigma[i]=cusp_reps[j][1][i]
-        d0 = delta_cusp_c(x,y,rho,sigma,ny,degree)
+            #vr[i]=cusp_reps_coord[j][0][i]
+            #vs[i]=cusp_reps_coord[j][1][i]
+            #vr[i]=rho[i]; vs[i]=sigma[i]
+        ## norm is calculated by the pari ideal
+        # But is currently not working... 
+        norm = 1.0 #get_ideal_norm(F,vr,vs)
+        d0 = delta_cusp_c(x,y,rho,sigma,ny,norm,degree)
         if verbose>0:
             print "dist(z,c{0})={1}".format(j,d0)
         if j==0:
@@ -601,7 +674,8 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     ## Check cusp at zero
     for i in range(degree):
         rho[i]=0.0; sigma[i]=1.0
-    d1 = delta_cusp_c(x,y,rho,sigma,ny,degree)
+        
+    d1 = delta_cusp_c(x,y,rho,sigma,ny,1.0,degree)
     if verbose>0:
         print "dist(z,0)=",d1
     if d1<dmin-eps0:
@@ -647,7 +721,11 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
                 for j in range(degree):
                     rho[i]+=v[j]*integer_lattice[0][i][j]
                 sigma[i]=<double>q
-            d2 = delta_cusp_c(x,y,rho,sigma,ny,degree)
+            #for i in range(degree):
+            #    vr[i]=v[i]; vs[i]=sigma[i]
+            ###  
+            norm = 1.0 #get_ideal_norm(F,vr,vs)
+            d2 = delta_cusp_c(x,y,rho,sigma,ny,norm,degree)
             if verbose>0:
                 rhol=[];vv=[]
                 for i in range(degree):
@@ -694,7 +772,7 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     #    rho_min[0]=1; sigma_min[0]=0; d[0]=d0
     #return 1,0,0,0,d0
     
-cpdef delta_cusp(Hn z,ca,cb,int degree,int verbose=0):
+cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
     cdef double *x,*y,*rho,*sigma
     cdef int i
     x=NULL;y=NULL;rho=NULL;sigma=NULL
@@ -711,13 +789,15 @@ cpdef delta_cusp(Hn z,ca,cb,int degree,int verbose=0):
         rho[i]=float(ca.complex_embeddings()[i])
         sigma[i]=float(cb.complex_embeddings()[i])
         ny = ny*y[i]
-    delta = delta_cusp_c(x,y,rho,sigma,ny,degree)
+    
+    delta = delta_cusp_c(x,y,rho,sigma,ny,norm,degree,verbose)
     sage_free(x)
     sage_free(y)
     return delta
 
 @cython.cdivision(True)
-cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double ny, int degree):
+cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double ny,
+                         double norm,int degree,int verbose=0):
     r"""
     Compute distance to cusp given by rho/sigma in a number field.
     INPUT:
@@ -730,8 +810,12 @@ cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double 
     cdef int i
     for i in range(degree):
         delta*=(-sigma[i]*x[i]+rho[i])**2+sigma[i]**2*y[i]**2
-    delta=delta/ny
-    return sqrt(delta)
+    #delta=delta/ny
+    #cdef double norm
+    ## The norm is necessary to make this indepedent of reps.!!!
+    ## dificult
+    #
+    return sqrt(delta/ny/norm) 
 
 
 cpdef in_SL2OK(M):
@@ -807,18 +891,32 @@ cdef class  Hn(object):
         elif not isinstance(x,list):
             y=[]
             if hasattr(x,'complex_embeddings'):
-                for a,b in  x.complex_embeddings(prec):
-                    if b>0:
-                        u.append(a)
-                        y.append(b)
-                self._prec=prec
-                degree=len(u)
+                v = x.vector()  ## split the real and imaginary parts
+                v0 = v[0].complex_embeddings()
+                v1 = v[1].complex_embeddings()
+                sqD = abs(x.parent().power_basis()[1].complex_embedding()) ## Recall that sqD is purely imaginary
+                degree = max(len(v0),len(v1))
+                for i in range(degree):
+                    u.append(v0[i])
+                    if v1[i]>0:
+                        y.append(v1[i]*sqD)
+                    else:
+                        y.append(-v1[i]*sqD)
+#                for cx in 
+#                for a,b in  x.complex_embeddings(prec):
+#                    if b>=0:
+#                        u.append(a)
+#                        y.append(b)
+#                self._prec=prec
+#                degree=len(u)
             elif hasattr(x,'_is_Hn'):
                 u = x.x(); y = x.y()                
                 self._prec=x._prec
             else:
                 raise TypeError,"Can not construct point in H^n from %s!" % x
-
+            if verbose>0:
+                print "u=",u
+                print "v=",y
         else:
             ## WE now have to see if we are called with one of the three possibilities:
             ## v=[xlist,ylist]=[[x[0],x[1],...,],[y[0],y[1],...]]
@@ -1534,5 +1632,9 @@ cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0): #numv,vectors,verbo
                     res.append(vv)
     return res
                     
-                
+cdef get_ideal_norm(gen F, gen vr, gen vs):
+    #   idp = F.idealhnf(vr,vs)
+    #    norm = F.idealnorm(idp)
+    return 1.0
+
     

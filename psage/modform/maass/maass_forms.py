@@ -357,7 +357,7 @@ class MaassWaveForms (AutomorphicFormSpace):
     def level(self):
         return self._group.level()
 
-    def get_element(self,R,Mset=None,Yset=None,dim=1,ndigs=12,set_c=None,**kwds):
+    def get_element(self,R,Mset=None,Yset=None,dim=1,ndigs=12,set_c=[],**kwds):
         #if sym_type==None:
         #    sym_type=self._sym_type
         eps = 10**(1-ndigs)
@@ -367,11 +367,11 @@ class MaassWaveForms (AutomorphicFormSpace):
                 raise Exception
         except:
             raise ValueError,"R must be a (finite) non-negative real! Got R:{0}".format(R)
-        if dim>1:
+        if dim>1 and self.weight()==0:
             return  self.get_Hecke_basis(R,None,Mset,Yset,dim,ndigs,set_c)
             ## We assume we have a scalar-valued Maass form for the moment
-        elif dim==1:
-            NN = self.set_norm(1,set_c=set_c); M0=0; Y0 = float(0.0)
+        else:
+            NN = self.set_norm(dim,set_c=set_c); M0=0; Y0 = float(0.0)
             if Mset<>None: M0 = int(Mset)
             if Yset<>None: Y0 = float(Yset)
             if self._verbose>0:
@@ -391,6 +391,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             if gr<>0:
                 return C
             if verbose>0:
+                print "C.keys()==",C.keys()
                 print "NN=",NN
             ## Make sure that the coefficient have Sage types
             CF = ComplexField(self._prec)
@@ -403,26 +404,44 @@ class MaassWaveForms (AutomorphicFormSpace):
                     else:
                         c = C[i][j]
                         C[i][j] = CF(c)
-            F=MaassWaveformElement(self,R,C=C,compute=False)
-            return F
+            if len(C.keys())>1:
+                res = []
+                for i in C.keys():
+                    res.append(MaassWaveformElement(self,R,C={0:C[i]},compute=False))
+                return res
+            else:
+                return MaassWaveformElement(self,R,C=C,compute=False)
+
             #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
             #F._coeffs[0]=X[0]
-        else:
-            raise ValueError,"Can not compute Maass forms of dimension {0}".format(dim)
+        #else:
+        #    raise ValueError,"Can not compute Maass forms of dimension {0}".format(dim)
         
             
-    def get_Hecke_basis(self,R,p=None,Mset=None,Yset=None,dim=1,ndigs=12,set_c=None):
+    def get_Hecke_basis(self,R,p=None,Mset=None,Yset=None,dim=1,ndigs=12,set_c=[]):
         if dim==1:
             return self.get_element(R,Mset,Yset,dim,ndigs,set_c)
         #NN = self.set_norm(dim)
         #param=self.set_default_parameters(R,Mset,Yset,ndigs)
         #Y0=param['Y']; Q=param['Q']; M0=param['M']
         NN = self.set_norm(dim); M0=0; Y0 = float(0.0); Q=0
+        eps =1e-12
         if Mset<>None: M0 = int(Mset); Q=M0+10
         if Yset<>None: Y0 = float(Yset)
+        if Y0==0.0 and M0==0:
+            Y0,M0=get_Y_and_M_dp(self,R,eps)
+        if Y0==0.0 and M0<>0:
+            Y0=get_Y_for_M_dp(S,R,M0,eps)
+        if Y0<>0 and M0==0:
+            M0=get_M_for_maass_dp(R,Y0,eps)                
+    
         if self._verbose>0:
             print "Get Hecke basis with:{0},{1},{2},{3},{4}".format(R,Y0,M0,Q,dim)
-        X = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,Q,NN)
+        if self.weight()==0:
+            X = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN)
+        else:
+            X = get_coeff_fast_cplx_dp(self,R,Y0,M0,0,NN)
+            #X = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,Q,NN)
         if p==None:
             p = self.get_primitive_p()
         H = self.Hecke_eigenfunction_from_coeffs(X,p)
@@ -662,6 +681,8 @@ class MaassWaveForms (AutomorphicFormSpace):
          {'Vals': {0: {0: 0, 1: 1, 2: 0}, 1: {0: 0, 1: 0, 2: 1}}, 'comp_dim': 2, 'num_set': 3, 'SetCs': [0, 1, 2]}
          
          """
+        if k<1:
+            raise ValueError,"Need to compute at least a one-dimensional space!"
         #if set_c<>[] and set_c<>None:
         #    raise NotImplementedError,"We haven't implemented set c yet!"
         C=dict()
@@ -669,48 +690,58 @@ class MaassWaveForms (AutomorphicFormSpace):
         #  set coeffs c(0),c(1),...,c(k-1) if not cuspidal
         #  set coeffs c(0)=0,c(1),...,c(k) if cuspidal 
         SetCs=dict()
-        if cuspidal and k>0:
+        for j in range(k):
+            Vals[j]={}
+        ### If we have set some c's explicitly then we only set these (plus constant terms if cuspidal):
+            
+        if set_c<>[]:
+            if len(set_c)<>k:
+                raise ValueError,"Need to give a complete set of set coefficients!"
             for j in range(k):
-                SetCs[j]=[]
-                for l in range(0,k+1):
-                    SetCs[j].append((0,l))
-                #SetCs[j]=range(0,k+1)
-                for i in range(1,self.group().ncusps()):
-                    if SetCs[j].count((i,0))==0 and self.alpha(i)[0]==0: 
-                        SetCs[j].append((i,0))
+                if cuspidal:
+                    for c in range(self.group().ncusps()):
+                        if self.alphas(c)[0]==0:
+                            SetCs[j].append((c,0))
+                            Vals[j][(r,n)]=0
+                for r,n in set_c[j].keys():
+                    if (r,n) not in SetCs[j]:
+                        SetCs[j].append((r,n))
+                    Vals[j][(r,n)]=set_c[j][(r,n)]
+
         else:
-            for j in range(k):
-                SetCs[j]=[]
-                for l in range(0,k):
-                    SetCs[j].append((0,l))
-                #SetCs[j]=range(0,k)
-        for j in range(k):
-            for r,n in set_c[j].keys():
-                SetCs[j].append((r,n))
-                if not Vals.has_key[j]:
-                    Vals[j]={}
-                Vals[j][(r,n)]=set_c[j][(r,n)]
-                    # if(cuspidal):  # have to set other cusps too
-        #    for i  in range(1,len(G.cusps())+1):
-        #       SetCs.append(0+Ml*i)
-        if cuspidal:
-            C['cuspidal']=True
-        else:
-            C['cuspidal']=False
-        for j in range(k):
-            Vals[j]=dict()
-            for r,n in SetCs[j]:
-                Vals[j][(r,n)]=0
-        ## Set all valued = 0 first
-        for j in range(k):
             if cuspidal:
-                Vals[j][(0,j+1)]=1
+                for j in range(k):
+                    SetCs[j]=[]
+                    for l in range(0,k+1):
+                        SetCs[j].append((0,l))
+                #SetCs[j]=range(0,k+1)
+                    for i in range(1,self.group().ncusps()):
+                        if SetCs[j].count((i,0))==0 and self.alpha(i)[0]==0: 
+                            SetCs[j].append((i,0))
             else:
-                Vals[j][(0,j)]=1
+                for j in range(k):
+                    SetCs[j]=[]
+                    for l in range(0,k):
+                        SetCs[j].append((0,l))
+
+            for j in range(k):
+                for r,n in SetCs[j]:
+                    Vals[j][(r,n)]=0
+        ## Set all valued = 0 first
+            for j in range(k):            
+                #print "Set Vals cuspidal=",cuspidal
+                #print "Vals=",Vals
+                if cuspidal:
+                    #if not Vals[j].has_key((0,j+1)): ## These are values to set if
+                    Vals[j][(0,j+1)]=1
+                else:
+                    #if not Vals[j].has_key((0,j)):
+                    Vals[j][(0,j)]=1
         # Make sure that all constant terms are set to 0    
         #if cuspidal:
         #    for i in range(1,self.group().ncusps()):
         #        Vals[j][(i,0)]=0
+        C['cuspidal']=cuspidal
         C['comp_dim']=k
         C['SetCs']=SetCs
         C['Vals']=Vals
@@ -1082,7 +1113,10 @@ class MaassWaveForms (AutomorphicFormSpace):
         CF = MPComplexField(prec)
         MS=MatrixSpace(CF,dim,dim)
         Tp = Matrix_complex_dense(MS,0)
-        xp = x(p).complex_embedding(prec)
+        if hasattr(x(p),"complex_embedding"):
+            xp = x(p).complex_embedding(prec)
+        else:
+            xp = ComplexField(prec)(x(p))
         for i in range(dim):
             for j in range(dim):
                 c=C[i][0][p*(j+1)]

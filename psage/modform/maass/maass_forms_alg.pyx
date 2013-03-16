@@ -2231,8 +2231,9 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         return VV
     SMAT_cplx_dp(V,ncols-num_set,comp_dim,num_set,C,vals_list,setc_list)
     if verbose>1:
-        for k from 0<=k<ncols-num_set:
-            print "C[",k,"]=",C[0][k]
+        for i in range(comp_dim):
+            for k in range(ncols-num_set):
+                print "C[{0}][{1}]={2}".format(i,k,C[i][k])
 
     cdef dict res={}
     for k from 0<=k<comp_dim:

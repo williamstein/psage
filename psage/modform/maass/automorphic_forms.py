@@ -2287,10 +2287,12 @@ class AutomorphicFormElement(SageObject):
             for n in l_plus:
                 nal = n + al
                 c = C[n]
-                if isinstance(c,(int,mpf)): 
+                if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
-                else:
+                elif hasattr(c,"real"):
                     c = CF(c.real(),c.imag())
+                else:
+                    c = CF(c)
                 c = c/norm_plus
 
                 s+="C^{{+}}_{{ {0} }} ({1}) = {2} \n ".format(cusp,nal,c)
@@ -2317,7 +2319,7 @@ class AutomorphicFormElement(SageObject):
             for n in l_minus:    
                 nal = n + al
                 c = C[n]
-                if isinstance(c,(int,mpf)): 
+                if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
                 else:
                     c = CF(c.real(),c.imag())

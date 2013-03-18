@@ -574,6 +574,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         for i in range(degree):
             print "rho_v[{0}]={1}".format(i,rho_v[i])
             print "sigma_v[{0}]={1}".format(i,sigma_v[i])
+    
     for i in range(1,degree):
         if rho_v[i]<>0:
             rho_min+=BA[i]*rho_v[i]
@@ -586,6 +587,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "rho_min=",rho_min
         print "sigma_min=",sigma_min
         print "d=",d
+    verbose=0
     np = 0
     nsigmamax = ceil(cK**degree*d/ny**0.5)
     #nsigmamax_loc = [] #; yv=copy(z.y); xv=copy(z.x)

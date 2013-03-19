@@ -572,6 +572,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     sigma_min= BDA[0]*sigma_v[0]
     if verbose>0:
         for i in range(degree):
+            print "After get_initial_cusp_dist:"
             print "rho_v[{0}]={1}".format(i,rho_v[i])
             print "sigma_v[{0}]={1}".format(i,sigma_v[i])
     
@@ -587,7 +588,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "rho_min=",rho_min
         print "sigma_min=",sigma_min
         print "d=",d
-    verbose=0
+    #verbose=0
     np = 0
     nsigmamax = ceil(cK**degree*d/ny**0.5)
     #nsigmamax_loc = [] #; yv=copy(z.y); xv=copy(z.x)
@@ -624,7 +625,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         for sigmat in list_of_sigmas:            
             for i in range(degree):
                 semb[i] = float(sigmat[1][i])
-            if verbose>0:
+            if verbose>2:
                 sigma = G._K(0)
                 for i in range(degree):
                     sigma+=G._K(sigmat[0][i])*power_basis[i]
@@ -645,7 +646,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     break
             if do_cont>=0:
                 continue
-            elif verbose>0:                    
+            elif verbose>1:                    
                 print "sigma[{0}]={1} OK comp to :{2}!".format(do_cont,semb[do_cont],nsigmamax_loc[i])            
             ## List the rhos
             nrhomax = 1.0;  nrhomin = 1.0
@@ -710,15 +711,15 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                             do_cont = i
                             break
                     if do_cont > -1:
-                        if verbose>1:
+                        if verbose>2:
                             print "rho[{0}]={1} too large comp to :{2}!".format(do_cont,rhoemb[do_cont],nrhomax_loc[i])
                         continue
                     for i in range(degree):
                         if rhoemb[i]<nrhomin_loc[i]:
                             do_cont = i
-                            if verbose>1:
+                            if verbose>2:
                                 print "rhoemb too small!"
-                            if nr==5 and ns==-1 and verbose>0:
+                            if nr==5 and ns==-1 and verbose>1:
                                 print "rhoemb too small!"
                                 #print "v=",v
                                 print "rhoemb=",rhoemb[i],type(rhoemb[i])
@@ -734,7 +735,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                         delta*=(-semb[i]*xv[i]+rhoemb[i])**2+s2y2[i]
                     delta=sqrt(delta/ny)
                     np+=1
-                    if verbose>0:
+                    if verbose>1:
                         print "delta=",delta
                     if delta < delta_min-delta0:
                         sigma_min = G._K(0)
@@ -742,7 +743,17 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                         for i in range(degree):
                             sigma_min+=G._K(sigmat[0][i])*power_basis[i]
                             rho_min+=G._K(rhot[0][i])*power_basis[i]
-                        delta_min = delta
+                        ### We only want 'relatively prime' elements
+                        ctest = rho_min/sigma_min
+                        c_num = G._K(ctest.numerator())
+                        c_den = G._K(ctest.denominator())
+                        if verbose>0:
+                            print "Possible min at c=",ctest
+                            print "numerator=",c_num,type(c_num)
+                            print "denominator=",c_den,type(c_den)
+                        delta_test = delta_cusp(z,c_num,c_den,1.0,degree)
+                        if delta_test < delta_min-delta0:
+                            delta_min = delta_test
                         if verbose>0:                                
                             print "Got smaller delta at s={0} r={1}, delta={2}".format(sigma_min,rho_min,delta_min)
                         if delta<GdeltaK:
@@ -766,6 +777,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "Tested {0} pairs!".format(np)
         print "rho_min=",rho_min
         print "sigma_min=",sigma_min
+        print "delta_min=",delta_min
     # Reduce:
     if sigma_min<>0:
         cc = rho_min / sigma_min
@@ -777,6 +789,12 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         rho_min = rho_min/g
         sigma_min = sigma_min/g
     c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
+    ### Check to see if we have a cusp representative
+    for i in range(degree):
+        if c==G.cusps()[i]:
+            c = G.cusps()[i]
+            break        
+        
     sage_free(semb)
     sage_free(rhoemb)
     sage_free(nrhomax_loc)

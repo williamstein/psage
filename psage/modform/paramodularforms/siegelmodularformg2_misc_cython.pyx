@@ -75,7 +75,7 @@ cpdef negative_fundamental_discriminants(int precision) :
     r"""
     Return a list of all negative fundamental discriminants `> -precision`
     """
-    cdef int *markers = <int *>malloc(precision * sizeof(int))
+    cdef int *markers = <int *>sage_malloc(precision * sizeof(int))
     cdef int k
     cdef int maxh
     cdef int hs

@@ -698,7 +698,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                 list_of_rhos =  elements_of_norm(F,nr,degree,basis_embeddings)
                 for rhot in list_of_rhos:
                     for i in range(degree):
-                        rhoemb[i]=RR(rhot[1][i])
+                        rhoemb[i]=<double>float(rhot[1][i])
                     do_cont = -1
                     for i in range(degree):
                         if rhoemb[i]-nrhomax_loc[i]>0.0:
@@ -1141,9 +1141,9 @@ cpdef get_closest_cusp_new_with_sl2ao(Hn z,G,ida=None,int denom_max=3,int verbos
                             if nr==5 and ns==-1 and verbose>0:
                                 print "rhoemb too small!"
                                 #print "v=",v
-                                print "rhoemb=",rhoemb[i],type(rhoemb[i])
+                                print "rhoemb=",rhoemb[i] #,type(rhoemb[i])
                                 #print "emb/K=",G._K(rho).complex_embeddings()
-                                print "nrhomin_loc=",nrhomin_loc[i],type(nrhomin_loc[i])
+                                print "nrhomin_loc=",nrhomin_loc[i]  #,type(nrhomin_loc[i])
                             break
                     if do_cont > -1:
                         if verbose>1:
@@ -1527,8 +1527,10 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     cdef int jmin=0
     cdef int ii,ci
     cdef double dist,dist_min=1
-    cdef double* xcoord
+    cdef double* xcoord=NULL
     xcoord = <double*>sage_malloc(degree*sizeof(double))
+    if xcoord == NULL:
+        raise MemoryError
     for i in range(degree):
         xcoord[i]=0.0
         for j in range(degree):
@@ -1591,6 +1593,7 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     sage_free(yv)
     sage_free(rho)
     sage_free(sigma)
+    sage_free(xcoord)
     if verbose>0:
         print "dmin=",dmin
         for i in range(degree):
@@ -1789,6 +1792,8 @@ cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
     delta = delta_cusp_c(x,y,rho,sigma,ny,norm,degree,verbose)
     sage_free(x)
     sage_free(y)
+    sage_free(rho)
+    sage_free(sigma)
     return delta
 
 @cython.cdivision(True)
@@ -2249,7 +2254,8 @@ cdef class  Hn(object):
             c = A[1,0].complex_embeddings(prec)
             d = A[1,1].complex_embeddings(prec)
         for i in range(self._degree):
-            den = self.z(i)*c[i]+d[i]
+            den = self.z(i)
+            den = den*c[i]+d[i]
             if den<>0:
                 w = (self.z(i)*a[i]+b[i])/den
             else:

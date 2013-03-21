@@ -4529,7 +4529,7 @@ cpdef split_interval(H,double R1,double R2):
         if abs(rold-rnew)==0.0:
             if verbose>0:
                 print "ivs=",ivs
-            exit
+            break
         iv=(rold,rnew)
         ivs.append(iv)
         rold=rnew
@@ -4779,7 +4779,7 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
         for j from 0<=j< num_set:
             if setc_list[j]==i:
                 in_list=1
-                exit
+                break
         if in_list==0:
             tmp=0
             #print "i:",i
@@ -4788,7 +4788,7 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
                 #for k from 0<=k< num_set:
                 #    if setc_list[j]==i:
                 #        in_list=1
-                #        exit
+                #        break
                 #if in_list==0:
                 #if i==2:
                 #    print "C[",j,"]=",C[j]
@@ -4993,7 +4993,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
         for j from 0<=j< num_set:
             if setc_list[j]==i:
                 in_list=1
-                exit
+                break
         if in_list==0:
             tmp=0
             for j from 0<=j<N-num_set:

@@ -545,7 +545,6 @@ cdef extern from "mpc.h" nogil:
 
     
 
-
  ### MPZ
 cdef extern from "gmp.h" nogil:
     void mpz_bin_uiui (mpz_t rop, unsigned long int n, unsigned long int k) 
@@ -585,4 +584,3 @@ cdef extern from "stdsage.h" nogil:
     void  init_csage_module()
     void  init_memory_functions()
 
-#init_csage_module()

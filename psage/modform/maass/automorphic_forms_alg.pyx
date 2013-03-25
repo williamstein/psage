@@ -2300,8 +2300,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                 sage_free(nvec[i])
         sage_free(nvec)
     if Xm<>NULL:
-        for l in range(Ql):
-            mpfr_clear(Xm[i])
+        for n in range(Ql):
+            mpfr_clear(Xm[n])
         sage_free(Xm)
     if ef2<>NULL:
         for icusp in range(nc):

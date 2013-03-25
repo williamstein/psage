@@ -491,7 +491,7 @@ cdef  double complex my_lngamma(double x,double R,double prec=1E-16):
     cdef int i,j ,N ,m,M,k
     R2=R*R
     d_c_i=(<double complex>_Complex_I)
-    z=iR+x
+    z=d_c_i*R+x
     y=R
     iR=d_c_i*R 
     N=10

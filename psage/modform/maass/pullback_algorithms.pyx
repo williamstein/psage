@@ -49,7 +49,8 @@ cdef extern from "complex.h":
     cdef double carg(double complex)
     cdef double cabs(double complex)
     cdef double complex cpow(double complex,double complex)
-
+    cdef double complex cexp(double complex)
+    
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 from mysubgroup import MySubgroup
 from mysubgroups_alg import apply_sl2z_map
@@ -102,7 +103,7 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
             for n from 0<=n<Ql:
                 Cvec_t[i][j][n]=<double complex>0
 
-    pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t,weight,holo)
+    pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
     cdef dict Xm,Xpb,Ypb,Cvec,pb
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
@@ -144,7 +145,7 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
         sage_free(Cvec_t)
     return pb
 @cython.cdivision(True)
-cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec,double weight=0.0,int holo=0):
+cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec):
     r""" Computes a whole array of pullbacked points using double precision
 
     INPUT:
@@ -186,6 +187,8 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     multiplier = S.multiplier()
     #character = S.character
     holo = S.is_holomorphic()
+    cdef double weight
+    weight = S.weight()
     if weight<>0 or not multiplier.is_trivial():
         non_trivial=True
     else:
@@ -193,8 +196,9 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     trivial_mult = multiplier.is_trivial()
     cdef double pi=3.1415926535897932384626433
     cdef double twopi,twoQl
-    cdef double complex twopii,mp_i,m1,m2,m3
+    cdef double complex twopii,mp_i,m1,m2,m3,tmp,v
     cdef double ep0=1E-10
+    cdef double tmpabs,tmparg,tmparg1,tmparg2,tmparg3
     twopi=2.0*pi
     twopii = twopi* _Complex_I
     #=complex(0,twopi)
@@ -209,7 +213,6 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     #    AA=[1,0,0,1]
 #    Tj=[1,0,0,1]
     cdef double swi,swj,ar,br,cr,dr
-    cdef double complex tmp,v
     cdef int ci,cj
     cdef int verbose=S._verbose
     cdef double x,y,x1,y1,x2,y2,x3,y3,xx,yy
@@ -296,12 +299,16 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     cdef int modulus
     #if verbose>0:
     #    print "Here1.5"
-    if weight==0 and not multiplier.is_trivial():
+    if not multiplier.is_trivial():
         dir_char=1
         modulus = multiplier._character.modulus()
         charvec=<double complex*>sage_malloc(sizeof(double complex)*modulus)
         for i from 0<=i<modulus:
-            charvec[i]=<double complex> multiplier._character(i).complex_embedding()
+            mc = multiplier._character(i)
+            if hasattr(mc,"complex_embedding"):
+                charvec[i]=<double complex> multiplier._character(i).complex_embedding()
+            else:
+                charvec[i]=<double complex>CC(multiplier._character(i))
             if verbose>1:
                 print "chi(",i,")=",charvec[i]
     #if verbose>0:
@@ -335,12 +342,6 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             swi=sqrt(wi_d)
         for j from 0 <= j < Ql: #1-Q,Q):
             x=Xm[j]; y=Y
-            #a=cusp_maps[ci][0]; b=cusp_maps[ci][1]
-            #c=normalizers[ci][2]; d=cusp_maps[ci][3]
-            #if ci==2:
-            #    verbose=3
-            #else:
-            #    verbose=0
             a=normalizers[ci][0]; b=normalizers[ci][1]
             c=normalizers[ci][2]; d=normalizers[ci][3]
             if use_int==1:
@@ -348,6 +349,8 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             else:
                 _normalize_point_to_cusp_real_dp(&x,&y,a,b,c,d,wi_d)
             #[x,y]   = normalize_point_to_cusp_dp(G,ci,Xm[j],Y)
+            if verbose>2:
+                print "x0,y0=",x,y
             if is_Gamma0 == 1:
                 #x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
                 _pullback_to_Gamma0N_dp(reps,nreps,N,&x,&y,
@@ -359,17 +362,15 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             #cj,vj= G.closest_cusp(x1,y1,vertex=1)
             vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&x1,&y1)
             cj = vertex_cusp[vj]
-            #if ci==0 and cj==0 or (ci==0 and (j+Qs<=56 and j+Qs>=55)):
-            #    verbose=3
-            #else:
-            #    verbose=0
+            if pba<=0 and pbb<=0 and pbc<=0 and pbd<=0:
+                pba=-pba; pbb=-pbb; pbc=-pbc; pbd=-pbd
             if verbose>2:
                 print "normalizer[",ci,"]=",a,b,c,d
                 print "x0,y0=",x,y
                 print "j=",j+Qs
                 print "Xm,Y=",Xm[j],Y
                 print "x,y=",x,y
-                print "a,b,c,d,wi=",a,b,c,d,wi
+                print "a,b,c,d,wi=",pba,pbb,pbc,pbd,wi
                 print "x1,y1=",x1,y1
                 print "cj,vj=",cj,vj
             #cjj=G._cusps.index(cj)
@@ -443,19 +444,37 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             # We also get the multiplier if we need it
             if non_trivial:
                 if weight<>0:
+                    if verbose>2:
+                        print "here holo=",holo," weight=",weight
+                        print "A=",A[0],A[1],A[2],A[3]
                     cr = <double>(normalizers[ci][2])*swi
                     dr = <double>(normalizers[ci][3])/swi
-                    m1=<double complex>j_fak_dp(cr,dr,Xm[j],Y,-weight,holo)
+                    if verbose>2:
+                        print "cr,dr=",cr,dr
+                    j_fak_dp_c(cr,dr,Xm[j],Y,weight,holo,&tmpabs,&tmparg1)
+                    m1=cexp(-_Complex_I*tmparg1)
+                    if verbose>2:
+                        print "-tmparg1=",-tmparg1
+                        print "m1=",m1
                     cr = <double>(normalizers[cj][2])*swj
                     dr = <double>(normalizers[cj][3])/swj
-                    m2=<double complex>j_fak_dp(cr,dr,x3,y3,weight,holo)
-                    #l=mat_mul_list(cusp_maps[vj],Tj)
+                    j_fak_dp_c(cr,dr,x3,y3,weight,holo,&tmpabs,&tmparg2)
+                    m2=cexp(_Complex_I*tmparg2)
+                    if verbose>2:
+                        print "tmparg2=",tmparg2
+                    #l=mat_mul_lit(cusp_maps[vj],Tj)
                     #A[0]=l[0]; A[1]=l[1]; A[2]=l[2]; A[3]=l[3]
                     _mat_mul_list(cusp_maps[vj][0],cusp_maps[vj][1],cusp_maps[vj][2],cusp_maps[vj][3],pba,pbb,pbc,pbd,A)
                     #A=A**-1
                     cr=<double>(-A[2]); dr=<double>(A[0])
-                    m3=<double complex>j_fak_dp(cr,dr,x2,y2,weight,holo)
-                    tmp=m1*m2*m3
+                    j_fak_dp_c(cr,dr,x2,y2,weight,holo,&tmpabs,&tmparg3)
+                    m3=cexp(_Complex_I*tmparg3)
+                    tmp=cexp(_Complex_I*(tmparg2-tmparg1+tmparg3))
+                    if verbose>2:
+                        print "tmparg3=",tmparg
+                        print "A[2],A[3]=",A[2],A[3]
+                        print "A[3]=",A[3],"% modulus:",vi
+                        print "m1,m2,m3=",m1,m2,m3
                 else:
                     _mat_mul_list(cusp_maps[vj][0],cusp_maps[vj][1],cusp_maps[vj][2],cusp_maps[vj][3],pba,pbb,pbc,pbd,A)
                     tmp=<double complex>1.0
@@ -466,6 +485,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                     v=charvec[vi]
                     if verbose>2:
                         print "A[3]=",A[3],"% modulus:",vi
+                        print "m1,m2,m3=",m1,m2,m3
                         print "tmp=",tmp
                         print "mult=",v 
 
@@ -518,7 +538,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     sig_off()
 
 @cython.cdivision(True)
-cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec,double weight=0.0,int holo=0):
+cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec):
     r"""
     Computes a whole array of pullbacked points using double precision
     The multiplier/Character is supposed to be real in this case.
@@ -531,6 +551,8 @@ cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     G = S.group()
     multiplier = S.multiplier()
     #character = S.character
+    cdef double weight
+    weight = S.weight()
     holo = S.is_holomorphic()
     if weight<>0 or not S._use_real:
         raise ValueError,"This (real) algorithm should not be used in this situation!"
@@ -2884,13 +2906,13 @@ cpdef j_fak_old(RealNumber c,RealNumber d,RealNumber x,RealNumber y,RealNumber k
 
 cpdef j_fak_dp(double c,double d,double x,double y,double k,int unitary=1):
     cdef double tmpabs,tmparg
-    j_fak_dp_c(c,d,x,y,k,unitary,tmpabs,tmparg)
+    j_fak_dp_c(c,d,x,y,k,unitary,&tmpabs,&tmparg)
     if unitary==0:
         return tmpabs,tmparg
     else:
         return tmparg
     
-cdef void j_fak_dp_c(double c,double d,double x,double y,double k,int unitary,double tmpabs,double tmparg):
+cdef void j_fak_dp_c(double c,double d,double x,double y,double k,int unitary,double *tmpabs,double *tmparg):
     r"""
     Computes the argument (with principal branch)  of the
     automorphy factor j_A(z;k) defined by:
@@ -2919,15 +2941,15 @@ cdef void j_fak_dp_c(double c,double d,double x,double y,double k,int unitary,do
     """
     cdef double complex tmp
     if  (c==0.0 and d==1.0) or (k==0.0):
-        tmpabs=1.0
-        tmparg=0.0
+        tmpabs[0]=1.0
+        tmparg[0]=0.0
     else:
         tmp = c*x+d + _Complex_I * c*y
-        tmparg=carg(tmp)
-        tmparg=tmparg*k
+        tmparg[0]=carg(tmp)
+        tmparg[0]=tmparg[0]*k
         if unitary==0:
-            tmpabs=cabs(tmp)
-            tmpabs=pow(tmpabs,k)
+            tmpabs[0]=cabs(tmp)
+            tmpabs[0]=pow(tmpabs[0],k)
 
 
 cpdef j_fak_mpc(RealNumber c,RealNumber d,RealNumber x,RealNumber y,RealNumber k,int unitary=1):

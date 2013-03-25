@@ -70,16 +70,17 @@ numpy_include_dirs = [os.path.join(SAGE_LOCAL,
                                    'lib/python/site-packages/numpy/core/include')]
 
 ext_modules = [
-    Extension("psage.ellff.ellff",
-              ["psage/ellff/ellff.pyx",
-               "psage/ellff/ell.cpp",
-               "psage/ellff/ell_surface.cpp",
-               "psage/ellff/euler.cpp",
-               "psage/ellff/helper.cpp",
-               "psage/ellff/jacobi.cpp",
-               "psage/ellff/lzz_pEExtra.cpp",
-               "psage/ellff/lzz_pEratX.cpp"],
-              language = 'c++'),
+# Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
+#    Extension("psage.ellff.ellff",
+#              ["psage/ellff/ellff.pyx",
+#               "psage/ellff/ell.cpp",
+#               "psage/ellff/ell_surface.cpp",
+#               "psage/ellff/euler.cpp",
+#               "psage/ellff/helper.cpp",
+#               "psage/ellff/jacobi.cpp",
+#               "psage/ellff/lzz_pEExtra.cpp",
+#               "psage/ellff/lzz_pEratX.cpp"],
+#              language = 'c++'),
 
     Extension("psage.function_fields.function_field_element",
               ["psage/function_fields/function_field_element.pyx"]),
@@ -205,6 +206,13 @@ my_extensions = [
               ['psage/modform/maass/permutation_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
     
+    Extension('psage.modform.maass.maass_forms_parallel_alg',
+              ['psage/modform/maass/maass_forms_parallel_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp'],
+              include_dirs = numpy_include_dirs),
+
     Extension('psage.modform.maass.pullback_algorithms',
               ['psage/modform/maass/pullback_algorithms.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
@@ -312,7 +320,7 @@ build_system.setup(
                 'psage.ellcurve',
                 'psage.ellcurve.lseries',
 
-                'psage.ellff',
+#                'psage.ellff',
 
                 'psage.function_fields',
 
@@ -320,7 +328,7 @@ build_system.setup(
                 'psage.lmfdb.ellcurves',
                 'psage.lmfdb.ellcurves.sqrt5',
 
-		'psage.matrix',
+         		'psage.matrix',
 
                 'psage.modform',
 
@@ -338,13 +346,15 @@ build_system.setup(
                 'psage.modform.jacobiforms',
                 'psage.modform.maass',
 
-		'psage.modules',
+        		'psage.modules',
 
                 'psage.number_fields',
                 'psage.number_fields.sqrt5',
 
                 'psage.rh',
-                'psage.rh.mazur_stein'
+                'psage.rh.mazur_stein',
+                'psage.rings',
+                'psage.zfunctions'
                 ],
     platforms = ['any'],
     download_url = 'NA',

@@ -229,34 +229,17 @@ my_extensions = [
 #              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
-<<<<<<< Updated upstream
-    Extension('psage.modform.maass.hilbert_modular_group_alg',
-              ['psage/modform/maass/hilbert_modular_group_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-=======
 
     Extension('psage.modform.hilbert.hn_class',
               ['psage/modform/hilbert/hn_class.pyx'],
               libraries = ['m']),
-#              include_dirs = numpy_include_dirs),
-    Extension('psage.modform.hilbert.test_nf',
-              sources=['psage/modform/hilbert/test_nf.pyx'],
-              language="c++"),
     
     Extension('psage.modform.hilbert.hilbert_modular_group_alg',
               ['psage/modform/hilbert/hilbert_modular_group_alg.pyx'],
-              language="c++"),
-#              libraries = ["csage", "flint", "gmp", "gmpxx", "m", "stdc++", "ntl"],
-              #libraries = ['ntl','gmp','gmpxx','mpfr','mpc','csage','m','pari','stdc++','flint'],
-#              extra_compile_args = ['-std=c99']),
+              libraries = ["flint", "gmp", "gmpxx", "m","ntl"],
+              language="c"),
 
 
-#              language="c++",
-#              libraries = ["csage", "flint", "gmp", "gmpxx", "m", "stdc++", "ntl"],
-#              include_dirs = numpy_include_dirs),
-
->>>>>>> Stashed changes
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],

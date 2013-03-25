@@ -21,8 +21,5 @@
 
 
 import sqrt5
-<<<<<<< Updated upstream
-=======
 import hn_class
 #from hilbert_modular_group_alg import *
->>>>>>> Stashed changes

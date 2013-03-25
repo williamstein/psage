@@ -42,11 +42,11 @@ from libc.math cimport sqrt,fabs,fmax,ceil,floor,sin,cos,log
 
 
 cpdef cusp_coordinates_gen(G,cuspi,z,int verbose=0):
-cdef Hn zz
-if not isinstance(z,Hn):
-    zz = Hn(z)
-else:
-    zz = copy(z)
+    cdef Hn zz
+    if not isinstance(z,Hn):
+        zz = Hn(z)
+    else:
+        zz = copy(z)
     cdef int cuspii
     if not isinstance(cuspi,int):
         if isinstance(cuspi,Integer):

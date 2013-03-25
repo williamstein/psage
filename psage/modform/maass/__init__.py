@@ -7,8 +7,6 @@ from maass_forms import MaassWaveForms,EisensteinSeries,scattering_determinant_H
 from maass_forms_alg import get_Y_for_M_dp,get_Y_and_M_dp,get_coeff_fast_cplx_dp_sym
 from lpkbessel import besselk_dp
 
-from hilbert_modular_group_alg import Hn
-
 from weil_rep_simple import WeilRepDiscriminantForm
 #from eisenstein_series import *
 #from pullback_algorithms import *

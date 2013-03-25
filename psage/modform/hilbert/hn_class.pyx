@@ -22,7 +22,7 @@ Cython class for for working with H^n, i.e. n copies of upper half-plane.
 include 'sage/ext/stdsage.pxi'
 #include "sage/ext/cdefs.pxi"
 include 'sage/ext/interrupt.pxi'
-#include "../../rings/double_prec_math.pxi"
+include "../../rings/double_prec_math.pxi"
 
 
 from sage.all import real,imag,Integer,Rational,ComplexField,Infinity
@@ -51,8 +51,8 @@ cdef class  Hn(object):
         self._verbose = verbose
         u = []
         if isinstance(x,list) and isinstance(y,list) and y<>[] and x<>[]:
-            self._degree = len(x)
-            assert len(y)==self._degree
+            degree = len(x)
+            assert len(y) == degree
         elif not isinstance(x,list):
             y=[]
             if hasattr(x,'complex_embeddings'):
@@ -67,9 +67,10 @@ cdef class  Hn(object):
                         y.append(v1[i]*sqD)
                     else:
                         y.append(-v1[i]*sqD)
-            elif hasattr(x,'_is_Hn'):
-                u = x.x(); y = x.y()                
-                self._prec=x._prec
+            elif isinstance(x,Hn):
+                u = x.real_list(); y = x.imag_list()
+                self._prec = x.prec()
+                degree = x.degree()
             else:
                 raise TypeError,"Can not construct point in H^n from %s!" % x
             if verbose>0:
@@ -157,6 +158,9 @@ cdef class  Hn(object):
         for i in range(self._degree):
             self._x[i] = <double>x[i]
             self._y[i] = <double>y[i]
+            if self._verbose>1:
+                print "x[{0}]={1}".format(i,x[i])
+                print "y[{0}]={1}".format(i,y[i])
             if y[i]<0:
                 raise ValueError,"Not in H^n^*! y[{0}]={1}".format(i,y[i])
         if self._verbose>0:

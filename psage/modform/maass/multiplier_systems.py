@@ -70,15 +70,14 @@ class MultiplierSystem(SageObject):
         self._conductor=conductor
         self._char_nr=char_nr
         self._character = None
-        self._level = group.level()
+        self._level = group.generalized_level()
         if kwargs.has_key('character'):
             if str(type(kwargs['character'])).find('DirichletCharacter')>=0:
                 self._character = kwargs['character']
                 self._conductor=self._character.conductor()
-                self._char_nr=(self._character).parent().list().index(self._character)
-        else:
-            if group.is_congruence():
-                if conductor<=0:
+                self._char_nr=list((self._character).parent()).index(self._character)
+        elif group.is_congruence():
+            if conductor<=0:
                     self._conductor=group.level(); self._char_nr=0
             if char_nr>=0:
                 self._char_nr=char_nr
@@ -94,10 +93,13 @@ class MultiplierSystem(SageObject):
             elif self._char_nr<=-2:
                 self._character = kronecker_character_upside_down(self._conductor)    
             else:
-                D = DirichletGroup(self._conductor).list()
+                D = list(DirichletGroup(self._conductor))
                 if self._char_nr <0 or self._char_nr>len(D):
                     self._char_nr=0
-                self._character = D[self._char_nr] 
+                self._character = D[self._char_nr]
+        else:
+            self._conductor = 1
+            self._character = trivial_character(1)
         #if not hasattr(self._character,'is_trivial'):
         #    if isinstance(self._character,(int,Integer)) and group.is_congruence():
         #        j = self._character

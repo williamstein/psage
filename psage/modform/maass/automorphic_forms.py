@@ -2237,6 +2237,8 @@ class AutomorphicFormElement(SageObject):
         l = C.keys()
         l_plus = []; l_minus=[]
         for n in l:
+            if abs(n)>N:
+                continue
             if self.my_zzcmp(n,0)>0:
                 l_plus.append(n)
             else:

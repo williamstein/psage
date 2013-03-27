@@ -1613,7 +1613,7 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
 
     def level(self):
         if self._group.is_congruence():
-            return self._group.level():
+            return self._group.level()
         else:
             return self._group.generalised_level()
 

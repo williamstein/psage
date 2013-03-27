@@ -1,7 +1,7 @@
 # cython: profile=False
 # -*- coding=utf-8 -*-
 #*****************************************************************************
-#  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
+#  Copyright (C) 2013 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #

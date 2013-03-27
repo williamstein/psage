@@ -42,11 +42,11 @@ from libc.math cimport sqrt,fabs,fmax,ceil,floor,sin,cos,log
 
 
 cpdef cusp_coordinates_gen(G,cuspi,z,int verbose=0):
-cdef Hn zz
-if not isinstance(z,Hn):
-    zz = Hn(z)
-else:
-    zz = copy(z)
+    cdef Hn zz
+    if not isinstance(z,Hn):
+        zz = Hn(z)
+    else:
+        zz = copy(z)
     cdef int cuspii
     if not isinstance(cuspi,int):
         if isinstance(cuspi,Integer):
@@ -57,21 +57,21 @@ else:
     return cusp_coordinates(G,cuspii,zz,verbose)
 
 cpdef cusp_coordinates(G,int cuspi,Hn z,int verbose=0):
-r"""
-Gives the coordinate of the CP z withe respcet to the cusp, as in e.g.
-Siegel "Advanced analytic Number theory", p. 171 (147)
+    r"""
+    Gives the coordinate of the CP z withe respcet to the cusp, as in e.g.
+    Siegel "Advanced analytic Number theory", p. 171 (147)
 
-INPUT:
-- z -- CP
-- cuspi  -- integer giving a cusp of self
-
-"""
-if cuspi<0 or cuspi >= int(G.ncusps()): #G.cusps():
-    raise ValueError,"Need to call with a cusp representative of the group G! Got:{0}".format(cuspi)
-cdef Hn zz
-if not cuspi ==0: ## Cheaper than .is_infinity():
-    A = G.cusp_normalizing_map(cuspi,inverse=1)
-    zz = z.acton_by(A)
+    INPUT:
+    - z -- CP
+    - cuspi  -- integer giving a cusp of self
+    
+    """
+    if cuspi<0 or cuspi >= int(G.ncusps()): #G.cusps():
+        raise ValueError,"Need to call with a cusp representative of the group G! Got:{0}".format(cuspi)
+    cdef Hn zz
+    if not cuspi ==0: ## Cheaper than .is_infinity():
+        A = G.cusp_normalizing_map(cuspi,inverse=1)
+        zz = z.acton_by(A)
     if verbose>0:
         print "A(zz)=",zz
     else:
@@ -118,40 +118,40 @@ if not cuspi ==0: ## Cheaper than .is_infinity():
 
 
 cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
-r""" Locate the closest cusp of G to z.
+    r""" Locate the closest cusp of G to z.
 
-"""
-cdef int degree,ns,nr,i,j,nsigmamax
-degree=G._degree
-    #basis = G._OK.basis()
-cdef double d,ny,cK,delta,delta_min,delta0,x
-cdef double GdeltaK=G.deltaK()
-cdef gen F
-F = G._K.pari_bnf()
-cdef double *xv, *yv
-cdef int inrhomax,inrhomin,break_rho,break_sigma
-cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
-cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
-cdef double *c1=NULL,*c2=NULL,*c3=NULL
-cdef double *nsigmamax_loc
-cdef int np,do_cont
-nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
-nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
-nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
-s2y2 = <double *>sage_malloc(degree*sizeof(double))
-rhoemb = <double *>sage_malloc(degree*sizeof(double))
-semb = <double *>sage_malloc(degree*sizeof(double))
-xv = <double *>sage_malloc(degree*sizeof(double))
-yv = <double *>sage_malloc(degree*sizeof(double))
-c1 = <double *>sage_malloc(degree*sizeof(double))
-c2 = <double *>sage_malloc(degree*sizeof(double))
-c3 = <double *>sage_malloc(degree*sizeof(double))
-nrhomax = 1.0;  nrhomin = 1.0
+    """
+    cdef int degree,ns,nr,i,j,nsigmamax
+    degree=G._degree
+        #basis = G._OK.basis()
+    cdef double d,ny,cK,delta,delta_min,delta0,x
+    cdef double GdeltaK=G.deltaK()
+    cdef gen F
+    F = G._K.pari_bnf()
+    cdef double *xv, *yv
+    cdef int inrhomax,inrhomin,break_rho,break_sigma
+    cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
+    cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
+    cdef double *c1=NULL,*c2=NULL,*c3=NULL
+    cdef double *nsigmamax_loc
+    cdef int np,do_cont
+    nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
+    nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
+    nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
+    s2y2 = <double *>sage_malloc(degree*sizeof(double))
+    rhoemb = <double *>sage_malloc(degree*sizeof(double))
+    semb = <double *>sage_malloc(degree*sizeof(double))
+    xv = <double *>sage_malloc(degree*sizeof(double))
+    yv = <double *>sage_malloc(degree*sizeof(double))
+    c1 = <double *>sage_malloc(degree*sizeof(double))
+    c2 = <double *>sage_malloc(degree*sizeof(double))
+    c3 = <double *>sage_malloc(degree*sizeof(double))
+    nrhomax = 1.0;  nrhomin = 1.0
 
-if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
-    raise MemoryError
-for i in range(degree):
-    xv[i]=z.x(i); yv[i]=z.y(i)
+    if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
+        raise MemoryError
+    for i in range(degree):
+        xv[i]=z.x(i); yv[i]=z.y(i)
 
     cdef list power_basis
     power_basis = G._K.power_basis()
@@ -490,41 +490,41 @@ for i in range(degree):
     return c,delta_min
 
 @cython.cdivision(True)
-cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
-r""" Locate the closest cusp of G to z.
+cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):   
+    r""" Locate the closest cusp of G to z.
 
-"""
-cdef int degree,ns,nr,i,j,nsigmamax
-degree=G._degree
-    #basis = G._OK.basis()
-cdef double d,ny,cK,delta,delta_min,delta_test,delta0,x
-cdef double GdeltaK=G.deltaK()
-cdef gen F
-F = G._K.pari_bnf()
-cdef double *xv, *yv
-cdef int inrhomax,inrhomin,break_rho,break_sigma
-cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
-cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
-cdef double *c1=NULL,*c2=NULL,*c3=NULL
-cdef double *nsigmamax_loc
-cdef int np,do_cont
-nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
-nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
-nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
-s2y2 = <double *>sage_malloc(degree*sizeof(double))
-rhoemb = <double *>sage_malloc(degree*sizeof(double))
-semb = <double *>sage_malloc(degree*sizeof(double))
-xv = <double *>sage_malloc(degree*sizeof(double))
-yv = <double *>sage_malloc(degree*sizeof(double))
-c1 = <double *>sage_malloc(degree*sizeof(double))
-c2 = <double *>sage_malloc(degree*sizeof(double))
-c3 = <double *>sage_malloc(degree*sizeof(double))
-nrhomax = 1.0;  nrhomin = 1.0
+    """
+    cdef int degree,ns,nr,i,j,nsigmamax
+    degree=G._degree
+        #basis = G._OK.basis()
+    cdef double d,ny,cK,delta,delta_min,delta_test,delta0,x
+    cdef double GdeltaK=G.deltaK()
+    cdef gen F
+    F = G._K.pari_bnf()
+    cdef double *xv, *yv
+    cdef int inrhomax,inrhomin,break_rho,break_sigma
+    cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
+    cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
+    cdef double *c1=NULL,*c2=NULL,*c3=NULL
+    cdef double *nsigmamax_loc
+    cdef int np,do_cont
+    nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
+    nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
+    nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
+    s2y2 = <double *>sage_malloc(degree*sizeof(double))
+    rhoemb = <double *>sage_malloc(degree*sizeof(double))
+    semb = <double *>sage_malloc(degree*sizeof(double))
+    xv = <double *>sage_malloc(degree*sizeof(double))
+    yv = <double *>sage_malloc(degree*sizeof(double))
+    c1 = <double *>sage_malloc(degree*sizeof(double))
+    c2 = <double *>sage_malloc(degree*sizeof(double))
+    c3 = <double *>sage_malloc(degree*sizeof(double))
+    nrhomax = 1.0;  nrhomin = 1.0
 
-if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
-    raise MemoryError
-for i in range(degree):
-    xv[i]=z.x(i); yv[i]=z.y(i)
+    if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
+        raise MemoryError
+    for i in range(degree):
+        xv[i]=z.x(i); yv[i]=z.y(i)
 
     cdef list power_basis
     power_basis = G._K.power_basis()
@@ -642,29 +642,41 @@ for i in range(degree):
     ## Make sure that we don't have a prevsious field in cache
     check_cached_field(F)
     nsigmamax = nsigmamax
-    cdef double ***list_of_sigmas=NULL,***list_of_rhos=NULL
+    #cdef double ***list_of_sigmas=NULL,***list_of_rhos=NULL
     cdef int num_sigmas=0,num_rhos=0,jr
     for ns in range(-nsigmamax,nsigmamax):
         if ns==0: continue
         break_sigma=0
-        elements_of_norm_2(F,ns,degree,basis_embeddings,list_of_sigmas,num_sigmas)
+        #elements_of_norm_2(F,ns,degree,basis_embeddings,list_of_sigmas,num_sigmas)
+        elements_of_norm_2(F,ns,degree,basis_embeddings,&num_sigmas)
+        #res = <double***> sage_malloc(numres*sizeof(double**))
+        # print "elts of norm ",n,"=",elements_of_F_with_norm[n]
+        #for i in range(num_sigmas):
+        #    res[i]=<double**>sage_malloc(2*sizeof(double*))
+        #    res[i][0]=<double*>sage_malloc(degree*sizeof(double))
+        #    res[i][1]=<double*>sage_malloc(degree*sizeof(double))
+        #    for j in range(degree):
+        #        res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
+        #        res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
         if verbose>1:
             print "ns=",ns
             print "number of sigmas of this norm=",num_sigmas
         #if verbose>2:
         #    print "sigmas of norm ns=",list_of_sigmas
         #for sigma in list_of_sigmas:
-        for j in range(num_sigmas):
+        for j in range(num_sigmas):            
             for i in range(degree):
-                semb[i] = list_of_sigmas[j][1][i]
+                #semb[i] = list_of_sigmas[j][1][i]
+                semb[i] = elements_of_F_with_norm[ns][j][1][i]
             if verbose>2:
                 sigma = G._K(0)
                 for i in range(degree):
-                    sigma+=G._K(list_of_sigmas[j][0][i])*power_basis[i]
+                    #sigma+=G._K(list_of_sigmas[j][0][i])*power_basis[i]
+                    sigma+=G._K(elements_of_F_with_norm[ns][j][0][i])*power_basis[i]
                 print "semb="
                 for i in range(degree):
                     print "semb[{0}]={1}".format(i,semb[i])
-                    print "sigmat[0][{i}]=".format(i,list_of_sigmas[j][0][i])
+                    print "sigmat[0][{i}]=".format(i,elements_of_F_with_norm[ns][j][0][i])
                 print "basis=",power_basis
                 print "semb0=",G._K(sigma).complex_embeddings()
                 print "sigma=",sigma
@@ -692,7 +704,7 @@ for i in range(degree):
                     s+="c2[{0}]:{1}*{2}={3}".format(i,c2[i],semb[i],c2[i]*semb[i])
                     if verbose>0:
                         print s
-
+                        print "semb[",i,"]=",semb[i]
                     raise ArithmeticError,s
                 tmp1 = sqrt(c1[i]-c2[i]*semb[i])
                 tmp2 = semb[i]*xv[i]
@@ -712,16 +724,17 @@ for i in range(degree):
                 inrhomin=<int>floor(nrhomin)
             else:
                 inrhomin=<int>ceil(nrhomin)
-            if verbose>1: # and ns==-1:
+            if verbose>0: # and ns==-1:
                 print "nrhomin({0})={1}".format(sigma,nrhomin)
                 print "nrhomax({0})={1}".format(sigma,nrhomax)
-                for i in range(degree):
-                    print "nrhomin_loc({0})".format(nrhomin_loc[i])
-                    print "nrhomax_loc({0})".format(nrhomax_loc[i])
+                if verbose>1:
+                    for i in range(degree):
+                        print "nrhomin_loc({0})".format(nrhomin_loc[i])
+                        print "nrhomax_loc({0})".format(nrhomax_loc[i])
             for i in range(degree):
                 s2y2[i]=float(semb[i]**2*yv[i]**2)
-            inrhomin = inrhomin
-            inrhomax = inrhomax
+            #inrhomin = inrhomin
+            #inrhomax = inrhomax
             for nr in range(inrhomin,inrhomax):
                 if nr==0:
                     continue
@@ -730,10 +743,11 @@ for i in range(degree):
                     print "nr=",nr
                 #list_of_rhos =  elements_of_norm(F,nr,degree,basis_embeddings)
                 #list_of_rhos =  elements_of_norm(F,nr,degree,basis_embeddings,list_of_rhos,num_rhos)
-                elements_of_norm_2(F,nr,degree,basis_embeddings,list_of_rhos,num_rhos)
+                elements_of_norm_2(F,nr,degree,basis_embeddings,&num_rhos)
                 for jr in range(num_rhos):
                     for i in range(degree):
-                        rhoemb[i]=list_of_rhos[jr][1][i]
+                        #rhoemb[i]=list_of_rhos[jr][1][i]
+                        rhoemb[i]=elements_of_F_with_norm[nr][jr][1][i]
                     do_cont = -1
                     for i in range(degree):
                         if rhoemb[i]-nrhomax_loc[i]>0.0:
@@ -776,8 +790,8 @@ for i in range(degree):
                         sigma_min = G._K(0)
                         rho_min = G._K(0)
                         for i in range(degree):
-                            sigma_min+=G._K(list_of_sigmas[j][0][i])*power_basis[i]
-                            rho_min+=G._K(list_of_rhos[jr][0][i])*power_basis[i]
+                            sigma_min+=G._K(elements_of_F_with_norm[ns][j][0][i])*power_basis[i]
+                            rho_min+=G._K(elements_of_F_with_norm[nr][jr][0][i])*power_basis[i]
                         ### We only want 'relatively prime' elements
                         ctest = rho_min/sigma_min
                         c_num = G._K(ctest.numerator())
@@ -800,29 +814,29 @@ for i in range(degree):
                             break_rho=1
                             break
                             #return c,delta_min
-                if list_of_rhos<>NULL:
-                    for j in range(num_rhos):
-                        if list_of_rhos[j]<>NULL:
-                            if list_of_rhos[j][0]<>NULL:
-                                sage_free(list_of_rhos[j][0])
-                            if list_of_rhos[j][1]<>NULL:
-                                sage_free(list_of_rhos[j][1])
-                            sage_free(list_of_rhos[j])
-                    sage_free(list_of_rhos)
+                # if list_of_rhos<>NULL:
+                #     for j in range(num_rhos):
+                #         if list_of_rhos[j]<>NULL:
+                #             if list_of_rhos[j][0]<>NULL:
+                #                 sage_free(list_of_rhos[j][0])
+                #             if list_of_rhos[j][1]<>NULL:
+                #                 sage_free(list_of_rhos[j][1])
+                #             sage_free(list_of_rhos[j])
+                #     sage_free(list_of_rhos)
                 if break_rho==1:
                     break_sigma=1
                     break
             if break_sigma==1:
                 break
-        if list_of_sigmas<>NULL:
-            for j in range(num_sigmas):
-                if list_of_sigmas[j]<>NULL:
-                    if list_of_sigmas[j][0]<>NULL:
-                        sage_free(list_of_sigmas[j][0])
-                    if list_of_sigmas[j][1]<>NULL:
-                        sage_free(list_of_sigmas[j][1])
-                    sage_free(list_of_sigmas[j])
-            sage_free(list_of_sigmas)
+        # if list_of_sigmas<>NULL:
+        #     for j in range(num_sigmas):
+        #         if list_of_sigmas[j]<>NULL:
+        #             if list_of_sigmas[j][0]<>NULL:
+        #                 sage_free(list_of_sigmas[j][0])
+        #             if list_of_sigmas[j][1]<>NULL:
+        #                 sage_free(list_of_sigmas[j][1])
+        #             sage_free(list_of_sigmas[j])
+        #     sage_free(list_of_sigmas)
         if break_sigma==1:
             break
 
@@ -844,12 +858,17 @@ for i in range(degree):
         sigma_min = sigma_min/g
     c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
     ### Check to see if we have a cusp representative
-    for i in range(degree):
-        if c==G.cusps()[i]:
-            c = G.cusps()[i]
+    for i in range(G.ncusps()):
+        ctest = G.cusps()[i]
+        if c==ctest:
+            c = ctest
             break
-
-
+        else:
+            dtest = G.dist_to_cusp(z,ctest)
+            if dtest < delta_min + 1e-09:
+                c = ctest
+                delta_min = dtest
+                break
     sage_free(semb)
     sage_free(rhoemb)
     sage_free(nrhomax_loc)
@@ -901,14 +920,17 @@ def check_cached_field(F):
 ## Cached version ##
 ## I think this is better than
 cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
-global elements_of_F_with_norm
-cdef int i,j
-cdef int numv
-cdef list v,emb
-cdef double x
-cdef gen a,elts
-if check==1:
-    check_cached_field(F)
+    r"""
+    List elements of F with integer norm n
+    """
+    global elements_of_F_with_norm
+    cdef int i,j
+    cdef int numv
+    cdef list v,emb
+    cdef double x
+    cdef gen a,elts
+    if check==1:
+        check_cached_field(F)
     if not elements_of_F_with_norm.has_key(n):
         elts = F.bnfisintnorm(n)
         elements_of_F_with_norm[n]=[]
@@ -932,15 +954,18 @@ if check==1:
 elements_of_F_with_norm_in_ideal = {}
 current_cached_field=0
 
-cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,double ***res,int numres,int check=0):
-global elements_of_F_with_norm
-cdef int i,j
-cdef int numv
-cdef list v,emb
-cdef double x
-cdef gen a,elts
-if check==1:
-    check_cached_field(F)
+cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,int* numres,int check=0):
+    r"""
+    List elements of F of norm n
+    """
+    global elements_of_F_with_norm
+    cdef int i,j
+    cdef int numv
+    cdef list v,emb
+    cdef double x
+    cdef gen a,elts
+    if check==1:
+        check_cached_field(F)
     if not elements_of_F_with_norm.has_key(n):
         elts = F.bnfisintnorm(n)
         elements_of_F_with_norm[n]=[]
@@ -957,42 +982,43 @@ if check==1:
                     x+=float(v[j])*basis[j][i]
                 emb.append(float(x))
             elements_of_F_with_norm[n].append((v,emb))
-    numres = len(elements_of_F_with_norm[n])
-    if res<>NULL:
-        sage_free(res)
-    res = <double***> sage_malloc(numres*sizeof(double**))
+    numres[0] = len(elements_of_F_with_norm[n])
+    #if res<>NULL:
+    #    sage_free(res)
+    #res = <double***> sage_malloc(numres*sizeof(double**))
     #print "elts of norm ",n,"=",elements_of_F_with_norm[n]
-    for i in range(numres):
-        res[i]=<double**>sage_malloc(2*sizeof(double*))
-        res[i][0]=<double*>sage_malloc(degree*sizeof(double))
-        res[i][1]=<double*>sage_malloc(degree*sizeof(double))
-        for j in range(degree):
-            res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
-            res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
+    #for i in range(numres):
+    #    res[i]=<double**>sage_malloc(2*sizeof(double*))
+    #    res[i][0]=<double*>sage_malloc(degree*sizeof(double))
+    #    res[i][1]=<double*>sage_malloc(degree*sizeof(double))
+    #    for j in range(degree):
+    #        res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
+    #        res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
 #    return elements_of_F_with_norm[n]
 
 cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
-r"""
-Compute initial estimates for the cusp distance for the cusps equivalent to the representatives
+    
+    r"""
+    Compute initial estimates for the cusp distance for the cusps equivalent to the representatives
 
-"""
-cdef int degree = G._K.degree()
-cdef double *xv=NULL,*yv=NULL
-cdef double d=1.0,ny=1.0
-cdef int i,i0,i1,j0,j1
-cdef int *rho_min=NULL,*sigma_min=NULL
-cdef list rho_v=[],sigma_v=[]
-cdef double disc
-cdef gen F
-xv = <double*>sage_malloc(degree*sizeof(double))
-yv = <double*>sage_malloc(degree*sizeof(double))
-rho_min = <int*>sage_malloc(degree*sizeof(int))
-sigma_min = <int*>sage_malloc(degree*sizeof(int))
-if xv==NULL or yv==NULL or rho_min==NULL or sigma_min==NULL:
-    raise MemoryError
-cdef double eps0=2.0**(3-G._prec)
-for i in range(degree):
-    xv[i]=x[i]; yv[i]=y[i]
+    """
+    cdef int degree = G._K.degree()
+    cdef double *xv=NULL,*yv=NULL
+    cdef double d=1.0,ny=1.0
+    cdef int i,i0,i1,j0,j1
+    cdef int *rho_min=NULL,*sigma_min=NULL
+    cdef list rho_v=[],sigma_v=[]
+    cdef double disc
+    cdef gen F
+    xv = <double*>sage_malloc(degree*sizeof(double))
+    yv = <double*>sage_malloc(degree*sizeof(double))
+    rho_min = <int*>sage_malloc(degree*sizeof(int))
+    sigma_min = <int*>sage_malloc(degree*sizeof(int))
+    if xv==NULL or yv==NULL or rho_min==NULL or sigma_min==NULL:
+        raise MemoryError
+    cdef double eps0=2.0**(3-G._prec)
+    for i in range(degree):
+        xv[i]=x[i]; yv[i]=y[i]
     ny = ny*y[i]
     cdef double *** cusp_reps=NULL
     cdef int nc = G.ncusps()
@@ -1066,23 +1092,26 @@ for i in range(degree):
 
 
 cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,double*** cusp_reps,double*** integer_lattice, double disc, int denom_max=3,double eps0=1e-12,int verbose=0):
-cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
-cdef double d0,d1,d2
-cdef int i,j
+    r"""
+    Get an initial estimate for the cusp distance.
+    """
+    cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
+    cdef double d0,d1,d2
+    cdef int i,j
 
-rho = <double*>sage_malloc(degree*sizeof(double))
-sigma = <double*>sage_malloc(degree*sizeof(double))
-xv = <double*>sage_malloc(degree*sizeof(double))
-yv = <double*>sage_malloc(degree*sizeof(double))
-if xv==NULL or yv==NULL or rho==NULL or sigma==NULL:
-    raise MemoryError
+    rho = <double*>sage_malloc(degree*sizeof(double))
+    sigma = <double*>sage_malloc(degree*sizeof(double))
+    xv = <double*>sage_malloc(degree*sizeof(double))
+    yv = <double*>sage_malloc(degree*sizeof(double))
+    if xv==NULL or yv==NULL or rho==NULL or sigma==NULL:
+        raise MemoryError
     ## Check cusp at infinity
     ## Check cusp at infinity
-if verbose>0:
-    for i in range(degree):
-        print "x[{0}]={1}".format(i,x[i])
-        print "y[{0}]={1}".format(i,y[i])
-        print "ny={0}".format(ny)
+    if verbose>0:
+        for i in range(degree):
+            print "x[{0}]={1}".format(i,x[i])
+            print "y[{0}]={1}".format(i,y[i])
+            print "ny={0}".format(ny)
 
     ## First check the cusp representatives
     cdef double dmin = 0.0
@@ -1197,22 +1226,25 @@ if verbose>0:
     d[0] = dmin
 
 cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
-cdef double *x,*y,*rho,*sigma
-cdef int i
-x=NULL;y=NULL;rho=NULL;sigma=NULL
-cdef double delta,ny=1.0
-x = <double*>sage_malloc(degree*sizeof(double))
-y = <double*>sage_malloc(degree*sizeof(double))
-rho = <double*>sage_malloc(degree*sizeof(double))
-sigma = <double*>sage_malloc(degree*sizeof(double))
-if x==NULL or y==NULL or rho==NULL or sigma==NULL:
-    raise MemoryError
-for i in range(degree):
-    x[i]=z.x(i)
-    y[i]=z.y(i)
-    rho[i]=float(ca.complex_embeddings()[i])
-    sigma[i]=float(cb.complex_embeddings()[i])
-    ny = ny*y[i]
+    r"""
+    Compute the distance to a cusp.
+    """
+    cdef double *x,*y,*rho,*sigma
+    cdef int i
+    x=NULL;y=NULL;rho=NULL;sigma=NULL
+    cdef double delta,ny=1.0
+    x = <double*>sage_malloc(degree*sizeof(double))
+    y = <double*>sage_malloc(degree*sizeof(double))
+    rho = <double*>sage_malloc(degree*sizeof(double))
+    sigma = <double*>sage_malloc(degree*sizeof(double))
+    if x==NULL or y==NULL or rho==NULL or sigma==NULL:
+        raise MemoryError
+    for i in range(degree):
+        x[i]=z.x(i)
+        y[i]=z.y(i)
+        rho[i]=float(ca.complex_embeddings()[i])
+        sigma[i]=float(cb.complex_embeddings()[i])
+        ny = ny*y[i]
 
     delta = delta_cusp_c(x,y,rho,sigma,ny,norm,degree,verbose)
     sage_free(x)
@@ -1224,37 +1256,37 @@ for i in range(degree):
 @cython.cdivision(True)
 cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double ny,
                          double norm,int degree,int verbose=0):
-r"""
-Compute distance to cusp given by rho/sigma in a number field.
-INPUT:
+    r"""
+    Compute distance to cusp given by rho/sigma in a number field.
+    INPUT:
 
-- `sigma` --  vector of embeddinga of sigma
-- `rho` --  vector of embeddinga of rho
-- `z` --  vector of pairs [x_i,y_i] in the upper half-plane
-"""
-cdef double delta = 1.0
-cdef int i
-for i in range(degree):
-    delta*=(-sigma[i]*x[i]+rho[i])**2+sigma[i]**2*y[i]**2
+    - `sigma` --  vector of embeddinga of sigma
+    - `rho` --  vector of embeddinga of rho
+    - `z` --  vector of pairs [x_i,y_i] in the upper half-plane
+    """
+    cdef double delta = 1.0
+    cdef int i
+    for i in range(degree):
+        delta*=(-sigma[i]*x[i]+rho[i])**2+sigma[i]**2*y[i]**2
     return sqrt(delta/ny/norm)
 
 
 from sage.combinat.combination import IntegerVectors
 from sage.combinat.integer_list import IntegerListsLex
-cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0): #numv,vectors,verbose=0):
-r"""
-Gives a list of vectors of length len with components integers betweek liml and limu
-"""
-cdef list l=[]
-    ## Do the easy cases first
-if len==1:
-    for i in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
-        l.append([i])
+cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0):
+    r"""
+    Gives a list of vectors of length len with components integers betweek liml and limu
+    """
+    cdef list l=[]
+        ## Do the easy cases first
+    if len==1:
+        for i in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
+            l.append([i])
         return l
-elif len==2:
-    for i1 in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
-        for i2 in range(<int>floor(liml[1]),<int>ceil(limu[1])+1):
-            l.append([i1,i2])
+    elif len==2:
+        for i1 in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
+            for i2 in range(<int>floor(liml[1]),<int>ceil(limu[1])+1):
+                l.append([i1,i2])
         return l
     ## Brute-force like method. Not efficient
     maxlim = 0; minlim=liml[0]
@@ -1297,46 +1329,49 @@ elif len==2:
 ###
 
 cpdef in_SL2OK(M):
-if M.det()<>1:
-    return False
-if not M[0,0].is_integral():
-    return False
-if not M[0,1].is_integral():
-    return False
-if not M[1,0].is_integral():
-    return False
-if not M[1,1].is_integral():
-    return False
-return True
+    r""" Test if M is in SL(2,O_K)
+    """
+    
+    if M.det()<>1:
+        return False
+    if not M[0,0].is_integral():
+        return False
+    if not M[0,1].is_integral():
+        return False
+    if not M[1,0].is_integral():
+        return False
+    if not M[1,1].is_integral():
+        return False
+    return True
 
 cpdef get_nearest_integers(list Y,int sgn=1):
-r"""
-Return a list of nearest integers to the entries of the list Y.
-I.e.   kv=[k1,...,kn] where -1/2 < Y[j]-kj < 1/2
-INPUT:
+    r"""
+    Return a list of nearest integers to the entries of the list Y.
+    I.e.   kv=[k1,...,kn] where -1/2 < Y[j]-kj < 1/2
+    INPUT:
 
-- 'Y' list
-- 'sgn' -- integer
+    - 'Y' list
+    - 'sgn' -- integer
 
-OUTPUT:
+    OUTPUT:
 
-- 'M' -- list
+    - 'M' -- list
 
-EXAMPLE:
+    EXAMPLE:
 
 
 
-"""
-cdef int i,n,k
-cdef list res=[]
-cdef double *Yv=NULL
-cdef int* NI=NULL
-n = len(Y)
-Yv = <double*> sage_malloc(sizeof(double)*n)
-NI = <int*> sage_malloc(sizeof(int)*n)
-if Yv==NULL: raise MemoryError
-for i in range(n):
-    Yv[i]=<double>Y[i]
+    """
+    cdef int i,n,k
+    cdef list res=[]
+    cdef double *Yv=NULL
+    cdef int* NI=NULL
+    n = len(Y)
+    Yv = <double*> sage_malloc(sizeof(double)*n)
+    NI = <int*> sage_malloc(sizeof(int)*n)
+    if Yv==NULL: raise MemoryError
+    for i in range(n):
+        Yv[i]=<double>Y[i]
     get_nearest_integers_dp(n,Yv,NI)
     for i in range(n):
         res.append(NI[i])
@@ -1346,29 +1381,29 @@ for i in range(n):
 
 
 cdef get_nearest_integers_dp(int len,double *Y,int* NI):
-r"""
-Return a list of nearest integers to the entries of the list Y.
-I.e.   kv=[k1,...,kn] where -1/2 < Y[j]-kj < 1/2
+    r"""
+    Return a list of nearest integers to the entries of the list Y.
+    I.e.   kv=[k1,...,kn] where -1/2 < Y[j]-kj < 1/2
 
-INPUT:
+    INPUT:
 
-- 'Y' list
+    - 'Y' list
 
-OUTPUTL
+    OUTPUTL
 
-- 'M' -- list
+    - 'M' -- list
 
-EXAMPLE:
+    EXAMPLE:
 
 
 
-"""
-if NI==NULL: raise MemoryError,"Need to allocate NI!"
-cdef int i
-for i in range(len):
-    if Y[i]>0.5:
-        NI[i] = <int>ceil(Y[i]-0.5)
-    elif Y[i]<-0.5:
-        NI[i] = <int>(-ceil(-0.5-Y[i]))
-    else:
-        NI[i]=0
+    """
+    if NI==NULL: raise MemoryError,"Need to allocate NI!"
+    cdef int i
+    for i in range(len):
+        if Y[i]>0.5:
+            NI[i] = <int>ceil(Y[i]-0.5)
+        elif Y[i]<-0.5:
+            NI[i] = <int>(-ceil(-0.5-Y[i]))
+        else:
+            NI[i]=0

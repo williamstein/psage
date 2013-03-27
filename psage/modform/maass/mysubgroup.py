@@ -61,7 +61,7 @@ from sage.modular.arithgroup.all import *
 from sage.symbolic.expression import Expression
 from sage.modular.modsym.p1list import lift_to_sl2z 
 from sage.functions.other import ceil,floor,sqrt
-from sage.all import matrix,SageObject,numerator,denominator,copy,log_b
+from sage.all import matrix,SageObject,numerator,denominator,copy,log_b,is_odd
 from sage.modular.arithgroup import congroup_gamma0
 from sage.modular.arithgroup.congroup_gamma0 import Gamma0_class
 from sage.rings.integer import is_Integer

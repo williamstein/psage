@@ -21,7 +21,7 @@ MANIFEST
 docs/ascent.pdf
 docs/notebook.out
 *.so
-
+*.html
 a.py
 a.sage
 go

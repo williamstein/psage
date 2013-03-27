@@ -220,8 +220,8 @@ my_extensions = [
               ['psage/modform/maass/pullback_algorithms.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp'],
-              include_dirs = numpy_include_dirs),
+              extra_link_args=['-fopenmp']),
+#              include_dirs = numpy_include_dirs),
     Extension('psage.modform.maass.linear_system',
               ['psage/modform/maass/linear_system.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
@@ -229,17 +229,24 @@ my_extensions = [
     Extension('psage.modform.maass.automorphic_forms_alg',
               ['psage/modform/maass/automorphic_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs,
+#              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
-    Extension('psage.modform.maass.hilbert_modular_group_alg',
-              ['psage/modform/maass/hilbert_modular_group_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
+
+    Extension('psage.modform.hilbert.hn_class',
+              ['psage/modform/hilbert/hn_class.pyx'],
+              libraries = ['m']),
+    
+    Extension('psage.modform.hilbert.hilbert_modular_group_alg',
+              ['psage/modform/hilbert/hilbert_modular_group_alg.pyx'],
+              libraries = ["flint", "gmp", "gmpxx", "m","ntl"],
+              language="c"),
+
+
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs,
+#              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
               
@@ -289,8 +296,8 @@ my_extensions = [
         
     Extension('psage.modform.maass.eisenstein_series',
               ['psage/modform/maass/eisenstein_series.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
+              libraries = ['m','gmp','mpfr','mpc']),
+#              include_dirs = numpy_include_dirs),
 
     Extension("psage.modform.maass.test_parallel",
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],

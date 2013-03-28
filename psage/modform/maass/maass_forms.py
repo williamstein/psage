@@ -24,7 +24,7 @@ from sage.rings.arith import divisors,gcd,inverse_mod
 from sage.modular.dirichlet import DirichletGroup
 from sage.rings.all import RR
 from sage.modular.arithgroup.all import Gamma0
-from sage.all import trivial_character,timeit,RealNumber,ComplexNumber,log,is_squarefree,prime_range,next_prime
+from sage.all import trivial_character,timeit,RealNumber,ComplexNumber,log,is_squarefree,prime_range,next_prime,deepcopy
 from maass_forms_alg import *
 from lpkbessel import *
 from automorphic_forms import *
@@ -1750,8 +1750,11 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
             nd=self._nd #+5
             [M0,Y0]=find_Y_and_M(self._group,self._R,nd)
             Y1=Y0*0.95
-            C1=self.get_coeffs(Mset=M0,Yset=Y0,ndigs=nd) #Maassform_coeffs(self._space,self._R,Mset=M0,Yset=Y0 ,ndigs=nd )[0]
-            C2=self.get_coeffs(Mset=M0,Yset=Y1,ndigs=nd) #Maassform_coeffs(self._space,self._R,Mset=M0,Yset=Y1 ,ndigs=nd )[0]
+            self.get_coeffs(Mset=M0,Yset=Y0,ndigs=nd) #Maassform_coeffs(self._space,self._R,Mset=M0,Yset=Y0 ,ndigs=nd )[0]
+            C1 = deepcopy(self._coeffs[0][0])
+            self._coeffs=None
+            self.get_coeffs(Mset=M0,Yset=Y1,ndigs=nd) #Maassform_coeffs(self._space,self._R,Mset=M0,Yset=Y1 ,ndigs=nd )[0]
+            C2 = deepcopy(self._coeffs[0][0])
             er=RR(0)
             for j in range(2,floor(max([M0/2,up_to_M0,5]))):
                 if self._coeffs[0].has_key(j):
@@ -1896,14 +1899,14 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
             self._coeffs[0]=X
             return
         if not isinstance(self._coeffs,dict):
-            self._coeffs=dict()
+            self._coeffs=dict()            
             self._coeffs[0]=dict()
         if self._verbose>0:
             print "X.keys()=",X.keys()
         for j in X.keys():
+            if not self._coeffs[0].has_key(j):
+                self._coeffs[0][j]=dict()
             for n in X[j].keys():
-                if not isinstance(self._coeffs[0][j],dict):
-                    self._coeffs[0][j]=dict()
                 if self._coeffs[0][j].has_key(n):
                     continue
                 else:

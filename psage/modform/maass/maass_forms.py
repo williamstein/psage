@@ -431,7 +431,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         if Y0==0.0 and M0==0:
             Y0,M0=get_Y_and_M_dp(self,R,eps)
         if Y0==0.0 and M0<>0:
-            Y0=get_Y_for_M_dp(S,R,M0,eps)
+            Y0=get_Y_for_M_dp(self,R,M0,eps)
         if Y0<>0 and M0==0:
             M0=get_M_for_maass_dp(R,Y0,eps)                
     
@@ -691,6 +691,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         #  set coeffs c(0)=0,c(1),...,c(k) if cuspidal 
         SetCs=dict()
         for j in range(k):
+            SetCs[j]=[]
             Vals[j]={}
         ### If we have set some c's explicitly then we only set these (plus constant terms if cuspidal):
             
@@ -700,9 +701,9 @@ class MaassWaveForms (AutomorphicFormSpace):
             for j in range(k):
                 if cuspidal:
                     for c in range(self.group().ncusps()):
-                        if self.alphas(c)[0]==0:
+                        if self.alpha(c)[0]==0:
                             SetCs[j].append((c,0))
-                            Vals[j][(r,n)]=0
+                            Vals[j][(c,0)]=0
                 for r,n in set_c[j].keys():
                     if (r,n) not in SetCs[j]:
                         SetCs[j].append((r,n))
@@ -711,7 +712,6 @@ class MaassWaveForms (AutomorphicFormSpace):
         else:
             if cuspidal:
                 for j in range(k):
-                    SetCs[j]=[]
                     for l in range(0,k+1):
                         SetCs[j].append((0,l))
                 #SetCs[j]=range(0,k+1)
@@ -1338,13 +1338,14 @@ class MaassWaveForms (AutomorphicFormSpace):
                 print "|lhs|=",abs(lhs)
                 print "self._prec=",self._prec
                 print "rhs/lhs-1=",rhs/lhs-1.0
-            if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
-                return -1
-            if abs(lhs)>0:
-                if signed:
-                    return rhs/lhs-1
-                else:
-                    return abs(rhs/lhs-1)
+            #if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
+            #    return -1
+            ## We have to return true also for the zero function
+            t = rhs-lhs
+            if signed:
+                return t #rhs/lhs-1
+            else:
+                return abs(t) #rhs/lhs-1)
         return -1
 
 

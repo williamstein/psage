@@ -60,7 +60,6 @@ cpdef cusp_coordinates(G,int cuspi,Hn z,int verbose=0):
     r"""
     Gives the coordinate of the CP z withe respcet to the cusp, as in e.g.
     Siegel "Advanced analytic Number theory", p. 171 (147)
-    
     INPUT:
     - z -- CP
     - cuspi  -- integer giving a cusp of self
@@ -119,7 +118,6 @@ cpdef cusp_coordinates(G,int cuspi,Hn z,int verbose=0):
 
 cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
     r""" Locate the closest cusp of G to z.
-    
     """
     cdef int degree,ns,nr,i,j,nsigmamax
     degree=G._degree
@@ -490,7 +488,7 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
     return c,delta_min
 
 @cython.cdivision(True)
-cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
+cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):   
     r""" Locate the closest cusp of G to z.
 
     """
@@ -642,29 +640,41 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     ## Make sure that we don't have a prevsious field in cache
     check_cached_field(F)
     nsigmamax = nsigmamax
-    cdef double ***list_of_sigmas=NULL,***list_of_rhos=NULL
+    #cdef double ***list_of_sigmas=NULL,***list_of_rhos=NULL
     cdef int num_sigmas=0,num_rhos=0,jr
     for ns in range(-nsigmamax,nsigmamax):
         if ns==0: continue
         break_sigma=0
-        elements_of_norm_2(F,ns,degree,basis_embeddings,list_of_sigmas,num_sigmas)
+        #elements_of_norm_2(F,ns,degree,basis_embeddings,list_of_sigmas,num_sigmas)
+        elements_of_norm_2(F,ns,degree,basis_embeddings,&num_sigmas)
+        #res = <double***> sage_malloc(numres*sizeof(double**))
+        # print "elts of norm ",n,"=",elements_of_F_with_norm[n]
+        #for i in range(num_sigmas):
+        #    res[i]=<double**>sage_malloc(2*sizeof(double*))
+        #    res[i][0]=<double*>sage_malloc(degree*sizeof(double))
+        #    res[i][1]=<double*>sage_malloc(degree*sizeof(double))
+        #    for j in range(degree):
+        #        res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
+        #        res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
         if verbose>1:
             print "ns=",ns
             print "number of sigmas of this norm=",num_sigmas
         #if verbose>2:
         #    print "sigmas of norm ns=",list_of_sigmas
         #for sigma in list_of_sigmas:
-        for j in range(num_sigmas):
+        for j in range(num_sigmas):            
             for i in range(degree):
-                semb[i] = list_of_sigmas[j][1][i]
+                #semb[i] = list_of_sigmas[j][1][i]
+                semb[i] = elements_of_F_with_norm[ns][j][1][i]
             if verbose>2:
                 sigma = G._K(0)
                 for i in range(degree):
-                    sigma+=G._K(list_of_sigmas[j][0][i])*power_basis[i]
+                    #sigma+=G._K(list_of_sigmas[j][0][i])*power_basis[i]
+                    sigma+=G._K(elements_of_F_with_norm[ns][j][0][i])*power_basis[i]
                 print "semb="
                 for i in range(degree):
                     print "semb[{0}]={1}".format(i,semb[i])
-                    print "sigmat[0][{i}]=".format(i,list_of_sigmas[j][0][i])
+                    print "sigmat[0][{i}]=".format(i,elements_of_F_with_norm[ns][j][0][i])
                 print "basis=",power_basis
                 print "semb0=",G._K(sigma).complex_embeddings()
                 print "sigma=",sigma
@@ -692,7 +702,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     s+="c2[{0}]:{1}*{2}={3}".format(i,c2[i],semb[i],c2[i]*semb[i])
                     if verbose>0:
                         print s
-
+                        print "semb[",i,"]=",semb[i]
                     raise ArithmeticError,s
                 tmp1 = sqrt(c1[i]-c2[i]*semb[i])
                 tmp2 = semb[i]*xv[i]
@@ -712,16 +722,17 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                 inrhomin=<int>floor(nrhomin)
             else:
                 inrhomin=<int>ceil(nrhomin)
-            if verbose>1: # and ns==-1:
+            if verbose>0: # and ns==-1:
                 print "nrhomin({0})={1}".format(sigma,nrhomin)
                 print "nrhomax({0})={1}".format(sigma,nrhomax)
-                for i in range(degree):
-                    print "nrhomin_loc({0})".format(nrhomin_loc[i])
-                    print "nrhomax_loc({0})".format(nrhomax_loc[i])
+                if verbose>1:
+                    for i in range(degree):
+                        print "nrhomin_loc({0})".format(nrhomin_loc[i])
+                        print "nrhomax_loc({0})".format(nrhomax_loc[i])
             for i in range(degree):
                 s2y2[i]=float(semb[i]**2*yv[i]**2)
-            inrhomin = inrhomin
-            inrhomax = inrhomax
+            #inrhomin = inrhomin
+            #inrhomax = inrhomax
             for nr in range(inrhomin,inrhomax):
                 if nr==0:
                     continue
@@ -730,10 +741,11 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     print "nr=",nr
                 #list_of_rhos =  elements_of_norm(F,nr,degree,basis_embeddings)
                 #list_of_rhos =  elements_of_norm(F,nr,degree,basis_embeddings,list_of_rhos,num_rhos)
-                elements_of_norm_2(F,nr,degree,basis_embeddings,list_of_rhos,num_rhos)
+                elements_of_norm_2(F,nr,degree,basis_embeddings,&num_rhos)
                 for jr in range(num_rhos):
                     for i in range(degree):
-                        rhoemb[i]=list_of_rhos[jr][1][i]
+                        #rhoemb[i]=list_of_rhos[jr][1][i]
+                        rhoemb[i]=elements_of_F_with_norm[nr][jr][1][i]
                     do_cont = -1
                     for i in range(degree):
                         if rhoemb[i]-nrhomax_loc[i]>0.0:
@@ -776,8 +788,8 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                         sigma_min = G._K(0)
                         rho_min = G._K(0)
                         for i in range(degree):
-                            sigma_min+=G._K(list_of_sigmas[j][0][i])*power_basis[i]
-                            rho_min+=G._K(list_of_rhos[jr][0][i])*power_basis[i]
+                            sigma_min+=G._K(elements_of_F_with_norm[ns][j][0][i])*power_basis[i]
+                            rho_min+=G._K(elements_of_F_with_norm[nr][jr][0][i])*power_basis[i]
                         ### We only want 'relatively prime' elements
                         ctest = rho_min/sigma_min
                         c_num = G._K(ctest.numerator())
@@ -800,29 +812,29 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                             break_rho=1
                             break
                             #return c,delta_min
-                if list_of_rhos<>NULL:
-                    for j in range(num_rhos):
-                        if list_of_rhos[j]<>NULL:
-                            if list_of_rhos[j][0]<>NULL:
-                                sage_free(list_of_rhos[j][0])
-                            if list_of_rhos[j][1]<>NULL:
-                                sage_free(list_of_rhos[j][1])
-                            sage_free(list_of_rhos[j])
-                    sage_free(list_of_rhos)
+                # if list_of_rhos<>NULL:
+                #     for j in range(num_rhos):
+                #         if list_of_rhos[j]<>NULL:
+                #             if list_of_rhos[j][0]<>NULL:
+                #                 sage_free(list_of_rhos[j][0])
+                #             if list_of_rhos[j][1]<>NULL:
+                #                 sage_free(list_of_rhos[j][1])
+                #             sage_free(list_of_rhos[j])
+                #     sage_free(list_of_rhos)
                 if break_rho==1:
                     break_sigma=1
                     break
             if break_sigma==1:
                 break
-        if list_of_sigmas<>NULL:
-            for j in range(num_sigmas):
-                if list_of_sigmas[j]<>NULL:
-                    if list_of_sigmas[j][0]<>NULL:
-                        sage_free(list_of_sigmas[j][0])
-                    if list_of_sigmas[j][1]<>NULL:
-                        sage_free(list_of_sigmas[j][1])
-                    sage_free(list_of_sigmas[j])
-            sage_free(list_of_sigmas)
+        # if list_of_sigmas<>NULL:
+        #     for j in range(num_sigmas):
+        #         if list_of_sigmas[j]<>NULL:
+        #             if list_of_sigmas[j][0]<>NULL:
+        #                 sage_free(list_of_sigmas[j][0])
+        #             if list_of_sigmas[j][1]<>NULL:
+        #                 sage_free(list_of_sigmas[j][1])
+        #             sage_free(list_of_sigmas[j])
+        #     sage_free(list_of_sigmas)
         if break_sigma==1:
             break
 
@@ -844,12 +856,17 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         sigma_min = sigma_min/g
     c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
     ### Check to see if we have a cusp representative
-    for i in range(degree):
-        if c==G.cusps()[i]:
-            c = G.cusps()[i]
+    for i in range(G.ncusps()):
+        ctest = G.cusps()[i]
+        if c==ctest:
+            c = ctest
             break
-
-
+        else:
+            dtest = G.dist_to_cusp(z,ctest)
+            if dtest < delta_min + 1e-09:
+                c = ctest
+                delta_min = dtest
+                break
     sage_free(semb)
     sage_free(rhoemb)
     sage_free(nrhomax_loc)
@@ -901,6 +918,9 @@ def check_cached_field(F):
 ## Cached version ##
 ## I think this is better than
 cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
+    r"""
+    List elements of F with integer norm n
+    """
     global elements_of_F_with_norm
     cdef int i,j
     cdef int numv
@@ -932,7 +952,12 @@ cdef list elements_of_norm(gen F,int n,int degree,double ** basis,int check=0):
 elements_of_F_with_norm_in_ideal = {}
 current_cached_field=0
 
-cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,double ***res,int numres,int check=0):
+
+#cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,double ***res,int numres,int check=0):
+cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,int* numres,int check=0):
+    r"""
+    List elements of F of norm n
+    """
     global elements_of_F_with_norm
     cdef int i,j
     cdef int numv
@@ -957,18 +982,18 @@ cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,double ***re
                     x+=float(v[j])*basis[j][i]
                 emb.append(float(x))
             elements_of_F_with_norm[n].append((v,emb))
-    numres = len(elements_of_F_with_norm[n])
-    if res<>NULL:
-        sage_free(res)
-    res = <double***> sage_malloc(numres*sizeof(double**))
+    numres[0] = len(elements_of_F_with_norm[n])
+    #if res<>NULL:
+    #    sage_free(res)
+    #res = <double***> sage_malloc(numres*sizeof(double**))
     #print "elts of norm ",n,"=",elements_of_F_with_norm[n]
-    for i in range(numres):
-        res[i]=<double**>sage_malloc(2*sizeof(double*))
-        res[i][0]=<double*>sage_malloc(degree*sizeof(double))
-        res[i][1]=<double*>sage_malloc(degree*sizeof(double))
-        for j in range(degree):
-            res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
-            res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
+    #for i in range(numres):
+    #    res[i]=<double**>sage_malloc(2*sizeof(double*))
+    #    res[i][0]=<double*>sage_malloc(degree*sizeof(double))
+    #    res[i][1]=<double*>sage_malloc(degree*sizeof(double))
+    #    for j in range(degree):
+    #        res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
+    #        res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
 #    return elements_of_F_with_norm[n]
 
 cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
@@ -1066,6 +1091,9 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
 
 
 cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *rho_min,int *sigma_min,double* d,int nc,double*** cusp_reps,double*** integer_lattice, double disc, int denom_max=3,double eps0=1e-12,int verbose=0):
+    r"""
+    Get an initial estimate for the cusp distance.
+    """
     cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
     cdef double d0,d1,d2
     cdef int i,j
@@ -1076,8 +1104,8 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     yv = <double*>sage_malloc(degree*sizeof(double))
     if xv==NULL or yv==NULL or rho==NULL or sigma==NULL:
         raise MemoryError
-        ## Check cusp at infinity
-        ## Check cusp at infinity
+    ## Check cusp at infinity
+    ## Check cusp at infinity
     if verbose>0:
         for i in range(degree):
             print "x[{0}]={1}".format(i,x[i])
@@ -1197,6 +1225,9 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     d[0] = dmin
 
 cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
+    r"""
+    Compute the distance to a cusp.
+    """
     cdef double *x,*y,*rho,*sigma
     cdef int i
     x=NULL;y=NULL;rho=NULL;sigma=NULL
@@ -1241,7 +1272,7 @@ cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double 
 
 from sage.combinat.combination import IntegerVectors
 from sage.combinat.integer_list import IntegerListsLex
-cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0): #numv,vectors,verbose=0):
+cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0):
     r"""
     Gives a list of vectors of length len with components integers betweek liml and limu
     """
@@ -1250,7 +1281,7 @@ cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0): #numv,vectors,verbo
     if len==1:
         for i in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
             l.append([i])
-            return l
+        return l
     elif len==2:
         for i1 in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
             for i2 in range(<int>floor(liml[1]),<int>ceil(limu[1])+1):
@@ -1297,6 +1328,8 @@ cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0): #numv,vectors,verbo
 ###
 
 cpdef in_SL2OK(M):
+    r""" Test if M is in SL(2,O_K)
+    """
     if M.det()<>1:
         return False
     if not M[0,0].is_integral():

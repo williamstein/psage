@@ -71,6 +71,10 @@ cdef class  Hn(object):
                 u = x.real_list(); y = x.imag_list()
                 self._prec = x.prec()
                 degree = x.degree()
+            elif hasattr(x,"Hn"):
+                u = x.Hn().real_list(); y = x.Hn().imag_list()
+                self._prec = x.Hn().prec()
+                degree = x.Hn().degree()
             else:
                 raise TypeError,"Can not construct point in H^n from %s!" % x
             if verbose>0:
@@ -145,6 +149,9 @@ cdef class  Hn(object):
 
     def __init__(self,x,y=[],degree=0,prec=53,verbose=0):
         pass
+
+    def __reduce__(self):
+        return (Hn,(self._xlist,self._ylist,self._degree,self._prec,self._verbose))
         
     cdef c_new(self,list x,list y):
         self._x = NULL; self._y=NULL

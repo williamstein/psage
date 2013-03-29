@@ -1779,9 +1779,9 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if verbose>0:
         print "N=",N," Ml=",Ml," Ql=",Ql
     if cusp_ev=={}:
-        cusp_ev=S.cusp_evs_dict()
+        cusp_ev = S.atkin_lehner_eigenvalues()
     for i from 0<=i<nc:
-        cusp_evs[i]=CC(cusp_ev.get(i,0))
+        cusp_evs[i]=CC(cusp_ev.get(S.group().cusps()[i],0))
         if i==0 or cusp_evs[i]==0:
             N1=N1+Mv[i][2]
         if verbose>0:
@@ -1822,7 +1822,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         ncols1=N1
     if verbose>0:
         print "In get_coef_cplx_dp_sym R,Y,M,Q=",R,Y,M,Q
-    if verbose>1:
+    if verbose>0:
         print "N=",N
         print "ncols=",ncols
         print "N1=",N1
@@ -1965,6 +1965,8 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         i=i+1
     if num_rhs>0 and num_rhs<>comp_dim:
         raise ValueError,"Need same number of right hand sides (or just one) as the number of set coefficients!"
+    if verbose>0:
+        print "comp_dim=",comp_dim
     normalize_matrix_cplx_dp(V1,N1,comp_dim,num_set,setc_list,vals_list,verbose)
     if gr==2:
         CF=MPComplexField(53)
@@ -1975,6 +1977,8 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
                 VV[n,l]=V1[n][l]
         return VV
     sig_on()
+    if verbose>0:
+        print "comp_dim=",comp_dim
     SMAT_cplx_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list)
     sig_off()
     if verbose>1:
@@ -2024,8 +2028,8 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         sage_free(symmetric_cusps)
     if cusp_evs<>NULL:
         sage_free(cusp_evs)
-    if comp_dim==1:
-        return res[0]
+    #if comp_dim==1:
+    #    return res[0]
     return res
 
 cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,norm_c=1):
@@ -2259,8 +2263,8 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
             if C[i]<>NULL:
                 sage_free(C[i])
         sage_free(C)
-    if comp_dim==1:
-        return res[0]
+    #if comp_dim==1:
+    #    return res[0]
     return res
 
 
@@ -5041,8 +5045,8 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
                         sage_free(Cvec[i][j])
                 sage_free(Cvec[i])
         sage_free(Cvec)
-    if comp_dim==1:
-        return res[0]
+    #if comp_dim==1:
+    #    return res[0]
     return res
 
 

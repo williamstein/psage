@@ -743,7 +743,7 @@ class MySubgroup (ArithmeticSubgroup):
         if self._index==1:
             return True
 
-        if o2.order() <>2 or o3.order()<>3:
+        if ( 2 % o2.order()  <>0) or (3 % o3.order() <> 0):
             print "o2=",o2,o2.order()
             print "o3=",o3,o3.order()
             s="Input permutations are not of order 2 and 3: \n perm(S)^2={0} \n perm(R)^3={1} " 
@@ -2338,6 +2338,24 @@ class MySubgroup (ArithmeticSubgroup):
         ## #
 
 
+    def cusp_representative(self,cusp,transformation=None):
+        r"""
+        find a cusp in self.cusps() which is equivalent to the given cusp.
+        
+        """
+        cc = Cusp(cusp)
+        for c in self.cusps():
+            t,A = cc.is_Gamma0_equiv(c,1,"matrix")
+            if not t:
+                continue
+            if A not in self:
+                continue
+            if transformation=="matrix":
+                return c,A
+            else:
+                return c
+            
+    
     def cusp_equivalent_to(self,cusp):
         r"""
         Find a cusp in self._cusps which is equivalent to cusp
@@ -2358,7 +2376,7 @@ class MySubgroup (ArithmeticSubgroup):
         if (p,q) in self._cusps:
             one = SL2Z_elt(int(1),int(0),int(0),int(1))
             return (p,q),one,one
-        print "p,q=",p,q,type(p),type(q)
+        #print "p,q=",p,q,type(p),type(q)
         w = lift_to_sl2z(q, p, 0 )
         V = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])
         permv=self.permutation_action(V)
@@ -2371,7 +2389,7 @@ class MySubgroup (ArithmeticSubgroup):
                 if test==1:  ## v = C w with C = V*T**k*W**-1
                     Tk = SL2Z_elt(1,k,0,1)
                     mapping=V*Tk*W.inverse()
-                    return w,mapping,W
+                    return (p,q),mapping,W
         raise ArithmeticError, "Could not find equivalent cusp!"
 
     def cusp_normalizer(self,cusp):

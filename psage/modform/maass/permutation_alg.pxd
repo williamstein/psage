@@ -13,6 +13,7 @@ cdef class MyPermutation(SageObject):
     cdef long _hash
     cdef void c_new(self,int* entries)
     cdef list _list
+    cdef list _cycles
     cdef str _str
     cdef int _init
     cdef int _order

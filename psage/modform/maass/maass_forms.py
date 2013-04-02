@@ -224,9 +224,9 @@ class MaassWaveForms (AutomorphicFormSpace):
         res={}
         for j in range(self._group.ncusps()):
             if self._ch==0:
-                res[j]=self._group._symmetrizable_cusp[j],1
+                res[j]=self._group.is_symmetrizable_even_odd(j),1
             else:
-                if self._group._symmetrizable_cusp[j]==0:
+                if self._group.is_symmetrizable_even_odd(j)==0:
                     res[j]=0,0
                     continue
                 a,b,c,d=self._group._cusp_data[j]['normalizer']
@@ -1776,9 +1776,9 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
             #print "C1.keys()=",C1.keys()
             #print "C2.keys()=",C2.keys()
             for j in range(2,floor(max([M0/2,up_to_M0,5]))):
-                if self._coeffs[0].has_key(j):
-                    t1=abs(C1[j]-self._coeffs[0][j])
-                    t2=abs(C2[j]-self._coeffs[0][j])
+                if self._coeffs[0][0].has_key(j):
+                    t1=abs(C1[j]-self.C(j))
+                    t2=abs(C2[j]-self.C(j))
                     t = max(t1,t2)
                     if self._verbose>0:
                         if t==t1:

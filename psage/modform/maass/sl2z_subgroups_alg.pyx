@@ -727,23 +727,26 @@ cpdef list filter_list_mod_1_mod_S(list listRin, int mu, int e2,MyPermutation S,
     return listRout
 
 
-cpdef are_mod_1_equivalent_to(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,verbose=0):
+cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,verbose=0):
     cdef MyPermutation p
-    cdef int* pres
+    cdef int* pres=NULL
     cdef int res[0]
     cdef int N=R1._N
     assert S1._N==N and R2._N==N and S2._N==N
+    pres = <int*>sage_malloc(sizeof(int)*N)
     p=MyPermutation(length=N)
-    are_mod1_equivalent(R1._N,S1,R1,S2,R2,res,pres,verbose)
+    are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,res,pres,verbose)
     p.set_entries(pres)
     if verbose>0:
         print "res=",res[0]
         print "pres=",print_vec(N,pres)
         print "p=",p.to_cycles()
+    if pres<>NULL:
+        sage_free(pres)
     return res[0],p
 
 
-cdef are_mod1_equivalent(int N,MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* res,int* pres,int verbose=0,check=1):
+cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* res,int* pres,int verbose=0,check=1):
     r"""
     Check if S1 ~_1 S2 and R1 ~_1 R2 (i.e. equiv. mod 1)
 
@@ -839,11 +842,13 @@ cdef are_mod1_equivalent(int N,MyPermutation S1,MyPermutation R1,MyPermutation S
             print "fixset ok.:",thisset
         PONEI = MyPermutationIterator(N,fixed_pts=thisset)
         iteratorlist.append(PONEI)
-
+    sig_on()
     for PONEI in iteratorlist:      
         if verbose>1:
             print "Checking perms in ",PONEI
         for p in PONEI:
+            if verbose>2:
+                print "p=",p
             if p==p0:
                 print "p0 is here!"
             _conjugate_perm(N,epp,S1._entries,p._entries) # epp=p*E*p.inverse()
@@ -856,7 +861,7 @@ cdef are_mod1_equivalent(int N,MyPermutation S1,MyPermutation R1,MyPermutation S
                 print "rpp=",print_vec(N,rpp)
             if _are_eq_vec(N,rpp,R2._entries):
                 res[0] = 1
-                for i from 0<=i<N:
+                for i in range(N):
                     pres[i]=p._entries[i]
                 break
         if res[0]==1:
@@ -872,7 +877,8 @@ cdef are_mod1_equivalent(int N,MyPermutation S1,MyPermutation R1,MyPermutation S
     if rpp<>NULL:
         sage_free(rpp)
     #return res
-
+    sig_off()
+    
 cpdef is_consistent_signature(int ix,int nc=0,int e2=0,int e3=0,int g=0):
     #print "rhs=",12+ix-6*nc-3*e2-4*e3
     return int(12*g == 12+ix-6*nc-3*e2-4*e3)

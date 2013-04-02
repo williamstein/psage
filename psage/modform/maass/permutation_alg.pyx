@@ -88,6 +88,7 @@ cdef class MyPermutation(SageObject):
         cdef int mu
         cdef int mutmp
         cdef list new_entries
+        self._cycles = []
         if entries==[]:
             if length>0:
                 self._N = length
@@ -287,7 +288,7 @@ cdef class MyPermutation(SageObject):
         rep = 1 => [1, 2, 3, 4, 5, 6, 7] (verbose list)
         rep = 2 => [[1], [2], [3], [4], [5], [6], [7]] (cycles)
         """
-        pass
+
 
     cdef void set_entries(self, int *entries):
         r"""
@@ -855,13 +856,19 @@ cdef class MyPermutation(SageObject):
                 return 0
         return 1
     
-    def cycles(self):
+    def cycles(self,type='list',ordered=1):
         r"""
         Gives the cycles of self as list of permutations.
+        Type = 'perm' or 'list'. If the type is list we can also choose ordered=1 to return a list with
+        cycles given by increasing length.
         """
-        l = self.to_cycles()
         res=list()
-        for pl in l:
+        if type=='list':
+            l = self.to_cycles()
+            if ordered == 1:
+                l.sort(key = lambda x: len(x))
+            return l
+        for pl in self.to_cycles():
             tmplist=range(1,self._N+1)
             if len(pl)==1:
                 res.append(MyPermutation(tmplist))
@@ -874,17 +881,43 @@ cdef class MyPermutation(SageObject):
         return res
 
 
+    def cycles_as_perm(self):
+        r"""
+        This gives the cycles of self in terms of a permutation, i.e.
+        (1 2 3)(6 4 5)  is represented by [1,2,3,6,4,5]
+        """
+        lens = self.cycle_type()
+        cycles = self.cycles(type='list',ordered=1)
+        res = []
+        for i in range(len(lens)):
+            #print "len of cycle=",i
+            #print "cycle[i]=",cycles[i]
+            for j in range(lens[i]):
+                res.append(cycles[i][j])
+        return res
         
     def to_cycles(self):
         r"""
         Gives the cycles of self as list of lists.
         """
-        if not self._list or not self._entries:
-            self.list()
-        return perm_to_cycle_c(self._N,self._entries)
+        if not hasattr(self,"_cycles"):
+            self._cycles=[]
+        if self._cycles == []:
+            if not self._list or not self._entries:
+                self.list()
+            self._cycles = perm_to_cycle_c(self._N,self._entries)
+        return self._cycles
 
+    def cycle_type(self):
+        r"""
+        Return the cycle type of self.
+        
+        """
+        l = self.cycles(type='list')
+        lens = map(len,l)
+        lens.sort()
+        return lens
     
-
     def cycle_tuples(self):
         r"""
         Gives the cycles of self as list of tuples.
@@ -1021,7 +1054,7 @@ cdef class MyPermutationIterator(SageObject):
                 self._fixed_pts[i]=i+1
         else:
             self._num_fixed = -1
-            self._max_num = factorial(N) 
+            self._max_num = Integer(factorial(N))
         if self._verbose>2:
             print "fixed_pts in init after=",fixed_pts
             print "self._fixed_pts=",self.fixed_pts()
@@ -2500,6 +2533,11 @@ cpdef transposition(int N,int i,int j):
     p._list=[]
     p._str=''
     return p
+
+
+#def _cmp_list_of_lists(l1,l2):
+#    return len(l1) < len(l2)
+
 ## cimport cython
 ## from cython.operator cimport dereference as deref, preincrement as inc #dereference and increment operators
 ## from libcpp.vector cimport vector

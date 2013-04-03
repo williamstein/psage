@@ -237,6 +237,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         # define inerited ngens attribute 
         if None == names:
             names = "e"
+            names = self.normalize_names(self.ngens(),names)
         self._assign_names(names)
 
         ## Silly class identifier needed since our class does not keep its name in sage....
@@ -336,6 +337,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         x[int(i)] = 1
         return FiniteQuadraticModuleElement(self, x, can_coords = True)
 
+    def gens(self):
+        r"""
+        Return a tuple of generators for self.
+        """
+        return tuple([ self.gen(i) for i in range(self.ngens())])
 
     def relations( self):
         r"""

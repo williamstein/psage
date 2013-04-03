@@ -12,7 +12,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb,m
 cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb,mpfr_t*** ypb,mpfr_t ****RCvec,int*** CSvec)
 
 
-cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec,double weight=*,int holo=*)
+cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec)
 
-cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec,double weight=*,int holo=*)
+cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec)
 

@@ -61,7 +61,7 @@ from sage.modular.arithgroup.all import *
 from sage.symbolic.expression import Expression
 from sage.modular.modsym.p1list import lift_to_sl2z 
 from sage.functions.other import ceil,floor,sqrt
-from sage.all import matrix,SageObject,numerator,denominator,copy,log_b
+from sage.all import matrix,SageObject,numerator,denominator,copy,log_b,is_odd
 from sage.modular.arithgroup import congroup_gamma0
 from sage.modular.arithgroup.congroup_gamma0 import Gamma0_class
 from sage.rings.integer import is_Integer
@@ -73,7 +73,7 @@ from psage.modform.maass.permutation_alg import MyPermutation
 #from psage.modform.maass.permutation_alg import MyPermutation,MyPermutationIterator
 from plot_dom import draw_funddom_d,draw_funddom
 from psage.modform.maass.permutation_alg import are_transitive_permutations,num_fixed
-
+from psage.modform.maass.sl2z_subgroups_alg import are_mod1_equivalent
 ## _sage_const_3 = Integer(3); _sage_const_2 = Integer(2);
 ## _sage_const_1 = Integer(1); _sage_const_0 = Integer(0);
 ## _sage_const_6 = Integer(6); _sage_const_4 = Integer(4);
@@ -186,6 +186,7 @@ class MySubgroup (ArithmeticSubgroup):
         self._coset_rep_perms={}
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
+        self._is_symmetric=None
         if data<>{}:
             self.init_group_from_dict(data)
         else:
@@ -316,15 +317,15 @@ class MySubgroup (ArithmeticSubgroup):
         # We might also want to see which cusps are simultaneously
         # symmetrizable with respect to reflection in the imaginary axis 
         self._symmetrizable_cusp=dict()
-        for j in range(self._ncusps):
-            self._symmetrizable_cusp[j]=0
-            a,b,c,d=self._cusp_data[j]['normalizer']
-            if self._is_Gamma0:
-                if self._level.divides(2*d*c):
-                    self._symmetrizable_cusp[j]=1
-            else:
-                if  [a*d+b*c,-2*a*b,-2*d*c,a*d+b*c] in self:
-                    self._symmetrizable_cusp[j]=1
+        # for j in range(self._ncusps):
+        #     self._symmetrizable_cusp[j]=0
+        #     a,b,c,d=self._cusp_data[j]['normalizer']
+        #     if self._is_Gamma0:
+        #         if self._level.divides(2*d*c):
+        #             self._symmetrizable_cusp[j]=1
+        #     elif self.is_symmetric():
+        #         if  [a*d+b*c,-2*a*b,-2*d*c,a*d+b*c] in self:
+        #             self._symmetrizable_cusp[j]=1
 
         ## Then we chek if the cusps are symmetrizable in the sense that the normalizing maps
         ## are normalizers of the group.
@@ -334,9 +335,36 @@ class MySubgroup (ArithmeticSubgroup):
         for j in range(1,self._ncusps):
             d=self.cusp_normalizer_is_normalizer(j,1)
 
+    def reflected_group(self):
+        pS = self.permS
+        pR = self.permS*self.permR**2*self.permS
+        return MySubgroup(o2=pS,o3=pR)
+            
 
-                    
- 
+    def is_symmetric(self,ret_map=0,verbose=0):
+        r"""
+        Check if self has a reflectional symmetry, i.e. check that 
+        """
+        if self._is_symmetric <>None:
+            return self._is_symmetric
+        if self.is_congruence():
+            self._is_symmetric = True
+        else:
+            pS = self.permS
+            pR = self.permS*self.permR**2*self.permS
+            ## Now have to see if (pS,pR) is conjugate to (self.permS,self.permR)
+            ## by a permutation fixing 1
+            t,p = are_mod1_equivalent(self.permS,self.permR,pS,pR,verbose=verbose)
+            if t==1:
+                self._is_symmetric = True
+                self._sym_perm = p
+            else:
+                self._is_symmetric = False
+                self._sym_perm = MyPermutation(length=self.index())
+        if ret_map==1:
+            return self._is_symmetric,self._sym_perm
+        else:
+            return self._is_symmetric
         
     def cusp_normalizer_is_normalizer(self,j,brute_force=0):
         r"""
@@ -459,6 +487,16 @@ class MySubgroup (ArithmeticSubgroup):
         Note: If self is a G amma_0(l) then A[1,1]==1 mod l
 
         """
+        if not self._symmetrizable_cusp.has_key(j):
+            a,b,c,d=self._cusp_data[j]['normalizer']
+            self._symmetrizable_cusp[j]=0
+            if self._is_Gamma0:
+                if self._level.divides(2*d*c):
+                    self._symmetrizable_cusp[j]=1
+            elif self.is_symmetric():
+                if  [a*d+b*c,-2*a*b,-2*d*c,a*d+b*c] in self:
+                    self._symmetrizable_cusp[j]=1
+            
         return self._symmetrizable_cusp[j]
 
     def normalizer_order(self,j):
@@ -743,7 +781,7 @@ class MySubgroup (ArithmeticSubgroup):
         if self._index==1:
             return True
 
-        if o2.order() <>2 or o3.order()<>3:
+        if ( 2 % o2.order()  <>0) or (3 % o3.order() <> 0):
             print "o2=",o2,o2.order()
             print "o3=",o3,o3.order()
             s="Input permutations are not of order 2 and 3: \n perm(S)^2={0} \n perm(R)^3={1} " 
@@ -2338,6 +2376,24 @@ class MySubgroup (ArithmeticSubgroup):
         ## #
 
 
+    def cusp_representative(self,cusp,transformation=None):
+        r"""
+        find a cusp in self.cusps() which is equivalent to the given cusp.
+        
+        """
+        cc = Cusp(cusp)
+        for c in self.cusps():
+            t,A = cc.is_Gamma0_equiv(c,1,"matrix")
+            if not t:
+                continue
+            if A not in self:
+                continue
+            if transformation=="matrix":
+                return c,A
+            else:
+                return c
+            
+    
     def cusp_equivalent_to(self,cusp):
         r"""
         Find a cusp in self._cusps which is equivalent to cusp
@@ -2358,7 +2414,7 @@ class MySubgroup (ArithmeticSubgroup):
         if (p,q) in self._cusps:
             one = SL2Z_elt(int(1),int(0),int(0),int(1))
             return (p,q),one,one
-        print "p,q=",p,q,type(p),type(q)
+        #print "p,q=",p,q,type(p),type(q)
         w = lift_to_sl2z(q, p, 0 )
         V = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])
         permv=self.permutation_action(V)
@@ -2371,7 +2427,7 @@ class MySubgroup (ArithmeticSubgroup):
                 if test==1:  ## v = C w with C = V*T**k*W**-1
                     Tk = SL2Z_elt(1,k,0,1)
                     mapping=V*Tk*W.inverse()
-                    return w,mapping,W
+                    return (p,q),mapping,W
         raise ArithmeticError, "Could not find equivalent cusp!"
 
     def cusp_normalizer(self,cusp):

@@ -304,7 +304,7 @@ cpdef weil_kloosterman_sum_all(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,breaks,verb
                     if((r*c - alpha_minus_dbeta) % D ==0):
                         c_div=True
                         invers=Integer(r)
-                        exit
+                        break
                 if(c_div):
                     if(xc==0):
                         argu = a*c*invers**2-b*d*beta**2+2*b*beta*alpha

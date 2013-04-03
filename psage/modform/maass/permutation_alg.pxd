@@ -13,6 +13,7 @@ cdef class MyPermutation(SageObject):
     cdef long _hash
     cdef void c_new(self,int* entries)
     cdef list _list
+    cdef list _cycles
     cdef str _str
     cdef int _init
     cdef int _order
@@ -26,6 +27,7 @@ cdef class MyPermutation(SageObject):
     cdef int get_unsafe(self,int i)
     cpdef int _get_unsafe(self,int i)
     cpdef conjugate(self,other)
+    cpdef is_order_eq(self,int o)
     cpdef _get_order(self)
     cpdef _inverse(self)
     cpdef str export_as_string(self,str sep=*)
@@ -40,7 +42,7 @@ cdef class MyPermutation(SageObject):
     cpdef fixed_elements(self)
     cdef int num_fixed_c(self)
     cpdef num_fixed(self)
-
+    cpdef _mult_perm(self,MyPermutation other)
             
     cdef int eq_c(self,MyPermutation other)
     cpdef int eq(self,MyPermutation other)
@@ -81,3 +83,10 @@ cdef class MyPermutationIterator(SageObject):
 
 cdef void _mult_perm(int N, int* res,int *left,int* right)
     
+cdef print_vec(int n,int *list)
+cdef _are_eq_vec(int n,int *a,int *b)
+cdef void _conjugate_perm(int N,int* res,int *a,int* b)
+cpdef transposition(int N,int i,int j)
+cdef int are_transitive_perm_c(int *Rl,int *Sl, int *gotten, int n,int verbose=?)
+cdef list perm_to_cycle_c(int N,int *perm)
+cdef print_vec(int n,int *list)

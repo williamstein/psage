@@ -2271,6 +2271,8 @@ class AutomorphicFormElement(SageObject):
         l = C.keys()
         l_plus = []; l_minus=[]
         for n in l:
+            if abs(n)>N:
+                continue
             if self.my_zzcmp(n,0)>0:
                 l_plus.append(n)
             else:
@@ -2321,10 +2323,12 @@ class AutomorphicFormElement(SageObject):
             for n in l_plus:
                 nal = n + al
                 c = C[n]
-                if isinstance(c,(int,mpf)): 
+                if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
-                else:
+                elif hasattr(c,"real"):
                     c = CF(c.real(),c.imag())
+                else:
+                    c = CF(c)
                 c = c/norm_plus
 
                 s+="C^{{+}}_{{ {0} }} ({1}) = {2} \n ".format(cusp,nal,c)
@@ -2351,7 +2355,7 @@ class AutomorphicFormElement(SageObject):
             for n in l_minus:    
                 nal = n + al
                 c = C[n]
-                if isinstance(c,(int,mpf)): 
+                if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
                 else:
                     c = CF(c.real(),c.imag())

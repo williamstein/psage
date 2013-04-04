@@ -40,6 +40,7 @@ cdef class MyPermutation(SageObject):
     cdef _pickle_version0(self)
     cdef _unpickle_version0(self, data)
     cpdef fixed_elements(self)
+    cpdef non_fixed_elements(self)
     cdef int num_fixed_c(self)
     cpdef num_fixed(self)
     cpdef _mult_perm(self,MyPermutation other)

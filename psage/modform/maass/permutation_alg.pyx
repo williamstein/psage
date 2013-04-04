@@ -441,15 +441,10 @@ cdef class MyPermutation(SageObject):
         return 1
     
     def is_identity(self):
-        if self._order==-1:
-            for i in range(self._N):
-                if self._entries[i]<>i:
-                    is_id = 0
-                    break
-        if is_id==0:
-            self._order = 1
-            return False
-        return True
+        r"""
+        Test if self is the identity
+        """
+        return self.order()==1
     
     cpdef _get_order(self):
         return self._order
@@ -587,6 +582,9 @@ cdef class MyPermutation(SageObject):
         return res
     
     cdef int num_fixed_c(self):
+        r"""
+        The number of elementes which are fixed by self.
+        """
         cdef int i,res
         res=0
         for i from 0<=i<self._N:
@@ -595,17 +593,33 @@ cdef class MyPermutation(SageObject):
         return res
 
     cpdef num_fixed(self):
+        r"""
+        The number of elementes which are fixed by self.
+        """
         return self.num_fixed_c()
 
     cpdef fixed_elements(self):
+        r"""
+        The elements fixed by self.
+        """
         cdef int i
         cdef list res=[]
-        for i from 0 <= i < self._N:
+        for i in range(self._N):
             if self._entries[i]==i+1:
                 res.append(i+1)
         return res
 
-
+    cpdef non_fixed_elements(self):
+        r"""
+        The elements not fixed by self.
+        """
+        cdef int i
+        cdef list res=[]
+        for i in range(self._N):
+            if self._entries[i]<>i+1:
+                res.append(i+1)
+        return res
+    
     def __mul__(self,other):
         if isinstance(other,MySubgroup):
             return MyPermutation._mult_perm(self,other)            

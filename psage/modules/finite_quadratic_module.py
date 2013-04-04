@@ -85,6 +85,7 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
+
 from sage.rings.arith                     import divisors, is_prime, kronecker,lcm,gcd, prime_divisors,primitive_root,is_square,is_prime_power
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup,FiniteGroup
@@ -248,7 +249,6 @@ class FiniteQuadraticModule_ambient (AdditiveAbelianGroup_class,FiniteGroup):
         # define inerited ngens attribute 
         if None == names:
             names = "e"
-            names = self.normalize_names(self.ngens(),names)
         self._assign_names(names)
 
         ## Silly class identifier needed since our class does not keep its name in sage....
@@ -357,11 +357,6 @@ class FiniteQuadraticModule_ambient (AdditiveAbelianGroup_class,FiniteGroup):
         x[int(i)] = 1
         return FiniteQuadraticModuleElement(self, x, can_coords = True)
 
-    def gens(self):
-        r"""
-        Return a tuple of generators for self.
-        """
-        return tuple([ self.gen(i) for i in range(self.ngens())])
 
     def relations( self):
         r"""

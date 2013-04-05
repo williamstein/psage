@@ -307,7 +307,14 @@ cdef class MyPermutation(SageObject):
         
     def __call__(self,i):
         if isinstance(i,(int,Integer)) and 1 <= i and i<= self._N:
-            return self[i-1]
+            return self._entries[i-1]
+        elif isinstance(i,(tuple,list)) and len(i)==self._N:
+            res = [0 for j in range(len(i))]
+            for j in range(len(i)):        
+                res[j]=i[self._entries[j]-1]
+            if isinstance(i,tuple):
+                return tuple(res)
+            return res
         else:
             raise NotImplementedError,"Can not apply permutation to {0}".format(i)
 
@@ -315,13 +322,7 @@ cdef class MyPermutation(SageObject):
         """
         EXAMPLES::
         
-            sage: c = CombinatorialObject([1,2,3])
-            sage: c[0]
-            1
-            sage: c[1:]
-            [2, 3]
-            sage: type(_)
-            <type 'list'>
+
         """
         if isinstance(i,(int,Integer)) and i>=0 and i<self._N and self._entries<>NULL:
             return self._entries[i] 

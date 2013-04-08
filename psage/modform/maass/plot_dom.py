@@ -121,38 +121,7 @@ def draw_funddom(coset_reps,format="S"):
     for A in coset_reps:
         if list(A)==[1,0,0,1]:
             continue
-        #print  "A=",A
-        # [a,b,c,d]=A
-        # if(a==1  and b==0  and c==0  and d==1 ):
-        #     continue
-        # if(a<0 ):
-        #     a=RR(-a); b=RR(-b); c=RR(-c); d=RR(-d) 
-        # else:
-        #     a=RR(a); b=RR(b); c=RR(c); d=RR(d) 
-        # if(c==0 ): # then this is easier
-        #     L0 = [[cos(pi_3*RR(i/100.0))+b,sin(pi_3*RR(i/100.0))] for i in range(100 ,201 )]
-        #     L1 = [[x1+b,y1],[x1+b,xmax]]
-        #     L2 = [[x2+b,y2],[x2+b,xmax]]
-        #     L3 = [[x2+b,xmax],[x1+b,xmax]]
-        #     c0=line(L0); l1=line(L1); l2=line(L2); l3=line(L3)
-        #     tri=c0+l1+l3+l2
-        #     g=g+tri
-        # else:
-        #     den=(c*x1+d)**2 +c**2 *y1**2 
-        #     x1_t=(a*c*(x1**2 +y1**2 )+(a*d+b*c)*x1+b*d)/den
-        #     y1_t=y1/den
-        #     den=(c*x2+d)**2 +c**2 *y2**2 
-        #     x2_t=(a*c*(x2**2 +y2**2 )+(a*d+b*c)*x2+b*d)/den
-        #     y2_t=y2/den
-        #     inf_t=a/c
-        #     #print "A=",A
-        #     #print "arg1=",x1_t,y1_t,x2_t,y2_t
-        #     c0=_geodesic_between_two_points(x1_t,y1_t,x2_t,y2_t)
-        #     #print "arg1=",x1_t,y1_t,inf_t
-        #     c1=_geodesic_between_two_points(x1_t,y1_t,inf_t,0. )
-        #     #print "arg1=",x2_t,y2_t,inf_t
-        #     c2=_geodesic_between_two_points(x2_t,y2_t,inf_t,0.0)
-        #     tri=c0+c1+c2
+
         tri=draw_transformed_triangle_H(A,xmax=xmax)
         g=g+tri
     return g

@@ -2248,10 +2248,12 @@ class MySubgroup (ArithmeticSubgroup):
                 return False
             if not is_integer(A[3]):
                 return False
+        else:
+            return False
         p=self.permutation_action(A)
         if self._verbose>1:
             print "perm(A)=",p
-        if(p(1)==1 ):
+        if p(1)==1:
             return True
         else:
             return False

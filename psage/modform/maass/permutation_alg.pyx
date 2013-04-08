@@ -622,7 +622,7 @@ cdef class MyPermutation(SageObject):
         return res
     
     def __mul__(self,other):
-        if isinstance(other,MySubgroup):
+        if isinstance(other,MyPermutation):
             return MyPermutation._mult_perm(self,other)            
         elif isinstance(other,list):
             return MyPermutation._mult_list(self,other)

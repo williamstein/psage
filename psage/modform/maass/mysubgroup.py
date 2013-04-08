@@ -207,6 +207,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._coset_rep_perms={}
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
+        self._generators_as_slz_elts=[]
         self._is_symmetric=None
         self.permT=None; self.permP=None
         self._verbose=verbose
@@ -508,8 +509,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._signature =  (self.index(),self.ncusps(),self.nu2(),self.nu3(),self.genus())
         return self._signature
 
-            
-            
     def reflected_group(self):
         pS = self.permS
         pR = self.permS*self.permR**2*self.permS
@@ -519,7 +518,18 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     ###
     ## More advanced functions
     ###
-    
+
+    def is_Gamma0(self):
+        if self._is_Gamma0==None:
+            self._is_Gamma0=False
+            if self.is_congruence():
+                N = self.level()
+                G = Gamma0(N)
+                if G.index()==G.index():
+                    if G.is_subgroup(self):
+                        if self.is_subgroup(G):
+                            self._is_Gamma0=True
+        return self._is_Gamma0
     
     def is_symmetric(self,ret_map=0,verbose=0):
         r"""
@@ -624,30 +634,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 print "cnc2[",j,"]=",self._cusp_normalizer_is_normalizer[j]                        
             if brute_force==1:
                 if self.is_normalizer(N0):
-                    #NN=matrix(ZZ,2,2,N0)
-                    # for A in self.gens():
-                    #     #print "A=",A,type(A)
-                    #     AA = SL2Z_elt(A[0,0],A[0,1],A[1,0],A[1,1])
-                    #     #.matrix().list()
-                    #     # matrix(ZZ,2,2,A.matrix().list())
-                    #     B = N0*AA #mul_list_maps(N,AA)
-                    #     B = B._mul(N0,2)
-                    #     #B = NN*AA*NN**-1
-                    #     c = gcd(list(B))
-                    #     #BB=B/c
-                    #     bc = ZZ(B[2]).divide_knowing_divisible_by(c)
-                    #     if self._is_Gamma0:
-                    #         t = bc % self._level == 0
-                    #     else:
-                    #         ba =[ZZ(B[0]).divide_knowing_divisible_by(c)]
-                    #         bb =[ZZ(B[1]).divide_knowing_divisible_by(c)]
-                    #         bd =[ZZ(B[3]).divide_knowing_divisible_by(c)]
-                    #         t = [ba,bb,bc,bd] in self
-                    #     if not t:
-                    #         self._cusp_normalizer_is_normalizer[j]=(0,0)
-                    #         return self._cusp_normalizer_is_normalizer[j]
-                    #     # Then find order
-                    #     N=N0
                     N = SL2Z_elt(N0[0],N0[1],N0[2],N0[3])
                     for k in range(2,l):
                         N=N._mul(N0) #mul_list_maps(N,N)
@@ -689,10 +675,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         return self._symmetrizable_cusp[j]
             
 
-
-
-
-    
     def _get_vertices(self,reps):
         r""" Compute vertices of a fundamental domain corresponding
              to coset reps. given in the list reps.
@@ -834,7 +816,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1 -2]]
     
         """
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             return self._get_coset_reps_from_Gamma0N()
         cl=list()
         S=[0,-1,1,0]
@@ -843,7 +825,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         lvl=12 #G.generalised_level()
         # Start with identity rep.
         cl.append([1 ,0 ,0 ,1 ])
-        if self._is_Gamma0 and self._level>1:
+        if self.is_Gamma0() and self._level>1:
             cl.append(S)
         elif not S in G:
             cl.append(S)
@@ -851,7 +833,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         # the reps are not the one we want
         # I.e. we like to have a fundamental domain in
         # -1/2 <=x <= 1/2 for Gamma0, Gamma1, Gamma
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             N=lvl #self._level #G.level()
             if (N % 2) == 0:
                 #reprange=range(-N/2+1,N/2+1)
@@ -877,7 +859,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                             t1=A<>V
                             #A*V^-1=[a,b]*[ v11 -v01]
                             #       [c d] [-v10 v00]
-                            if self._is_Gamma0:
+                            if self.is_Gamma0():
                                 t2= (c*v11-d*v10) % lvl == 0 
                             else:
                                 t2 = SL2Z_elt(a*v11-b*v10,-v01*a+v00*b,c*v11-d*v10,-c*v01+d*v00) in G
@@ -900,7 +882,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     try:
                         for W in cl:
                             tmp = mul_list_maps(B,W,inv=2)
-                            if self._is_Gamma0:
+                            if self.is_Gamma0():
                                 t1= (tmp[2] % lvl)==0 
                             else:
                                 #print "HERE!22"
@@ -1012,12 +994,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if len(cl)<>self._index:
             print "cl=",cl
             raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(cl))
-        # Try another coset rep for Gamma0(8)
-        #if lvl==8:
-        #    A=SL2Z_elt(-1,0,-2,-1)
-        #    j = cl.index(A)
-        #    A=SL2Z_elt(-1,-1,2,1)
-        #    cl[j]=A
         return cl
         
     
@@ -1484,7 +1460,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         R=SL2Z_elt(0,-1,1,1)
         #S,T=SL2Z.gens()
         #R=S*T
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             level=G.level()
         if isinstance(l[0],SL2Z_elt):
             for i in range(n):
@@ -1505,7 +1481,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 Vji=li[j] # Vj^-1
                 tmp = VR*Vji
                 #tmp = mul_list_maps(VR,Vji)
-                if self._is_Gamma0:
+                if self.is_Gamma0():
                     t = tmp[2] % level == 0 
                 else:
                     t = list(tmp) in G
@@ -1517,7 +1493,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 Vji=li[j]
                 tmp = VS*Vji
                 #tmp = mul_list_maps(VS,Vji)
-                if self._is_Gamma0:
+                if self.is_Gamma0():
                     t = tmp[2] % level == 0 
                 else:
                     t = list(tmp) in G
@@ -1599,7 +1575,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         """
         #x=deepcopy(x_in); y=deepcopy(y_in)
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             if isinstance(x_in,float):
                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
             elif isinstance(x_in,Expression):
@@ -1715,78 +1691,86 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     #         raise TypeError,"Group is not a congruence group! Use G.generalised_level() instead!"
 
     
+    def generators_as_slz_elts(self):
+        if self._generators_as_slz_elts==None:
+            self._generators_as_slz_elts=[]
+            for A in self.gens():
+                a,b,c,d=A
+                self._generators_as_slz_elts.append(SL2Z_elt(a,b,c,d))
+        return self._generators_as_slz_elts
 
-    def gens(self):
-        r""" Generators of self
 
 
-        EXAMPLES::
+    # def gens(self):
+    #     r""" Generators of self
 
 
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.gens()
-            ([1 1]
-            [0 1], [-1  0]
-            [ 0 -1], [ 1 -1]
-            [ 0  1], [1 0]
-            [5 1], [1 1]
-            [0 1], [-2 -1]
-            [ 5  2], [-3 -1]
-            [10  3], [-1  0]
-            [ 5 -1], [ 1  0]
-            [-5  1])
-            sage: G3=MySubgroup(o2=Permutations(3)([1,2,3]),o3=Permutations(3)([2,3,1]))
-            sage: G3.gens()
-            ([1 3]
-            [0 1], [ 0 -1]
-            [ 1  0], [ 1 -2]
-            [ 1 -1], [ 2 -5]
-            [ 1 -2])
+    #     EXAMPLES::
 
-        """
-        # do some reductions from the generators
-        if self._gens:
-            return self._gens
-        gens = self._G.gens()
-        newgens=[]
-        for i in range(len(gens)):
-            l = list(gens[i])
-            newgens.append(SL2Z_elt(l[0],l[1],l[2],l[3]))
-        if self._verbose>1:
-            print "original gens=",newgens
-        m1=SL2Z_elt(-1,0,0,-1)
-        for x in gens:
-            l = list(gens[i])
-            x = SL2Z_elt(l[0],l[1],l[2],l[3])
-            if x not in newgens:
-                continue
-            if self._verbose>1:
-                print "x:",x
-            t=m1*x
-            if t<>x and t in newgens:
-                if self._verbose>1:
-                    print "remove -x:",m1*x
-                newgens.remove(t)
-            t=x.inverse() #**-1
-            if t<>x and t in newgens:
-                if self._verbose>1:
-                    print "remove x**-1:",t
-                newgens.remove(t) #**-1)
-            t=t*m1
-            if t<>x and t in newgens:
-                if self._verbose>1:
-                    print "remove -x**-1:",t #m1*x**-1                
-                newgens.remove(t)            
-        # also remove duplicate
-        gens=newgens
-        for x in gens:
-            if gens.count(x)>1:
-                newgens.remove(x)
-        if self._verbose>1:        
-            print "type(gens[0])=",type(newgens[0])
-            print "newgens=",newgens
-        self._gens=newgens
-        return newgens
+
+    #         sage: G=MySubgroup(Gamma0(5));
+    #         sage: G.gens()
+    #         ([1 1]
+    #         [0 1], [-1  0]
+    #         [ 0 -1], [ 1 -1]
+    #         [ 0  1], [1 0]
+    #         [5 1], [1 1]
+    #         [0 1], [-2 -1]
+    #         [ 5  2], [-3 -1]
+    #         [10  3], [-1  0]
+    #         [ 5 -1], [ 1  0]
+    #         [-5  1])
+    #         sage: G3=MySubgroup(o2=Permutations(3)([1,2,3]),o3=Permutations(3)([2,3,1]))
+    #         sage: G3.gens()
+    #         ([1 3]
+    #         [0 1], [ 0 -1]
+    #         [ 1  0], [ 1 -2]
+    #         [ 1 -1], [ 2 -5]
+    #         [ 1 -2])
+    #     """        
+    #     # do some reductions from the generators
+    #     if self._gens:
+    #         return self._gens
+    #     gens = self._G.gens()
+    #     newgens=[]
+    #     for i in range(len(gens)):
+    #         l = list(gens[i])
+    #         newgens.append(SL2Z_elt(l[0],l[1],l[2],l[3]))
+    #     if self._verbose>1:
+    #         print "original gens=",newgens
+    #     m1=SL2Z_elt(-1,0,0,-1)
+    #     for x in gens:
+    #         l = list(gens[i])
+    #         x = SL2Z_elt(l[0],l[1],l[2],l[3])
+    #         if x not in newgens:
+    #             continue
+    #         if self._verbose>1:
+    #             print "x:",x
+    #         t=m1*x
+    #         if t<>x and t in newgens:
+    #             if self._verbose>1:
+    #                 print "remove -x:",m1*x
+    #             newgens.remove(t)
+    #         t=x.inverse() #**-1
+    #         if t<>x and t in newgens:
+    #             if self._verbose>1:
+    #                 print "remove x**-1:",t
+    #             newgens.remove(t) #**-1)
+    #         t=t*m1
+    #         if t<>x and t in newgens:
+    #             if self._verbose>1:
+    #                 print "remove -x**-1:",t #m1*x**-1                
+    #             newgens.remove(t)            
+    #     # also remove duplicate
+    #     gens=newgens
+    #     for x in gens:
+    #         if gens.count(x)>1:
+    #             newgens.remove(x)
+    #     if self._verbose>1:        
+    #         print "type(gens[0])=",type(newgens[0])
+    #         print "newgens=",newgens
+    #     self._gens=newgens
+    #     return newgens
 
 
 

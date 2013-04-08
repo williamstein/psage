@@ -551,7 +551,10 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',verbose=0):
     ## First check if R1 and R2 are conjugate
     p = are_conjugate_perm(R1,R2)
     Sc = S1.conjugate(p)
-    pp=are_conjugate_wrt_stabiliser(R1,Sc,S2,p,&t)
+    if verbose>0:
+        print "p=",p.to_cycles()
+        print "S^p=",Sc.to_cycles()
+    pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,p,&t,verbose)
     if t == 0:
         return 0,Id
     pp = p*pp
@@ -904,6 +907,7 @@ cpdef stabiliser_of_R_StoSp(MyPermutation pR,MyPermutation pS,MyPermutation pS1,
     if verbose>0:
         print "cycles1=",cycles1
         print "cycles3=",cycles3
+        print "lR=",lR
     nf = pS.num_fixed(); nf1 = pS1.num_fixed()
     if nf<>nf1:
         return []
@@ -1124,8 +1128,9 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
                 #         break                
                 if do_cont==1:
                     continue
-                
                 pScon = pS.conjugate(pp)
+                if verbose>0:
+                    print "pS^pp=",pScon.to_cycles()
                 if pScon==pS1:
                     t[0] = 1
                     #p_out = pp

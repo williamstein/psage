@@ -68,7 +68,7 @@ from mysubgroups_alg import apply_sl2z_map,pullback_to_psl2z_mat #,pullback_to_G
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 import mpmath
 from sage.all import SageObject,copy,deepcopy
-from pullback_algorithms import pullback_pts_mpc,j_fak_int_mpfr,pullback_pts_mp,pullback_pts_mpmath
+from pullback_algorithms import pullback_pts_mpc,j_fak_int_mpfr,pullback_pts_mp
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from pullback_algorithms cimport pullback_pts_mpc_new_c

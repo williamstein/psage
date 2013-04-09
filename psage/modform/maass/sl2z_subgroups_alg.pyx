@@ -190,6 +190,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     if not Rcycles: raise MemoryError
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
+    sig_on()
     for pR in PRI: #ii from 0<= ii <max_num:
         #_to_cycles2(mu,pR._entries,Rcycles,rcycle_lens,num_rcycles)
         # we might also make some apriori requirements on R
@@ -325,7 +326,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 #print ":::::::::::::::: ",r.cycles(),";",(Sp*r).cycles()
                 print ":::::::::::::::: ",r.to_cycles(),";",(Sp*r).to_cycles()
     if gotten<>NULL:
-        sage_free(gotten)        
+        sage_free(gotten)
     if get_one_rep:
         if congruence==1:
             print "We didn't find any congruence subgroups..."
@@ -347,6 +348,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         sage_free(rcycle_lens)
     #print "after deallPRI.list=",printf("%p ", PRI._list_of_perms)
     # Now list_of_R contains at least one representative for each group with the correct signature
+    sig_off()
     if verbose>0:
         #print "Original list of R=",list_of_R
         print "Original list of R="
@@ -372,14 +374,43 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef dict lc_psl,lc_pgl,lc_psl_maps,lc_pgl_maps
     lc_psl=dict()      # list of conjugates
     lc_psl_maps=dict() # maps between conjugates
+    sig_on()
     conjugates,conjugate_maps,Rmodpsl,Rmodpgl=filter_list_mod_S(list_of_R,mu,e2,e3,Sp,verbose)
+    sig_off()
 #    lc_psl,lc_psl_maps,list_of_R=filter_list_mod_psl_mod_S_new(list_of_R,mu,e2,e3,Sp,verbose)
     if verbose>=0:    
         print "List of conjugacy classes mod PGL(2,Z):" 
         for i in range(len(conjugates.keys())):
             R =conjugates.keys()[i]
-            print conjugates[R]['psl']
-    ##  Next part is to check outer automorphisms, i.e. we reduce the list of conjugacy classses
+            t = conjugates[R]['psl']
+            if t<>[]:
+                print t
+    ## We finally want to add a list of reflected groups
+    reflections={}
+    for R in Rmodpsl:
+        reflections[R]={}
+        Rs = R.square().conjugate(Sp)
+        conj_pgl = conjugates[R]['pgl']
+        conj_psl = conjugates[R]['psl']
+        if R in conj_pgl:
+            t,A = are_conjugate_pairs_of_perms((Sp,Rs),(Sp,R))
+            reflections[R]={'group':R,'map':A}
+        elif conj_pgl<>[]:
+            Rtest = conjugates[R]['pgl'][0]
+            if Rtest in conj_psl:  ## G^* is conjugate to G
+                p = conjugate_maps[R]['psl'][0]
+                t,A = are_conjugate_pairs_of_perms((Sp,Rs),(Sp,R))
+                if t==1:
+                    reflections[R]={'group':R,'map':A}
+            else:
+                t,A = are_conjugate_pairs_of_perms((Sp,Rs),(Sp,Rtest))
+                if t==1:
+                    reflections[R]={'group':Rtest,'map':A}
+        if reflections[R]<>{}:
+            for Rtest in Rmodpsl:
+                t,A = are_conjugate_pairs_of_perms((Sp,Rs),(Sp,Rtest))
+                if t==1:
+                    reflections[R]={'group':Rtest,'map':A}
     ##  Modulo *:  E->E, R->ER^2E
 #    lc_pgl,lc_pgl_maps,list_of_R=filter_list_mod_psl_mod_S_new(lc_psl.keys(),mu,e2,e3,Sp,verbose,do_pgl=1)
     d = dict()
@@ -391,7 +422,24 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     d['groups_mod_pgl']=Rmodpgl
     d['conjugates']=conjugates
     d['conjugate_maps']=conjugate_maps
-
+    d['reflections']=reflections
+    for key in d.keys():
+        if isinstance(d[key],MyPermutation):
+            d[key].set_rep(0)
+        elif isinstance(d[key],dict):
+            for key1 in d[key].keys():
+                if isinstance(d[key][key1],MyPermutation):
+                    d[key][key1].set_rep(0)
+                elif isinstance(d[key][key1],list):
+                    for v in d[key]:
+                        if isinstance(v,MyPermutation):
+                            v.set_rep(0)
+        elif isinstance(d[key],list):
+            for v in d[key]:
+                if isinstance(v,MyPermutation):
+                    v.set_rep(0)
+                
+    
     if rr2<>NULL:
         sage_free(rr2)
         rr2=NULL
@@ -436,19 +484,24 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
     """
     cdef list Rmodpsl=[],Rmodpgl=[]
     cdef dict conjugates={},conjugate_maps={}
-    cdef MyPermutation R,R1,Sc,Rpsl,Rpgl,Scp,pp
+    cdef MyPermutation R,R1,Sc,Rpsl,Rpgl,Scp,pp,pi
     cdef int numr = len(listRin)
     cdef int* checked=NULL
     cdef int t=0
-    pp = MyPermutation(length=mu)
+    pp = MyPermutation(length=mu,rep=0)
     checked = <int*>sage_malloc(numr*sizeof(int))
     for i in range(numr):
         checked[i]=0
     if verbose>0:
         print "R's:",listRin
     for i in range(0,numr):
-        if checked[i]==1:
-            continue
+        R = listRin[i]
+        conjugates[R]={'psl':[R],'pgl':[]}
+        conjugate_maps[R]={'psl':[pp],'pgl':[]}
+        
+    for i in range(0,numr):
+        #if checked[i]==1:
+        #    continue
         R = listRin[i]
         if verbose>0:
             print "Test R[{0}]={1}".format(i,R)
@@ -460,8 +513,6 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
             Rmodpgl.append(R)
         if checked[i] in [0,2]:
             Rmodpsl.append(R)
-        conjugates[R]={'psl':[],'pgl':[]}
-        conjugate_maps[R]={'psl':[],'pgl':[]}
         if verbose>0:
             for j in range(numr):
                 print "checked[{0}]={1}".format(j,checked[j])
@@ -469,7 +520,7 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
         #    verbose=1
         #else:
         #    verbose=0
-        for j in range(i+1,numr):
+        for j in range(i,numr):
             if checked[j]==3:
                 continue
             Rpsl = listRin[j]
@@ -484,7 +535,7 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                 print "R=",R.to_cycles()
                 print "S=",S.to_cycles()
                 print "S^p=",Scp.to_cycles()
-            pp=are_conjugate_wrt_stabiliser(R,Scp,S,p,&t)
+            pp=are_conjugate_wrt_stabiliser(Rpsl,Scp,S,p,&t)
             if verbose>0:
                 print "t=",t
                 print "j=",j
@@ -499,10 +550,15 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                     print "S^pp=",Sc.to_cycles()
                 
                 if Sc==S: ## the pair is conjugate
-                    conjugates[R]['psl'].append(listRin[j])
-                    pp.set_rep(0)
-                    conjugate_maps[R]['psl'].append(pp)
+                    if listRin[j] not in conjugates[R]['psl']:
+                        conjugates[R]['psl'].append(listRin[j])
+                        pp.set_rep(0)
+                        conjugate_maps[R]['psl'].append(pp)
                     checked[j]+=1
+                    if R not in conjugates[listRin[j]]['psl']:
+                        conjugates[listRin[j]]['psl'].append(R)
+                        pi = pp.inverse(); pi.set_rep(0)
+                        conjugate_maps[listRin[j]]['psl'].append(pi)
             if checked[j]<2:
                 # Check PGL(2,Z)
                 p = are_conjugate_perm(R,Rpgl)
@@ -511,11 +567,13 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                     print "Comp PGL R[{0}]={1}".format(j,Rpgl)
                     print "p=",p.to_cycles()
                 Scp = S.conjugate(p)
-                if verbose>1:
+                if verbose>1 or (i==2 and j==2):
                     print "R=",R.to_cycles()
                     print "S=",S.to_cycles()
                     print "S^p=",Scp.to_cycles()
-                pp=are_conjugate_wrt_stabiliser(R,Scp,S,p,&t)
+                    pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t,1)
+                else:
+                    pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t)
                 if t==1:
                     pp = p*pp
                     if verbose>0:                    
@@ -526,8 +584,21 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                         pp.set_rep(0)
                         conjugate_maps[R]['pgl'].append(pp)
                         checked[j]+=2
+                        if i==0 and j==3:
+                            print "R=",R
+                            print "newlist=",listRin[j]
+                            print "conjugates=",conjugates[listRin[j]]['pgl']
+                        if R not in conjugates[listRin[j]]['pgl']:
+                            conjugates[listRin[j]]['pgl'].append(R)
+                            if i==0 and j==3:
+                                print "Appending!"
+                                print "conjugates=",conjugates
 
-                    
+                            pi = pp.inverse(); pi.set_rep(0)
+                            conjugate_maps[listRin[j]]['pgl'].append(pi)
+    #if R in conjugates.keys():
+    #    for R1 in conjugates[R]['psl']:
+            
     if checked<>NULL:
         sage_free(checked)
     return conjugates,conjugate_maps,Rmodpsl,Rmodpgl
@@ -539,40 +610,64 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',verbose=0):
     
     """
     cdef MyPermutation R1,R2,S1,S2,p,Sc,pp
-    cdef int t=0
-    if ret=='SL2Z':
-        Id = SL2Z([1,0,0,1])
-    else:
-        Id = MyPermutation(length=G1.index())
     if G1.signature()<>G2.signature():
-        return 0,SL2Z([1,0,0,1])
+        if ret=='SL2Z':
+            return 0,SL2Z([1,0,0,1])
+        else:
+            return 0, MyPermutation(length=G1.index())
     R1 = G1.permR; R2=G2.permR
     S1 = G1.permS; S2=G2.permS
+    return are_conjugate_pairs_of_perms((S1,R1),(S2,R2),ret,verbose)
+
+cpdef are_conjugate_pairs_of_perms(pair1,pair2,ret='SL2Z',verbose=0):
+
+    S1,R1 = pair1; S2,R2 = pair2
     ## First check if R1 and R2 are conjugate
     p = are_conjugate_perm(R1,R2)
     Sc = S1.conjugate(p)
     if verbose>0:
         print "p=",p.to_cycles()
         print "S^p=",Sc.to_cycles()
+    cdef int t=0
     pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,p,&t,verbose)
     if t == 0:
-        return 0,Id
+        if ret=='SL2Z':
+            return 0, SL2Z([1,0,0,1])
+        else:
+            return 0, MyPermutation(length=S1.N())
     pp = p*pp
     Sc = S1.conjugate(pp)
     if Sc<>S2:
         raise ArithmeticError,"Conjugation did not work!"
     if ret<>'SL2Z':
         return 1,pp
-#    G = PermutationGroup([G1.permS.list(),G1.permR.list()], canonicalize=False)
-#    gS,gR = G.gens()
-#    h = G(tuple(pp.to_cycles()))
-#    s =  h.word_problem([gS,gR], display=False)[0]
-    #G = gap(words[0].parent())
-    cdef int mu = R1.N()
+    if pp.is_identity():
+        return 1,SL2Z([1,0,0,1])
+    return 1,matrix_from_perm((S1,R1),pp,verbose)
+        
+
+cpdef matrix_from_perm(gens,p,verbose=0):
+    r"""
+    Express the permutation p as a word in S and R and translate into a matrix in SL(2,Z)
+    and try to find a representative modulo the subgroup given by the pair (S,R)
+    """
+    S,R = gens
+    cdef int mu = R.N()
     G = SymmetricGroup(mu)
-    g = G(pp.list())
-    H = gap.Group([G(S1.list()),G(R1.list())])
-    s = H.EpimorphismFromFreeGroup().PreImagesRepresentative(g)
+    G1= MySubgroup(o2=S,o3=R)
+    g = G(p.list())
+    H = gap.Group([G(S.list()),G(R.list())])
+    if verbose>0:
+        print "gens=({0},{1})".format(S.to_cycles(),R.to_cycles())
+        print "G=",G
+        print "mu=",mu
+        print "p=",p
+        print "g=",g
+        print "H=",H
+    if g in H:
+        s = H.EpimorphismFromFreeGroup().PreImagesRepresentative(g)
+    else:
+        return None
     if verbose>0:
         print "s=",s
     s = str(s)
@@ -581,8 +676,8 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',verbose=0):
     for i in range(G1.generalised_level()):
         Ti = SL2Z([1,-i,0,1])
         if A*Ti in G1:
-            return 1,Ti
-    return 1,A 
+            return SL2Z([1,i,0,1])
+    return A 
 
 
 
@@ -1080,7 +1175,10 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
         l0 = copy(one_cycles)
         for p3 in perms3:
             l = copy(l0)
-            three_cycles = p3(cycles3) #permute_list(cycles[3],p3)
+            if cycles3<>[]:
+                three_cycles = p3(cycles3) #permute_list(cycles[3],p3)
+            else:
+                three_cycles=[]
             l.extend(three_cycles)
             perm = MyPermutation(l)
             ll = flatten_list2d(l)

@@ -187,7 +187,9 @@ cdef class MyPermutation(SageObject):
     #    return res
 
     cpdef str export_as_string(self,str sep=''):
-        
+        r"""
+        Export self as string.
+        """
         cdef str s=''
         cdef int base
         base=self._N+1
@@ -366,7 +368,21 @@ cdef class MyPermutation(SageObject):
 
     def __str__(self):
         if self._str=='':
-            self._str=self.export_as_string(sep='')
+            if self._rep==0:
+                res = self.export_as_string(sep='') #str(self.list())
+            elif self._rep==1:
+                res = str(self.list())
+            elif self._rep==2:
+                res = str(self.to_cycles())
+            elif self._rep==3:
+                res = str(self.to_cycles())
+                res=res.replace("], [",")(")
+                res=res.replace("[[","(")
+                res=res.replace("]]",")")
+                res=res.replace(",","")
+            else:
+                raise NotImplementedError
+            self._str = res
         return self._str
             
         #return repr(self)
@@ -378,29 +394,18 @@ cdef class MyPermutation(SageObject):
         self._entries = NULL
 
     def set_rep(self,rep=0):
+        if rep<>self._rep:
+            self._str = ''
         self._rep=rep
 
+    def get_rep(self):
+        return self._rep
+        
     def __repr__(self):
-        cdef int n,x,m,nmax
-        cdef char *tmp,*s,*t
-        if self._str<>'':
-            return self._str
-        if self._rep==0:
-            res = self.export_as_string(sep='') #str(self.list())
-        elif self._rep==1:
-            res = str(self.list())
-        elif self._rep==2:
-            res = str(self.to_cycles())
-        elif self._rep==3:
-            res = str(self.to_cycles())
-            res=res.replace("], [",")(")
-            res=res.replace("[[","(")
-            res=res.replace("]]",")")
-            res=res.replace(",","")
-        else:
-            raise NotImplementedError
-        self._str=res
-        return res
+        r"""
+        Represent self.
+        """
+        return str(self)
 
     def __latex__(self):
         r"""

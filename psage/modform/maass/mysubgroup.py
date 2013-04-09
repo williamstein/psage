@@ -73,14 +73,15 @@ from copy import deepcopy
 from psage.modform.maass.mysubgroups_alg import * 
 from psage.modform.maass.permutation_alg import MyPermutation 
 #from psage.modform.maass.permutation_alg import MyPermutation,MyPermutationIterator
-from plot_dom import draw_funddom_d,draw_funddom
+from plot_dom import draw_funddom_d,draw_funddom,my_hyperbolic_triangle
 from psage.modform.maass.permutation_alg import are_transitive_permutations,num_fixed
 from psage.modform.maass.sl2z_subgroups_alg import are_mod1_equivalent
 
 from sage.plot.all import Graphics
+from sage.plot.circle import circle
 from sage.plot.colors import to_mpl_color
 from sage.plot.misc import options, rename_keyword
-from sage.plot.all import hyperbolic_arc, hyperbolic_triangle, text
+#from sage.plot.all import hyperbolic_arc, hyperbolic_triangle, text
 
 import types
 import warnings
@@ -341,14 +342,42 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: GG == G
             True
         """
-        try:
-            pR=G.permR
-            pS=G.permS
-            if(pR==self.permR and pS==self.permS):
-                return True
-        except:
-            pass
-        return False
+        ## Perform some fast tests first
+        if not isinstance(G,ArithmeticSubgroup):
+            return False
+        if G.index() <> self.index():
+            return False
+        if G.generalised_level() <> self.generalised_level():
+            return False
+        return super(MySubgroup_class,self).__eq__(G)
+        # if not isinstance(G,MySubgroup_class):
+        #     S=G.as_permutation_group().S2()
+        #     R=G.as_permutation_group().S3()
+        #     t,p= are_mod1_equivalent(self.permR,self.permS,R,S)  
+        # else:
+        #     t,p= are_mod1_equivalent(self.permR,self.permS,G.permR,G.permS)
+        # if t==1:
+        #     return True
+        # return False
+        #return self.is_subgroup(G) and G.is_subgroup(self)
+
+    def relabel(self,inplace=True):
+        r"""
+        Use the canonical relabeling of the superclass.
+        """
+        if inplace==False:
+            G = MySubgroup(o2=self._permS,o3=self._permR)
+            super(MySubgroup_class,G).relabel(inplace=True)
+            permS=MyPermutation(G.S2().list())
+            permR=MyPermutation(G.S3().list())
+            return MySubgroup(o2=permS,o3=permR)
+        super(MySubgroup_class,self).relabel(inplace=True)
+        self.permS=MyPermutation([x+1 for x in self._S2])
+        self.permR=MyPermutation([x+1 for x in self._S3])
+        ## Relabel the rest as well
+        self.permT = self.permS*self.permR
+        self.permP = self.permT*self.permS*self.permT
+        
 
     def init_group_from_permutations(self,o2,o3):
         r"""
@@ -379,7 +408,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
         self._is_congruence = super(MySubgroup_class,self).is_congruence()
         if self._is_congruence==True:
-            print "Adding level!"
+            #print "Adding level!"
 #            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
             self.level = types.MethodType(level,self,MySubgroup_class)
         self.get_data_from_group()       
@@ -907,9 +936,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         cl=list()
         S=SL2Z_elt(0,-1,1,0)
         T=SL2Z_elt(1,1,0,1)
-        if not self._level:
-            self._level=self._G.level()
-        lvl=self._level #12 #G.generalised_level()
+        lvl=self.level()
         cl.append(SL2Z_elt(1 ,0 ,0 ,1 ))
         if self._index==1:
             return cl
@@ -1453,15 +1480,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         l=self.coset_reps()
         li=list()
         n=len(l)
-        G=self._G
         ps=range(1 ,self._index+1 )
         pr=range(1 ,self._index+1 )
         S=SL2Z_elt(0,-1,1,0); T=SL2Z_elt(1,1,0,1)
         R=SL2Z_elt(0,-1,1,1)
         #S,T=SL2Z.gens()
         #R=S*T
-        if self.is_Gamma0():
-            level=G.level()
+        level=self.level()
         if isinstance(l[0],SL2Z_elt):
             for i in range(n):
                 li.append(l[i].inverse())
@@ -1701,76 +1726,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
 
-    # def gens(self):
-    #     r""" Generators of self
 
-
-    #     EXAMPLES::
-
-
-    #         sage: G=MySubgroup(Gamma0(5));
-    #         sage: G.gens()
-    #         ([1 1]
-    #         [0 1], [-1  0]
-    #         [ 0 -1], [ 1 -1]
-    #         [ 0  1], [1 0]
-    #         [5 1], [1 1]
-    #         [0 1], [-2 -1]
-    #         [ 5  2], [-3 -1]
-    #         [10  3], [-1  0]
-    #         [ 5 -1], [ 1  0]
-    #         [-5  1])
-    #         sage: G3=MySubgroup(o2=Permutations(3)([1,2,3]),o3=Permutations(3)([2,3,1]))
-    #         sage: G3.gens()
-    #         ([1 3]
-    #         [0 1], [ 0 -1]
-    #         [ 1  0], [ 1 -2]
-    #         [ 1 -1], [ 2 -5]
-    #         [ 1 -2])
-    #     """        
-    #     # do some reductions from the generators
-    #     if self._gens:
-    #         return self._gens
-    #     gens = self._G.gens()
-    #     newgens=[]
-    #     for i in range(len(gens)):
-    #         l = list(gens[i])
-    #         newgens.append(SL2Z_elt(l[0],l[1],l[2],l[3]))
-    #     if self._verbose>1:
-    #         print "original gens=",newgens
-    #     m1=SL2Z_elt(-1,0,0,-1)
-    #     for x in gens:
-    #         l = list(gens[i])
-    #         x = SL2Z_elt(l[0],l[1],l[2],l[3])
-    #         if x not in newgens:
-    #             continue
-    #         if self._verbose>1:
-    #             print "x:",x
-    #         t=m1*x
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove -x:",m1*x
-    #             newgens.remove(t)
-    #         t=x.inverse() #**-1
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove x**-1:",t
-    #             newgens.remove(t) #**-1)
-    #         t=t*m1
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove -x**-1:",t #m1*x**-1                
-    #             newgens.remove(t)            
-    #     # also remove duplicate
-    #     gens=newgens
-    #     for x in gens:
-    #         if gens.count(x)>1:
-    #             newgens.remove(x)
-    #     if self._verbose>1:        
-    #         print "type(gens[0])=",type(newgens[0])
-    #         print "newgens=",newgens
-    #     self._gens=newgens
-    #     return newgens
 
 
 
@@ -1943,7 +1899,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     ### Overloaded operators
     def __contains__(self,A):
         r"""
-        Is A an element of self (this is an ineffective implementation if self._G is a permutation group)
+        Is A an element of self (this is an ineffective implementation if self is a permutation group)
 
         EXAMPLES::
         
@@ -2152,41 +2108,41 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return c
             
     
-    def cusp_equivalent_to(self,cusp):
-        r"""
-        Find a cusp in self._cusps which is equivalent to cusp
-        and returns the cusp, a map which maps the given point to the cusp 
+    # def cusp_equivalent_to(self,cusp):
+    #     r"""
+    #     Find a cusp in self._cusps which is equivalent to cusp
+    #     and returns the cusp, a map which maps the given point to the cusp 
 
         
-        """
-        p=None;q=None
-        if isinstance(cusp,tuple):
-            p=cusp[0];q=cusp[1]
-        else:
-            try:
-                cusp=Cusp(cusp)
-                p=cusp.numerator(); q=cusp.denominator()
-            except:
-                raise TypeError,"Could not coerce {0} to a cusp!".format(cusp)
+    #     """
+    #     p=None;q=None
+    #     if isinstance(cusp,tuple):
+    #         p=cusp[0];q=cusp[1]
+    #     else:
+    #         try:
+    #             cusp=Cusp(cusp)
+    #             p=cusp.numerator(); q=cusp.denominator()
+    #         except:
+    #             raise TypeError,"Could not coerce {0} to a cusp!".format(cusp)
                 
-        if (p,q) in self._cusps:
-            one = SL2Z_elt(int(1),int(0),int(0),int(1))
-            return (p,q),one,one
-        #print "p,q=",p,q,type(p),type(q)
-        w = lift_to_sl2z(q, p, 0 )
-        V = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])
-        permv=self.permutation_action(V)
-        for i in range(self._ncusps):
-            W = self._cusp_data[i]['normalizer']
-            permw=self.permutation_action(W)
-            testi=(permw**-1)(1)
-            for k in range(0,self._index):
-                test=(permv*self.permT**k)(testi)
-                if test==1:  ## v = C w with C = V*T**k*W**-1
-                    Tk = SL2Z_elt(1,k,0,1)
-                    mapping=V*Tk*W.inverse()
-                    return (p,q),mapping,W
-        raise ArithmeticError, "Could not find equivalent cusp!"
+    #     if (p,q) in self._cusps:
+    #         one = SL2Z_elt(int(1),int(0),int(0),int(1))
+    #         return (p,q),one,one
+    #     #print "p,q=",p,q,type(p),type(q)
+    #     w = lift_to_sl2z(q, p, 0 )
+    #     V = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])
+    #     permv=self.permutation_action(V)
+    #     for i in range(self._ncusps):
+    #         W = self._cusp_data[i]['normalizer']
+    #         permw=self.permutation_action(W)
+    #         testi=(permw**-1)(1)
+    #         for k in range(0,self._index):
+    #             test=(permv*self.permT**k)(testi)
+    #             if test==1:  ## v = C w with C = V*T**k*W**-1
+    #                 Tk = SL2Z_elt(1,k,0,1)
+    #                 mapping=V*Tk*W.inverse()
+    #                 return (p,q),mapping,W
+    #     raise ArithmeticError, "Could not find equivalent cusp!"
 
     def cusp_normalizer(self,cusp):
         r"""
@@ -2268,9 +2224,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
         """
-        if self._is_congruence:
+        if self.is_congruence():
             l=self.level()
-            if(self._G == Gamma0(l)):
+            if self.is_Gamma0():
                 return RR(sqrt(3.0))/RR(2*l)
         # For all other groups we have have to locate the largest width
         maxw=0
@@ -2306,33 +2262,53 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.draw_fundamental_domain()
 
         """
-        if options['method']=='Farey':
+        if options['method']=='Farey' and options['model']=='H':
+            options.pop('model'); options.pop('method');
             return self.farey_symbol().fundamental_domain(**options)
-        elif options['show_pairing']:
+        if options['show_pairing'] and not options['method']=='Farey':
             raise NotImplementedError,"Pairings are only implemented for Farey symbols."
         from sage.plot.colors import rainbow
         L = 1000
-        if options['model']=="D":
-            g=draw_funddom_d(self.coset_reps(),format,I)
+        if options['method']=='Farey':
+            coset_reps = map(lambda x: SL2Z_elt(x[0,0],x[0,1],x[1,0],x[1,1]), self.farey_symbol().coset_reps())
+        else:
+            coset_reps = self.coset_reps()
+        model = options['model']
+        if model=="D2":
+            g=draw_funddom_d(coset_reps,format,I)
         else:
             g = Graphics()
             A0 = CC(-0.5,sqrt(3.)/2)
             B0 = CC(0.5,sqrt(3.)/2)
             C0 = CC(0,L)
-            for x in self.coset_reps():
+            for x in coset_reps:
                 a, b, c, d = x[3], -x[1], -x[2], x[0]
                 A,B = [x.acton(z) for z in [A0,B0]]
                 if c<>0:
                     C = CC(a/c,0)
                 else:
                     C = CC( (A.real()+B.real())*0.5,L)
-                g += hyperbolic_triangle(A, B, C, \
+                g += my_hyperbolic_triangle(A, B, C, \
                                              color=options['rgbcolor'], \
                                              fill=options['fill'], \
-                                             alpha=options['alpha'])
+                                             alpha=options['alpha'], \
+                                             model=model)
+                
                 if options['show_tesselation']:
-                    g += hyperbolic_triangle(A, B, C, color="gray")
-        # if axes<>None:
+                    g += my_hyperbolic_triangle(A, B, C, color="gray",
+                                               model=model)
+        d = g.get_minmax_data()
+        if model=='H':
+            g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
+            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
+        else:
+            g+=circle((0,0),1)
+            g.set_axes_range(-1, 1, -1, 1)    
+
+            
+
+
+      # if axes<>None:
         #     [x0,x1,y0,y1]=axes
         # elif model=="D":
         #     x0=-1 ; x1=1 ; y0=-1 ; y1=1 
@@ -2360,8 +2336,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         #     fig.savefig(filename,**kwds)
         # else:
 
-        d = g.get_minmax_data()
-        g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))    
         return g
 
 
@@ -2538,11 +2512,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             elif W==0:  ## Check if this cusp is equivalent to another
                 do_cont=0
                 for pp,qq in cusps:
-                    A=self._G.are_equivalent(Cusp(pp,qq),Cusp(v),True)
+                    t,A=Cusp(pp,qq).is_gamma0_equiv(Cusp(v),1,transformation='matrix')
                     if self._verbose>0:
                         print "are eq:",Cusp(pp,qq),Cusp(v)
                         print "A=",A
-                    if A:
+                    if t==1 and A in self:
                         a,b,c,d=A
                         cii=cusps.index((pp,qq))
                         vertex_data[j]['cusp']=cii
@@ -2912,79 +2886,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         return self._nu3
     
 
-    # def gens(self):
-    #     r""" Generators of self
-
-
-    #     EXAMPLES::
-
-
-    #         sage: G=MySubgroup(Gamma0(5));
-    #         sage: G.gens()
-    #         ([1 1]
-    #         [0 1], [-1  0]
-    #         [ 0 -1], [ 1 -1]
-    #         [ 0  1], [1 0]
-    #         [5 1], [1 1]
-    #         [0 1], [-2 -1]
-    #         [ 5  2], [-3 -1]
-    #         [10  3], [-1  0]
-    #         [ 5 -1], [ 1  0]
-    #         [-5  1])
-    #         sage: G3=MySubgroup(o2=Permutations(3)([1,2,3]),o3=Permutations(3)([2,3,1]))
-    #         sage: G3.gens()
-    #         ([1 3]
-    #         [0 1], [ 0 -1]
-    #         [ 1  0], [ 1 -2]
-    #         [ 1 -1], [ 2 -5]
-    #         [ 1 -2])
-
-    #     """
-    #     # do some reductions from the generators
-    #     if self._gens:
-    #         return self._gens
-    #     #gens = self._G.gens()
-    #     newgens=[]; gens=[]
-    #     for A in self._G.gens():
-    #         gens.append([A[0,0],A[0,1],A[1,0],A[1,1]])
-    #         newgens.append([A[0,0],A[0,1],A[1,0],A[1,1]])
-    #     #newgens=list(gens)
-    #     if self._verbose>1:
-    #         print "original gens=",newgens
-    #     #m1=[-1,0,0,-1]
-    #     for x in gens:
-    #         if x not in newgens:
-    #             continue
-    #         if self._verbose>1:
-    #             print "x:",x
-    #         t=[-x[0],-x[1],-x[2],-x[3]]  #mul_list_maps(m1,x)
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove -x:",t
-    #             newgens.remove(t)
-    #         t = [x[3],-x[1],-x[2],x[0]]
-    #         #t=x**-1
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove x**-1:",t #x**-1
-    #             newgens.remove(t)
-    #         t=[-x[3],x[1],x[2],-x[0]]  #t*m1
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove -x**-1:",t #m1*x**-1                
-    #             newgens.remove(t) #m1*x**-1)            
-    #     # also remove duplicate
-    #     gens=newgens
-    #     for x in gens:
-    #         if gens.count(x)>1:
-    #             newgens.remove(x)
-    #     if self._verbose>1:        
-    #         print "newgens=",newgens
-    #     self._gens=newgens
-    #     #for t in newgens:
-    #     #    self._gens.append(SL2Z(t)) #=newgens
-    #     return self._gens
-
 
 
     def as_named_group(self):
@@ -3067,7 +2968,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         which is, if possible, an Atkin-Lehner involution.
         """
 
-        if not self._is_Gamma0:
+        if not self.is_Gamma0():
             return 0,0,0,0,0
         Id = SL2Z_elt(1,0,0,1)
         if q==0:
@@ -3078,7 +2979,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if p==0:
             WQ=SL2Z_elt(0,-1,1,0)
             A =Id 
-            l = self._level
+            l = self.level()
             return (WQ,A,p,q,l)
         N = self._level
         if self._verbose>0:
@@ -3151,7 +3052,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                 print "qq%N=",(qq%N)
                             l=0 # self._G.cusp_width(c2)
                     else:
-                        l=self._G.cusp_width(c2)
+                        l=self.cusp_width(c2)
                     ## Return a non-normalizer (but maybe twisted) map W
                     if pp==1:
                         W=SL2Z_elt(1,0,int(qq),1)

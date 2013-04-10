@@ -377,8 +377,25 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         ## Relabel the rest as well
         self.permT = self.permS*self.permR
         self.permP = self.permT*self.permS*self.permT
+        ## Finally we have to make sure that the coset representatives have the same order
+        ## The simplest way to do this is simply to reset the lists.
+        self._coset_reps_v0 = None
+        self._coset_reps_v1 = None
+        # if self._coset_reps_v0<>None or self._coset_reps_v1<>None:
+        #     reps_values = [self.permutation_action(x)(1) for x in self.coset_reps()]
+        #     reps_indices= [reps_values.index(x+1) for x in range(self.index())]
+        #     if self._coset_reps_v0<>None:
+        #         reps = []
+        #         for i in range(self.index()):
+        #             reps.append(self._coset_reps_v0[reps_indices[i]])
+        #         self._coset_reps_v0 = reps
+        #     if self._coset_reps_v1<>None:
+        #         reps = []
+        #         for i in range(self.index()):
+        #             reps.append(self._coset_reps_v1[reps_indices[i]])
+        #         self._coset_reps_v1 = reps
+                
         
-
     def init_group_from_permutations(self,o2,o3):
         r"""
         Initialize the group using the two permutations of order 2 and 3.
@@ -1102,7 +1119,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Return the permutation corresponding to coset-representative nr. j
         """
         if not self._coset_rep_perms.has_key(j):
-            perm = self.permutation_action(self._coset_reps[j])
+            perm = self.permutation_action(self.coset_reps()[j])
             self._coset_rep_perms[j]=perm
         return self._coset_rep_perms[j]
 
@@ -1112,7 +1129,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Return the permutation corresponding to coset-representative nr. j
         """
         if not self._coset_rep_strings.has_key(j):
-            s = self.element_as_string(self._coset_reps[j])
+            s = self.element_as_string(self.coset_reps()[j])
             self._coset_rep_strings[j]=s
         return self._coset_rep_strings[j]
 
@@ -1448,7 +1465,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         """
         if version==0:
-            if self._coset_reps_v1==None:
+            if self._coset_reps_v0==None:
                 self._coset_reps_v0 = self._get_coset_reps_from_perms(self.permS,self.permR)
             return self._coset_reps_v0
         elif version==1:
@@ -1564,11 +1581,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if isinstance(A,SL2Z_elt):
             for V in (self.coset_reps()):
-                if( (A*V.inverse() ) in self):
+                if  A*V.inverse() in self:
                     return V
         else:
-            for V in (self._coset_reps):
-                if( (A*V**-1 ) in self):
+            for V in (self.coset_reps()):
+                if  V*A**-1  in self:
                     return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
@@ -2685,7 +2702,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
     # # Now to public routines
 
-    def coset_rep(self,A):
+    def coset_representative(self,A):
         r"""
         Indata: A in PSL(2,Z) 
         Returns the coset representative of A in
@@ -2710,8 +2727,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         
         """
-        for V in (self._coset_reps):
-            if( (A*V**-1 ) in self):
+        for V in (self.coset_reps()):
+            if  V*A**-1 in self:
                 return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
@@ -3535,66 +3552,66 @@ class HeckeTriangleGroup(SageObject):
 #         return [cf,sgn]
 
 
-def nearest_integer_continued_fraction(x,nmax=None):
-    r""" Nearest integer continued fraction of x
-    where x is a rational number, and at n digits
+# def nearest_integer_continued_fraction(x,nmax=None):
+#     r""" Nearest integer continued fraction of x
+#     where x is a rational number, and at n digits
 
-    EXAMPLES::
+#     EXAMPLES::
 
-        sage: nearest_integer_continued_fraction(0.5)
-        [1, 2]
-        nearest_integer_continued_fraction(pi.n(100),nmax=10)
-        [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
+#         sage: nearest_integer_continued_fraction(0.5)
+#         [1, 2]
+#         nearest_integer_continued_fraction(pi.n(100),nmax=10)
+#         [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
 
-    """
-    if(nmax == None):
-        if(x in QQ):
-            nmax=10000 
-        else:
-            nmax=100  # For non-rational numbrs  we don't want so many convergents
-    jj=0 
-    cf=list()
-    n=nearest_integer(x)
-    cf.append(n)
-    if(x in QQ):
-        x1=Rational(x-n)
-        while jj<nmax and x1<>0  :
-            n=nearest_integer(-1 /x1)
-            x1=Rational(-1 /x1-n)
-            cf.append(n)
-            jj=jj+1 
-        return cf
-    else:
-        try:
-            RF=x.parent()
-            x1=RF(x-n)
-            while jj<nmax and x1<>0  :
-                n=nearest_integer(RF(-1 )/x1)
-                x1=RF(-1 )/x1-RF(n)
-                cf.append(n)
-                jj=jj+1 
-            return cf
-        except AttributeError:
-            raise ValueError,"Could not determine type of input x=%s" %x
+#     """
+#     if(nmax == None):
+#         if(x in QQ):
+#             nmax=10000 
+#         else:
+#             nmax=100  # For non-rational numbrs  we don't want so many convergents
+#     jj=0 
+#     cf=list()
+#     n=nearest_integer(x)
+#     cf.append(n)
+#     if(x in QQ):
+#         x1=Rational(x-n)
+#         while jj<nmax and x1<>0  :
+#             n=nearest_integer(-1 /x1)
+#             x1=Rational(-1 /x1-n)
+#             cf.append(n)
+#             jj=jj+1 
+#         return cf
+#     else:
+#         try:
+#             RF=x.parent()
+#             x1=RF(x-n)
+#             while jj<nmax and x1<>0  :
+#                 n=nearest_integer(RF(-1 )/x1)
+#                 x1=RF(-1 )/x1-RF(n)
+#                 cf.append(n)
+#                 jj=jj+1 
+#             return cf
+#         except AttributeError:
+#             raise ValueError,"Could not determine type of input x=%s" %x
 
-def nearest_integer(x):
-    r""" Returns the nearest integer to x: [x]
-    using the convention that 
-    [1/2]=0 and [-1/2]=0
+# def nearest_integer(x):
+#     r""" Returns the nearest integer to x: [x]
+#     using the convention that 
+#     [1/2]=0 and [-1/2]=0
 
 
-    EXAMPLES::
+#     EXAMPLES::
 
-        sage: nearest_integer(0)
-        0
-        sage: nearest_integer(0.5)
-        1
-        sage: nearest_integer(-0.5)
-        0
-        sage: nearest_integer(-0.500001)
-        -1
-    """
-    return floor(x+ 0.5)
+#         sage: nearest_integer(0)
+#         0
+#         sage: nearest_integer(0.5)
+#         1
+#         sage: nearest_integer(-0.5)
+#         0
+#         sage: nearest_integer(-0.500001)
+#         -1
+#     """
+#     return floor(x+ 0.5)
 
 
 def _get_perms_from_str(st):

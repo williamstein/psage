@@ -605,21 +605,27 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
 
 
 
-cpdef are_conjugate_groups(G1,G2,ret='SL2Z',verbose=0):
+cpdef are_conjugate_groups(G1,G2,ret='SL2Z',coset_rep=1,check=0,verbose=0):
     r"""
-    
+    Determine whether G1 and G2 are conjugate in PSL(2,Z) and return either a permutation or a matrix A in SLZ which performs the conjugation, i.e. A^-1 G1 A = G2. 
     """
     cdef MyPermutation R1,R2,S1,S2,p,Sc,pp
+    cdef int t
     if G1.signature()<>G2.signature():
         if ret=='SL2Z':
             return 0,SL2Z([1,0,0,1])
         else:
             return 0, MyPermutation(length=G1.index())
     R1 = G1.permR; R2=G2.permR
-    S1 = G1.permS; S2=G2.permS
-    return are_conjugate_pairs_of_perms((S1,R1),(S2,R2),ret,verbose)
+    S1 = G1.permS; S2=G2.permS    
+    t,pp = are_conjugate_pairs_of_perms((S1,R1),(S2,R2),ret='perm',verbose=verbose)
+    A = G1.coset_reps()[pp(1)-1]
+    return t,A
 
 cpdef are_conjugate_pairs_of_perms(pair1,pair2,ret='SL2Z',verbose=0):
+    r"""
+    
+    """
 
     S1,R1 = pair1; S2,R2 = pair2
     ## First check if R1 and R2 are conjugate
@@ -643,13 +649,15 @@ cpdef are_conjugate_pairs_of_perms(pair1,pair2,ret='SL2Z',verbose=0):
         return 1,pp
     if pp.is_identity():
         return 1,SL2Z([1,0,0,1])
-    return 1,matrix_from_perm((S1,R1),pp,verbose)
-        
+#    return 1,matrix_from_perm((S1,R1),pp,verbose)
+    A = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1].SL2Z()
+    return 1,A
+    
 
 cpdef matrix_from_perm(gens,p,verbose=0):
     r"""
-    Express the permutation p as a word in S and R and translate into a matrix in SL(2,Z)
-    and try to find a representative modulo the subgroup given by the pair (S,R)
+    If possible express the permutation p as a word in gens[0]=S and gens[1]=R and translate into a matrix in SL(2,Z).
+    If desired we also find a representative modulo the subgroup given by the pair (S,R).
     """
     S,R = gens
     cdef int mu = R.N()

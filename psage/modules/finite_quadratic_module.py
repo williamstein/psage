@@ -2724,7 +2724,14 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         """
         return self.__hnf_gens[i]
 
+    def gens(self):
+        r"""
+        Return a tuple of generators for self.
+        """
+        return tuple([ self.gen(i) for i in range(self.ngens())])
 
+
+    
     def ambience( self):
         r"""
         Return the ambient finite quadratic module.

@@ -378,13 +378,15 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     conjugates,conjugate_maps,Rmodpsl,Rmodpgl=filter_list_mod_S(list_of_R,mu,e2,e3,Sp,verbose)
     sig_off()
 #    lc_psl,lc_psl_maps,list_of_R=filter_list_mod_psl_mod_S_new(list_of_R,mu,e2,e3,Sp,verbose)
+    ## in the list of PGL-conjugates we want to only have representatives
+    ## of classes modulo PSL
     if verbose>=0:    
         print "List of conjugacy classes mod PGL(2,Z):" 
-        for i in range(len(conjugates.keys())):
-            R =conjugates.keys()[i]
-            t = conjugates[R]['psl']
-            if t<>[]:
-                print t
+        for R in Rmodpgl:
+            if conjugates.has_key(R):
+                t = conjugates[R]['psl']
+                if t<>[]:
+                    print t
     ## We finally want to add a list of reflected groups
     reflections={}
     for R in Rmodpsl:
@@ -406,7 +408,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 t,A = are_conjugate_pairs_of_perms((Sp,Rs),(Sp,Rtest))
                 if t==1:
                     reflections[R]={'group':Rtest,'map':A}
-        if reflections[R]<>{}:
+        if reflections[R]=={}:
             for Rtest in Rmodpsl:
                 t,A = are_conjugate_pairs_of_perms((Sp,Rs),(Sp,Rtest))
                 if t==1:
@@ -598,7 +600,20 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                             conjugate_maps[listRin[j]]['pgl'].append(pi)
     #if R in conjugates.keys():
     #    for R1 in conjugates[R]['psl']:
-            
+    ## in the list of PGL-conjugates we want to only have representatives
+    ## of classes modulo PSL. Observe that prevsiously we have basically only checked
+    ## conjugation modulo PGL / PSL = <J>
+    for R in Rmodpgl:
+        if R not in Rmodpsl:
+            Rmodpgl.remove(R)
+    for R in conjugate_maps.keys():
+        testlist = copy(conjugates[R]['pgl'])
+        for R1 in testlist:
+            if R1 not in Rmodpsl:
+                i = conjugates[R]['pgl'].index(R1)
+                conjugates[R]['pgl'].remove(R1)
+                conjugate_maps[R]['pgl'].pop(i)
+                
     if checked<>NULL:
         sage_free(checked)
     return conjugates,conjugate_maps,Rmodpsl,Rmodpgl

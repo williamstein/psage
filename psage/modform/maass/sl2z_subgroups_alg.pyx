@@ -47,9 +47,10 @@ from sage.groups.perm_gps.permgroup_named import SymmetricGroup
 from sage.combinat.combinat import tuples
 from sage.all import SL2Z
 from sage.interfaces.all import gap
-  
 
-cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1):
+from time import clock, time
+
+cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     correcponsing to groups G with signature = sig
@@ -360,10 +361,17 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     # Therefore we now filter away the identical groups in PSL(2,Z), i.e. mod 1
     cdef list list_of_R_tmp=[]
     cdef int nlr = len(list_of_R)
+    if verbose>=0:
+        start = time()
+
     if len(list_of_R)>1:
-        list_of_R_tmp=filter_list_mod_1_mod_S(list_of_R,mu,e2,Sp,verbose)
+        if do_new==1:
+            list_of_R_tmp=filter_list_mod_1_mod_S_new(list_of_R,mu,e2,Sp,verbose)
+        else:
+            list_of_R_tmp=filter_list_mod_1_mod_S(list_of_R,mu,e2,Sp,verbose)
         list_of_R=list_of_R_tmp
     if verbose>=0:    
+        print "Time for first filter= ",time()-start
         print "Preliminary list of DIFFERENT subgroups in PSL(2,Z):" #,map(lambda x:S(x),list_of_R)
         print "(Note: these may or may not be PSL or PGL conjugate)"
         for i from 0 <= i < len(list_of_R):
@@ -374,6 +382,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef dict lc_psl,lc_pgl,lc_psl_maps,lc_pgl_maps
     lc_psl=dict()      # list of conjugates
     lc_psl_maps=dict() # maps between conjugates
+    if verbose>=0:
+        start = time()
     sig_on()
     conjugates,conjugate_maps,Rmodpsl,Rmodpgl=filter_list_mod_S(list_of_R,mu,e2,e3,Sp,verbose)
     sig_off()
@@ -381,6 +391,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     ## in the list of PGL-conjugates we want to only have representatives
     ## of classes modulo PSL
     if verbose>=0:    
+        print "Time for second filter= ",time()-start
         print "List of conjugacy classes mod PGL(2,Z):" 
         for R in Rmodpgl:
             if conjugates.has_key(R):
@@ -637,9 +648,10 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',coset_rep=1,check=0,verbose=0):
     A = G1.coset_reps()[pp(1)-1]
     return t,A
 
-cpdef are_conjugate_pairs_of_perms(pair1,pair2,ret='SL2Z',verbose=0):
+cpdef are_conjugate_pairs_of_perms(pair1,pair2,ret='SL2Z',fix_one=0,verbose=0):
     r"""
-    
+
+    fix_one = 1 if we want a permutation which fixes 1
     """
 
     S1,R1 = pair1; S2,R2 = pair2
@@ -649,8 +661,12 @@ cpdef are_conjugate_pairs_of_perms(pair1,pair2,ret='SL2Z',verbose=0):
     if verbose>0:
         print "p=",p.to_cycles()
         print "S^p=",Sc.to_cycles()
-    cdef int t=0
-    pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,p,&t,verbose)
+    cdef int j,t=0
+    if fix_one==1:
+        j = p.inverse()(1)
+        pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,p,&t,j,verbose)
+    else:
+        pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,p,&t,verbose)
     if t == 0:
         if ret=='SL2Z':
             return 0, SL2Z([1,0,0,1])
@@ -812,6 +828,51 @@ cpdef list filter_list_mod_1_mod_S(list listRin, int mu, int e2,MyPermutation S,
     return listRout
 
 
+
+cpdef list filter_list_mod_1_mod_S_new(list listRin, int mu, int e2,MyPermutation S,int verbose=0):
+    r"""
+    Removes duplicates in listR modulo permutations which keeps S invariant and fixes 1.
+    """
+    ## We iterate over possible sets of fixed points.
+    cdef MyPermutation Spc,r,Rpc,p,R,R1
+    cdef MyPermutationIterator PONEI
+    cdef int ir,irx,nrin,nrout
+    cdef int i,j,nineq
+    cdef list thisset,fixptsets,listRout
+    cdef int *checked
+    cdef int res
+    cdef int* pres=NULL
+    nrin = len(listRin)
+    listRout = []
+    checked = <int*>sage_malloc(sizeof(int)*nrin)
+    pres = <int*>sage_malloc(sizeof(int)*mu)
+    for i in range(nrin):
+        checked[i]=0
+    nineq = 0
+    for i in range(nrin):
+        if checked[i]==1:
+            continue
+        R = listRin[i]
+        for j in range(i+1,nrin):
+            if checked[j]==1:
+                continue
+            R1 = listRin[j]
+            #are_mod1_equivalent_c(mu,S,R,S,R1,&res,pres,verbose)
+            t,pp = are_conjugate_pairs_of_perms((S,R),(S,R1),fix_one=1,verbose=verbose)
+            if t==1:
+                if verbose>0:
+                    print "conjugating map:",pp
+                    print "Remove ",R1
+                checked[j]=1
+                continue
+        listRout.append(R)
+    if pres<>NULL:
+        sage_free(pres)
+    if checked<>NULL:
+        sage_free(checked)
+    return listRout
+
+
 cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,verbose=0):
     cdef MyPermutation p
     cdef int* pres=NULL
@@ -845,6 +906,8 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
     cdef int fixS,fixR
     epp = NULL
     rpp=NULL
+    for i in range(N):
+        pres[i]=i
     #pres = MyPermutation(length=N)._entries
     res[0]=1
     if _are_eq_vec(N,S1._entries,S2._entries) and _are_eq_vec(N,R1._entries,R2._entries):
@@ -1125,7 +1188,7 @@ cpdef stabiliser_of_R_StoSp(MyPermutation pR,MyPermutation pS,MyPermutation pS1,
 
    
 #cpdef are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermutation pS1,MyPermutation p_in,MyPermutation p_out,int* t,int verbose=0):
-cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermutation pS1,MyPermutation p_in,int* t,int verbose=0):
+cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermutation pS1,MyPermutation p_in,int* t,int map_one_to=0,int verbose=0):
     r"""
     Return a the list of permutations which preserves pR and maps pS to pS1 under conjugation.
     """
@@ -1248,6 +1311,9 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
                 #             print "Fails at preserving non-fixed points!"
                 #         break                
                 if do_cont==1:
+                    continue
+                # If we are here we may have a conjugating map
+                if map_one_to>0 and pp(1)<>map_one_to:
                     continue
                 pScon = pS.conjugate(pp)
                 if verbose>0:

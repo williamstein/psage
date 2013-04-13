@@ -2864,47 +2864,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     #raise ArithmeticError, "Could not compute generalised level of %s" %(self)
 
 
-    def genus(self):
-        r""" Genus of self
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._genus
-
-    def nu2(self):
-        r""" Number of elliptic fixed points of order 2 of self.
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._nu2
-
-    def nu3(self):
-        r""" Number of elliptic fixed points of order 3 of self.
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._nu3
-    
-
-
-
     def as_named_group(self):
         r"""
         Identify self as a group of type Gamma0, Gamma1 or Gamma
@@ -3697,7 +3656,7 @@ def level(cls):
 ### Algorithms which deal with lists of groups
 
 
-def get_list_of_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
+def list_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
     r"""
     Returns a list of all signatures , i.e.tuples:
     (index,h,e2,e3,g)
@@ -3706,7 +3665,7 @@ def get_list_of_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
       e2 = number of order 2 elliptic points
       e2 = number of order 3 elliptic points
       g   = genus
-    of subgroups of PSL(2,Z) of gien index
+    of subgroups of PSL(2,Z) of the given index.
 
     INPUT:
     

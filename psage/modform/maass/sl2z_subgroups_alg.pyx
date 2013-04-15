@@ -759,14 +759,20 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         print "Original list of R="
         for i from 0 <= i < len(list_of_R):
             print perm_to_cycle(list_of_R[i])
-    # Then add conjugates mod PSL(2,Z) to get all groups before filtering.
+    # Then add all conjugates mod PSL(2,Z) to get all groups before filtering.
+    # For uniformity we conjugate so that if 1 is not fixed then S(1)=2
     cdef list list_of_groups=[]
     for R in list_of_R:
         list_of_groups.append((Sp,R))
-        for j in range(2,mu):
+        for j in range(2,mu+1):
             Rp = copy(R); Spc = copy(Sp)
+            print "R,S=",Rp,Spc
             Rp.conjugate_with_transposition(1,j)
             Spc.conjugate_with_transposition(1,j)
+            print "R,S^(1j)=",Rp,Spc
+            Rp.conjugate_with_transposition(2,Spc(1))
+            Spc.conjugate_with_transposition(2,Spc(1))
+            print "R,S^(2j)=",Rp,Spc
             if (Spc,Rp) not in list_of_groups:
                 list_of_groups.append((Spc,Rp))
     list_of_groups.sort(cmp=sort_perms2)
@@ -790,12 +796,12 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         print "Time for first filter= ",time()-start
         print "Preliminary list of DIFFERENT subgroups in PSL(2,Z):" #,map(lambda x:S(x),list_of_R)
         print "(Note: these may or may not be PSL or PGL conjugate)"
-        for i from 0 <= i < len(list_of_groups):
-            print list_of_groups[i]
+        #for i from 0 <= i < len(list_of_groups):
+        #    print list_of_groups[i]
         for i from 0 <= i < len(list_of_groups):            
             Sp = list_of_groups[i][0]
             R = list_of_groups[i][1]
-            print "S=",Sp.to_cycles(),R.to_cycles()
+            print "S,R=",Sp.to_cycles(),R.to_cycles()
     indicator_list=range(1,len(list_of_R)+1)
     list_of_R_tmp=[]
     cdef dict lc_psl,lc_pgl,lc_psl_maps,lc_pgl_maps
@@ -1050,7 +1056,7 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
     return conjugates,conjugate_maps,Rmodpsl,Rmodpgl
 
 
-cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_verbose=0,int do_pgl=0):
+cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi_verbose=0,int do_pgl=0):
     r""" Removes duplicates in listR modulo permutations of the form (1j) which keeps S invariant.
 
     The purpose of this step is to reduce the list we later have to check completely.
@@ -1179,30 +1185,253 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
     ### We want to choose a representative with S in canonical form.
     Gmodpsl_tmp = copy(Gmodpsl)
     for S,R in Gmodpsl:
-        if S.num_fixed()>0 and S(1)<>1:
+        if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2:
             i = Gmodpsl_tmp.index((S,R))
-            for S1,R1 in conjugates[(S,R)]['pgl']:
-                if S1.num_fixed()>0 and S1(1)==1:
+            print "Checking PSL:",S,R
+            for S1,R1 in conjugates[(S,R)]['psl']:
+                if (S1.num_fixed()>0 and S1(1)==1) or S1(1)==2:
                     Gmodpsl_tmp[i]=(S1,R1)
+                    print "S1,R1 is ok:",S1,R1
+                else:
+                    print "S1 not ok:",S1
+                if S1(1)==1:  # this is the best option
                     break
+            if Gmodpsl_tmp[i]==(S,R):
+                print "Could not find appropriate PSL representative for {0}".format((S,R))
     Gmodpsl = Gmodpsl_tmp    
     Gmodpgl_tmp = copy(Gmodpgl)
+    cdef list conj_temp
     for S,R in Gmodpgl:
-        if (S.num_fixed()>0 and S(1)<>1) or (S,R) not in Gmodpsl:
+        if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2 or (S,R) not in Gmodpsl:
             i = Gmodpgl_tmp.index((S,R))
-            for S1,R1 in conjugates[(S,R)]['pgl']:
-                if (S1.num_fixed()==0 or S1(1)==1) and (S1,R1) in Gmodpsl:
+            print "Checking PGL:",S,R
+            conj_tmp = conjugates[(S,R)]['pgl']
+            conj_tmp.extend(conjugates[(S,R)]['psl'])
+            for S1,R1 in conj_tmp:
+                if S1(1) in [1,2] and (S1,R1) in Gmodpsl:
                     Gmodpgl_tmp[i]=(S1,R1)
+                    print "S1,R1 is ok:",S1,R1
+                else:
+                    print "S1 not ok:",S1
+                if S1(1)==1:
                     break
+            if Gmodpgl_tmp[i]==(S,R):
+                print "Could not find appropriate PGL representative for {0}".format((S,R))
     Gmodpgl = Gmodpgl_tmp
-    for grp in conjugate_maps.keys():        
-        testlist = copy(conjugates[grp]['pgl'])
-        for grp1 in testlist:
-            if grp1 not in Gmodpsl:
-                i = conjugates[grp]['pgl'].index(grp1)
-                conjugates[grp]['pgl'].remove(grp1)
-                conjugate_maps[grp]['pgl'].pop(i)
-                
+    
+    # for grp in conjugate_maps.keys():        
+    #     testlist = copy(conjugates[grp]['pgl'])
+    #     print "testlist=",testlist
+    #     for grp1 in testlist:
+    #         if grp1 not in Gmodpsl:
+    #             i = conjugates[grp]['pgl'].index(grp1)
+    #             print "grp=",grp
+    #             print "remove grp1=",grp1
+    #             print "i=",i
+    #             conjugates[grp]['pgl'].remove(grp1)
+    #             conjugate_maps[grp]['pgl'].pop(i)
+    #             print "new list=",conjugates[grp]
+    #             print "new list=",conjugate_maps[grp]
+    if checked<>NULL:
+        sage_free(checked)
+    return conjugates,conjugate_maps,Gmodpsl,Gmodpgl
+
+
+
+cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_verbose=0,int do_pgl=0):
+    r""" Removes duplicates in listR modulo permutations of the form (1j) which keeps S invariant.
+
+    The purpose of this step is to reduce the list we later have to check completely.
+    If do_pgl = 1 we reduce modulo PGL(2,Z)/PSL(2,Z) instead, i.e. we check R ~ ER^2E 
+    """
+    cdef list Gmodpsl=[],Gmodpgl=[]
+    cdef dict conjugates={},conjugate_maps={}
+    cdef MyPermutation R,S,R1,Sc,Rpsl,Rpgl,Scp,pp,pi
+    cdef int numr = len(listGin)
+    cdef int* checked=NULL
+    cdef int t=0
+    cdef list Gmodpsl_tmp 
+    pp = MyPermutation(length=mu,rep=0)
+    checked = <int*>sage_malloc(numr*sizeof(int))
+    for i in range(numr):
+        checked[i]=0
+    if verbose>=0:
+        print "Groups in:",len(listGin)
+    for i in range(0,numr):
+        S,R = listGin[i]
+    ## First sort the list into PSL(2,Z) conjugacy classes
+    for i in range(0,numr):
+        S,R = listGin[i]
+        if verbose>0:
+            print "Test R[{0}]={1}".format(i,R)
+        # checked[i] = 0 if R[i] is not (yet) found to be a conjugate
+        # checked[i] = 1 if R[i] is conjugate mod PSL.
+        if checked[i]==1:
+            continue
+        Gmodpsl.append((S,R))
+        conjugates[(S,R)]={'psl':[(S,R)],'pgl':[]}
+        conjugate_maps[(S,R)]={'psl':[pp],'pgl':[]}
+
+        for j in range(i,numr):
+            if checked[j]==1:
+                continue
+            Sc,Rpsl = listGin[j]
+            p = are_conjugate_perm(R,Rpsl)
+            if p==0:
+                print " {0} and {1} are not conjugate!".format(R.to_cycles(),Rpsl.to_cycles())
+            if verbose>0:
+                print "------------------------------------------------------------------"
+                print "Comp PSL R[{0}]={1}".format(j,Rpsl)
+                print "p=",p #.to_cycles()
+            Scp = S.conjugate(p)
+            if verbose>0:
+                print "R=",R.to_cycles()
+                print "S=",S.to_cycles()
+                print "S^p=",Scp.to_cycles()
+            pp=are_conjugate_wrt_stabiliser(Rpsl,Scp,Sc,p,&t)
+            if t==1:
+                if verbose>0:                    
+                    print "p=",p.to_cycles()
+                    print "pp=",pp.to_cycles()
+                pp = p*pp
+                Scp = S.conjugate(pp)
+                if verbose>0:                    
+                    print "pp*p=",pp.to_cycles()
+                    print "S^pp=",Sc.to_cycles()
+                Rcp = R.conjugate(pp)
+                if Rcp<>Rpsl or Scp<>Sc:
+                    raise ArithmeticError,"Error with PSL-conjugating map!"
+                if listGin[j] not in conjugates[(S,R)]['psl']:
+                    conjugates[(S,R)]['psl'].append(listGin[j])
+                    pp.set_rep(0)
+                    conjugate_maps[(S,R)]['psl'].append(pp)
+                    checked[j]=1
+    ## We now have a list with PSL(2,Z) representatives and their conjugacy classes.
+    ## We now have to find out which conjugacy classes merge when considered modulo PGL instead
+    ## First, however, we change to a representative of canonical form.
+    Gmodpsl_tmp = copy(Gmodpsl)
+    cdef dict tmp_dict
+    for S,R in Gmodpsl:
+        if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2:
+            i = Gmodpsl_tmp.index((S,R))
+            #print "Checking PSL:",S,R
+            for S1,R1 in conjugates[(S,R)]['psl']:
+                if (S1.num_fixed()>0 and S1(1)==1) or S1(1)==2:
+                    Gmodpsl_tmp[i]=(S1,R1)
+                    #print "S1,R1 is ok:",S1,R1
+                #else:
+                #    print "S1 not ok:",S1
+                if S1(1)==1:  # this is the best option
+                    break
+            if Gmodpsl_tmp[i]==(S,R):
+                if verbose>=0:
+                    print "Could not find appropriate PSL representative for {0}".format((S,R))
+            else:
+                conjugates[(S1,R1)] = conjugates.pop((S,R))
+                conjugate_maps[(S1,R1)] = conjugate_maps.pop((S,R))
+    Gmodpsl = Gmodpsl_tmp
+    #for S,R in Gmodpsl:
+    #    print "REP:",S,R
+    if checked<>NULL:
+        sage_free(checked)
+    numr = len(Gmodpsl)
+    checked = <int*>sage_malloc(numr*sizeof(int))
+    if checked==NULL: raise MemoryError
+    for i in range(numr):
+        checked[i]=0
+    for i in range(numr):
+        if checked[i]==1:
+            continue
+        S,R = Gmodpsl[i]
+        Gmodpgl.append((S,R))
+        Rpgl = R.square().conjugate(S)
+        if verbose>0:
+            print "------------------------------------------------------------------"
+            print "Comp PGL: ER^2R[{0}]={1}".format(i,Rpgl)
+        for j in range(i,numr):
+            if checked[j]==1:
+                continue
+            # Check PGL(2,Z)
+            S1,R1 = Gmodpsl[j]
+            p = are_conjugate_perm(Rpgl,R1)
+            Scp = S1.conjugate(p.inverse())
+            if verbose>1:
+                print "R=",R.to_cycles()
+                print "S=",S.to_cycles()
+                print "S^p=",Scp.to_cycles()
+                pp=are_conjugate_wrt_stabiliser(Rpgl,S,Scp,p,&t,1)
+            else:
+                pp=are_conjugate_wrt_stabiliser(Rpgl,S,Scp,p,&t)
+            if t==1:
+                pp = p*pp
+                if verbose>0:                    
+                    print "pp=",pp.to_cycles()
+                Scp = S.conjugate(pp)
+                Rcp= Rpgl.conjugate(pp)
+                if Rcp<>R1 or Scp<>S1:
+                    raise ArithmeticError,"Error with PGL-conjugating map!"
+                conjugates[(S,R)]['pgl'].append((S1,R1))
+                pp.set_rep(0)
+                conjugate_maps[(S,R)]['pgl'].append(pp)
+                checked[j]=1
+
+    #if R in conjugates.keys():
+    #    for R1 in conjugates[R]['psl']:
+    ## in the list of PGL-conjugates we want to only have representatives
+    ## of classes modulo PSL. Observe that prevsiously we have basically only checked
+    ## conjugation modulo PGL / PSL = <J>
+    # cdef tuple grp,grp1
+    # cdef list Gmodpgl_tmp,Gmodpsl_tmp
+    # ### We want to choose a representative with S in canonical form.
+    # Gmodpsl_tmp = copy(Gmodpsl)
+    # for S,R in Gmodpsl:
+    #     if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2:
+    #         i = Gmodpsl_tmp.index((S,R))
+    #         print "Checking PSL:",S,R
+    #         for S1,R1 in conjugates[(S,R)]['psl']:
+    #             if (S1.num_fixed()>0 and S1(1)==1) or S1(1)==2:
+    #                 Gmodpsl_tmp[i]=(S1,R1)
+    #                 print "S1,R1 is ok:",S1,R1
+    #             else:
+    #                 print "S1 not ok:",S1
+    #             if S1(1)==1:  # this is the best option
+    #                 break
+    #         if Gmodpsl_tmp[i]==(S,R):
+    #             print "Could not find appropriate PSL representative for {0}".format((S,R))
+    # Gmodpsl = Gmodpsl_tmp    
+    # Gmodpgl_tmp = copy(Gmodpgl)
+    # cdef list conj_temp
+    # for S,R in Gmodpgl:
+    #     if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2 or (S,R) not in Gmodpsl:
+    #         i = Gmodpgl_tmp.index((S,R))
+    #         print "Checking PGL:",S,R
+    #         conj_tmp = conjugates[(S,R)]['pgl']
+    #         conj_tmp.extend(conjugates[(S,R)]['psl'])
+    #         for S1,R1 in conj_tmp:
+    #             if S1(1) in [1,2] and (S1,R1) in Gmodpsl:
+    #                 Gmodpgl_tmp[i]=(S1,R1)
+    #                 print "S1,R1 is ok:",S1,R1
+    #             else:
+    #                 print "S1 not ok:",S1
+    #             if S1(1)==1:
+    #                 break
+    #         if Gmodpgl_tmp[i]==(S,R):
+    #             print "Could not find appropriate PGL representative for {0}".format((S,R))
+    # Gmodpgl = Gmodpgl_tmp
+    
+    # for grp in conjugate_maps.keys():        
+    #     testlist = copy(conjugates[grp]['pgl'])
+    #     print "testlist=",testlist
+    #     for grp1 in testlist:
+    #         if grp1 not in Gmodpsl:
+    #             i = conjugates[grp]['pgl'].index(grp1)
+    #             print "grp=",grp
+    #             print "remove grp1=",grp1
+    #             print "i=",i
+    #             conjugates[grp]['pgl'].remove(grp1)
+    #             conjugate_maps[grp]['pgl'].pop(i)
+    #             print "new list=",conjugates[grp]
+    #             print "new list=",conjugate_maps[grp]
     if checked<>NULL:
         sage_free(checked)
     return conjugates,conjugate_maps,Gmodpsl,Gmodpgl
@@ -1505,26 +1734,26 @@ cpdef list filter_list_of_pairs_mod_1_mod_S_new(list listGin, int mu,int verbose
     return listGout
 
 
-cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,verbose=0):
+cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,int verbose=0):
     cdef MyPermutation p
     cdef int* pres=NULL
-    cdef int res[0]
+    cdef int res
     cdef int N=R1._N
     assert S1._N==N and R2._N==N and S2._N==N
     pres = <int*>sage_malloc(sizeof(int)*N)
     p=MyPermutation(length=N)
-    are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,res,pres,verbose)
+    res = are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,pres,verbose)
     p.set_entries(pres)
     if verbose>0:
-        print "res=",res[0]
+        print "res=",res
         print "pres=",print_vec(N,pres)
         print "p=",p.to_cycles()
     if pres<>NULL:
         sage_free(pres)
-    return res[0],p
+    return res,p
 
 
-cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* res,int* pres,int verbose=0,check=1):
+cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* pres,int verbose=0,int check=0):
     r"""
     Check if S1 ~_1 S2 and R1 ~_1 R2 (i.e. equiv. mod 1)
 
@@ -1535,15 +1764,15 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
     cdef int i,j,ii,cont
     cdef MyPermutationIterator PONEI
     cdef int *epp, *rpp
-    cdef int fixS,fixR
+    cdef int fixS,fixR,res
     epp = NULL
     rpp=NULL
     for i in range(N):
         pres[i]=i
     #pres = MyPermutation(length=N)._entries
-    res[0]=1
+    res=1
     if _are_eq_vec(N,S1._entries,S2._entries) and _are_eq_vec(N,R1._entries,R2._entries):
-        return 
+        return res
         #return True,MyPermutation(range(1,N+1))
     # Then check if they are compatble at all:
     fixS=0; fixR=0
@@ -1552,7 +1781,7 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
         cl2=map(len,S2.to_cycles())
         cl1.sort(); cl2.sort()
         if cl1<>cl2:
-            res[0]=0
+            res=0
         else:
             if verbose>0:
                 #print "S1cyc=",S1.to_cycles()
@@ -1562,7 +1791,7 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
             cl2=map(len,R2.to_cycles())
             cl1.sort(); cl2.sort()
             if cl1<>cl2:
-                res[0]=0
+                res=0
             else:
                 if verbose>0:
                     #print "R2cyc=",R2.to_cycles()
@@ -1571,9 +1800,9 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
     else:
         fixS=S1.num_fixed_c()
         fixR=R1.num_fixed_c()
-    if res[0]==0:
-        return
-    res[0]=0
+    if res==0:
+        return res
+    res=0
     if verbose>0:
         print "testing G1:={0}:{1}".format(S1.to_cycles(),R1.to_cycles())
         print "testing G2:={0}:{1}".format(S2.to_cycles(),R2.to_cycles())
@@ -1581,7 +1810,7 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
     if not epp:  raise MemoryError
     rpp =  <int *> sage_malloc(sizeof(int)*N)
     if not rpp:  raise MemoryError
-    res[0] = 0
+    res = 0
     #pres = MyPermutation(length=N)
     cdef list thisset,fixptsets,listRout
     cdef list fixptsS1=S1.fixed_elements()
@@ -1640,23 +1869,23 @@ cdef are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation
             if p==p0:
                 print "rpp=",print_vec(N,rpp)
             if _are_eq_vec(N,rpp,R2._entries):
-                res[0] = 1
+                res = 1
                 for i in range(N):
                     pres[i]=p._entries[i]
                 break
-        if res[0]==1:
+        if res==1:
             break
         #PONEI._c_dealloc()
     #print "end pres cur=",pres
     #print "pres._entries=",printf("%p ",pres._entries)
     if verbose>0:
-        print "Are mod 1 equivalent:",res[0]
+        print "Are mod 1 equivalent:",res
         print "pres=",print_vec(N,pres)
     if epp<>NULL:
         sage_free(epp)
     if rpp<>NULL:
         sage_free(rpp)
-    #return res
+    return res
     sig_off()
     
 cpdef is_consistent_signature(int ix,int nc=0,int e2=0,int e3=0,int g=0):

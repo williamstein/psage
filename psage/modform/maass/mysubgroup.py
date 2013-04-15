@@ -2291,6 +2291,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             coset_reps = self.coset_reps()
         model = options['model']
+        verbose = options.get('verbose',0)
         if model=="D2":
             g=draw_funddom_d(coset_reps,format,I)
         else:
@@ -2299,12 +2300,15 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             B0 = CC(0.5,sqrt(3.)/2)
             C0 = CC(0,L)
             for x in coset_reps:
-                a, b, c, d = x[3], -x[1], -x[2], x[0]
+                #a, b, c, d = x[3], -x[1], -x[2], x[0]
                 A,B = [x.acton(z) for z in [A0,B0]]
-                if c<>0:
-                    C = CC(a/c,0)
+                if x[2]<>0:
+                    C = CC(x[0]/x[2],0)
                 else:
                     C = CC( (A.real()+B.real())*0.5,L)
+                if verbose>0:                    
+                    print "coset rep=",x
+                    print "Triangle: ({0},{1},{2})".format(A,B,C)
                 g += my_hyperbolic_triangle(A, B, C, \
                                              color=options['rgbcolor'], \
                                              fill=options['fill'], \

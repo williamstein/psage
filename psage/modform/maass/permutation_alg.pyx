@@ -96,8 +96,12 @@ cdef class MyPermutation(SageObject):
                 raise ValueError,"Invalid Input for permutation! entries: {0} and length:{1}".format(entries,length)           
         else:
             if isinstance(entries,str):
-                entries=self._cycles_from_str(entries)
-            elif hasattr(entries,list):
+                # if the string represents a list
+                if entries.count('[')==1 and entries.count(']')==1:
+                    entries=eval(entries)
+                else: ## Assume it is a string representation of cycles
+                    entries=self._cycles_from_str(entries)
+            if hasattr(entries,list):
                 entries=entries.list()
             elif not isinstance(entries,(list,tuple)):
                 raise ValueError,"Invalid Input for permutation!! entries: {0}".format(entries)           
@@ -152,8 +156,9 @@ cdef class MyPermutation(SageObject):
         s=s.replace("(","[")
         s=s.replace(")","]")
         s="["+s+"]"
-        cycles=eval(s)
-        return cycles
+        cycles=eval(s) # list of lists
+        self._cycles = cycles
+        return self._list_from_cycles(cycles)
 
     def _list_from_cycles(self,cycles):
         cdef int i,mu,mutmp

@@ -725,14 +725,15 @@ class WeilRepMultiplier(MultiplierSystem):
             self._weil_module = WeilModule(WR)
         elif hasattr(WR,"signature"):
             self._weil_module=WR
-
         else:
             raise ValueError,"{0} is not a Weil module!".format(WR)
         self._sym_type = 0
 
         if group.level() <>1:
             raise NotImplementedError,"Only Weil representations of SL2Z implemented!"
-        self._group = MySubgroup(1)
+        self._group = MySubgroup(Gamma0(1))
+        self._dual = int(dual)
+        self._sgn = (-1)**self._dual
         self.Qv=[]
         self._weight = weight
         self._use_symmetry = use_symmetry
@@ -770,7 +771,7 @@ class WeilRepMultiplier(MultiplierSystem):
             self._D = range(dim)
             self._sym_type=0
         if hasattr(self._weil_module,"finite_quadratic_module"):
-            for x in self._weil_module.finite_quadratic_module().list():
+            for x in list(self._weil_module.finite_quadratic_module()):
                 self.Qv.append(self._weil_module.finite_quadratic_module().Q(x))
         else:
             self.Qv=self._weil_module.Qv

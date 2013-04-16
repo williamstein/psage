@@ -47,21 +47,26 @@ from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
 from sage.modular.cusps import Cusp
 from sage.rings.infinity import infinity
+from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 from sage.matrix.matrix_integer_2x2 import Matrix_integer_2x2
 from sage.matrix.matrix_integer_2x2 import MatrixSpace_ZZ_2x2
 from sage.matrix.matrix_space import MatrixSpace
 from sage.rings.integer_ring cimport Integer
+from sage.rings.rational cimport Rational
+from sage.rings.rational_field import QQ
 from sage.all import RR,ZZ,SL2Z,matrix
 from copy import deepcopy
 from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
+#from sage.rings.rational.Rational import floor as qq_floor
 import cython
 cdef extern from "math.h":
     double fabs(double)
     double fmax(double,double)
     int ceil(double)
+    int floor(double)
     double M_LN10
     double log(double)
 
@@ -71,7 +76,14 @@ cdef extern from "stdio.h":
     #int sprintf (char *s, char* format, int value)
     int sprintf (char *s, char* format, ...)
 
+#cdef extern class sage.matrix.matrix_integer_dense.Matrix_integer_dense as Matrix_integer_dense_class#:
+#    pass
+#cdef extern class sage.matrix.matrix_integer_2x2.Matrix_integer_2x2 as Matrix_integer_2x2_class:
+#    pass
 
+
+
+    
 # We import these rather than the implementation since it is limited to n<12 
 from sage.combinat.permutation_cython cimport *
 
@@ -161,7 +173,7 @@ cdef class SL2Z_elt(object):
             raise NotImplementedError,"No ordering of SL2Z elements is implemented!"
         if op==3 and res==1:
             res=0
-        if op==3 and res==0:
+        elif op==3 and res==0:
             res=1
         return res
 
@@ -230,12 +242,19 @@ cdef class SL2Z_elt(object):
             return res
         
     cpdef inverse(self):
-        return                SL2Z_elt(self.ent[3],-self.ent[1],-self.ent[2],self.ent[0])
+        return SL2Z_elt(self.ent[3],-self.ent[1],-self.ent[2],self.ent[0])
                     
     def __mul__(self,other):
-        if not type(self)==type(other):
-            raise ValueError,"Can not multiply {0} with {1}".format(type(self),type(other))
-        return self._mul(other)
+        if isinstance(other,SL2Z_elt):
+            return self._mul(other)
+        #elif hasattr(other,'BKZ') and other.nrows()==2 and other.ncols()==0:
+        elif isinstance(other,Matrix_integer_dense) and other.nrows()==2 and other.ncols()==2 and other.det()==1:
+            return self._mul_mat_id(<Matrix_integer_dense?>other)
+        elif isinstance(other,Matrix_integer_2x2) and other.det()==1:
+        #elif hasattr(other,'nrows') and other.nrows()==2 and other.ncols()==2:
+            return self._mul_mat_i_2x2(<Matrix_integer_2x2?>other)
+        raise ValueError,"Can not multiply {0} with {1}".format(type(self),type(other))
+        
     
     cpdef _mul(self,SL2Z_elt other,int inv=0):
         r"""
@@ -251,6 +270,37 @@ cdef class SL2Z_elt(object):
             sage_free(resent)
         return res
 
+    cpdef _mul_mat_id(self,Matrix_integer_dense other,int inv=0):
+        r"""
+        inv=1 => A^-1*B
+        inv=2 => A*B^-1
+        """
+        cdef SL2Z_elt res
+        cdef int* resent=NULL
+        resent=<int*>sage_malloc(sizeof(int)*4)
+        if resent==NULL: raise MemoryError
+        self._mul_c_mpz(other._entries,resent,inv)
+        res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        if resent<>NULL:
+            sage_free(resent)
+        return res
+
+
+
+    cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=0):
+        r"""
+        inv=1 => A^-1*B
+        inv=2 => A*B^-1
+        """
+        cdef SL2Z_elt res
+        cdef int* resent=NULL
+        resent=<int*>sage_malloc(sizeof(int)*4)
+        if resent==NULL: raise MemoryError
+        self._mul_c_mpz(other._entries,resent,inv)
+        res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        if resent<>NULL:
+            sage_free(resent)
+        return res
 
     cdef _mul_c(self,int* other,int* res,int inv=0):
         if inv==0:
@@ -268,10 +318,30 @@ cdef class SL2Z_elt(object):
             res[1]=self.ent[3]*other[1]-self.ent[1]*other[3]
             res[2]=-self.ent[2]*other[0]+self.ent[0]*other[2]
             res[3]=-self.ent[2]*other[1]+self.ent[0]*other[3]
+
+    cdef _mul_c_mpz(self,mpz_t* other,int* res,int inv=0):
+       cdef int a,b,c,d
+       a = mpz_get_si(other[0]); b = mpz_get_si(other[1]);
+       c = mpz_get_si(other[2]); d = mpz_get_si(other[3]);
+       if inv==0:
+           res[0]=self.ent[0]*a+self.ent[1]*c
+           res[1]=self.ent[0]*b+self.ent[1]*d
+           res[2]=self.ent[2]*a+self.ent[3]*c
+           res[3]=self.ent[2]*b+self.ent[3]*d
+       elif inv==2:
+           res[0]=self.ent[0]*d-self.ent[1]*c
+           res[1]=-self.ent[0]*b+self.ent[1]*a
+           res[2]=self.ent[2]*d-self.ent[3]*c
+           res[3]=-self.ent[2]*b+self.ent[3]*a
+       elif inv==1:
+           res[0]=self.ent[3]*a-self.ent[1]*c
+           res[1]=self.ent[3]*b-self.ent[1]*d
+           res[2]=-self.ent[2]*a+self.ent[0]*c
+           res[3]=-self.ent[2]*b+self.ent[0]*d
             
 ## Factoring of matrix in SL2(Z) in S and T using continued fractions.
 
-cpdef factor_matrix_in_sl2z(A,B=None,C=None,D=None):
+cpdef factor_matrix_in_sl2z(A,B=None,C=None,D=None,int verbose=0):
     r"""
     Factor a matrix from SL2Z in S and T.
     INPUT:
@@ -293,6 +363,7 @@ cpdef factor_matrix_in_sl2z(A,B=None,C=None,D=None):
     if D<>None: # If we provide 4 arguments they should be integers. isinstance(A,tuple):
         if A*D-B*C<>1:
             raise ValueError,"Matrix does not have determinant 1!"
+        #test = abs(4*C**2+D**2)**
         return fast_sl2z_factor(A,B,C,D)
     else:
         if isinstance(A,(SL2Z_elt,list,tuple)):
@@ -303,7 +374,77 @@ cpdef factor_matrix_in_sl2z(A,B=None,C=None,D=None):
             raise ValueError,"Matrix does not have determinant 1!"
         return fast_sl2z_factor(a,b,c,d)
 
-cdef fast_sl2z_factor(int a,int b,int c,int d):
+
+cpdef factor_matrix_in_sl2z_ncf(A,B=None,C=None,D=None,int check=1,int verbose=0):
+    r"""
+    Factor a matrix from SL2Z in S and T.
+    INPUT:
+
+    - A -- 2x2 integer matrix with determinant 1 (Note: using SL2Z elements are much slower than using integer matrices)
+
+    OUTPUT:
+    - l -- list of the form l=[z,n,[a_1,...,a_n]] if A=z T^n ST^{a_1}\cdots ST^{a_n}.
+
+    EXAMPLES::
+
+    sage: A=SL2Z([-28,-5,-67,-12])
+    sage: factor_matrix_in_sl2z(A)
+    [1, 0, [-2, 2, -2, -6, 0]]
+    
+
+    """
+    cdef int a,b,c,d
+    if D<>None: # If we provide 4 arguments they should be integers. isinstance(A,tuple):
+        a,b,c,d=A,B,C,D
+    elif isinstance(A,(SL2Z_elt,list,tuple)):
+        a,b,c,d=A
+    else:
+        a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
+    if a*d-b*c<>1:
+        raise ValueError,"Matrix does not have determinant 1!"
+        #test = abs(4*C**2+D**2)**
+    if c==0:
+        if a==1:
+            return [0,b,[]] # T^b
+        else:
+            return [-1,b,[]] # -T^b
+    elif d==0:
+        if c==1:
+            return [1,a,[0]]
+        else:
+            return [-1,-a,[0]]
+    if verbose>0:
+        print "a/c=",Rational(a)/Rational(c)
+    nc = nearest_integer_continued_fraction(Rational(a)/Rational(c),verbose=verbose-1)
+    if verbose>0:
+        print "nc=",nc
+    trans = nc[0]
+    cdef SL2Z_elt AA,BB
+    AA = ncf_to_SL2Z_element(nc)
+    BB = AA.inverse()*SL2Z_elt(a,b,c,d) # = +-ST^n= SL2Z([0,-1,1,n])
+    #if B.b()<>0:
+    if verbose>0:
+        print "A=",AA
+        print "B=",BB
+    # Get sign
+    if AA[1]==a:
+        sgn = 1
+    elif AA[1]==-a:
+        sgn = -1
+    else:
+        raise ArithmeticError,"Could not factor A=[{0},{1},{2},{3}]. Got cf={4}".format(a,b,c,d,nc) 
+    if check==1:
+        AA = AA*SL2Z_elt(0,-sgn,sgn,sgn*BB.d())
+        if not AA==SL2Z_elt(a,b,c,d):
+            AA = AA*SL2Z_elt(0,-sgn,sgn,sgn*BB.d())
+            raise ArithmeticError,"Could not factor A=[{0},{1},{2},{3}]. Got B={4} and cf={5}".format(a,b,c,d,AA,nc)   
+    nc.append(sgn*BB.d())
+    nc.remove(trans)
+    return [sgn,trans,nc]
+
+
+    
+cdef fast_sl2z_factor(int a,int b,int c,int d,int verbose=0):
     r"""
     Factor a matrix in S and T.
     INPUT:
@@ -368,8 +509,7 @@ cpdef ncf_to_SL2Z_element(l):
         [ -411557987 -1068966896]
         [ -131002976  -340262731]
         sage: factor_matrix_in_sl2z_in_S_and_T(A)
-        [[3, -7, 16, 294, 3, 4, 5, 15, -2, 2, 3], -1]
-        
+        [[3, -7, 16, 294, 3, 4, 5, 15, -2, 2, 3], -1]        
     """
     cdef int j
     cdef SL2Z_elt A
@@ -1429,4 +1569,156 @@ cdef int closest_vertex_dp_c(int nv,int **vertex_maps,double *widths,double* x,d
 ##                 return True
 ##         gotten0=deepcopy(gotten)
 ##     return False
+
+
+cpdef nearest_integer_continued_fraction(x,int nmax=0,int verbose=0):
+    r""" Nearest integer continued fraction of x
+    where x is a rational number, and at n digits
+
+    EXAMPLES::
+
+        sage: nearest_integer_continued_fraction(0.5)
+        [1, 2]
+        nearest_integer_continued_fraction(pi.n(100),nmax=10)
+        [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
+
+    """
+    if isinstance(x,float):
+        return nearest_integer_continued_fraction_dble(<double>x,nmax)
+    elif isinstance(x,RealNumber):
+        return nearest_integer_continued_fraction_real(<RealNumber>x,nmax)
+    if nmax <= 0:
+        nmax=100000    
+    cdef int jj=0 
+    cdef list cf=list()
+    cdef int n
+    cdef Rational x0,x1,zero
+    n=nearest_integer(x)
+    cf.append(n)
+    x1=Rational(x-n)
+    zero=Rational(0)
+    if verbose>0:
+        print "x=",x1
+        print "nmax=",nmax
+    for jj in range(nmax): #while jj<nmax and x1<>0:
+        x0 = -x1**-1
+        n=nearest_integer(x0)
+        if verbose>0:
+            print "x0=",x0
+            print "n=",n
+        x1=x0 - n
+        if verbose>0:
+            print "x1=",x1
+        cf.append(n)
+        if x1==0:
+            break        
+        #jj=jj+1
+        
+    return cf
+
+
+@cython.cdivision(True) 
+cpdef nearest_integer_continued_fraction_dble(double x,int nmax=0):
+    r""" Nearest integer continued fraction of x
+    where x is a rational number, and at n digits
+
+    EXAMPLES::
+
+        sage: nearest_integer_continued_fraction(0.5)
+        [1, 2]
+        nearest_integer_continued_fraction(pi.n(100),nmax=10)
+        [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
+
+    """
+    if nmax <= 0:
+        nmax=100  # For non-rational numbrs  we don't want so many convergents
+    cdef int jj=0 
+    cdef list cf=[]
+    cdef int n
+    cdef double minus_one = <double>-1
+    cdef double x0,x1
+    cdef double eps = 2.0**-45
+    n=nearest_integer_dble(x)
+    cf.append(n)
+    x1=<double>x-n
+    while jj<nmax and abs(x1)>eps:
+        x0 = minus_one/x1
+        n=nearest_integer_dble(x0)
+        x1=x0-<double>n
+        cf.append(n)
+        jj=jj+1 
+    return cf
+
+cpdef nearest_integer_continued_fraction_real(RealNumber x,int nmax=0):
+    r""" Nearest integer continued fraction of x
+    where x is a rational number, and at n digits
+
+    EXAMPLES::
+
+        sage: nearest_integer_continued_fraction(0.5)
+        [1, 2]
+        nearest_integer_continued_fraction(pi.n(100),nmax=10)
+        [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
+
+    """
+    if nmax <= 0:
+        nmax=100  # For non-rational numbrs  we don't want so many convergents
+    cdef int jj=0 
+    cdef list cf=[]
+    cdef Integer n
+    cdef RealNumber x0,x1,eps
+    RF = x.parent()
+    eps = RF(2.0)**(8-RF.prec())
+    n=nearest_integer_real(x)
+    cf.append(n)
+    x1=RF(x-n)
+    x0 = RF(0)
+    while jj<nmax and abs(x1)>eps:
+        x0 = -x1**-1
+        n=nearest_integer_real(x0)
+        x1=x0-n
+        cf.append(n)
+        jj=jj+1 
+    return cf
+
+cpdef nearest_integer_real(RealNumber x):
+    return (x+x.parent()(0.5)).floor()
+
+cpdef nearest_integer(Rational x):
+    r""" Returns the nearest integer to x: [x]
+    using the convention that 
+    [1/2]=0 and [-1/2]=0
+
+
+    EXAMPLES::
+
+        sage: nearest_integer(0)
+        0
+        sage: nearest_integer(0.5)
+        1
+        sage: nearest_integer(-0.5)
+        0
+        sage: nearest_integer(-0.500001)
+        -1
+    """
+    return (x+Rational(1)/Rational(2)).floor()
+
+cpdef nearest_integer_dble(double x):
+    r""" Returns the nearest integer to x: [x]
+    using the convention that 
+    [1/2]=0 and [-1/2]=0
+
+
+    EXAMPLES::
+
+        sage: nearest_integer(0)
+        0
+        sage: nearest_integer(0.5)
+        1
+        sage: nearest_integer(-0.5)
+        0
+        sage: nearest_integer(-0.500001)
+        -1
+    """
+    return floor(x+<double>0.5)
 

@@ -96,8 +96,12 @@ cdef class MyPermutation(SageObject):
                 raise ValueError,"Invalid Input for permutation! entries: {0} and length:{1}".format(entries,length)           
         else:
             if isinstance(entries,str):
-                entries=self._cycles_from_str(entries)
-            elif hasattr(entries,list):
+                # if the string represents a list
+                if entries.count('[')==1 and entries.count(']')==1:
+                    entries=eval(entries)
+                else: ## Assume it is a string representation of cycles
+                    entries=self._cycles_from_str(entries)
+            if hasattr(entries,list):
                 entries=entries.list()
             elif not isinstance(entries,(list,tuple)):
                 raise ValueError,"Invalid Input for permutation!! entries: {0}".format(entries)           
@@ -152,8 +156,9 @@ cdef class MyPermutation(SageObject):
         s=s.replace("(","[")
         s=s.replace(")","]")
         s="["+s+"]"
-        cycles=eval(s)
-        return cycles
+        cycles=eval(s) # list of lists
+        self._cycles = cycles
+        return self._list_from_cycles(cycles)
 
     def _list_from_cycles(self,cycles):
         cdef int i,mu,mutmp
@@ -187,7 +192,9 @@ cdef class MyPermutation(SageObject):
     #    return res
 
     cpdef str export_as_string(self,str sep=''):
-        
+        r"""
+        Export self as string.
+        """
         cdef str s=''
         cdef int base
         base=self._N+1
@@ -307,7 +314,14 @@ cdef class MyPermutation(SageObject):
         
     def __call__(self,i):
         if isinstance(i,(int,Integer)) and 1 <= i and i<= self._N:
-            return self[i-1]
+            return self._entries[i-1]
+        elif isinstance(i,(tuple,list)) and len(i)==self._N:
+            res = [0 for j in range(len(i))]
+            for j in range(len(i)):        
+                res[j]=i[self._entries[j]-1]
+            if isinstance(i,tuple):
+                return tuple(res)
+            return res
         else:
             raise NotImplementedError,"Can not apply permutation to {0}".format(i)
 
@@ -315,13 +329,7 @@ cdef class MyPermutation(SageObject):
         """
         EXAMPLES::
         
-            sage: c = CombinatorialObject([1,2,3])
-            sage: c[0]
-            1
-            sage: c[1:]
-            [2, 3]
-            sage: type(_)
-            <type 'list'>
+
         """
         if isinstance(i,(int,Integer)) and i>=0 and i<self._N and self._entries<>NULL:
             return self._entries[i] 
@@ -365,7 +373,21 @@ cdef class MyPermutation(SageObject):
 
     def __str__(self):
         if self._str=='':
-            self._str=self.export_as_string(sep='')
+            if self._rep==0:
+                res = self.export_as_string(sep='') #str(self.list())
+            elif self._rep==1:
+                res = str(self.list())
+            elif self._rep==2:
+                res = str(self.to_cycles())
+            elif self._rep==3:
+                res = str(self.to_cycles())
+                res=res.replace("], [",")(")
+                res=res.replace("[[","(")
+                res=res.replace("]]",")")
+                res=res.replace(",","")
+            else:
+                raise NotImplementedError
+            self._str = res
         return self._str
             
         #return repr(self)
@@ -377,29 +399,18 @@ cdef class MyPermutation(SageObject):
         self._entries = NULL
 
     def set_rep(self,rep=0):
+        if rep<>self._rep:
+            self._str = ''
         self._rep=rep
 
+    def get_rep(self):
+        return self._rep
+        
     def __repr__(self):
-        cdef int n,x,m,nmax
-        cdef char *tmp,*s,*t
-        if self._str<>'':
-            return self._str
-        if self._rep==0:
-            res = self.export_as_string(sep='') #str(self.list())
-        elif self._rep==1:
-            res = str(self.list())
-        elif self._rep==2:
-            res = str(self.to_cycles())
-        elif self._rep==3:
-            res = str(self.to_cycles())
-            res=res.replace("], [",")(")
-            res=res.replace("[[","(")
-            res=res.replace("]]",")")
-            res=res.replace(",","")
-        else:
-            raise NotImplementedError
-        self._str=res
-        return res
+        r"""
+        Represent self.
+        """
+        return str(self)
 
     def __latex__(self):
         r"""
@@ -441,15 +452,10 @@ cdef class MyPermutation(SageObject):
         return 1
     
     def is_identity(self):
-        if self._order==-1:
-            for i in range(self._N):
-                if self._entries[i]<>i:
-                    is_id = 0
-                    break
-        if is_id==0:
-            self._order = 1
-            return False
-        return True
+        r"""
+        Test if self is the identity
+        """
+        return self.order()==1
     
     cpdef _get_order(self):
         return self._order
@@ -587,6 +593,9 @@ cdef class MyPermutation(SageObject):
         return res
     
     cdef int num_fixed_c(self):
+        r"""
+        The number of elementes which are fixed by self.
+        """
         cdef int i,res
         res=0
         for i from 0<=i<self._N:
@@ -595,19 +604,35 @@ cdef class MyPermutation(SageObject):
         return res
 
     cpdef num_fixed(self):
+        r"""
+        The number of elementes which are fixed by self.
+        """
         return self.num_fixed_c()
 
     cpdef fixed_elements(self):
+        r"""
+        The elements fixed by self.
+        """
         cdef int i
         cdef list res=[]
-        for i from 0 <= i < self._N:
+        for i in range(self._N):
             if self._entries[i]==i+1:
                 res.append(i+1)
         return res
 
-
+    cpdef non_fixed_elements(self):
+        r"""
+        The elements not fixed by self.
+        """
+        cdef int i
+        cdef list res=[]
+        for i in range(self._N):
+            if self._entries[i]<>i+1:
+                res.append(i+1)
+        return res
+    
     def __mul__(self,other):
-        if isinstance(other,MySubgroup):
+        if isinstance(other,MyPermutation):
             return MyPermutation._mult_perm(self,other)            
         elif isinstance(other,list):
             return MyPermutation._mult_list(self,other)

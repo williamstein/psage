@@ -63,6 +63,8 @@ from sage.modular.modsym.p1list import lift_to_sl2z
 from sage.functions.other import ceil,floor,sqrt
 from sage.all import matrix,SageObject,numerator,denominator,copy,log_b,is_odd
 from sage.modular.arithgroup import congroup_gamma0
+from sage.modular.arithgroup.arithgroup_generic import ArithmeticSubgroup
+from sage.modular.arithgroup.arithgroup_perm import EvenArithmeticSubgroup_Permutation
 from sage.modular.arithgroup.congroup_gamma0 import Gamma0_class
 from sage.rings.integer import is_Integer
 from sage.groups.all import SymmetricGroup
@@ -71,23 +73,17 @@ from copy import deepcopy
 from psage.modform.maass.mysubgroups_alg import * 
 from psage.modform.maass.permutation_alg import MyPermutation 
 #from psage.modform.maass.permutation_alg import MyPermutation,MyPermutationIterator
-from plot_dom import draw_funddom_d,draw_funddom
+from plot_dom import draw_funddom_d,draw_funddom,my_hyperbolic_triangle
 from psage.modform.maass.permutation_alg import are_transitive_permutations,num_fixed
 from psage.modform.maass.sl2z_subgroups_alg import are_mod1_equivalent
-## _sage_const_3 = Integer(3); _sage_const_2 = Integer(2);
-## _sage_const_1 = Integer(1); _sage_const_0 = Integer(0);
-## _sage_const_6 = Integer(6); _sage_const_4 = Integer(4);
-## _sage_const_100 = Integer(100);
-## _sage_const_1En12 = RealNumber('1E-12');
-## _sage_const_201 = Integer(201); _sage_const_1p0 = RealNumber('1.0');
-## _sage_const_1p5 = RealNumber('1.5'); _sage_const_0p0 = RealNumber('0.0');
-## _sage_const_2p0 = RealNumber('2.0'); _sage_const_0p2 = RealNumber('0.2');
-## _sage_const_0p5 = RealNumber('0.5'); _sage_const_1000 = Integer(1000);
-## _sage_const_10000 = Integer(10000); _sage_const_1En10 = RealNumber('1E-10');
-## _sage_const_20 = Integer(20); _sage_const_3p0 = RealNumber('3.0')
 
+from sage.plot.all import Graphics
+from sage.plot.circle import circle
+from sage.plot.colors import to_mpl_color
+from sage.plot.misc import options, rename_keyword
+#from sage.plot.all import hyperbolic_arc, hyperbolic_triangle, text
 
-
+import types
 import warnings
 import sys,os
 import matplotlib.patches as patches
@@ -97,8 +93,35 @@ from sage.modular.arithgroup.arithgroup_perm import *
 #from subgroups_alg import *
 #load "/home/stromberg/sage/subgroups/subgroups_alg.spyx"
 
+def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},**kwds):
+    r"""
+    Create an instance of MySubgroup_class.
+    """
+    s2 = None; s3=None
+    if isinstance(A,ArithmeticSubgroup):
+        s2 = MyPermutation(A.as_permutation_group().S2().list())
+        s3 = MyPermutation(A.as_permutation_group().S3().list())
+    elif A<>None and B<>None:
+        if isinstance(A,MyPermutation) and isinstance(B,MyPermutation):
+            s2 = A; s3 = B
+        else:
+            try:
+                s2 = MyPermutation(A)
+                s3 = MyPermutation(B)
+            except ValueError as ve:
+                raise ValueError,"Can not construct permutations! {0}".format(ve)
+    else:
+        s2 = kwds.get("o2",None)
+        s3 = kwds.get("o3",None)
+    if s2==None or s3==None:
+        s2 = kwds.get("s2",None)
+        s3 = kwds.get("s3",None)
+    if s2==None or s3==None:
+        raise ValueError,"Could not construct subgroup from input!"
+    return MySubgroup_class(o2=s2,o3=s3)
 
-class MySubgroup (ArithmeticSubgroup):
+
+class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     r"""
     A class for subgroups of the modular group SL(2,Z).
     Extends the standard classes with methods needed for Maass waveforms.
@@ -122,7 +145,7 @@ class MySubgroup (ArithmeticSubgroup):
     
     
     """
-    def __init__(self,G=None,o2=None,o3=None,str=None,verbose=0,version=0,display_format='short',data={}):
+    def __init__(self,o2=None,o3=None,verbose=0,display_format='short',data={},**kwds):
         r""" Init a subgroup in the following forms: 
           1. G = Arithmetic subgroup
           2. (o2,o3) = pair of transitive permutations of order 2 and
@@ -173,7 +196,6 @@ class MySubgroup (ArithmeticSubgroup):
           
         """
         self._verbose = verbose
-        self._version = version
         self._display_format = display_format
         if self._verbose>1:
             print "g=",G
@@ -186,45 +208,203 @@ class MySubgroup (ArithmeticSubgroup):
         self._coset_rep_perms={}
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
+        self._generators_as_slz_elts=[]
         self._is_symmetric=None
+        self.permT=None; self.permP=None
+        self._verbose=verbose
         if data<>{}:
             self.init_group_from_dict(data)
+        elif o2<>None and o3<>None:
+            self.init_group_from_permutations(o2,o3)
         else:
-            self._str = str
-            self.permT=None; self.permP=None
-            self._verbose=verbose
-            if str<>None:
-                try:
-                    G=sage_eval(str)
-                except:
-                    try:
-                        [o2,o3]=self._get_perms_from_str(str)
-                    except:
-                        raise ValueError,"Incorrect string as input to constructor! Got s=%s" %(str)
-            if isinstance(G,(int,Integer)):
-                G = Gamma0(G).as_permutation_group()
-                self._is_Gamma0=True
-            if hasattr(G,"index"):
-                if not hasattr(G,"permutation_action"):
-                    G = G.as_permutation_group()
-                self.init_group_from_subgroup(G)
-            elif o2<>None and o3<>None:
-                self.init_group_from_permutations(o2,o3)
-            else:
-                raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(G,o2,o3)
+            raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)
                 
         self._uid = self._get_uid()
         self.class_name='MySubgroup'            
 
-       
+
+    def _repr_(self):
+        r"""
+        Return the string representation of self.
+
+        EXAMPLES::
 
 
+            sage: P=Permutatons(6)
+            sage: pS=[2,1,4,3,6,5]
+            sage: pR=[3,1,2,5,6,4]
+            sage: G=MySubgroup(o2=pS,o3=pR);G._repr_()
+            Arithmetic Subgroup of PSL2(Z) with index 6.
+            Given by
+            perm(S)=[2, 1, 4, 3, 6, 5]
+            perm(ST)=[3, 1, 2, 5, 6, 4]
+            Constructed from G=Arithmetic subgroup corresponding to permutations L=(2,3,5,4), R=(1,3,6,4)
+            sage: G=SL2Z
+            sage: MG=MySubgroup(G);MG._repr_()
+            Arithmetic Subgroup of PSL2(Z) with index 1.
+            Given by
+            perm(S)=[1]
+            perm(ST)=[1]
+            Constructed from G=Modular Group SL(2,Z)            
+
+        """
+        s ="Arithmetic Subgroup of PSL2(Z) with index "+str(self._index)+". "
+        s+="Given by: \n \t perm(S)="+str(self.permS)+"\n \t perm(ST)="+str(self.permR)
+        if hasattr(self,"_display_format") and self._display_format=='long':
+            s+="\nConstructed from G="+super(MySubgroup_class,self)._repr_()
+
+        return s
+
+
+    def _get_uid(self):
+        r""" Constructs a unique identifier for the group
+
+        OUTPUT::
+
+            A unique identifier as string.
+            The only truly unique identifier is the set of permutations
+            so we return those as strings.
+            Because of the extra stucture given by e.g. Gamma0(N) we also return
+            this information if available.
+
+
+        EXAMPLES::
+
+
+            sage: G=MySubgroup(Gamma0(5))
+            sage: G._get_uid()
+            [2_1_4_3_5_6]-[3_1_2_5_6_4]-Gamma0(5)'
+            sage: P=Permutations(6)
+            sage: pS=P([2,1,4,3,6,5])
+            sage: pR=P([3,1,2,5,6,4])
+            sage: G=MySubgroup(o2=pS,o3=pR)       
+            sage: G._get_uid()
+            '[2_1_4_3_6_5]-[3_1_2_5_6_4]'        
+        """
+        # If we have a Congruence subgroup it is (more or less)  easy
+        s=""
+        N=self.generalised_level()
+        s=str(self.permS.list())+"-"
+        s=s+str(self.permR.list())
+        s=s.replace(", ","_")
+        return s 
+
+
+        
+    def __reduce__(self):
+        r"""
+        Used for pickling self.
+        
+        EXAMPLES::
+
+
+            sage: G=MySubgroup(Gamma0(5))
+
+            Not implmented!
+        """
+        data = self.__dict__
+        return (MySubgroup_class, (self.permS,self.permR,self._verbose,data))            
+
+
+
+    def __cmp__(self,other):
+        r""" Compare self to other.
+
+        EXAMPLES::
+
+            sage: G=MySubgroup(Gamma0(5))
+            sage: G <> Gamma0(5)
+            False
+            sage: GG=MySubgroup(None,G.permS,G.permR)
+            sage: GG == G
+
+        
+        """
+        if not isinstance(other,MySubgroup_class):
+            return -1
+        return super(MySubgroup_class,self).__cmp__(super(MySubgroup_class,self))
+
+    def __ne__(self,G):
+        return not self.__eq__(G)
+        
+        
+    def __eq__(self,G):
+        r"""
+        Test if G is equal to self.
+
+        EXAMPLES::
+
+        
+            sage: G=MySubgroup(Gamma0(5))
+            sage: G==Gamma0(5)
+            False
+            sage: GG=MySubgroup(None,G.permS,G.permR)
+            sage: GG == G
+            True
+        """
+        ## Perform some fast tests first
+        if not isinstance(G,ArithmeticSubgroup):
+            return False
+        if G.index() <> self.index():
+            return False
+        if G.generalised_level() <> self.generalised_level():
+            return False
+        return super(MySubgroup_class,self).__eq__(G)
+        # if not isinstance(G,MySubgroup_class):
+        #     S=G.as_permutation_group().S2()
+        #     R=G.as_permutation_group().S3()
+        #     t,p= are_mod1_equivalent(self.permR,self.permS,R,S)  
+        # else:
+        #     t,p= are_mod1_equivalent(self.permR,self.permS,G.permR,G.permS)
+        # if t==1:
+        #     return True
+        # return False
+        #return self.is_subgroup(G) and G.is_subgroup(self)
+
+    def relabel(self,inplace=True):
+        r"""
+        Use the canonical relabeling of the superclass.
+        """
+        if inplace==False:
+            G = MySubgroup(o2=self._permS,o3=self._permR)
+            super(MySubgroup_class,G).relabel(inplace=True)
+            permS=MyPermutation(G.S2().list())
+            permR=MyPermutation(G.S3().list())
+            return MySubgroup(o2=permS,o3=permR)
+        super(MySubgroup_class,self).relabel(inplace=True)
+        self.permS=MyPermutation([x+1 for x in self._S2])
+        self.permR=MyPermutation([x+1 for x in self._S3])
+        ## Relabel the rest as well
+        self.permT = self.permS*self.permR
+        self.permP = self.permT*self.permS*self.permT
+        ## Finally we have to make sure that the coset representatives have the same order
+        ## The simplest way to do this is simply to reset the lists.
+        self._coset_reps_v0 = None
+        self._coset_reps_v1 = None
+        # if self._coset_reps_v0<>None or self._coset_reps_v1<>None:
+        #     reps_values = [self.permutation_action(x)(1) for x in self.coset_reps()]
+        #     reps_indices= [reps_values.index(x+1) for x in range(self.index())]
+        #     if self._coset_reps_v0<>None:
+        #         reps = []
+        #         for i in range(self.index()):
+        #             reps.append(self._coset_reps_v0[reps_indices[i]])
+        #         self._coset_reps_v0 = reps
+        #     if self._coset_reps_v1<>None:
+        #         reps = []
+        #         for i in range(self.index()):
+        #             reps.append(self._coset_reps_v1[reps_indices[i]])
+        #         self._coset_reps_v1 = reps
+                
+        
     def init_group_from_permutations(self,o2,o3):
         r"""
         Initialize the group using the two permutations of order 2 and 3.
         """
         if self._verbose>0:
             print "in init_from_perm"
+            print "o2=",o2.to_cycles()
+            print "o3=",o3.to_cycles()
+
         if isinstance(o2,MyPermutation):            
             self.permS=o2
         else:
@@ -233,30 +413,22 @@ class MySubgroup (ArithmeticSubgroup):
             self.permR=o3
         else:
             self.permR=MyPermutation(o3)
+        self._index = self.permR.N()
+        ## The generators of EvenArithmeticSubgroup_Permutation is corresponding to
+        ## S2 = S, S3 = ZST^-1, L=T, R=Z*ST^-1*S where Z = S^2 = [-1,0,0,-1]
         self.permT = self.permS*self.permR
         self.permP = self.permT*self.permS*self.permT
-        self._G=ArithmeticSubgroup_Permutation(self.permT.list(),
-                                               self.permP.list())
+        s2 = [i-1 for i in self.permS.list()]
+        s3 = [i-1 for i in self.permR.conjugate(self.permS).list()]
+        l  = [i-1 for i in self.permT.list()]
+        r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
+        super(MySubgroup_class,self).__init__(s2,s3,l,r)
+        self._is_congruence = super(MySubgroup_class,self).is_congruence()
+        if self._is_congruence==True:
+            #print "Adding level!"
+#            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
+            self.level = types.MethodType(level,self,MySubgroup_class)
         self.get_data_from_group()       
-
-
-
-    def init_group_from_subgroup(self,G):
-        r"""
-        Initalize self from a given subgroup.
-        """
-        if self._verbose>0:
-            print "in init_from_subgroup"
-        if not hasattr(G,"permutation_action"):
-            raise ValueError,"Need a subgroup given by permutations."
-        self._G = G
-        L = self._G.L(); R = self._G.R()
-        self.permS = MyPermutation((L*~R*L).list())
-        self.permT = MyPermutation( L.list())
-        self.permR = self.permS * self.permT
-        self.permP = self.permR*self.permS
-        self.get_data_from_group()
-        
 
     def init_group_from_dict(self,dict):
         r"""
@@ -271,34 +443,23 @@ class MySubgroup (ArithmeticSubgroup):
     def get_data_from_group(self):
         if self._verbose>0:
             print "in Get_data_from_Group"
-        if not hasattr(self._G,"permutation_action"):
-            raise ValueError,"Need to set self._G before calling this routine!"
-        self._index=self._get_index(self._G,self.permS,self.permR)
-        self._generalised_level = self._G.generalised_level()
-        self._is_congruence = self._G.is_congruence()
-        if self._is_congruence:
-            self._level=self._G.generalised_level()
-            if self._G == Gamma0(self._level):
-                self._is_Gamma0=True
-        if self._version==2:
-            self._coset_reps=self._get_coset_reps_from_G_2(self._G)
-        elif self._version==1:
-            self._coset_reps=self._get_coset_reps_from_G(self._G)
-        else:
-            self._coset_reps=self._get_coset_reps_from_perms(self.permS,
-                                                             self.permR)
-            
-        self._coset_reps_list=copy(self._coset_reps)
+        self._generalised_level = None
+        self._is_congruence = None 
+        self._level = None
+        self._coset_reps_v0 = None
+        self._coset_reps_v1 = None
+                                                         
+        #self._coset_reps_list=copy(self._coset_reps)
         self._test_consistency_perm(self.permS,self.permR)
         self._nu2=num_fixed(self.permS.list())
         self._nu3=num_fixed(self.permR.list())
-        self._ncusps=self._G.ncusps()
-        self._genus=1 +QQ(self._index - 6*self._ncusps-3*self._nu2-4 *self._nu3)/QQ(12)
-        self._signature=[self._index,self._ncusps,self._nu2,self._nu3,self._genus]
-   
+        self._ncusps=None
+        self._genus=None 
+        self._signature=None
+        
         
         ## Get information about cusps and vertices
-        l=self._get_all_cusp_data(self._coset_reps)
+        l=self._get_all_cusp_data(self.coset_reps())
         self._vertices,self._vertex_data,self._cusps,self._cusp_data=l        
         self._nvertices=len(self._vertices)
         self._vertex_widths=list()
@@ -317,30 +478,105 @@ class MySubgroup (ArithmeticSubgroup):
         # We might also want to see which cusps are simultaneously
         # symmetrizable with respect to reflection in the imaginary axis 
         self._symmetrizable_cusp=dict()
-        # for j in range(self._ncusps):
-        #     self._symmetrizable_cusp[j]=0
-        #     a,b,c,d=self._cusp_data[j]['normalizer']
-        #     if self._is_Gamma0:
-        #         if self._level.divides(2*d*c):
-        #             self._symmetrizable_cusp[j]=1
-        #     elif self.is_symmetric():
-        #         if  [a*d+b*c,-2*a*b,-2*d*c,a*d+b*c] in self:
-        #             self._symmetrizable_cusp[j]=1
 
         ## Then we chek if the cusps are symmetrizable in the sense that the normalizing maps
         ## are normalizers of the group.
         ## The entries of this dict are pairs: (o,d) where
         ## N^o is in self and has [1,1] element d.
         self._cusp_normalizer_is_normalizer={0: (1,1) }# The first map is just the identity
-        for j in range(1,self._ncusps):
+        for j in range(1,self.ncusps()):
             d=self.cusp_normalizer_is_normalizer(j,1)
+
+
+    def index(self):
+        if self._index == None:
+            self._index = self.permR.N() 
+        return self._index
+       
+    def genus(self):
+        r""" Genus of self
+
+        EXAMPLES::
+
+
+            sage: G=MySubgroup(Gamma0(5));
+            sage: G.genus()
+            5
+
+        """
+        if self._genus == None:
+            self._genus=1 +QQ(self.index() - 6*self.ncusps()-3*self.nu2()-4 *self.nu3())/QQ(12)
+        return self._genus
+
+    def nu2(self):
+        r""" Number of elliptic fixed points of order 2 of self.
+
+        EXAMPLES::
+
+
+            sage: G=MySubgroup(Gamma0(5));
+            sage: G.genus()
+            5
+
+        """
+        if self._nu2==None:
+            self._nu2 = self.permS.num_fixed()
+        return self._nu2
+
+    def nu3(self):
+        r""" Number of elliptic fixed points of order 3 of self.
+        EXAMPLES::
+
+
+            sage: G=MySubgroup(Gamma0(5));
+            sage: G.genus()
+            5
+
+        """
+        if self._nu3==None:
+            self._nu3 = self.permR.num_fixed()
+        return self._nu3
+
+
+    def ncusps(self):
+        r"""
+        Return the number of cusps of self.
+        """
+        if self._ncusps == None:
+            self._ncusps = len(self.permT.cycle_type())
+        return self._ncusps
+    
+    def signature(self):
+        r"""
+        Returns the signature of self: (index,h,nu2,nu3,g).
+        
+        """
+        if self._signature == None:
+            self._signature =  (self.index(),self.ncusps(),self.nu2(),self.nu3(),self.genus())
+        return self._signature
 
     def reflected_group(self):
         pS = self.permS
         pR = self.permS*self.permR**2*self.permS
-        return MySubgroup(o2=pS,o3=pR)
+        return MySubgroup(pS,pR)
             
 
+    ###
+    ## More advanced functions
+    ###
+
+    def is_Gamma0(self):
+        if self._is_Gamma0==None:
+            self._is_Gamma0=False
+            if self.is_congruence():
+                N = self.level()
+                G = Gamma0(N)
+                if G.index()==G.index():
+                    if G.is_subgroup(self):
+                        if self.is_subgroup(G):
+                            self._is_Gamma0=True
+        return self._is_Gamma0
+    
     def is_symmetric(self,ret_map=0,verbose=0):
         r"""
         Check if self has a reflectional symmetry, i.e. check that 
@@ -444,30 +680,6 @@ class MySubgroup (ArithmeticSubgroup):
                 print "cnc2[",j,"]=",self._cusp_normalizer_is_normalizer[j]                        
             if brute_force==1:
                 if self.is_normalizer(N0):
-                    #NN=matrix(ZZ,2,2,N0)
-                    # for A in self.gens():
-                    #     #print "A=",A,type(A)
-                    #     AA = SL2Z_elt(A[0,0],A[0,1],A[1,0],A[1,1])
-                    #     #.matrix().list()
-                    #     # matrix(ZZ,2,2,A.matrix().list())
-                    #     B = N0*AA #mul_list_maps(N,AA)
-                    #     B = B._mul(N0,2)
-                    #     #B = NN*AA*NN**-1
-                    #     c = gcd(list(B))
-                    #     #BB=B/c
-                    #     bc = ZZ(B[2]).divide_knowing_divisible_by(c)
-                    #     if self._is_Gamma0:
-                    #         t = bc % self._level == 0
-                    #     else:
-                    #         ba =[ZZ(B[0]).divide_knowing_divisible_by(c)]
-                    #         bb =[ZZ(B[1]).divide_knowing_divisible_by(c)]
-                    #         bd =[ZZ(B[3]).divide_knowing_divisible_by(c)]
-                    #         t = [ba,bb,bc,bd] in self
-                    #     if not t:
-                    #         self._cusp_normalizer_is_normalizer[j]=(0,0)
-                    #         return self._cusp_normalizer_is_normalizer[j]
-                    #     # Then find order
-                    #     N=N0
                     N = SL2Z_elt(N0[0],N0[1],N0[2],N0[3])
                     for k in range(2,l):
                         N=N._mul(N0) #mul_list_maps(N,N)
@@ -508,198 +720,7 @@ class MySubgroup (ArithmeticSubgroup):
         """
         return self._symmetrizable_cusp[j]
             
-    def _repr_(self):
-        r"""
-        Return the string representation of self.
 
-        EXAMPLES::
-
-
-            sage: P=Permutatons(6)
-            sage: pS=[2,1,4,3,6,5]
-            sage: pR=[3,1,2,5,6,4]
-            sage: G=MySubgroup(o2=pS,o3=pR);G._repr_()
-            Arithmetic Subgroup of PSL2(Z) with index 6.
-            Given by
-            perm(S)=[2, 1, 4, 3, 6, 5]
-            perm(ST)=[3, 1, 2, 5, 6, 4]
-            Constructed from G=Arithmetic subgroup corresponding to permutations L=(2,3,5,4), R=(1,3,6,4)
-            sage: G=SL2Z
-            sage: MG=MySubgroup(G);MG._repr_()
-            Arithmetic Subgroup of PSL2(Z) with index 1.
-            Given by
-            perm(S)=[1]
-            perm(ST)=[1]
-            Constructed from G=Modular Group SL(2,Z)            
-
-        """
-        s ="Arithmetic Subgroup of PSL2(Z) with index "+str(self._index)+". "
-        s+="Given by: \n \t perm(S)="+str(self.permS)+"\n \t perm(ST)="+str(self.permR)
-        if hasattr(self,"_display_format") and self._display_format=='long':
-            s+="\nConstructed from G="+self._G._repr_()
-
-        return s
-
-
-    def _get_uid(self):
-        r""" Constructs a unique identifier for the group
-
-        OUTPUT::
-
-            A unique identifier as string.
-            The only truly unique identifier is the set of permutations
-            so we return those as strings.
-            Because of the extra stucture given by e.g. Gamma0(N) we also return
-            this information if available.
-
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5))
-            sage: G._get_uid()
-            [2_1_4_3_5_6]-[3_1_2_5_6_4]-Gamma0(5)'
-            sage: P=Permutations(6)
-            sage: pS=P([2,1,4,3,6,5])
-            sage: pR=P([3,1,2,5,6,4])
-            sage: G=MySubgroup(o2=pS,o3=pR)       
-            sage: G._get_uid()
-            '[2_1_4_3_6_5]-[3_1_2_5_6_4]'        
-        """
-        # If we have a Congruence subgroup it is (more or less)  easy
-        s=""
-        N=self.generalised_level()
-        domore=False
-        s=str(self.permS.list())+"-"
-        s=s+str(self.permR.list())
-        s=s.replace(", ","_")
-        if(self._is_congruence):
-            # test:
-            if(self._G == Gamma0(N) or self._G == Gamma0(N).as_permutation_group()):
-                s+="-Gamma0("+str(N)+")"
-            else:
-                if(self._G == Gamma(N)):
-                    s+="-Gamma("+str(N)+")"
-                elif(Gamma(N).is_even()):
-                    if(self._G == Gamma(N).as_permutation_group()):
-                        s+="-Gamma("+str(N)+")"
-                if(self._G == Gamma1(N)):
-                    s+="-Gamma1("+str(N)+")"
-                elif(Gamma1(N).is_even()):
-                    if(self._G == Gamma1(N) or self._G == Gamma1(N).as_permutation_group()):
-                        s+="-Gamma1("+str(N)+")"
-        return s 
-
-    def signature(self):
-        r"""
-        Returns the signature of self: (index,h,nu2,nu3,g).
-        
-        """
-        return self._signature
-
-    def __reduce__(self):
-        r"""
-        Used for pickling self.
-        
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5))
-
-            Not implmented!
-        """
-        data = self.__dict__
-        return (MySubgroup, (self._G,self.permS,self.permR,self._str,self._verbose,self._version,data))            
-
-
-
-    def __cmp__(self,other):
-        r""" Compare self to other.
-
-        EXAMPLES::
-
-            sage: G=MySubgroup(Gamma0(5))
-            sage: G <> Gamma0(5)
-            False
-            sage: GG=MySubgroup(None,G.permS,G.permR)
-            sage: GG == G
-
-        
-        """
-        if str(type(self._G)).find('MySubgroup')<0:
-            return -1
-        return self._G.__cmp__(other._G)
-
-    def __ne__(self,G):
-        return not self.__eq__(G)
-        
-        
-    def __eq__(self,G):
-        r"""
-        Test if G is equal to self.
-
-        EXAMPLES::
-
-        
-            sage: G=MySubgroup(Gamma0(5))
-            sage: G==Gamma0(5)
-            False
-            sage: GG=MySubgroup(None,G.permS,G.permR)
-            sage: GG == G
-            True
-        """
-        try:
-            pR=G.permR
-            pS=G.permS
-            if(pR==self.permR and pS==self.permS):
-                return True
-        except:
-            pass
-        return False
-
-    def _get_index(self,G=None,o2=None,o3=None):
-        r""" Index of self.
-        
-        INPUT:
-
-            - ``G`` --  subgroup
-            - ``o2``--  permutation
-            - ``o3``--  permutation
-
-        OUTPUT: 
-
-            - integer -- the index of G in SL2Z or the size of the permutation group.
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5))
-            sage: G._get_index(G._G,None,None)
-            6
-            sage: G._get_index(Gamma0(8))
-            12
-            sage: pS=P([2,1,4,3,6,5])
-            sage: pR=P([3,1,2,5,6,4])
-            sage: G._get_index(o2=pS,o3=pR) 
-            6
-        """
-        if hasattr(G,"index"):
-            try:
-                if G.is_subgroup(SL2Z):
-                    ix=G.index()
-            except:
-                raise TypeError,"Wrong format for input G: Need subgroup of PSLZ! Got: \n %s" %(G) 
-        else:
-            if o2==None:
-                raise TypeError,"Need to supply one of G,o2,o3 got: \n G=%s,\n o2=%s,\o3=%s"%(G,o2,o3)
-            if hasattr(o2,"to_cycles"):
-                ix=len(o2)
-            elif hasattr(o2,"list"): # We had an element of the SymmetricGroup
-                ix=len(o2.list())
-            else:
-                raise TypeError,"Wrong format of input: o2=%s, \n o2.parent=%s"%(o2,o2.parent())
-        return ix
-    
     def _get_vertices(self,reps):
         r""" Compute vertices of a fundamental domain corresponding
              to coset reps. given in the list reps.
@@ -752,47 +773,6 @@ class MySubgroup (ArithmeticSubgroup):
         v.reverse()
         return [v,vr]
 
-    def _test_consistency_perm(self,o2,o3):
-        r""" Check the consistency of input permutations.
-
-        INPUT:
-        - ''o2'' Permutation of N1 letters
-        - ''o3'' Permutation of N2 letters
-        
-        OUTPUT:
-        - True : If N1=N2=N, o2**2=o3**3=Identity, <o2,o3>=Permutations(N)
-                 (i.e. the pair o2,o3 is transitive) where N=index of self
-        - Otherwise an Exception is raised
-
-
-        EXAMPLES::
-
-
-            sage: P=Permutations(6)
-            sage: pS=P([2,1,4,3,6,5])
-            sage: pR=P2([3,1,2,5,6,4])
-            sage: G=MySubgroup(o2=pS,o3=pR)     
-            sage: G._test_consistency_perm(pS,pR)
-            True
-
-        """
-        #SG1=MyPermutation(length=self._index) #self._S.identity()
-        #o22=o2*o2; o33=o3*o3*o3
-        if self._index==1:
-            return True
-
-        if ( 2 % o2.order()  <>0) or (3 % o3.order() <> 0):
-            print "o2=",o2,o2.order()
-            print "o3=",o3,o3.order()
-            s="Input permutations are not of order 2 and 3: \n perm(S)^2={0} \n perm(R)^3={1} " 
-            raise ValueError, s.format(o2*o2,o3*o3*o3)
-        if(not are_transitive_permutations(o2,o3)):
-            S = SymmetricGroup(self._index)
-            S.subgroup([S(self.permS.list()),S(self.permR)])
-            #GS=self._S.subgroup([self.permS,self.permR])
-            s="Error in construction of permutation group! Permutations not transitive: <S,R>=%s"
-            raise ValueError, s % GS.list()
-        return True
 
 
     def permutation_action(self,A,type=1):
@@ -882,7 +862,7 @@ class MySubgroup (ArithmeticSubgroup):
             [ 1 -2]]
     
         """
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             return self._get_coset_reps_from_Gamma0N()
         cl=list()
         S=[0,-1,1,0]
@@ -891,7 +871,7 @@ class MySubgroup (ArithmeticSubgroup):
         lvl=12 #G.generalised_level()
         # Start with identity rep.
         cl.append([1 ,0 ,0 ,1 ])
-        if self._is_Gamma0 and self._level>1:
+        if self.is_Gamma0() and self._level>1:
             cl.append(S)
         elif not S in G:
             cl.append(S)
@@ -899,7 +879,7 @@ class MySubgroup (ArithmeticSubgroup):
         # the reps are not the one we want
         # I.e. we like to have a fundamental domain in
         # -1/2 <=x <= 1/2 for Gamma0, Gamma1, Gamma
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             N=lvl #self._level #G.level()
             if (N % 2) == 0:
                 #reprange=range(-N/2+1,N/2+1)
@@ -925,7 +905,7 @@ class MySubgroup (ArithmeticSubgroup):
                             t1=A<>V
                             #A*V^-1=[a,b]*[ v11 -v01]
                             #       [c d] [-v10 v00]
-                            if self._is_Gamma0:
+                            if self.is_Gamma0():
                                 t2= (c*v11-d*v10) % lvl == 0 
                             else:
                                 t2 = SL2Z_elt(a*v11-b*v10,-v01*a+v00*b,c*v11-d*v10,-c*v01+d*v00) in G
@@ -948,7 +928,7 @@ class MySubgroup (ArithmeticSubgroup):
                     try:
                         for W in cl:
                             tmp = mul_list_maps(B,W,inv=2)
-                            if self._is_Gamma0:
+                            if self.is_Gamma0():
                                 t1= (tmp[2] % lvl)==0 
                             else:
                                 #print "HERE!22"
@@ -973,9 +953,7 @@ class MySubgroup (ArithmeticSubgroup):
         cl=list()
         S=SL2Z_elt(0,-1,1,0)
         T=SL2Z_elt(1,1,0,1)
-        if not self._level:
-            self._level=self._G.level()
-        lvl=self._level #12 #G.generalised_level()
+        lvl=self.level()
         cl.append(SL2Z_elt(1 ,0 ,0 ,1 ))
         if self._index==1:
             return cl
@@ -1060,12 +1038,6 @@ class MySubgroup (ArithmeticSubgroup):
         if len(cl)<>self._index:
             print "cl=",cl
             raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(cl))
-        # Try another coset rep for Gamma0(8)
-        #if lvl==8:
-        #    A=SL2Z_elt(-1,0,-2,-1)
-        #    j = cl.index(A)
-        #    A=SL2Z_elt(-1,-1,2,1)
-        #    cl[j]=A
         return cl
         
     
@@ -1147,7 +1119,7 @@ class MySubgroup (ArithmeticSubgroup):
         Return the permutation corresponding to coset-representative nr. j
         """
         if not self._coset_rep_perms.has_key(j):
-            perm = self.permutation_action(self._coset_reps[j])
+            perm = self.permutation_action(self.coset_reps()[j])
             self._coset_rep_perms[j]=perm
         return self._coset_rep_perms[j]
 
@@ -1157,7 +1129,7 @@ class MySubgroup (ArithmeticSubgroup):
         Return the permutation corresponding to coset-representative nr. j
         """
         if not self._coset_rep_strings.has_key(j):
-            s = self.element_as_string(self._coset_reps[j])
+            s = self.element_as_string(self.coset_reps()[j])
             self._coset_rep_strings[j]=s
         return self._coset_rep_strings[j]
 
@@ -1464,106 +1436,9 @@ class MySubgroup (ArithmeticSubgroup):
                 else:
                     return False
         return True
-            
 
     
-    
-    # def _get_cusp_data_old(self):
-    #     r""" Return lists of cusp normalizers, stabilisers and widths
-
-    #     OUTPUT:
-    #       -- [ns,ss,ws]  - list of dictionaries with cusps p as keys.
-    #          ns : ns[p] = A in SL2Z with A(p)=infinity (cusp normalizer)
-    #          ss : ss[p] = A in SL2Z s.t. A(p)=p   (cusp stabilizer)
-    #          ws : ws[p]= (w,s).
-    #              w = width of p and s = 1 if p is regular and -1 if not
-
-    #     EXAMPLES::
-        
-
-    #         sage: S=SymmetricGroup(6)
-    #         sage: pS=S([2,1,4,3,6,5])
-    #         sage: pR=S([3,1,2,5,6,4])
-    #         sage: G=MySubgroup(o2=pS,o3=pR)     
-    #         sage: l=G._get_cusp_data()
-    #         sage: l[0]
-    #         {0: [ 0 -1]
-    #         [ 1  0], Infinity: [1 1]
-    #         [0 1], -1/2: [-1  0]
-    #         [ 2 -1]}
-    #         sage: l[1]
-    #         {0: [ 1  0]
-    #         [-4  1], Infinity: [1 1]
-    #         [0 1], -1/2: [ 3  1]
-    #         [-4 -1]}
-    #         sage: l[2]
-    #         {0: (4, 1), Infinity: (1, 1), -1/2: (1, 1)}
-
-    #     """
-    #     try:
-    #         p=self._cusps[0 ]
-    #     except:
-    #         self._get_cusps(self._vertices)
-    #     ns=list()
-    #     ss=list()
-    #     ws=list()
-    #     if self._verbose>0:
-    #         print "permT=",self.permT
-    #     lws=perm_cycles(self.permT)
-    #     if self._verbose>0:
-    #         print "permT.cycles0=",lws
-    #     cusp_widths=map(len,lws)
-    #     cusp_widths.sort()
-    #     # Recall that we have permutations for all groups here
-    #     # and that the widths can be read from self.permT
-    #     if self._verbose>0:
-    #         print "cusps=",self._cusps
-    #         print "widths=",cusp_widths
-    #     for p in self._cusps:
-    #         if self._verbose>0:
-    #             print "p=",p
-    #         # could use self._G.cusp_data but is more efficient to redo all
-    #         if(p.denominator()==0):
-    #             wi=len(lws[0 ])
-    #             ns.append( SL2Z([1 , 0 , 0 ,1 ]))
-    #             ss.append( SL2Z([1 , wi,0 ,1 ]))
-    #             ws.append((wi,1 )  )
-    #             cusp_widths.remove(wi)
-    #         else:
-    #             w = lift_to_sl2z(p.denominator(), p.numerator(), 0 )
-    #             n = SL2Z([w[3 ], w[1 ], w[2 ],w[0 ]])
-    #             stab=None
-    #             wi=0
-    #             if self._verbose >0:
-    #                 print "n=",n
-    #                 print "widths=",cusp_widths
-    #             try:
-    #                 for d in cusp_widths:
-    #                     if self._verbose>0:
-    #                         print "d=",d
-    #                     if n * SL2Z([1 ,d,0 ,1 ]) * (~n) in self:
-    #                         stab = n * SL2Z([1 ,d,0 ,1 ]) * (~n)
-    #                         wi = (d,1 )
-    #                         cusp_widths.remove(d)
-    #                         raise StopIteration()
-    #                     elif n * SL2Z([-1 ,-d,0 ,-1 ]) * (~n) in self:
-    #                         stab = n * SL2Z([-1 ,-d,0 ,-1 ]) * (~n)
-    #                         wi=(d,-1 )
-    #                         cusp_widths.remove(d)
-    #                         raise StopIteration()
-    #             except StopIteration:
-    #                 pass
-    #             if(wi==0):
-    #                 raise ArithmeticError, "Can not find cusp stabilizer for cusp:" %p
-    #             ss.append(stab)
-    #             ns.append(n)
-    #             ws.append(wi)
-    #     return [ns,ss,ws]
-
-
-
-
-    def coset_reps(self):
+    def coset_reps(self,version=0):
         r""" Returns coset reps of self
 
 
@@ -1589,9 +1464,16 @@ class MySubgroup (ArithmeticSubgroup):
             [ 1  0]]
 
         """
-
-        return self._coset_reps
-
+        if version==0:
+            if self._coset_reps_v0==None:
+                self._coset_reps_v0 = self._get_coset_reps_from_perms(self.permS,self.permR)
+            return self._coset_reps_v0
+        elif version==1:
+            if self._coset_reps_v1==None:
+                self._coset_reps_v1 = super(MySubgroup_class,self).coset_reps()
+            return self._coset_reps_v1
+        else:
+            raise NotImplementedError
 
     
     def _get_perms_from_coset_reps(self):
@@ -1612,18 +1494,16 @@ class MySubgroup (ArithmeticSubgroup):
 
 
         """
-        l=self._coset_reps_list
+        l=self.coset_reps()
         li=list()
         n=len(l)
-        G=self._G
         ps=range(1 ,self._index+1 )
         pr=range(1 ,self._index+1 )
         S=SL2Z_elt(0,-1,1,0); T=SL2Z_elt(1,1,0,1)
         R=SL2Z_elt(0,-1,1,1)
         #S,T=SL2Z.gens()
         #R=S*T
-        if self._is_Gamma0:
-            level=G.level()
+        level=self.level()
         if isinstance(l[0],SL2Z_elt):
             for i in range(n):
                 li.append(l[i].inverse())
@@ -1643,7 +1523,7 @@ class MySubgroup (ArithmeticSubgroup):
                 Vji=li[j] # Vj^-1
                 tmp = VR*Vji
                 #tmp = mul_list_maps(VR,Vji)
-                if self._is_Gamma0:
+                if self.is_Gamma0():
                     t = tmp[2] % level == 0 
                 else:
                     t = list(tmp) in G
@@ -1655,7 +1535,7 @@ class MySubgroup (ArithmeticSubgroup):
                 Vji=li[j]
                 tmp = VS*Vji
                 #tmp = mul_list_maps(VS,Vji)
-                if self._is_Gamma0:
+                if self.is_Gamma0():
                     t = tmp[2] % level == 0 
                 else:
                     t = list(tmp) in G
@@ -1670,58 +1550,7 @@ class MySubgroup (ArithmeticSubgroup):
         #return [self._S(ps),self._S(pr)]
         return MyPermutation(ps),MyPermutation(pr)
     
-    # def _get_perms_from_coset_reps_old(self):
-    #     r""" Get permutations of order 2 and 3 from the coset representatives
-       
-    #     EXAMPLES::
-        
-    #         sage: S=SymmetricGroup(6)
-    #         sage: pS=S([2,1,4,3,6,5])
-    #         sage: pR=S([3,1,2,5,6,4])
-    #         sage: G=MySubgroup(o2=pS,o3=pR)
-    #         sage: G._get_perms_from_coset_reps()
-    #         [(1,2)(3,4)(5,6), (1,3,2)(4,5,6)]
-    #         sage: G=MySubgroup(Gamma0(6))
-    #         sage: p=G._get_perms_from_coset_reps(); p[0]; p[1]
-    #         (1,2)(3,4)(5,8)(6,9)(7,10)(11,12)
-    #         (1,3,2)(4,5,9)(6,11,10)(7,12,8)
 
-
-    #     """
-    #     l=self._coset_reps
-    #     li=list()
-    #     n=len(l)
-    #     G=self._G
-    #     ps=range(1 ,self._index+1 )
-    #     pr=range(1 ,self._index+1 )
-    #     S,T=SL2Z.gens()
-    #     R=S*T
-    #     if isinstance(l[0],list):
-    #         for i in range(n):
-    #             li.append( SL2Z(l[i])**-1 )
-    #         ixr=range(n)
-    #     else:
-    #         for i in range(n):
-    #             li.append(l[i]**-1 )
-    #         ixr=range(n)
-    #     ixs=range(n)
-    #     for i in range(n):
-    #         [a,b,c,d]=l[i]
-    #         VS=SL2Z([b,-a,d,-c]) # Vi*S
-    #         VR=SL2Z([b,b-a,d,d-c]) # Vi*R=Vi*S*T
-    #         for j in ixr:
-    #             Vji=li[j] # Vj^-1
-    #             if(VR*Vji in G):
-    #                 pr[i]=j+1 
-    #                 ixr.remove(j)
-    #                 break
-    #         for j in ixs:
-    #             Vji=li[j]
-    #             if(VS*Vji in G):
-    #                 ps[i]=j+1 
-    #                 ixs.remove(j)
-    #                 break
-    #     return [self._S(ps),self._S(pr)]
 
     # Now to public routines
 
@@ -1751,12 +1580,12 @@ class MySubgroup (ArithmeticSubgroup):
         
         """
         if isinstance(A,SL2Z_elt):
-            for V in (self._coset_reps_list):
-                if( (A*V.inverse() ) in self):
+            for V in (self.coset_reps()):
+                if  A*V.inverse() in self:
                     return V
         else:
-            for V in (self._coset_reps):
-                if( (A*V**-1 ) in self):
+            for V in (self.coset_reps()):
+                if  V*A**-1  in self:
                     return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
@@ -1788,7 +1617,7 @@ class MySubgroup (ArithmeticSubgroup):
 
         """
         #x=deepcopy(x_in); y=deepcopy(y_in)
-        if self._is_Gamma0:
+        if self.is_Gamma0():
             if isinstance(x_in,float):
                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
             elif isinstance(x_in,Expression):
@@ -1851,11 +1680,9 @@ class MySubgroup (ArithmeticSubgroup):
         False
         
         """
-        try:
-            return self._is_congruence
-        except:
-            self._is_congruence=self._G.is_congruence()
-            return self._is_congruence
+        if self._is_congruence==None:
+            self._is_congruence=super(MySubgroup_class,self).is_congruence()
+        return self._is_congruence
 
     def is_Gamma0(self):
         return self._is_Gamma0
@@ -1889,132 +1716,34 @@ class MySubgroup (ArithmeticSubgroup):
 
 
 
-    def level(self):
-        r""" Level of self
+    # def level(self):
+    #     r""" Level of self
 
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.level()
-            5
-
-        """
-        if(self._is_congruence):
-            return self.generalised_level()
-        else:
-            raise TypeError,"Group is not a congruence group! Use G.generalised_level() instead!"
-
-    def genus(self):
-        r""" Genus of self
-
-        EXAMPLES::
+    #     EXAMPLES::
 
 
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
+    #         sage: G=MySubgroup(Gamma0(5));
+    #         sage: G.level()
+    #         5
 
-        """
-        return self._genus
+    #     """
+    #     if(self._is_congruence):
+    #         return self.generalised_level()
+    #     else:
+    #         raise TypeError,"Group is not a congruence group! Use G.generalised_level() instead!"
 
-    def nu2(self):
-        r""" Number of elliptic fixed points of order 2 of self.
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._nu2
-
-    def nu3(self):
-        r""" Number of elliptic fixed points of order 3 of self.
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._nu3
     
+    def generators_as_slz_elts(self):
+        if self._generators_as_slz_elts==None:
+            self._generators_as_slz_elts=[]
+            for A in self.gens():
+                a,b,c,d=A
+                self._generators_as_slz_elts.append(SL2Z_elt(a,b,c,d))
+        return self._generators_as_slz_elts
 
-    def gens(self):
-        r""" Generators of self
 
 
-        EXAMPLES::
 
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.gens()
-            ([1 1]
-            [0 1], [-1  0]
-            [ 0 -1], [ 1 -1]
-            [ 0  1], [1 0]
-            [5 1], [1 1]
-            [0 1], [-2 -1]
-            [ 5  2], [-3 -1]
-            [10  3], [-1  0]
-            [ 5 -1], [ 1  0]
-            [-5  1])
-            sage: G3=MySubgroup(o2=Permutations(3)([1,2,3]),o3=Permutations(3)([2,3,1]))
-            sage: G3.gens()
-            ([1 3]
-            [0 1], [ 0 -1]
-            [ 1  0], [ 1 -2]
-            [ 1 -1], [ 2 -5]
-            [ 1 -2])
-
-        """
-        # do some reductions from the generators
-        if self._gens:
-            return self._gens
-        gens = self._G.gens()
-        newgens=[]
-        for i in range(len(gens)):
-            l = list(gens[i])
-            newgens.append(SL2Z_elt(l[0],l[1],l[2],l[3]))
-        if self._verbose>1:
-            print "original gens=",newgens
-        m1=SL2Z_elt(-1,0,0,-1)
-        for x in gens:
-            l = list(gens[i])
-            x = SL2Z_elt(l[0],l[1],l[2],l[3])
-            if x not in newgens:
-                continue
-            if self._verbose>1:
-                print "x:",x
-            t=m1*x
-            if t<>x and t in newgens:
-                if self._verbose>1:
-                    print "remove -x:",m1*x
-                newgens.remove(t)
-            t=x.inverse() #**-1
-            if t<>x and t in newgens:
-                if self._verbose>1:
-                    print "remove x**-1:",t
-                newgens.remove(t) #**-1)
-            t=t*m1
-            if t<>x and t in newgens:
-                if self._verbose>1:
-                    print "remove -x**-1:",t #m1*x**-1                
-                newgens.remove(t)            
-        # also remove duplicate
-        gens=newgens
-        for x in gens:
-            if gens.count(x)>1:
-                newgens.remove(x)
-        if self._verbose>1:        
-            print "type(gens[0])=",type(newgens[0])
-            print "newgens=",newgens
-        self._gens=newgens
-        return newgens
 
 
 
@@ -2187,7 +1916,7 @@ class MySubgroup (ArithmeticSubgroup):
     ### Overloaded operators
     def __contains__(self,A):
         r"""
-        Is A an element of self (this is an ineffective implementation if self._G is a permutation group)
+        Is A an element of self (this is an ineffective implementation if self is a permutation group)
 
         EXAMPLES::
         
@@ -2248,10 +1977,12 @@ class MySubgroup (ArithmeticSubgroup):
                 return False
             if not is_integer(A[3]):
                 return False
+        else:
+            return False
         p=self.permutation_action(A)
         if self._verbose>1:
             print "perm(A)=",p
-        if(p(1)==1 ):
+        if p(1)==1:
             return True
         else:
             return False
@@ -2394,41 +2125,41 @@ class MySubgroup (ArithmeticSubgroup):
                 return c
             
     
-    def cusp_equivalent_to(self,cusp):
-        r"""
-        Find a cusp in self._cusps which is equivalent to cusp
-        and returns the cusp, a map which maps the given point to the cusp 
+    # def cusp_equivalent_to(self,cusp):
+    #     r"""
+    #     Find a cusp in self._cusps which is equivalent to cusp
+    #     and returns the cusp, a map which maps the given point to the cusp 
 
         
-        """
-        p=None;q=None
-        if isinstance(cusp,tuple):
-            p=cusp[0];q=cusp[1]
-        else:
-            try:
-                cusp=Cusp(cusp)
-                p=cusp.numerator(); q=cusp.denominator()
-            except:
-                raise TypeError,"Could not coerce {0} to a cusp!".format(cusp)
+    #     """
+    #     p=None;q=None
+    #     if isinstance(cusp,tuple):
+    #         p=cusp[0];q=cusp[1]
+    #     else:
+    #         try:
+    #             cusp=Cusp(cusp)
+    #             p=cusp.numerator(); q=cusp.denominator()
+    #         except:
+    #             raise TypeError,"Could not coerce {0} to a cusp!".format(cusp)
                 
-        if (p,q) in self._cusps:
-            one = SL2Z_elt(int(1),int(0),int(0),int(1))
-            return (p,q),one,one
-        #print "p,q=",p,q,type(p),type(q)
-        w = lift_to_sl2z(q, p, 0 )
-        V = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])
-        permv=self.permutation_action(V)
-        for i in range(self._ncusps):
-            W = self._cusp_data[i]['normalizer']
-            permw=self.permutation_action(W)
-            testi=(permw**-1)(1)
-            for k in range(0,self._index):
-                test=(permv*self.permT**k)(testi)
-                if test==1:  ## v = C w with C = V*T**k*W**-1
-                    Tk = SL2Z_elt(1,k,0,1)
-                    mapping=V*Tk*W.inverse()
-                    return (p,q),mapping,W
-        raise ArithmeticError, "Could not find equivalent cusp!"
+    #     if (p,q) in self._cusps:
+    #         one = SL2Z_elt(int(1),int(0),int(0),int(1))
+    #         return (p,q),one,one
+    #     #print "p,q=",p,q,type(p),type(q)
+    #     w = lift_to_sl2z(q, p, 0 )
+    #     V = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])
+    #     permv=self.permutation_action(V)
+    #     for i in range(self._ncusps):
+    #         W = self._cusp_data[i]['normalizer']
+    #         permw=self.permutation_action(W)
+    #         testi=(permw**-1)(1)
+    #         for k in range(0,self._index):
+    #             test=(permv*self.permT**k)(testi)
+    #             if test==1:  ## v = C w with C = V*T**k*W**-1
+    #                 Tk = SL2Z_elt(1,k,0,1)
+    #                 mapping=V*Tk*W.inverse()
+    #                 return (p,q),mapping,W
+    #     raise ArithmeticError, "Could not find equivalent cusp!"
 
     def cusp_normalizer(self,cusp):
         r"""
@@ -2510,9 +2241,9 @@ class MySubgroup (ArithmeticSubgroup):
 
 
         """
-        if self._is_congruence:
+        if self.is_congruence():
             l=self.level()
-            if(self._G == Gamma0(l)):
+            if self.is_Gamma0():
                 return RR(sqrt(3.0))/RR(2*l)
         # For all other groups we have have to locate the largest width
         maxw=0
@@ -2522,10 +2253,18 @@ class MySubgroup (ArithmeticSubgroup):
                 maxw=l
         return RR(sqrt(3.0))/RR(2*maxw)
 
-        
-    def draw_fundamental_domain(self,model="H",axes=None,filename=None,**kwds):
+    @rename_keyword(color='rgbcolor')
+    @options(alpha=1, fill=True, thickness=1, rgbcolor="lightgray", \
+             zorder=2, linestyle='solid', show_pairing=False, \
+             show_tesselation=True,
+             method='Farey',
+             model='H')
+    
+    def draw_fundamental_domain(self,**options):
         r""" Draw fundamental domain
-        INPUT:
+
+        OPTIONS:
+        
          - ''model'' -- (default ''H'')
              = ''H'' -- Upper halfplane
              = ''D'' -- Disk model
@@ -2540,39 +2279,85 @@ class MySubgroup (ArithmeticSubgroup):
             sage: G.draw_fundamental_domain()
 
         """
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
-        if(model=="D"):
-            g=draw_funddom_d(self._coset_reps,format,I)
+        if options['method']=='Farey' and options['model']=='H':
+            options.pop('model'); options.pop('method');
+            return self.farey_symbol().fundamental_domain(**options)
+        if options['show_pairing'] and not options['method']=='Farey':
+            raise NotImplementedError,"Pairings are only implemented for Farey symbols."
+        from sage.plot.colors import rainbow
+        L = 1000
+        if options['method']=='Farey':
+            coset_reps = map(lambda x: SL2Z_elt(x[0,0],x[0,1],x[1,0],x[1,1]), self.farey_symbol().coset_reps())
         else:
-            g=draw_funddom(self._coset_reps,format)
-        if(axes<>None):
-            [x0,x1,y0,y1]=axes
-        elif(model=="D"):
-            x0=-1 ; x1=1 ; y0=-1 ; y1=1 
+            coset_reps = self.coset_reps()
+        model = options['model']
+        verbose = options.get('verbose',0)
+        if model=="D2":
+            g=draw_funddom_d(coset_reps,format,I)
         else:
-            # find the width of the fundamental domain
-            w=0  #self.cusp_width(Cusp(Infinity))
-            wmin=0 ; wmax=1 
-            for V in self._coset_reps:
-                if V[2]==0  and V[0]==1:
-                    if V[1]>wmax:
-                        wmax=V[1]
-                    if V[1]<wmin:
-                        wmin=V[1]
-            #print "wmin,wmax=",wmin,wmax
-            #x0=-1; x1=1; y0=-0.2; y1=1.5
-            x0=wmin-1 ; x1=wmax+1 ; y0=-0.2 ; y1=1.5 
-        g.set_aspect_ratio(1 )
-        g.set_axes_range(x0,x1,y0,y1)
-        if(filename<>None):
-            fig = g.matplotlib()
-            fig.set_canvas(FigureCanvasAgg(fig))
-            axes = fig.get_axes()[0 ]
-            axes.minorticks_off()
-            axes.set_yticks([])
-            fig.savefig(filename,**kwds)
+            g = Graphics()
+            A0 = CC(-0.5,sqrt(3.)/2)
+            B0 = CC(0.5,sqrt(3.)/2)
+            C0 = CC(0,L)
+            for x in coset_reps:
+                #a, b, c, d = x[3], -x[1], -x[2], x[0]
+                A,B = [x.acton(z) for z in [A0,B0]]
+                if x[2]<>0:
+                    C = CC(x[0]/x[2],0)
+                else:
+                    C = CC( (A.real()+B.real())*0.5,L)
+                if verbose>0:                    
+                    print "coset rep=",x
+                    print "Triangle: ({0},{1},{2})".format(A,B,C)
+                g += my_hyperbolic_triangle(A, B, C, \
+                                             color=options['rgbcolor'], \
+                                             fill=options['fill'], \
+                                             alpha=options['alpha'], \
+                                             model=model)
+                
+                if options['show_tesselation']:
+                    g += my_hyperbolic_triangle(A, B, C, color="gray",
+                                               model=model)
+        d = g.get_minmax_data()
+        if model=='H':
+            g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
+            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
         else:
-            return g
+            g+=circle((0,0),1)
+            g.set_axes_range(-1, 1, -1, 1)    
+
+            
+
+
+      # if axes<>None:
+        #     [x0,x1,y0,y1]=axes
+        # elif model=="D":
+        #     x0=-1 ; x1=1 ; y0=-1 ; y1=1 
+        # else:
+        #     # find the width of the fundamental domain
+        #     w=0  #self.cusp_width(Cusp(Infinity))
+        #     wmin=0 ; wmax=1 
+        #     for V in self.coset_reps():
+        #         if V[2]==0  and V[0]==1:
+        #             if V[1]>wmax:
+        #                 wmax=V[1]
+        #             if V[1]<wmin:
+        #                 wmin=V[1]
+        #     #print "wmin,wmax=",wmin,wmax
+        #     #x0=-1; x1=1; y0=-0.2; y1=1.5
+        #     x0=wmin-1 ; x1=wmax+1 ; y0=-0.2 ; y1=1.5 
+        # g.set_aspect_ratio(1 )
+        # g.set_axes_range(x0,x1,y0,y1)
+        # if(filename<>None):
+        #     fig = g.matplotlib()
+        #     fig.set_canvas(FigureCanvasAgg(fig))
+        #     axes = fig.get_axes()[0 ]
+        #     axes.minorticks_off()
+        #     axes.set_yticks([])
+        #     fig.savefig(filename,**kwds)
+        # else:
+
+        return g
 
 
     def show_symmetry_props(self):
@@ -2681,7 +2466,7 @@ class MySubgroup (ArithmeticSubgroup):
              print "reps=",coset_reps
         Id=SL2Z_elt(1,0,0,1)
         vi=0
-        ## First populate the vertices
+        ## First populate the vertices of the fundamental domain we have choosen
         for j in range(len(coset_reps)):
             if coset_reps[j][2]==0:
                 v=1,0
@@ -2748,11 +2533,11 @@ class MySubgroup (ArithmeticSubgroup):
             elif W==0:  ## Check if this cusp is equivalent to another
                 do_cont=0
                 for pp,qq in cusps:
-                    A=self._G.are_equivalent(Cusp(pp,qq),Cusp(v),True)
+                    t,A=Cusp(pp,qq).is_gamma0_equiv(Cusp(v),1,transformation='matrix')
                     if self._verbose>0:
                         print "are eq:",Cusp(pp,qq),Cusp(v)
                         print "A=",A
-                    if A:
+                    if t==1 and A in self:
                         a,b,c,d=A
                         cii=cusps.index((pp,qq))
                         vertex_data[j]['cusp']=cii
@@ -2919,91 +2704,9 @@ class MySubgroup (ArithmeticSubgroup):
         return self._perm_group
         
 
-    def coset_reps(self):
-        r""" Returns coset reps of self
-
-
-        EXAMPLES::
-
-        
-            sage: S=SymmetricGroup(6)
-            sage: pS=S([2,1,4,3,6,5])
-            sage: pR=S([3,1,2,5,6,4])
-            sage: pS
-            (1,2)(3,4)(5,6)
-            sage: pR
-            (1,3,2)(4,5,6)
-            sage: G=MySubgroup(o2=pS,o3=pR)
-            sage: G.coset_reps()
-            [[1 0]
-            [0 1], [1 2]
-            [0 1], [1 1]
-            [0 1], [1 3]
-            [0 1], [1 5]
-            [0 1], [1 4]
-            [0 1], [ 4 -1]
-            [ 1  0]]
-
-        """
-
-        return self._coset_reps
-
-    # def _get_perms_from_coset_reps(self):
-    #     r""" Get permutations of order 2 and 3 from the coset representatives
-
-    #     EXAMPLES::
-        
-    #         sage: S=SymmetricGroup(6)
-    #         sage: pS=S([2,1,4,3,6,5])
-    #         sage: pR=S([3,1,2,5,6,4])
-    #         sage: G=MySubgroup(o2=pS,o3=pR)
-    #         sage: G._get_perms_from_coset_reps()
-    #         [(1,2)(3,4)(5,6), (1,3,2)(4,5,6)]
-    #         sage: G=MySubgroup(Gamma0(6))
-    #         sage: p=G._get_perms_from_coset_reps(); p[0]; p[1]
-    #         (1,2)(3,4)(5,8)(6,9)(7,10)(11,12)
-    #         (1,3,2)(4,5,9)(6,11,10)(7,12,8)
-
-
-    #     """
-    #     l=self._coset_reps
-    #     li=list()
-    #     n=len(l)
-    #     G=self._G
-    #     ps=range(1 ,self._index+1 )
-    #     pr=range(1 ,self._index+1 )
-    #     S,T=SL2Z.gens()
-    #     R=S*T
-    #     if isinstance(l[0],list):
-    #         for i in range(n):
-    #             li.append( SL2Z(l[i])**-1 )
-    #         ixr=range(n)
-    #     else:
-    #         for i in range(n):
-    #             li.append(l[i]**-1 )
-    #         ixr=range(n)
-    #     ixs=range(n)
-    #     for i in range(n):
-    #         [a,b,c,d]=l[i]
-    #         VS=SL2Z([b,-a,d,-c]) # Vi*S
-    #         VR=SL2Z([b,b-a,d,d-c]) # Vi*R=Vi*S*T
-    #         for j in ixr:
-    #             Vji=li[j] # Vj^-1
-    #             if(VR*Vji in G):
-    #                 pr[i]=j+1 
-    #                 ixr.remove(j)
-    #                 break
-    #         for j in ixs:
-    #             Vji=li[j]
-    #             if(VS*Vji in G):
-    #                 ps[i]=j+1 
-    #                 ixs.remove(j)
-    #                 break
-    #     return [self._S(ps),self._S(pr)]
-
     # # Now to public routines
 
-    def coset_rep(self,A):
+    def coset_representative(self,A):
         r"""
         Indata: A in PSL(2,Z) 
         Returns the coset representative of A in
@@ -3028,8 +2731,8 @@ class MySubgroup (ArithmeticSubgroup):
 
         
         """
-        for V in (self._coset_reps):
-            if( (A*V**-1 ) in self):
+        for V in (self.coset_reps()):
+            if  V*A**-1 in self:
                 return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
@@ -3125,11 +2828,9 @@ class MySubgroup (ArithmeticSubgroup):
         False
         
         """
-        try:
-            return self._is_congruence
-        except:
-            self._is_congruence=self._G.is_congruence()
-            return self._is_congruence
+        if self._is_congruence == None:
+            self._is_congruence=super(MySubgroup_class,self).is_congruence()
+        return self._is_congruence
 
     def is_Gamma0(self):
         return self._is_Gamma0
@@ -3165,137 +2866,6 @@ class MySubgroup (ArithmeticSubgroup):
             self._generalised_level= lcm(map(len,self.permT.cycle_tuples()))
         return self._generalised_level
     #raise ArithmeticError, "Could not compute generalised level of %s" %(self)
-
-
-
-    def level(self):
-        r""" Level of self
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.level()
-            5
-
-        """
-        if(self._is_congruence):
-            return self.generalised_level()
-        else:
-            raise TypeError,"Group is not a congruence group! Use G.generalised_level() instead!"
-
-    def genus(self):
-        r""" Genus of self
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._genus
-
-    def nu2(self):
-        r""" Number of elliptic fixed points of order 2 of self.
-
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._nu2
-
-    def nu3(self):
-        r""" Number of elliptic fixed points of order 3 of self.
-        EXAMPLES::
-
-
-            sage: G=MySubgroup(Gamma0(5));
-            sage: G.genus()
-            5
-
-        """
-        return self._nu3
-    
-
-    # def gens(self):
-    #     r""" Generators of self
-
-
-    #     EXAMPLES::
-
-
-    #         sage: G=MySubgroup(Gamma0(5));
-    #         sage: G.gens()
-    #         ([1 1]
-    #         [0 1], [-1  0]
-    #         [ 0 -1], [ 1 -1]
-    #         [ 0  1], [1 0]
-    #         [5 1], [1 1]
-    #         [0 1], [-2 -1]
-    #         [ 5  2], [-3 -1]
-    #         [10  3], [-1  0]
-    #         [ 5 -1], [ 1  0]
-    #         [-5  1])
-    #         sage: G3=MySubgroup(o2=Permutations(3)([1,2,3]),o3=Permutations(3)([2,3,1]))
-    #         sage: G3.gens()
-    #         ([1 3]
-    #         [0 1], [ 0 -1]
-    #         [ 1  0], [ 1 -2]
-    #         [ 1 -1], [ 2 -5]
-    #         [ 1 -2])
-
-    #     """
-    #     # do some reductions from the generators
-    #     if self._gens:
-    #         return self._gens
-    #     #gens = self._G.gens()
-    #     newgens=[]; gens=[]
-    #     for A in self._G.gens():
-    #         gens.append([A[0,0],A[0,1],A[1,0],A[1,1]])
-    #         newgens.append([A[0,0],A[0,1],A[1,0],A[1,1]])
-    #     #newgens=list(gens)
-    #     if self._verbose>1:
-    #         print "original gens=",newgens
-    #     #m1=[-1,0,0,-1]
-    #     for x in gens:
-    #         if x not in newgens:
-    #             continue
-    #         if self._verbose>1:
-    #             print "x:",x
-    #         t=[-x[0],-x[1],-x[2],-x[3]]  #mul_list_maps(m1,x)
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove -x:",t
-    #             newgens.remove(t)
-    #         t = [x[3],-x[1],-x[2],x[0]]
-    #         #t=x**-1
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove x**-1:",t #x**-1
-    #             newgens.remove(t)
-    #         t=[-x[3],x[1],x[2],-x[0]]  #t*m1
-    #         if t<>x and t in newgens:
-    #             if self._verbose>1:
-    #                 print "remove -x**-1:",t #m1*x**-1                
-    #             newgens.remove(t) #m1*x**-1)            
-    #     # also remove duplicate
-    #     gens=newgens
-    #     for x in gens:
-    #         if gens.count(x)>1:
-    #             newgens.remove(x)
-    #     if self._verbose>1:        
-    #         print "newgens=",newgens
-    #     self._gens=newgens
-    #     #for t in newgens:
-    #     #    self._gens.append(SL2Z(t)) #=newgens
-    #     return self._gens
-
 
 
     def as_named_group(self):
@@ -3369,30 +2939,7 @@ class MySubgroup (ArithmeticSubgroup):
             if tmpS1==tmpS and tmpT1==tmpT:
                 return "Gamma^0(N)"
 
-
-
-   
-
   
-
-
-
-    
-    
-##   def block_systems(self):
-##         r"""
-##         Return a list of possible Block systems and overgroups for the group G.
-##         INDATA: G = subgroup of the modular group
-##         OUTDATA res['blocksystems']= Block systems
-##         res['overgroups']  = Overgroups corresponding to the blocks
-##         in the block systems
-
-
-##         EXAMPLES::
-        
-
-##         """
-##         return get_block_systems(self.permS,self.permR,False)
 
  
     def get_equivalent_cusp(self,p,q):
@@ -3401,7 +2948,7 @@ class MySubgroup (ArithmeticSubgroup):
         which is, if possible, an Atkin-Lehner involution.
         """
 
-        if not self._is_Gamma0:
+        if not self.is_Gamma0():
             return 0,0,0,0,0
         Id = SL2Z_elt(1,0,0,1)
         if q==0:
@@ -3412,7 +2959,7 @@ class MySubgroup (ArithmeticSubgroup):
         if p==0:
             WQ=SL2Z_elt(0,-1,1,0)
             A =Id 
-            l = self._level
+            l = self.level()
             return (WQ,A,p,q,l)
         N = self._level
         if self._verbose>0:
@@ -3485,7 +3032,7 @@ class MySubgroup (ArithmeticSubgroup):
                                 print "qq%N=",(qq%N)
                             l=0 # self._G.cusp_width(c2)
                     else:
-                        l=self._G.cusp_width(c2)
+                        l=self.cusp_width(c2)
                     ## Return a non-normalizer (but maybe twisted) map W
                     if pp==1:
                         W=SL2Z_elt(1,0,int(qq),1)
@@ -3597,7 +3144,7 @@ class MySubgroup (ArithmeticSubgroup):
             # Also check that the correct number of coset reps maps to this vertex
             cnt=0
             for vj in self._vertex_data[i]['coset']:
-                V = self._coset_reps[vj]
+                V = self.coset_reps()[vj]
                 a = V.a(); c=V.c()
                 if Cusp(a,c)<>Cusp(vp,vq):
                     raise ArithmeticError,"Coset rep {0} do not map to the vertex {1}!".format(V,v)
@@ -3606,15 +3153,15 @@ class MySubgroup (ArithmeticSubgroup):
             if cnt>self._vertex_data[i]['width']:
                 raise ArithmeticError,"Too many coset reps. maps to the vertex {0}! ".format(v)
 
-    def test_coset_reps(self):
+    def test_coset_reps(self,version=0):
         r"""
         Test if the coset representatives are independent.
         """
-        for j in range(len(self._coset_reps)):
-            A=self._coset_reps_list[j]
+        for j in range(len(self.coset_reps(version))):
+            A=self.coset_reps(version)[j]
             #print "A=",A,type(A)
-            for k in range(len(self._coset_reps)):
-                B=self._coset_reps_list[k]
+            for k in range(len(self.coset_reps(version))):
+                B=self.coset_reps(version)[k]
                 #print "B=",B,type(B)
                 #if A==B:
                 if A[0]==B[0] and A[1]==B[1] and A[2]==B[2] and A[3]==B[3]:
@@ -3652,7 +3199,60 @@ class MySubgroup (ArithmeticSubgroup):
         z4 = (N2**-1).acton(z3)/RR(l2)
         return z4
 
+    def _test_consistency_perm(self,o2,o3):
+        r""" Check the consistency of input permutations.
+
+        INPUT:
+        - ''o2'' Permutation of N1 letters
+        - ''o3'' Permutation of N2 letters
         
+        OUTPUT:
+        - True : If N1=N2=N, o2**2=o3**3=Identity, <o2,o3>=Permutations(N)
+                 (i.e. the pair o2,o3 is transitive) where N=index of self
+        - Otherwise an Exception is raised
+
+
+        EXAMPLES::
+
+
+            sage: P=Permutations(6)
+            sage: pS=P([2,1,4,3,6,5])
+            sage: pR=P2([3,1,2,5,6,4])
+            sage: G=MySubgroup(o2=pS,o3=pR)     
+            sage: G._test_consistency_perm(pS,pR)
+            True
+
+        """
+        #SG1=MyPermutation(length=self._index) #self._S.identity()
+        #o22=o2*o2; o33=o3*o3*o3
+        if self._index==1:
+            return True
+
+        if o2.order() not in [1,2] or o3.order() not in [1,3]:
+            print "o2=",o2,o2.order()
+            print "o3=",o3,o3.order()
+            s="Input permutations are not of order 2 and 3: \n perm(S)^2={0} \n perm(R)^3={1} " 
+            raise ValueError, s.format(o2*o2,o3*o3*o3)
+        if(not are_transitive_permutations(o2,o3)):
+            S = SymmetricGroup(self._index)
+            S.subgroup([S(self.permS.list()),S(self.permR)])
+            #GS=self._S.subgroup([self.permS,self.permR])
+            s="Error in construction of permutation group! Permutations not transitive: <S,R>=%s"
+            raise ValueError, s % GS.list()
+        return True
+
+class MySubgroup_congruence_class (MySubgroup_class):
+    r"""
+    Subclass of congruence subgroups.
+    """
+    def __init__(self,o2=None,o3=None,verbose=0,display_format='short',data={},**kwds):
+        super(MySubgroup_congruence_class,self).__init__(o2,o3,verbose,display_format,data,**kwds)
+        if not self.is_congruence():
+            raise ValueError,"Self is not a congruence subgroup!"
+    def level(self):
+        return self.generalised_level()
+
+    
 ### Hecke triangle groups
 class HeckeTriangleGroup(SageObject):
     def __init__(self,q=3,prec=53,verbose=0):
@@ -3915,66 +3515,66 @@ class HeckeTriangleGroup(SageObject):
 #         return [cf,sgn]
 
 
-def nearest_integer_continued_fraction(x,nmax=None):
-    r""" Nearest integer continued fraction of x
-    where x is a rational number, and at n digits
+# def nearest_integer_continued_fraction(x,nmax=None):
+#     r""" Nearest integer continued fraction of x
+#     where x is a rational number, and at n digits
 
-    EXAMPLES::
+#     EXAMPLES::
 
-        sage: nearest_integer_continued_fraction(0.5)
-        [1, 2]
-        nearest_integer_continued_fraction(pi.n(100),nmax=10)
-        [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
+#         sage: nearest_integer_continued_fraction(0.5)
+#         [1, 2]
+#         nearest_integer_continued_fraction(pi.n(100),nmax=10)
+#         [3, -7, 16, 294, 3, 4, 5, 15, -3, -2, 2]
 
-    """
-    if(nmax == None):
-        if(x in QQ):
-            nmax=10000 
-        else:
-            nmax=100  # For non-rational numbrs  we don't want so many convergents
-    jj=0 
-    cf=list()
-    n=nearest_integer(x)
-    cf.append(n)
-    if(x in QQ):
-        x1=Rational(x-n)
-        while jj<nmax and x1<>0  :
-            n=nearest_integer(-1 /x1)
-            x1=Rational(-1 /x1-n)
-            cf.append(n)
-            jj=jj+1 
-        return cf
-    else:
-        try:
-            RF=x.parent()
-            x1=RF(x-n)
-            while jj<nmax and x1<>0  :
-                n=nearest_integer(RF(-1 )/x1)
-                x1=RF(-1 )/x1-RF(n)
-                cf.append(n)
-                jj=jj+1 
-            return cf
-        except AttributeError:
-            raise ValueError,"Could not determine type of input x=%s" %x
+#     """
+#     if(nmax == None):
+#         if(x in QQ):
+#             nmax=10000 
+#         else:
+#             nmax=100  # For non-rational numbrs  we don't want so many convergents
+#     jj=0 
+#     cf=list()
+#     n=nearest_integer(x)
+#     cf.append(n)
+#     if(x in QQ):
+#         x1=Rational(x-n)
+#         while jj<nmax and x1<>0  :
+#             n=nearest_integer(-1 /x1)
+#             x1=Rational(-1 /x1-n)
+#             cf.append(n)
+#             jj=jj+1 
+#         return cf
+#     else:
+#         try:
+#             RF=x.parent()
+#             x1=RF(x-n)
+#             while jj<nmax and x1<>0  :
+#                 n=nearest_integer(RF(-1 )/x1)
+#                 x1=RF(-1 )/x1-RF(n)
+#                 cf.append(n)
+#                 jj=jj+1 
+#             return cf
+#         except AttributeError:
+#             raise ValueError,"Could not determine type of input x=%s" %x
 
-def nearest_integer(x):
-    r""" Returns the nearest integer to x: [x]
-    using the convention that 
-    [1/2]=0 and [-1/2]=0
+# def nearest_integer(x):
+#     r""" Returns the nearest integer to x: [x]
+#     using the convention that 
+#     [1/2]=0 and [-1/2]=0
 
 
-    EXAMPLES::
+#     EXAMPLES::
 
-        sage: nearest_integer(0)
-        0
-        sage: nearest_integer(0.5)
-        1
-        sage: nearest_integer(-0.5)
-        0
-        sage: nearest_integer(-0.500001)
-        -1
-    """
-    return floor(x+ 0.5)
+#         sage: nearest_integer(0)
+#         0
+#         sage: nearest_integer(0.5)
+#         1
+#         sage: nearest_integer(-0.5)
+#         0
+#         sage: nearest_integer(-0.500001)
+#         -1
+#     """
+#     return floor(x+ 0.5)
 
 
 def _get_perms_from_str(st):
@@ -4050,11 +3650,17 @@ def get_perms_from_cycle_str(s,N,sep=' ',deb=False):
     return S(perm)
 
 
+###
+def level(cls):
+    return cls.generalised_level()
+
+
+
 
 ### Algorithms which deal with lists of groups
 
 
-def get_list_of_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
+def list_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
     r"""
     Returns a list of all signatures , i.e.tuples:
     (index,h,e2,e3,g)
@@ -4063,7 +3669,7 @@ def get_list_of_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
       e2 = number of order 2 elliptic points
       e2 = number of order 3 elliptic points
       g   = genus
-    of subgroups of PSL(2,Z) of gien index
+    of subgroups of PSL(2,Z) of the given index.
 
     INPUT:
     

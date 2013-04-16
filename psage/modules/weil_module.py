@@ -161,7 +161,7 @@ class WeilModule (FormalSums):
         Gives a basis of self as a vector space of dimension |D|
         """
         if self._basis==[]:
-            for x in self._QM.list():
+            for x in list(self._QM):
                 self._basis.append(WeilModuleElement([(1,x)],parent=self))
         return self._basis
         
@@ -285,7 +285,7 @@ class WeilModule (FormalSums):
         if prec > 0:
             return  weil_rep_matrix_mpc(self,A[0,0],A[0,1],A[1,0],A[1,1],filter=filter,prec=prec,verbose=self._verbose)
         # We only need the diagonal elements of rho(A)
-        n=len(self._QM.list())
+        n=len(list(self._QM))
         # Need a WeilModuleElement to compute the matrix
         e=WeilModuleElement(self._QM.gens()[0 ],self,verbose=self._verbose)
         #print "e=",e
@@ -310,7 +310,7 @@ class WeilModule (FormalSums):
         A = SL2Z([1,2,1,3])
         """
         # We only need the diagonal elements of rho(A)
-        n=len(self._QM.list())
+        n=len(list(self._QM))
         filter=MatrixSpace(ZZ,n).identity_matrix()
         # Need a WeilModuleElement to compute the matrix
         e=self._zero
@@ -514,7 +514,7 @@ class WeilModule (FormalSums):
             basis = [0]
         else:
             basis = []
-        el   = self.finite_quadratic_module().list()
+        el   = list(self.finite_quadratic_module())
         elts = [el[0]]  
         for x in self.finite_quadratic_module():
             if -x in elts or x in elts: continue
@@ -834,7 +834,7 @@ ss    Describes an element of a Weil module $K[A]$.
             dd = []
             self._coordinates = d
             for i in range(len(d)):
-                dd.append((d[i],parent.finite_quadratic_module().list()[i]))
+                dd.append((d[i],list(parent.finite_quadratic_module())[i]))
             d = dd
         else:
             raise ValueError,"Could not interpret {0} as a Weil module element!".format(d)
@@ -842,7 +842,7 @@ ss    Describes an element of a Weil module $K[A]$.
         
         FormalSum.__init__(self,d, parent, check, True)
         if self._coordinates == []:
-            l = parent.finite_quadratic_module().list()
+            l = list(parent.finite_quadratic_module())
             self._coordinates = [0 for i in range(parent.rank())]
             for i,x in self._data:
                 ix = l.index(x)
@@ -917,7 +917,7 @@ ss    Describes an element of a Weil module $K[A]$.
         s = 0
         for i in len(v1):
             for j in len(v2):
-                s+=self._QM.B(self._QM.list()[i],self._QM.list()[j])
+                s+=self._QM.B(list(self._QM)[i],list(self._QM)[j])
         return s
 
 
@@ -1611,7 +1611,7 @@ ss    Describes an element of a Weil module $K[A]$.
             #print "gamma=",gamma
         if len(gamma)<>len(self._W._gen_orders):
             print "W=",self._W
-            print "F=",self._W._QM.list()
+            print "F=",list(self._W._QM)
             print "F.gens=",self._W._QM.gens()
             print "F.gram=",self._W._QM.gram()
             print "is_nondeg=",self._W._QM.is_nondegenerate()
@@ -1989,7 +1989,7 @@ def test_dimensions_1(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,
         l=size_bd+1        
         while l>size_bd:
             FQ=FiniteQuadraticModuleRandom(fqbound,nbound,verbose-1)
-            l=len(FQ.list())
+            l=len(list(FQ))
             W = WeilModule(FQ)
             g = FQ.jordan_decomposition().genus_symbol()
             s = W.signature()
@@ -2025,9 +2025,9 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
         l=size_bd+1        
         while l>size_bd:
             FQ=FiniteQuadraticModuleRandom(fqbound,nbound,verbose-1)
-            if FQ.list()==[FQ(0)]:
+            if list(FQ)==[FQ(0)]:
                 return FQ
-            l=len(FQ.list())
+            l=len(list(FQ))
             W = WeilModule(FQ)
             g = FQ.jordan_decomposition().genus_symbol()
             s = W.signature()

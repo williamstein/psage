@@ -5,6 +5,7 @@ include "sage/rings/mpc.pxi"
 #include "../ext/gmp.pxi"
 include "sage/ext/python_int.pxi"
 from sage.structure.sage_object cimport SageObject
+from sage.structure.parent cimport Parent
 from sage.rings.integer cimport Integer
 
 cdef class MyPermutation(SageObject):
@@ -14,6 +15,7 @@ cdef class MyPermutation(SageObject):
     cdef void c_new(self,int* entries)
     cdef list _list
     cdef list _cycles
+    cdef list _cycle_type
     cdef str _str
     cdef int _init
     cdef int _order
@@ -27,7 +29,10 @@ cdef class MyPermutation(SageObject):
     cdef int get_unsafe(self,int i)
     cpdef int _get_unsafe(self,int i)
     cpdef conjugate(self,other)
+#    cpdef cycles(self,ordered=?,type=?)
+    cpdef cycles_as_perm(self)
     cpdef is_order_eq(self,int o)
+    cdef int is_order_eq_c(self,int o)
     cpdef _get_order(self)
     cpdef _inverse(self)
     cpdef str export_as_string(self,str sep=*)
@@ -80,7 +85,21 @@ cdef class MyPermutationIterator(SageObject):
     cdef _get_next_permutation_recursive(self,int tmp, int start,long num,int *lista)
     cpdef get_perms_test(self)
 
-
+cdef class CycleCombinationIterator(Parent):
+    cdef list _cycles
+    cdef list _cycle_types
+    cdef int _N
+    cdef int _length
+    cdef int _num_cycles
+    cdef int _dbase
+    cdef list _cache
+    cdef int _got
+    cpdef list(self)
+    #    cdef dict __cached_methods
+    cpdef length(self)
+    cpdef  MyPermutation permutation_nr(self,int M)
+    cdef MyPermutation permutation_nr_c(self,int M)
+#    cdef int permutation_nr_c(self,int M,MyPermutation p)
 
 cdef void _mult_perm(int N, int* res,int *left,int* right)
     

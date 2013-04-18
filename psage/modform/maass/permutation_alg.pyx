@@ -46,16 +46,18 @@ from sage.combinat.permutation_cython cimport reset_swap,next_swap
 from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
-from sage.all import binomial,lcm
+from sage.all import binomial #,lcm
 import cython
 from psage.modform.maass.mysubgroup import MySubgroup
-
+#from Cython.Utils import cached_function, cached_method
+#from sage.all import cached_method
 cdef extern from "math.h":
     double fabs(double)
     double fmax(double,double)
     int ceil(double)
     double M_LN10
     double log(double)
+    
 
 
 cdef extern from "mpz_pylong.h":
@@ -89,6 +91,7 @@ cdef class MyPermutation(SageObject):
         cdef int mutmp
         cdef list new_entries
         self._cycles = []
+        self._cycle_type=[]
         if entries==[]:
             if length>0:
                 self._N = length
@@ -295,7 +298,7 @@ cdef class MyPermutation(SageObject):
         rep = 1 => [1, 2, 3, 4, 5, 6, 7] (verbose list)
         rep = 2 => [[1], [2], [3], [4], [5], [6], [7]] (cycles)
         """
-
+        self._cycle_type = []
 
     cdef void set_entries(self, int *entries):
         r"""
@@ -435,27 +438,47 @@ cdef class MyPermutation(SageObject):
     def __order__(self):
         if self._order==-1:
             c = self.to_cycles()
-            self._order = lcm( map(len,c))
+            self._order = 1
+            for l in self.cycle_type():
+                self._order = lcm(self._order,l)  #lcm( map(len,c))
         return self._order
 
     cpdef is_order_eq(self,int o):
         r"""
         Testing if order of self is o without computing the order if not necessary
         """
-        cdef int i,j,k
-        for i in range(1,self._N+1):
-            k = i
-            for j in range(o):
-                k = self._element[k]
-            if k<>i:
+        return self.is_order_eq_c(o)
+    
+    cdef int is_order_eq_c(self,int o):
+        r"""
+        Testing if order of self is o without computing the order if not necessary
+        """
+        if self._order<>-1:
+            if o % self._order == 0 :
+                return 1
+            else:
                 return 0
-        return 1
+        cdef int i,j,k,l,ok
+        for l in range(1,o+1):
+            if o % l <>0:
+                continue
+            ok = 1
+            for i in range(1,self._N+1):
+                k = i
+                for j in range(l):
+                    k = self._entries[k-1]
+                if k<>i:
+                    ok = 0
+                    break
+            if ok == 1:
+                return 1
+        return 0
     
     def is_identity(self):
         r"""
         Test if self is the identity
         """
-        return self.order()==1
+        return self.is_order_eq(1)==1
     
     cpdef _get_order(self):
         return self._order
@@ -529,6 +552,8 @@ cdef class MyPermutation(SageObject):
         #res.set_entries(entries_res)
         #return self._pow
 
+
+    
     # cdef _pow(self,int k, int* res):
     #     cdef int i
     #     if k==0:
@@ -673,13 +698,10 @@ cdef class MyPermutation(SageObject):
         cdef MyPermutation res
         cdef int *res_ent=NULL
         cdef int N = self._N
-        #if N<><int>other._N:
-        #    raise NotImplementedError,"Can not multiply permutation on {0} letters with permutation of {1} letters".format(self._N,(<MyPermutation>other)._N) 
         res_ent = <int*>sage_malloc(sizeof(int)*N)
         if res_ent==NULL: raise MemoryError
         _mult_perm(N,self._entries,other._entries,res_ent)
         res = MyPermutation(length=N,init=0,check=0)
-        #res = MyPermutation(length=N,init=0,check=0)
         res.set_entries(res_ent)
         if res_ent<>NULL:
             sage_free(res_ent)
@@ -731,9 +753,9 @@ cdef class MyPermutation(SageObject):
         r"""
         Conjugate self with other, i.e. compute other*self*other**-1
         """
-        cdef int *entries=NULL
         cdef int l,i
         cdef MyPermutation res
+        cdef int *entries=NULL
         if isinstance(other,type(self)):
             l = (<MyPermutation>other)._N
         elif isinstance(other,list):
@@ -742,12 +764,13 @@ cdef class MyPermutation(SageObject):
             raise TypeError,"Conjugate with permutation of same length!"
         res = MyPermutation(length=l)
         entries = <int *>sage_malloc(sizeof(int)*self._N)
-        if isinstance(other,type(self)):            
+        if isinstance(other,MyPermutation):
             _conjugate_perm(self._N,entries,self._entries,<int *>(<MyPermutation>other)._entries)
-            
-        elif isinstance(other,list):
-            _conjugate_perm_list(self._N,entries,self._entries,other)
+        elif isinstance(other,list):        
+            _conjugate_perm_list(self._N,entries,self._entries,other)        
         else:
+            if entries<>NULL:
+                sage_free(entries)
             raise TypeError,"Can not conjugate self with {0}!".format(other)    
         res.set_entries(entries)
         if entries<>NULL:
@@ -880,48 +903,48 @@ cdef class MyPermutation(SageObject):
             if self._entries[i]<>other._entries[i]:
                 return 0
         return 1
-    
-    def cycles(self,type='list',ordered=1):
+
+#    cpdef cycles(self, int ordered = 1,int type=1): #'list'):
+    def cycles(self,ordered = 1,type=1): #'list'):
         r"""
         Gives the cycles of self as list of permutations.
-        Type = 'perm' or 'list'. If the type is list we can also choose ordered=1 to return a list with
+        Type = 0 'perm' or 1 'list'. If the type is list we can also choose ordered=1 to return a list with
         cycles given by increasing length.
         """
-        res=list()
-        if type=='list':
-            l = self.to_cycles()
-            if ordered == 1:
-                l.sort(key = lambda x: len(x))
+        #cdef list res,l,pl,tmplist
+        res = []
+        l = self.to_cycles(ordered=ordered)
+        if type==1:
             return l
-        for pl in self.to_cycles():
-            tmplist=range(1,self._N+1)
+        for pl in l:
+             #tmplist=range(1,self._N+1)
+            p0 = MyPermutation(length=self._N)
             if len(pl)==1:
-                res.append(MyPermutation(tmplist))
+                res.append(p0)
             else:
-                # Have a non-trivial cycle
-                for i from 0<=i<len(pl)-1:
-                    tmplist[pl[i]-1]=pl[i+1]
-                tmplist[pl[-1]-1]=pl[0]
-                res.append(MyPermutation(tmplist))
+                 # Have a non-trivial cycle
+                for i in range(len(pl)-1):
+                    p0._entries[pl[i]-1]=pl[i+1]
+                p0._entries[pl[-1]-1]=pl[0]
+                res.append(p0)
         return res
 
 
-    def cycles_as_perm(self):
+    cpdef cycles_as_perm(self):
         r"""
         This gives the cycles of self in terms of a permutation, i.e.
         (1 2 3)(6 4 5)  is represented by [1,2,3,6,4,5]
         """
         lens = self.cycle_type()
-        cycles = self.cycles(type='list',ordered=1)
+        cycles = self.to_cycles(ordered=1)
         res = []
         for i in range(len(lens)):
-            #print "len of cycle=",i
-            #print "cycle[i]=",cycles[i]
             for j in range(lens[i]):
                 res.append(cycles[i][j])
         return res
-        
-    def to_cycles(self):
+
+    
+    def to_cycles(self,ordered=0):
         r"""
         Gives the cycles of self as list of lists.
         """
@@ -931,6 +954,8 @@ cdef class MyPermutation(SageObject):
             if not self._list or not self._entries:
                 self.list()
             self._cycles = perm_to_cycle_c(self._N,self._entries)
+        if ordered==1:
+            self._cycles.sort(key = lambda x: len(x))
         return self._cycles
 
     def cycle_type(self):
@@ -938,10 +963,12 @@ cdef class MyPermutation(SageObject):
         Return the cycle type of self.
         
         """
-        l = self.cycles(type='list')
-        lens = map(len,l)
-        lens.sort()
-        return lens
+        if self._cycle_type == []:
+            l = self.to_cycles() 
+            lens = map(len,l)
+            lens.sort()
+            self._cycle_type = lens
+        return self._cycle_type
     
     def cycle_tuples(self):
         r"""
@@ -1880,6 +1907,98 @@ cdef class MyPermutationIterator(SageObject):
                     self._list_of_perms[m][i]=self._list_of_perms[m-1][i]
 
 
+
+cdef class CycleCombinationIterator(Parent):
+    r"""
+    Class implementing a sequence of permutations given by combinations of cycles in a given permutation.
+    This should be a small number since we construct all permutations.
+
+    NOTE: Currently only works with cycles of the same length.
+    
+    """
+
+    def __cinit__(self,MyPermutation R):
+        self._cycles = []
+        self._cycle_types = []
+        self._N = R.N()
+        self._length = 1
+        self._num_cycles=0
+        self._dbase = 1
+        self._cache = []
+        cdef int j
+        self._got = 0
+        cdef list tmp
+        cdef int jj
+        for c in R.cycles(type=0):
+            j = c.order()
+            if j==1:
+                continue
+            tmp = []
+            for jj in range(1,j):
+                if jj == 1:
+                    tmp.append(c)
+                elif jj==2:
+                    tmp.append(c.square())
+                else:
+                    tmp.append(c.pow(jj))
+            self._cycles.append(tmp)
+            self._cycle_types.append(j)
+            self._length = self._length*j
+            self._num_cycles = self._num_cycles + 1
+            if j > self._dbase:
+                self._dbase = j
+                
+    
+    def __init__(self,MyPermutation R):
+        r"""
+        Initialize self.
+        """
+        pass
+
+    def __repr__(self):
+        r""" print self (as a list)"""
+        s=""
+        for i in range(self._length):
+            s+=str(self.permutation_nr(i))+' '
+        return s
+    
+    cpdef length(self):
+        return self._length
+
+    cpdef list(self):
+        for i in range(len(self._cache),self._length):
+            self._cache.append(self.permutation_nr_c(i))
+        return self._cache
+    
+    #@cached_method
+    def get_permutation_nr(self,M):
+        return self.permutation_nr(M)
+    
+    cpdef MyPermutation permutation_nr(self,int M):
+        M = M % (self._length + 1)
+        cdef int i
+        if M >= self._got:
+            for i in range(self._got,M+1):
+                self._cache.append(self.permutation_nr_c(i))
+            self._got = M+1
+        return self._cache[M]
+
+
+    cdef MyPermutation permutation_nr_c(self,int M): #,MyPermutation p):
+        cdef MyPermutation res
+        res = MyPermutation(length=self._N)
+        cdef int i, M1,j1
+        for i in range(self._num_cycles):
+            M1 = M % self._dbase            
+            #res = res._mult_perm(<MyPermutation>(self._cycles[i]).pow(M1))
+            j1 = M1 % int(self._cycle_types[i])
+            if j1>0:
+                res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
+            M = (M-M1)/self._dbase
+        return res
+
+
+    
 ### Helper functions
 
 cdef int _is_of_order(int n,int *plist, int order):
@@ -2089,8 +2208,7 @@ cdef void _mult_perm(int N,int *left,int *right,int* res):
         res = self*other : i-> other(self(i))
         """
         cdef int i
-        for i from 0 <= i < N:
-            #print "left[",i,"]=",left[i]-1
+        for i in range(N):
             res[i]=right[left[i]-1]
         ##print "a=",print_vec(N,left)
         ##print "b=",print_vec(N,right)
@@ -2202,6 +2320,72 @@ cdef long factorial(int n):
         result*=i
     return result
 ###
+cdef MyPermutation perm_power_c(MyPermutation perm,int k):
+    cdef MyPermutation res,fac
+    #cdef int* entries_res 
+    #res = MyPermutation(length=self._N)
+    cdef int p,m,j,o
+    if k==0:
+        return MyPermutation(length=p._N)
+    if k==1:
+        return perm
+    if k==-1:
+        return perm.inverse()
+    if k<0:
+        k = -k
+        fac = perm.inverse()
+    else:
+        fac = perm
+    o = perm.order()
+    k = k % o
+    res = MyPermutation(length=perm._N)
+    for p,m in ZZ(k).factor():
+        if m==1:
+            if p==2:
+                res=res*fac.square()
+            else:
+                for j from 0<=j<p:
+                    res=res*fac
+        else:
+            for j from 0<=j<m:
+                res=res*fac.pow(p)
+    return res
+# cdef _power(int k, int N, int o=0, int* entries,int* res):
+#     cdef int i
+#     if k==0:
+#         for i in range(N):
+#             res[i]=i+1
+#     elif k==1:
+#         for i in range(N):
+#             res[i]=entries[i]
+#     else:
+#         if o>0:
+#             if k >1:
+#                 inv = 0 
+#             if k > o:
+#                 k = k % o
+#                 inv = 1
+#          if k%2==0:
+#              tmp=self.square()
+#              res=tmp
+#             #for i in range(k/2-1):
+#              for i from 0<=i<k/2-1:
+#                  res=res*tmp
+#              else:
+#                  tmp=self.square()
+#                  res=self
+#                  for i in xrange((k-1)/2):
+#                      res=res*tmp
+#              return res
+#          elif k<0:
+#              k = -k
+#              o = self.order()
+#              if k>o:
+#                  k = k % o
+#              return self.inverse().__pow__(k)
+#          elif k==0:
+#              return MyPermutation(length=self.N(),init=1)  
+
 
 ### Fixed points ###
 cpdef num_fixed(list x):
@@ -2588,3 +2772,15 @@ cpdef transposition(int N,int i,int j):
 ##     for i from 0 <= i <=N:
 ##        v.push_back(i)
 ##     return v
+
+
+cdef int gcd(int m, int n):
+    cdef int tmp
+    while m<>0:
+        tmp = m
+        m = n % m
+        n = tmp       
+    return n
+
+cdef int lcm(int m, int n):
+    return m / gcd(m, n) * n

@@ -853,17 +853,18 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             if t==1:
                 reflections[(S,R)]={'group':(Stest,Rtest),'map':A}
                 break
-            
-    ##  Modulo *:  E->E, R->ER^2E
-#    lc_pgl,lc_pgl_maps,list_of_R=filter_list_mod_psl_mod_S_new(lc_psl.keys(),mu,e2,e3,Sp,verbose,do_pgl=1)
+    lens_of_cc=[]    
+    for Stest,Rtest in Gmodpsl:
+        lens_of_cc.append(len(conjugates[(Stest,Rtest)]))
     d = dict()
     d['sig']=sig
-    d['S']=Sp
+    #d['S']=Sp
     d['numg']=len(list_of_groups)
+    d['num_cc']=lens_of_cc
     d['groups']=list_of_groups
     d['groups_mod_psl']=Gmodpsl
     d['groups_mod_pgl']=Gmodpgl
-    d['conjugates']=conjugates
+    d['conjugates'=]conjugates
     d['conjugate_maps']=conjugate_maps
     d['reflections']=reflections
     for key in d.keys():

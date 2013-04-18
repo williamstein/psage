@@ -248,7 +248,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             Constructed from G=Modular Group SL(2,Z)            
 
         """
-        s ="Arithmetic Subgroup of PSL2(Z) with index "+str(self._index)+". "
+        if self.index()==1:
+            return "SL(2,Z)"
+        s ="Arithmetic Subgroup of SL(2,Z) with index "+str(self._index)+". "
         s+="Given by: \n \t perm(S)="+str(self.permS)+"\n \t perm(ST)="+str(self.permR)
         if hasattr(self,"_display_format") and self._display_format=='long':
             s+="\nConstructed from G="+super(MySubgroup_class,self)._repr_()

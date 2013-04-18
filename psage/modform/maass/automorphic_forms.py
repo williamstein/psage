@@ -302,11 +302,14 @@ class AutomorphicFormSpace(Parent):
             s+=" with trivial multiplier "
         #if(self._character<>trivial and self._character<>trivial_character(self._group.level())):            
         #    s+=" and character: "+str(self._character)+" "
-        s+="on "
+        s+=" on "
         if(self._from_group):
             s+=str(self._from_group)
         else:
-            s+="the group G:\n"+str(self._group)
+            if self.group().index()==1:
+                s+=" SL(2,Z)"
+            else:
+                s+="the group G\n"+str(self._group)
         return s
 
 
@@ -1082,6 +1085,9 @@ class AutomorphicFormSpace(Parent):
                 except:
                     return C.append((V,N))
         #mpmath.mp.dps=dpold
+        if verbose>0:
+            print "C[0][-1]=",C.get(0,{}).get(0,{}).get(-1,None)
+
         res=list()
         if get_c:
             return C
@@ -2233,8 +2239,10 @@ class AutomorphicFormElement(SageObject):
                 s+=self.list_coefficients(N=N,cusp=j,norm=norm,print_part=print_part,component=component,out_prec=out_prec)
                 #assert isinstance(cusp,(int,Integer))
             return s
-        C = self._coeffs.get(component,{}).get(cusp,{})
-        l = C.keys()
+        C = {} #copy(self._coeffs.get(component,{}).get(cusp,{}))
+        #Cplus = []
+        #Cminus = []
+        l = self._coeffs.get(component,{}).get(cusp,{}).keys()
         l_plus = []; l_minus=[]
         for n in l:
             if abs(n)>N:
@@ -2243,12 +2251,12 @@ class AutomorphicFormElement(SageObject):
                 l_plus.append(n)
             else:
                 l_minus.append(n)
-        for (j,n) in  self.principal_part()['+'].keys(): 
-            if j==cusp:
-                l_plus.append(n); C[n]=self.principal_part()['+'][(j,n)]
-        for (j,n) in  self.principal_part()['-'].keys(): 
-            if j==cusp:
-                l_minus.append(n); C[n]=self.principal_part()['-'][(j,n)]
+        #for (j,n) in  self.principal_part().get('+',{}).keys(): 
+        #    if j==cusp:
+        #        l_plus.append(n); C[n]=self.principal_part()['+'][(j,n)]
+        #for (j,n) in  self.principal_part().get('-',{}).keys(): 
+        #    if j==cusp:
+        #        l_minus.append(n); C[n]=self.principal_part()['-'][(j,n)]
         l_plus.sort(cmp=self.my_zzcmp)
         l_minus.sort(cmp=self.my_zzcmp)
         scaling_factors=[]
@@ -2288,7 +2296,10 @@ class AutomorphicFormElement(SageObject):
                 al = al0
             for n in l_plus:
                 nal = n + al
-                c = C[n]
+                if n<0:
+                    c = C.get(component,n,0)
+                else:
+                    c = self.C(component,cusp,n)
                 if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
                 elif hasattr(c,"real"):
@@ -2305,12 +2316,12 @@ class AutomorphicFormElement(SageObject):
             if al0.denominator()<1000: 
                 al = al0
             if norm:
-                norm_minus = F.C(cusp,-1)  #self.principal_part()['-'].get((cusp,0),F.C(cusp,0))
+                norm_minus = self.C(component,cusp,-1)  #self.principal_part()['-'].get((cusp,0),F.C(cusp,0))
                 if abs(norm_minus) < RF(2.0)**(-self.prec()/2.0):
                     try:
                         for n in l_minus:
                             if n>0:
-                                norm_minus = F.C(cusp,n)
+                                norm_minus = self.C(component,cusp,n)
                                 if abs(norm_minus) > RF(2.0)**(-self.prec()/2.0):
                                     raise StopIteration()
                         raise ArithmeticError,"Could not find non-zero negative coefficient to normalize with!"
@@ -2320,13 +2331,13 @@ class AutomorphicFormElement(SageObject):
                 norm_minus = CF(1)             
             for n in l_minus:    
                 nal = n + al
-                c = C[n]
+                c = self.C(component,cusp,n)
                 if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
                 else:
                     c = CF(c.real(),c.imag())
                 if nal>0:
-                    nn = abs(nal)**(1-k)
+                    nn = abs(nal)**(1-self.weight())
                     c = c/norm_minus/nn
 
                 s+="C^{{-}}_{{ {0} }} ({1}) = {2} \n ".format(cusp,n,c)
@@ -2647,19 +2658,19 @@ class AutomorphicFormElement(SageObject):
         sp=""
         for (r,n) in self._principal_part['+']:
             a=self._principal_part['+'][(r,n)]
-            if(a<>0):
-                x=QQ(n+RR(self._space.alpha(r)[0]))            
-            if(a<>1):
-                if(a>0 and len(sp)>0):
+            if a<>0:
+                x=QQ(n+self._space.alpha(r)[0])            
+            if a<>1:
+                if a>0 and len(sp)>0:
                     ast="+"+str(a)
                 else:
                     ast=str(a)
-                if(x<>0):
+                if x<>0:
                     sp=sp+ast+"q^{"+str(x)+"}"
                 else:
                     sp=sp+ast
             else:
-                if(x<>0):
+                if x<>0:
                     sp=sp+"q^{"+str(x)+"}"
                 else:
                     sp=sp+"1"

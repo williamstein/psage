@@ -1344,7 +1344,8 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
         Rpgl = R.square().conjugate(S)
         if verbose>0:
             print "------------------------------------------------------------------"
-            print "Comp PGL: ER^2R[{0}]={1}".format(i,Rpgl)
+            print "Comp PGL: R={0}; S={1}".format(R,S)
+            print "ER^2S[{0}]={1}".format(i,Rpgl)
         for j in range(i,numr):
             if checked[j]==1:
                 continue
@@ -1353,14 +1354,15 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
             p = are_conjugate_perm(Rpgl,R1)
             Scp = S1.conjugate(p.inverse())
             if verbose>1:
+                print "p=",p
                 print "R=",R.to_cycles()
                 print "S=",S.to_cycles()
                 print "S^p=",Scp.to_cycles()
-                pp=are_conjugate_wrt_stabiliser(Rpgl,S,Scp,p,&t,1)
+                pp=are_conjugate_wrt_stabiliser(Rpgl,S,Scp,p,&t,0,1)
             else:
                 pp=are_conjugate_wrt_stabiliser(Rpgl,S,Scp,p,&t)
             if t==1:
-                pp = p*pp
+                pp = pp*p
                 if verbose>0:                    
                     print "pp=",pp.to_cycles()
                 Scp = S.conjugate(pp)
@@ -2055,6 +2057,9 @@ cpdef stabiliser_of_R_StoSp(MyPermutation pR,MyPermutation pS,MyPermutation pS1,
 cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermutation pS1,MyPermutation p_in,int* t,int map_one_to=0,int verbose=0):
     r"""
     Return a the list of permutations which preserves pR and maps pS to pS1 under conjugation.
+    To be more precise. We seek permutation p s.t.
+    p^-1 pR p = pR and p^-1 pS p = pS1
+
     """
     cdef list Rctype,Rcycles,lR,ll,l0,l
     cdef list cycles1,cycles3

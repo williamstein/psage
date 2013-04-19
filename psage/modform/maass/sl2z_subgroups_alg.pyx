@@ -50,7 +50,7 @@ from sage.interfaces.all import gap
 
 from time import clock, time
 
-cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
+cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     correcponsing to groups G with signature = sig
@@ -64,6 +64,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
 
     - get_one_rep -- set to one if you just want one representative for this signature.
     - congruence -- Integer. 1 or 0 to find a congruence or a non-congruence subgroup.
+
+    OLD: Slower version
     
     """
     cdef int mu,h,e2,e3,g
@@ -473,7 +475,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
 
 
 
-cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
+cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     correcponsing to groups G with signature = sig

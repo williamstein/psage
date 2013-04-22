@@ -48,7 +48,7 @@ from sage.rings.integer import Integer,is_Integer
 from sage.rings.integer_ring cimport Integer
 from sage.rings.complex_double import CDF
 from sage.all import log_b
-from numpy import array
+#from numpy import array
 from sage.all import exp,I,CC,find_root
 from sage.matrix.all import MatrixSpace
 ## Since I want to import sinand cos from math.h 
@@ -56,8 +56,8 @@ from sage.matrix.all import MatrixSpace
 #from sage.all import cos as scos
 #from libc.math cimport sin as dsin
 #from libc.math cimport cos as dcos
-import numpy as np
-cimport numpy as cnp
+#import numpy as np
+#cimport numpy as cnp
 #cimport cython
 
 from maass_forms_alg cimport SMAT_cplx_dp,set_Mv_Qv_symm

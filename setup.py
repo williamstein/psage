@@ -229,7 +229,7 @@ my_extensions = [
     Extension('psage.modform.maass.automorphic_forms_alg',
               ['psage/modform/maass/automorphic_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-#              include_dirs = numpy_include_dirs,
+              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 

@@ -601,7 +601,13 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
     sig_on()
-    for pR in PRI: 
+    cdef MyPermutation ptest
+    ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    for pR in PRI:
+        if pR == ptest:
+            verbose=2
+        else:
+            verbose = 0
         if verbose>0:
             print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
             print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
@@ -674,11 +680,12 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                         print "remove (b>c)!"
                     do_cont = 1
                     break
-            for j from a+1<= j < b:  # I want to see if there is a j, equivalent to b, smaller than b
+            for j from a+1<= j < b:
+               # I want to see if there is a j, equivalent to b, smaller than b
                if equivalent_integers_mod_fixS(b,j,mu,e2,end_fc,Sptr,used)==1:
                     #if t1 or (t2 and t3):
                     if verbose>0:
-                        print j," (b) and ",b," are equivalent in",rc
+                        print b," (b) and ",j," are equivalent in",rc
                     if j<b:
                         if verbose>0:
                             print "remove!"
@@ -906,7 +913,9 @@ cdef int equivalent_integers_mod_fixS(int a,int b,int mu,int e2,int end_fix,int*
     ii) (b b') and (c c') are two cycles of S with c and c' not used previously and not fixed points of R
      
     """
-    if a<=e2 and b<=e2 and used[b-1]==0:
+    if used[b-1]==1:
+        return 0
+    if a<=e2 and b<=e2:
         return 1
     if (a>=end_fix and used[Sptr[a-1]-1]==0) and (b>=end_fix and used[Sptr[b-1]-1]==0):
         return 1
@@ -1007,7 +1016,7 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                     print "R=",R.to_cycles()
                     print "S=",S.to_cycles()
                     print "S^p=",Scp.to_cycles()
-                    pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t,1)
+                    pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t,0,1)
                 else:
                     pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t)
                 if t==1:
@@ -1145,7 +1154,7 @@ cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi
                     print "R=",R.to_cycles()
                     print "S=",S.to_cycles()
                     print "S^p=",Scp.to_cycles()
-                    pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,Sc,p,&t,1)
+                    pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,Sc,p,&t,0,1)
                 else:
                     pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,Sc,p,&t)
                 if t==1:
@@ -1479,7 +1488,7 @@ cpdef are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPermutati
         j = pp.inverse()(1)
         pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,j,verbose)
     else:
-        pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,verbose)
+        pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,0,verbose)
     if t == 0:
         if ret=='SL2Z':
             return 0, SL2Z([1,0,0,1])

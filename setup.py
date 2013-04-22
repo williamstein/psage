@@ -297,8 +297,8 @@ my_extensions = [
         
     Extension('psage.modform.maass.eisenstein_series',
               ['psage/modform/maass/eisenstein_series.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-#              include_dirs = numpy_include_dirs),
+              libraries = ['m','gmp','mpfr','mpc'],
+              include_dirs = numpy_include_dirs),
 
     Extension("psage.modform.maass.test_parallel",
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],

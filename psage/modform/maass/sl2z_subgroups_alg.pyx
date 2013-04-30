@@ -50,6 +50,7 @@ from sage.interfaces.all import gap
 
 from time import clock, time
 
+## Namingscheme: oldX is more recent with higher number of X
 cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
@@ -475,7 +476,7 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
 
 
 
-cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
+cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     correcponsing to groups G with signature = sig
@@ -604,10 +605,10 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef MyPermutation ptest
     ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
     for pR in PRI:
-        if pR == ptest:
-            verbose=2
-        else:
-            verbose = 0
+        #if pR == ptest:
+        #    verbose=2
+        #else:
+        #    verbose = 0
         if verbose>0:
             print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
             print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
@@ -905,7 +906,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     #sig_off()
     return d
 
-cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
+cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     correcponsing to groups G with signature = sig
@@ -1034,10 +1035,10 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     cdef MyPermutation ptest
     ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
     for pR in PRI:
-        if pR == ptest:
-            verbose=2
-        else:
-            verbose = 0
+        #if pR == ptest:
+        #    verbose=2
+        #else:
+        #    verbose = 0
         if verbose>0:
             print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
             print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
@@ -1202,13 +1203,13 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             for i in range(2,j):
                 # Check if there is a p s.t. p(i)=j and R^p = R and S^p = p
                 # if this exist we continue
+                Rp = copy(R); Spc = copy(Sp)
                 t,p=are_conjugate_pairs_of_perms(Spc,Rp,Spc,Rp,ret='perm',map_from=i,map_to=j)
                 if t==1:
                     if verbose>0:
                         print "{0} and {1} are equivalent with p={2}!".format(i,j,p)
                     do_cnt = 1
                     continue
-                Rp = copy(R); Spc = copy(Sp)
                 #if verbose>0:
                 #    print "R,S^{0}={1},{2}".format(j,Rp,Spc)            
                 Rp.conjugate_with_transposition(1,j)

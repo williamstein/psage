@@ -1250,6 +1250,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             Sp = list_of_groups[i][0]
             R = list_of_groups[i][1]
             print "S,R=",Sp.to_cycles(),R.to_cycles()
+        print "Number of groups:",len(list_of_groups)
     indicator_list=range(1,len(list_of_R)+1)
     list_of_R_tmp=[]
     cdef dict lc_psl,lc_pgl,lc_psl_maps,lc_pgl_maps

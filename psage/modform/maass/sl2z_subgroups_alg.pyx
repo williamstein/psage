@@ -1231,6 +1231,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         print "Preliminary list of groups:"
         for t in list_of_groups:
             print t
+        print "Number of groups:",len(list_of_groups)
     cdef int nlr = len(list_of_R)
     if verbose>=0:
         start = time()

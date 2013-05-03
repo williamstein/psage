@@ -456,8 +456,8 @@ def compare_formulas_2(D,k):
     d1=RR(abs(D))/RR(6)
     if D<0:
         D=-D
-    s1=RR(sqrt(D)*sum([log(d) for d in divisors(D) if Zmod(d)(D/d).is_square() and is_fundamental_discriminant(-d)]))
-    d2=RR(1/pi*s1)
+    s1=RR(sqrt(abs(D))*sum([log(d) for d in divisors(D) if is_fundamental_discriminant(-d) and kronecker(-d,D/d)==1]))
+    d2=RR((2/(sqrt(3)*pi))*s1)
     return d1-d2,d2,RR(2*sqrt(D)*log(D)/pi)
 
 A3=lambda N: sum([kronecker(-N,x) for x in Zmod(N) if x**2+x+Zmod(N)(1) == 0])
@@ -477,11 +477,11 @@ def compare_formulas_3(D,k):
 def formtest(minD,maxD,k,eps=-1):
     ds={}
     for D in range(minD,maxD+1):
-        if (eps*D)%4==1 or (eps*D)%4==0:
-            d=compare_formulas_1(eps*D,k)
-            if True:#d<=1e-6:
+        if (eps*D)%4==1:
+            dif,d,dd=compare_formulas_2(eps*D,k)
+            if dif<=1e-6:
                 print D, factor(D)
-                print d
+                print dif,d,dd
             #ds[D]=(d[1]-d[2])/RR(D)
     #return ds
 

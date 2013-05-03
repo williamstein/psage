@@ -6,6 +6,17 @@ import matplotlib.path as path
 
 from sage.all import I,Gamma0,Gamma1,Gamma,SL2Z,ZZ,RR,ceil,sqrt,CC,line,text,latex,exp,pi,infinity
 
+
+from sage.plot.all import Graphics,arc
+from sage.plot.arc import Arc
+from sage.plot.primitive import GraphicPrimitive
+from sage.plot.colors import to_mpl_color
+from sage.plot.misc import options, rename_keyword
+from sage.plot.all import text
+from sage.plot.hyperbolic_triangle import HyperbolicTriangle, hyperbolic_triangle
+from sage.plot.hyperbolic_arc import hyperbolic_arc
+from sage.plot.bezier_path import BezierPath
+
 def draw_fundamental_domain(N,group='Gamma0',model="H",axes=None,filename=None,**kwds):
         r""" Draw fundamental domain
         INPUT:
@@ -121,38 +132,7 @@ def draw_funddom(coset_reps,format="S"):
     for A in coset_reps:
         if list(A)==[1,0,0,1]:
             continue
-        #print  "A=",A
-        # [a,b,c,d]=A
-        # if(a==1  and b==0  and c==0  and d==1 ):
-        #     continue
-        # if(a<0 ):
-        #     a=RR(-a); b=RR(-b); c=RR(-c); d=RR(-d) 
-        # else:
-        #     a=RR(a); b=RR(b); c=RR(c); d=RR(d) 
-        # if(c==0 ): # then this is easier
-        #     L0 = [[cos(pi_3*RR(i/100.0))+b,sin(pi_3*RR(i/100.0))] for i in range(100 ,201 )]
-        #     L1 = [[x1+b,y1],[x1+b,xmax]]
-        #     L2 = [[x2+b,y2],[x2+b,xmax]]
-        #     L3 = [[x2+b,xmax],[x1+b,xmax]]
-        #     c0=line(L0); l1=line(L1); l2=line(L2); l3=line(L3)
-        #     tri=c0+l1+l3+l2
-        #     g=g+tri
-        # else:
-        #     den=(c*x1+d)**2 +c**2 *y1**2 
-        #     x1_t=(a*c*(x1**2 +y1**2 )+(a*d+b*c)*x1+b*d)/den
-        #     y1_t=y1/den
-        #     den=(c*x2+d)**2 +c**2 *y2**2 
-        #     x2_t=(a*c*(x2**2 +y2**2 )+(a*d+b*c)*x2+b*d)/den
-        #     y2_t=y2/den
-        #     inf_t=a/c
-        #     #print "A=",A
-        #     #print "arg1=",x1_t,y1_t,x2_t,y2_t
-        #     c0=_geodesic_between_two_points(x1_t,y1_t,x2_t,y2_t)
-        #     #print "arg1=",x1_t,y1_t,inf_t
-        #     c1=_geodesic_between_two_points(x1_t,y1_t,inf_t,0. )
-        #     #print "arg1=",x2_t,y2_t,inf_t
-        #     c2=_geodesic_between_two_points(x2_t,y2_t,inf_t,0.0)
-        #     tri=c0+c1+c2
+
         tri=draw_transformed_triangle_H(A,xmax=xmax)
         g=g+tri
     return g
@@ -200,6 +180,143 @@ def draw_transformed_triangle_H(A,xmax=20):
         tri=c0+c1+c2
     return tri
     
+
+class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
+    r"""
+    Hyperbolic triangles in the disc model of the hyperbolic plane.
+    Note that we are given coordinates in the upper half-plane and map them to the disc.
+    
+    """
+    @options(center=CC(0,1))
+    def __init__(self, A, B, C,**options):
+        """
+            Initialize HyperbolicTriangle under the map (z-z0)/(z-\bar(z0)):
+
+        Examples::
+        
+            sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
+            sage: print HyperbolicTriangle(0, 1/2, I, {})
+            Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
+        """
+        A, B, C = (CC(A), CC(B), CC(C))
+        self.path = []
+        self._graphics = Graphics()
+        Z0 = options['center'] #.get('center',C(0,1))
+        self._z0=CC(Z0); self._z0bar=CC(Z0).conjugate()        
+        self._hyperbolic_arc_d(A, B, True);
+        self._hyperbolic_arc_d(B, C);
+        self._hyperbolic_arc_d(C, A);
+        #BezierPath.__init__(self, self.path, options)
+        options.pop('center',None)
+        if options=={} or options==None:
+            self._options = {}
+        else:
+            self._options = options
+        #super(HyperbolicTriangleDisc,self).__init__(options)
+        self.A, self.B, self.C = (A, B, C)
+
+    def _cayley_transform(self,z):
+            return (CC(z)-self._z0)/(CC(z)-self._z0bar)
+
+    def _hyperbolic_arc_d(self, z0, z3, first=False):
+        """
+        Function to construct Bezier path as an approximation to
+        the hyperbolic arc between the complex numbers z0 and z3 in the
+        hyperbolic plane.
+        """
+        w0 = self._cayley_transform(z0)
+        w3 = self._cayley_transform(z3)
+        if w0.real()==0 and w3.real() == 0:
+            y = (w0.imag() + w0.imag())/2
+            #self.path.append([(0,w0.imag()),CC(0,y), (0,w3.imag())])
+            self._graphics.add_primitive(BezierPath([(0,w0.imag()),CC(0,y), (0,w3.imag())],self._options))
+            return
+        z0,z3 = CC(z0), CC(z3) 
+        if z0.imag() == 0 and z3.imag() == 0:
+            p = (z0.real()+z3.real())/2
+            r = abs(z0-p)
+            zm = CC(p, r)
+            self._hyperbolic_arc_d(z0, zm, first)
+            self._hyperbolic_arc_d(zm, z3)
+            return
+        else:
+            p = (abs(z0)*abs(z0)-abs(z3)*abs(z3))/(z0-z3).real()/2 # center of the circle in H
+            r = abs(z0-p) # radius of the circle in H
+            zm = ((z0+z3)/2-p)/abs((z0+z3)/2-p)*r+p
+            t = (8*zm-4*(z0+z3)).imag()/3/(z3-z0).real()
+            z1 = z0 + t*CC(z0.imag(), (p-z0.real()))
+            z2 = z3 - t*CC(z3.imag(), (p-z3.real()))
+            zm = self._cayley_transform(zm)
+            w1 = self._cayley_transform(z1)
+            w2 = self._cayley_transform(z2)
+
+            c = self._cayley_transform(CC(p,0)) # center of circle on the unit disk.
+            r = abs(w1-c) # radius
+            theta = t
+        self._graphics.add_primitive(Arc((zm.real(),zm.imag()),r,sector=(-t,t),options=self._options))
+
+    def __call__(self):
+        return self._graphics
+        # if first:
+        #     self.path.append([(w0.real(), w0.imag()),
+        #                       (w1.real(), w1.imag()),
+        #                       (w2.real(), w2.imag()),
+        #                       (w3.real(), w3.imag())]);
+        #     first = False
+        # else:
+        #     self.path.append([(w1.real(), w1.imag()),
+        #                       (w2.real(), w2.imag()),
+        #                       (w3.real(), w3.imag())]);
+
+
+@rename_keyword(color='rgbcolor')
+@options(alpha=1, fill=False, thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
+def my_hyperbolic_triangle(a, b, c, **options):
+    """
+    Return a hyperbolic triangle in the complex hyperbolic plane with points
+    (a, b, c). Type ``?hyperbolic_triangle`` to see all options.
+
+    INPUT:
+
+    - ``a, b, c`` - complex numbers in the upper half complex plane
+
+    OPTIONS:
+    
+    - ``alpha`` - default: 1
+       
+    - ``fill`` - default: False
+
+    - ``thickness`` - default: 1
+
+    - ``rgbcolor`` - default: 'blue'
+
+    - ``linestyle`` - default: 'solid'
+
+    EXAMPLES:
+
+    Show a hyperbolic triangle with coordinates 0, `1/2+i\sqrt{3}/2` and
+    `-1/2+i\sqrt{3}/2`::
+    
+         sage: hyperbolic_triangle(0, -1/2+I*sqrt(3)/2, 1/2+I*sqrt(3)/2)
+
+    A hyperbolic triangle with coordinates 0, 1 and 2+i::
+    
+         sage: hyperbolic_triangle(0, 1, 2+i, fill=true, rgbcolor='red')
+    """
+    from sage.plot.all import Graphics
+    g = Graphics()
+    g._set_extra_kwds(g._extract_kwds_for_show(options))
+    model = options['model']
+    options.pop('model',None); options.pop('method',None)
+    if model=="D":
+        #g.add_primitive(HyperbolicTriangleDisc(a, b, c, **options))
+        H = HyperbolicTriangleDisc(a, b, c, **options)
+        g += H()
+    else:
+        g.add_primitive(HyperbolicTriangle(a, b, c, options))
+    g.set_aspect_ratio(1)
+    return g
+
 
 def draw_funddom_d(coset_reps,format="MP",z0=I):
     r""" Draw a fundamental domain for self in the circle model

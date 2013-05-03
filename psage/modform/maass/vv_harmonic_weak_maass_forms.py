@@ -107,8 +107,18 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
         """
         # If WR is an integer we construct the corr. Weil rep.
-        
-
+        if isinstance(WM,WeilRepMultiplier):
+            self.WM=WM
+        elif is_int(WM) or isinstance(WM,WeilRepDiscriminantForm):
+            if is_int(WM):
+                N=WM
+            else:
+                N = WM.N
+            WR = WeilModule(N)
+            self.WM=WeilRepMultiplier(WR,weight=QQ(k),dual=dr)
+        else:
+            raise ValueError,"Got invalid multiplier: {0}".format(WM)
+        self.group=MySubgroup(self.WM.group())
         self.weight=k
         self._weight_rat=QQ(RR(k))
         self.dprec=dprec

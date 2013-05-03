@@ -85,9 +85,13 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
+
 from sage.rings.arith                     import divisors, is_prime, kronecker,lcm,gcd, prime_divisors,primitive_root,is_square,is_prime_power
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
-from sage.groups.group                    import AbelianGroup 
+from sage.groups.group                    import AbelianGroup,FiniteGroup
+from sage.groups.abelian_gps.abelian_group  import AbelianGroup_class,AbelianGroup_subgroup
+from sage.groups.additive_abelian.additive_abelian_group  import AdditiveAbelianGroup_class
+from sage.groups.additive_abelian.additive_abelian_group import cover_and_relations_from_invariants
 from sage.modules.free_module_element     import vector
 from sage.matrix.matrix_space             import MatrixSpace
 from sage.matrix.constructor              import matrix, diagonal_matrix, identity_matrix
@@ -98,6 +102,7 @@ from sage.structure.sequence              import Sequence_generic
 from sage.structure.all                   import Sequence
 from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,CartesianProduct
 from sage.graphs.graph import DiGraph
+from sage.modules.free_module_element import FreeModuleElement
 from sage.rings.number_field.number_field_element import NumberFieldElement
 
 ###################################
@@ -105,7 +110,8 @@ from sage.rings.number_field.number_field_element import NumberFieldElement
 ###################################
 
 
-class FiniteQuadraticModule_ambient (AbelianGroup):
+#class FiniteQuadraticModule_ambient (AbelianGroup_class):
+class FiniteQuadraticModule_ambient (AdditiveAbelianGroup_class,FiniteGroup):
     r"""
     Describes a finite quadratic module $(A,Q)$. The abelian group $A$
     is given by generators \code{(e_0,e_1,\dots)} and a matrix $R$ of relations
@@ -141,7 +147,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         True
     """
 
-    def __init__(self, R, G, check = True, names = None):
+    def __init__(self, R, G, check = True, names = None,verbose=0):
         r"""
         Initialize a quadratic module from R and G.
         
@@ -175,7 +181,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             #print "v=",v
             if C0.denominator() > 2 or C.denominator() > 2 or v.denominator() > 1:
                 raise ValueError, "(%s,%s): not a compatible pair" %(R,G)
-        AbelianGroup.__init__( self)
+
+        if verbose>0:
+            print "R=",R
+            print "G=",G
         # There is a sort of bug:
 ##         sage: M = matrix(ZZ,1,[1])       
 ##         sage: M1 = matrix(ZZ,1,1,{(0,0):1})
@@ -226,7 +235,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
              *T).matrix_from_rows_and_columns( mask, mask))
         n = self.__E.nrows()
         self.__elementary_divisors = tuple( [ self.__E[j,j] for j in range( n) ])
-
         # Transformation matrices:
         # can_sys = fun_gen * C2F, fun_sys = can_sys * F2C
 
@@ -234,7 +242,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         self.__F2C = T.matrix_from_columns( mask)
         
         # Set the relation, Gram matrix and ngens to be used for the output
-
         # self.__R = self.__R
         self.__G = self.__iG
         self.__ngens = self.__R.ncols()
@@ -247,11 +254,20 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         ## Silly class identifier needed since our class does not keep its name in sage....
         self._is_FiniteQuadraticModule_ambient=True
 
-        # zero of self
-        self._zero = FiniteQuadraticModuleElement(self, 0, can_coords = True)
         # list of possible x_c's
         self._xcs={}
+        #names = self.normalize_names(self.__R.nrows(), names)
         
+        #super(FiniteQuadraticModule_ambient, self).__init__(tuple(self.__R.diagonal()),names)
+        A,B=cover_and_relations_from_invariants(self.__R.diagonal())
+        if verbose>0:
+            print "A=",A
+            print "B=",B
+        super(FiniteQuadraticModule_ambient, self).__init__(A,B)
+        #AbelianGroup.__init__( self)
+        # zero of self
+        self._zero = FiniteQuadraticModuleElement(self, 0, can_coords = True)
+        # list of possible x_c's        
         
     
     ###################################
@@ -408,13 +424,18 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         """
         return tuple([ self( list(x), can_coords = False) for x in identity_matrix( ZZ, len(self.elementary_divisors())) ])
 
-
+    def gens(self):
+        r"""
+        Return sa set of generators of self as a finite quadratic module.
+        """
+        return tuple([self.gen(i) for i in range(self.ngens())])
+    
     ###################################
     ## Coercion
     ###################################
 
 
-    def __call__( self, x, can_coords = False):
+    def __call__( self, x, can_coords = False,**kwds):
         r"""
         Coerce object into an appopriate child object
         of self if possible.
@@ -430,10 +451,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         if isinstance( x, FiniteQuadraticModuleElement):
             if x.parent() is self:
                 return x
-        if isinstance( x, list):
+        if isinstance( x, (list,tuple,FreeModuleElement)) and len(x)==self.ngens():
             return FiniteQuadraticModuleElement( self, x, can_coords)
         if isinstance( x, (Integer, int, long)) and 0 == x:
             return FiniteQuadraticModuleElement( self, x)
+        print "type(x)=",type(x)
         raise TypeError, "cannot coerce %s to an element of %s" %(x, self)
 
 
@@ -619,9 +641,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 ##             sage: B = A + A; B
 
         """
-        return FiniteQuadraticModule_ambient( self.relations().block_sum( B.relations()), \
-                            self.gram().block_sum( B.gram()), \
-                            False)
+        sr = self.relations().block_sum( B.relations()); sr.set_immutable()
+        sg = self.gram().block_sum( B.gram()); sg.set_immutable()
+        return FiniteQuadraticModule_ambient( sr , sg, False)
+#        return FiniteQuadraticModule_ambient( self.relations().block_sum( B.relations()), \
+#                            self.gram().block_sum( B.gram()), \
+#                            False)
 
 
     def __mul__( self, _n):
@@ -957,11 +982,13 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         if isinstance( arg, (list, tuple)):
             if [] == list(arg):
                 arg = [self(0)]
-            return FiniteQuadraticModule_subgroup( list(arg))
+            print "gens=",self.gens()
+            print "DEB:arg=",arg
+            return FiniteQuadraticModule_subgroup( tuple(arg))
         p = Integer(arg)
         if is_prime(p):
-            U = FiniteQuadraticModule_subgroup( list( self.gens()))
-            U = U.split(p)[0] if 0 == U.order()%p else self.subgroup([self(0)])
+            U = FiniteQuadraticModule_subgroup( tuple( self.gens()))
+            U = U.split(p)[0] if 0 == U.order()%p else self.subgroup(tuple([self(0)]))
             return U
         raise ValueError
     
@@ -1994,10 +2021,8 @@ def _FiniteQuadraticModule_from_string( S, **args ):
         Of course, we impose  the additional requirements that
         number is a positive integer, and number and type satisfy the above requierements.
     """
-                           
     S= S.replace(' ','') # filter out spaces 
     List= S.split('.')
-    
     ElementList = []
     for item in List:
         L1 = item.split("^")
@@ -2050,7 +2075,6 @@ def _FiniteQuadraticModule_from_string( S, **args ):
                     raise ValueError
         entry = {'a':a, 'k':k, 't':t, 'c':c}  
         ElementList.append( entry )
-
     names = args.pop('names', None)
     # TODO: Once the 0-module is cached replace the next 6 lines by: A = FiniteQuadraticModule()
     sym = ElementList[0]
@@ -2069,7 +2093,9 @@ def _FiniteQuadraticModule_from_string( S, **args ):
             A += _C(q, **args)*(k//2) if k > 0 else _B(q, **args)
             if (-k)//2 > 1:
                 A += _C(q, **args)*((-k)//2 - 1)
-    A = FiniteQuadraticModule_ambient( A.relations(), A.gram(), names = names, **args)
+    Ar = A.relations(); Ar.set_immutable()
+    Ag = A.gram(); Ag.set_immutable()
+    A = FiniteQuadraticModule_ambient( Ar, Ag, names = names, **args)
     return A
 
 
@@ -2230,14 +2256,15 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
 
     if arg1 is None:
 
-        if isinstance( arg0, str):
+        if isinstance( arg0, basestring):
             #S FiniteQuadraticModule( string)
             if not 'check' in args:
-                args['check'] = False 
+                args['check'] = False
             return _FiniteQuadraticModule_from_string( arg0, **args )
 
         elif isinstance(arg0, list):
             #L. FiniteQuadraticModule( list_of_orders):
+            print "from listg!"
             M = matrix( ZZ, len(arg0), len(arg0), \
                         dict([((i,i),2*arg0[i]) for i in range(len(arg0))]))
             G= QQ(1)/QQ(2) * M**(-1) 
@@ -2312,6 +2339,8 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
             G = matrix(QQ, arg1);
         else:
             raise TypeError, "%s: should be None, a matrix or a list" %arg1
+    M.set_immutable()
+    G.set_immutable()
     return FiniteQuadraticModule_ambient( M, G, **args)
 
 # comments reviewed up to here
@@ -2367,7 +2396,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
         n = len(ed)
         if isinstance(x, (int, Integer)) and 0 == x:
             self.__intl_rep = [ 0 for i in range(n) ]
-        elif isinstance(x, list):
+        elif isinstance(x, (list,tuple,FreeModuleElement)):
             y = A._c2f( x) if can_coords == True else x
             self.__intl_rep = [ y[i]%ed[i] for i in range(n) ]
         else:
@@ -2610,7 +2639,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
 ###################################
 
 
-class FiniteQuadraticModule_subgroup(AbelianGroup):
+class FiniteQuadraticModule_subgroup(FiniteQuadraticModule_ambient):
     r"""
     Descibes a subgroup of the underlying group of a finite quadratic module.
 
@@ -2640,6 +2669,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         EXAMPLES NONE
         
         """
+        print "GENS=",gens
         try:
             x = Sequence( gens)
             ambience = self.__ambient_module = x.universe()
@@ -2648,19 +2678,27 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
                 raise TypeError
         except TypeError:
             raise TypeError, "%s: must be a list of elements of a quadratic module."%gens[0]
-        AbelianGroup.__init__( self)
+        #AbelianGroup.__init__( self)
+        print "gens-=",gens
         # save fun. coordinates of initializing list of gens as columns in the matrix __iMatrix
         self.__iMatrix = matrix( ZZ, [ gens[i].list() for i in range(len(gens))]).transpose()
         # Get lattice generated by the columns of __iMatrix and the relations of the fundamental system.
         self.__lattice = self.__iMatrix.column_module() + diagonal_matrix( ZZ, list(ambience.elementary_divisors())).column_module()
+        print "iM=",self.__iMatrix
+        print "lattie=",self.__lattice
         self.__hnf_gens = [ ambience( list( x), can_coords = False) for x in self.__lattice.matrix()]
         Mat = MatrixSpace( ZZ, len( self.__hnf_gens))
         # TODO: why is this coercion necessary? (SAGE returns rat. matrices for ZZ-lattices)
         self.__hnf_matrix = Mat( self.__lattice.matrix().transpose())
+        print "hnf=",self.__hnf_matrix
         # throw out 0's, if list becomes empty set to [ambience(0)]
         z = ambience(0); self.__hnf_gens = [ g for g in self.__hnf_gens if g != z ]
         if 0 == len( self.__hnf_gens): self.__hnf_gens = [z]
-
+        names = ambience._names
+        print "ambience=",ambience
+        print "gens=",gens
+#        cr=cover_and_relations_from_invariants(
+        super(FiniteQuadraticModule_subgroup,self).__init__(ambience,gens,names)
 
     ###################################
     ## Iterators
@@ -2725,7 +2763,14 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         """
         return self.__hnf_gens[i]
 
+    def gens(self):
+        r"""
+        Return a tuple of generators for self.
+        """
+        return tuple([ self.gen(i) for i in range(self.ngens())])
 
+
+    
     def ambience( self):
         r"""
         Return the ambient finite quadratic module.
@@ -3352,6 +3397,7 @@ def FiniteQuadraticModuleRandom(discbound=100,normbound=100,verbose=0):
     #A.<x,y> =
     A = FiniteQuadraticModule( om/om.parent().gen())
     x,y = A.gens()
+    print "x,y=",x,y
     N = A.kernel()
     if verbose>0:
         print "A=",A

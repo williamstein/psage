@@ -54,6 +54,7 @@ Gamma^3
 
 from sage.rings.arith    import xgcd
 from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,I,infinity,Rational,gcd
+from sage.rings.real_mpfr import RealNumber as RealNumber_class
 #from sage.combinat.permutation import (Permutations,PermutationOptions)
 from sage.modular.cusps import Cusp
 #from Cusp import is_gamma0_equiv
@@ -97,10 +98,15 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     r"""
     Create an instance of MySubgroup_class.
     """
-    s2 = None; s3=None
+    s2 = None; s3=None; is_Gamma0=None
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().list())
         s3 = MyPermutation(A.as_permutation_group().S3().list())
+        if isinstance(A,Gamma0_class):
+            is_Gamma0=True
+        else:
+            is_Gamma0=False
+            
     elif A<>None and B<>None:
         if isinstance(A,MyPermutation) and isinstance(B,MyPermutation):
             s2 = A; s3 = B
@@ -118,7 +124,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         s3 = kwds.get("s3",None)
     if s2==None or s3==None:
         raise ValueError,"Could not construct subgroup from input!"
-    return MySubgroup_class(o2=s2,o3=s3)
+    return MySubgroup_class(o2=s2,o3=s3,is_Gamma0=is_Gamma0)
 
 
 class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
@@ -204,7 +210,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "str=",str
         self._level=None
         self._generalised_level=None;  self._is_congruence=None
-        self._perm_group=None;  self._is_Gamma0=False
+        self._perm_group=None;
+        self._is_Gamma0=kwds.get('is_Gamma0',None)
         self._coset_rep_perms={}
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
@@ -430,6 +437,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             #print "Adding level!"
 #            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
             self.level = types.MethodType(level,self,MySubgroup_class)
+            #self._level = self.level()
+            #print "level=",self._level
         self.get_data_from_group()       
 
     def init_group_from_dict(self,dict):
@@ -445,9 +454,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def get_data_from_group(self):
         if self._verbose>0:
             print "in Get_data_from_Group"
-        self._generalised_level = None
-        self._is_congruence = None 
-        self._level = None
+        if self._is_congruence:
+            self._generalised_level = self.level()
+            self._level = self._generalised_level
+        else:
+            self._generalised_level = None
+            self._level = None            
         self._coset_reps_v0 = None
         self._coset_reps_v1 = None
                                                          
@@ -574,9 +586,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 N = self.level()
                 G = Gamma0(N)
                 if G.index()==G.index():
-                    if G.is_subgroup(self):
-                        if self.is_subgroup(G):
-                            self._is_Gamma0=True
+                    if self.is_subgroup(G):
+                        self._is_Gamma0=True
         return self._is_Gamma0
     
     def is_symmetric(self,ret_map=0,verbose=0):
@@ -1427,7 +1438,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if hasattr(A,"acton"):
             A = matrix(ZZ,2,2,list(A))
         for g in self.gens():
-            gg = g.matrix(1) # matrix(ZZ,2,2,list(g))
+            gg = matrix(ZZ,2,2,list(g))
             AA=A*gg*A**-1
             #print AA[1,0]
             if AA not in self:
@@ -1686,9 +1697,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._is_congruence=super(MySubgroup_class,self).is_congruence()
         return self._is_congruence
 
-    def is_Gamma0(self):
-        return self._is_Gamma0
-    
         
     def generalised_level(self):
         r""" Generalized level of self
@@ -2738,7 +2746,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in,ret_mat=0,prec=201):
+    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201):
         r""" Find the pullback of a point in H to the fundamental domain of self
         INPUT:
 
@@ -2765,24 +2773,45 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
         """
-        #x=deepcopy(x_in); y=deepcopy(y_in)
-        if self._is_Gamma0:
-            if isinstance(x_in,float):
-                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
-            elif isinstance(x_in,Expression):
-                prec=round(RR(len(str(x_in).split(".")[1])/log(2,10)))
-                RF=RealField(prec)
-                x=RF(x_in); y=RF(y_in)
-                if prec<=53:
-                    xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
+        use_dp = False; use_mpfr = False; use_mat = False
+        # First get the input point
+        if isinstance(x_in,float):
+            x = RR(x_in); y = RR(y_in); use_dp=True
+        elif isinstance(x_in,RealNumber_class):
+            RF = x_in.parent(); prec = RF.prec()
+            x = RF(x_in); y = RF(y)
+            if prec<=53:
+                use_dp = True
+            else:
+                use_mpfr = True
+        else:
+            try:
+                if y_in==None:
+                    z = x_in
+                    y = z.imag(); x=z.real()
                 else:
-                    xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
+                    z = x_in+I*y_in
+                    x = x_in; y = y_in
+
+                x = RR(x); y = RR(y)
+                use_mat = True
+                if y_in < 0.1:
+                    prec = max(53,3*log_b(1.0/y,2))
+                    RF = RealField(prec)
+                    use_mpfr = True
+                else:
+                    RF = RR
+                    use_dp = True
+            except TypeError as er:
+                raise TypeError,"Could not get point in upper half-plane from {0}! {1}!".format(x_in,er)
+
+        if self._is_Gamma0:
+            if use_dp:
+                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
+            elif use_mpfr:
+                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
             else:
-                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x_in,y_in)
-            if ret_mat==1:
-                return xpb,ypb,SL2Z_elt(a,b,c,d)
-            else:
-                return xpb,ypb,int(a),int(b),int(c),int(d)
+                raise ValueError," Need to use either dp or mpfr!"
         else:
             a,b,c,d=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(a,b,c,d) #.matrix()
@@ -2795,18 +2824,19 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 pass
             else:
                 raise ArithmeticError,"Did not find coset rep. for A=%s" % A
-            #if ret_int==1:
-            #    a,b,c,d=B[0,0],B[0,1],B[1,0],B[1,1]
-            if isinstance(x_in,float):
+            if use_dp:
                 xpb,ypb=apply_sl2z_map_dp(x_in,y_in,B[0],B[1],B[2],B[3])
             else:
                 xpb,ypb=apply_sl2z_map_mpfr(x_in,y_in,B[0],B[1],B[2],B[3])
+            a,b,c,d = B[0],B[1],B[2],B[3]
 
+        if use_mat:
+            return (a*z+b)/(c*z+d)
+        if ret_mat==1:
+            return xpb,ypb,SL2Z_elt(a,b,c,d)
+        else:
+            return xpb,ypb,int(a),int(b),int(c),int(d)
 
-            if ret_mat==1:
-                return xpb,ypb,B.matrix()
-            else:
-                return xpb,ypb,B[0],B[1],B[2],B[3]
 
     def is_congruence(self):
         r""" Is self a congruence subgroup or not?
@@ -2834,8 +2864,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._is_congruence=super(MySubgroup_class,self).is_congruence()
         return self._is_congruence
 
-    def is_Gamma0(self):
-        return self._is_Gamma0
 
     def is_Hecke_triangle_group(self):
         if self.is_Gamma0() and self.level()==1:
@@ -2963,7 +2991,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             A =Id 
             l = self.level()
             return (WQ,A,p,q,l)
-        N = self._level
+        N = self.level()
         if self._verbose>0:
             print "p=",p
             print "q=",q
@@ -3235,12 +3263,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "o3=",o3,o3.order()
             s="Input permutations are not of order 2 and 3: \n perm(S)^2={0} \n perm(R)^3={1} " 
             raise ValueError, s.format(o2*o2,o3*o3*o3)
-        if(not are_transitive_permutations(o2,o3)):
+        if not are_transitive_permutations(o2,o3):
             S = SymmetricGroup(self._index)
-            S.subgroup([S(self.permS.list()),S(self.permR)])
+            G = S.subgroup([S(self.permS.list()),S(self.permR.list())])
             #GS=self._S.subgroup([self.permS,self.permR])
-            s="Error in construction of permutation group! Permutations not transitive: <S,R>=%s"
-            raise ValueError, s % GS.list()
+            s="Error in construction of permutation group! Permutations not transitive: <S,R>={0},{1}. Generated group={2}".format(o2,o3,G)
+            raise ValueError, s
         return True
 
 class MySubgroup_congruence_class (MySubgroup_class):
@@ -3320,6 +3348,9 @@ class HeckeTriangleGroup(SageObject):
 
     def is_congruence(self):
         return True  # It is a congruence group of itself...
+
+    def is_Gamma0(self):
+        return False
 
     def is_Hecke_triangle_group(self):
         return True

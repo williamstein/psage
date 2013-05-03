@@ -926,15 +926,17 @@ cpdef pullback_to_Gamma0N_mpfr(G,RealNumber x,RealNumber y):
     cdef RealNumber xx,yy
     N=G.level()
     nreps=G.index()
+    if G._coset_reps_v0==None:
+        G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
     reps= <int ***> sage_malloc(sizeof(int**) * nreps)
     for j from 0 <=j<nreps:
         reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
         reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
         reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
-        reps[j][0][0]=G._coset_reps[j][0]
-        reps[j][0][1]=G._coset_reps[j][1]
-        reps[j][1][0]=G._coset_reps[j][2]
-        reps[j][1][1]=G._coset_reps[j][3]
+        reps[j][0][0]=G._coset_reps_v0[j][0]
+        reps[j][0][1]=G._coset_reps_v0[j][1]
+        reps[j][1][0]=G._coset_reps_v0[j][2]
+        reps[j][1][1]=G._coset_reps_v0[j][3]
 
     xx=RealNumber(x.parent(),x)
     yy=RealNumber(x.parent(),y)
@@ -956,15 +958,17 @@ cdef void pullback_to_Gamma0N_mpfr_c(G,mpfr_t xout,mpfr_t yout, mpfr_t xin,mpfr_
     #cdef RealNumber xx,yy
     N=G.level()
     nreps=G.index()
+    if G._coset_reps_v0==None:
+        G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
     reps= <int ***> sage_malloc(sizeof(int**) * nreps)
-    for j from 0 <=j<nreps:
+    for j in range(nreps):
         reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
         reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
         reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
-        reps[j][0][0]=G._coset_reps[j][0]
-        reps[j][0][1]=G._coset_reps[j][1]
-        reps[j][1][0]=G._coset_reps[j][2]
-        reps[j][1][1]=G._coset_reps[j][3]
+        reps[j][0][0]=G._coset_reps_v0[j][0]
+        reps[j][0][1]=G._coset_reps_v0[j][1]
+        reps[j][1][0]=G._coset_reps_v0[j][2]
+        reps[j][1][1]=G._coset_reps_v0[j][3]
 
     mpfr_set(xout,xin,rnd_re)
     mpfr_set(yout,yin,rnd_re)
@@ -1046,8 +1050,10 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
     cdef int nreps,N,j
     cdef int a,b,c,d
     cdef double xx,yy
-    N=G._level
-    nreps=G._index
+    N=G.level()
+    nreps=G.index()
+    if G._coset_reps_v0==None:
+        G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
     reps= <int ***> sage_malloc(sizeof(int**) * nreps)
     for j from 0 <=j<nreps:
         reps[j]=NULL
@@ -1061,10 +1067,10 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
         reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
         if reps[j][1]==NULL:
             raise MemoryError
-        reps[j][0][0]=G._coset_reps[j][0]
-        reps[j][0][1]=G._coset_reps[j][1]
-        reps[j][1][0]=G._coset_reps[j][2]
-        reps[j][1][1]=G._coset_reps[j][3]
+        reps[j][0][0]=G._coset_reps_v0[j][0]
+        reps[j][0][1]=G._coset_reps_v0[j][1]
+        reps[j][1][0]=G._coset_reps_v0[j][2]
+        reps[j][1][1]=G._coset_reps_v0[j][3]
         #print "reps[",j,",00=",reps[j][0][0]
         #print "reps[",j,",01=",reps[j][0][1]
         #print "reps[",j,",10=",reps[j][1][0]

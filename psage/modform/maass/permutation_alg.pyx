@@ -1100,8 +1100,8 @@ cdef class MyPermutationIterator(SageObject):
                 self._num=0
             for i in range(self._num_fixed):
                 n = fixed_pts[i]
-                if n<1 or n>>N:
-                    raise ValueError,"got inconsistent fixed point data! fixpts={0}".format(fixed_pts)
+                if n<1 or n>N:
+                    raise ValueError,"got inconsistent fixed point data! fixpts={0} and num_fixed={1}".format(fixed_pts,self._num_fixed)
                 self._fixed_pts[i]=n
                 if self._verbose>0:
                     print "setting fixed_pt[",i,"]=",self._fixed_pts[i]

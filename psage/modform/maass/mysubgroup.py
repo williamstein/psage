@@ -425,10 +425,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._index = self.permR.N()
         ## The generators of EvenArithmeticSubgroup_Permutation is corresponding to
         ## S2 = S, S3 = ZST^-1, L=T, R=Z*ST^-1*S where Z = S^2 = [-1,0,0,-1]
+        ## Recall that I assume my input is o3 = S*T
         self.permT = self.permS*self.permR
         self.permP = self.permT*self.permS*self.permT
         s2 = [i-1 for i in self.permS.list()]
-        s3 = [i-1 for i in self.permR.conjugate(self.permS).list()]
+        s3 = [i-1 for i in self.permR.inverse().conjugate(self.permS).list()]
         l  = [i-1 for i in self.permT.list()]
         r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
@@ -631,7 +632,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "have:",self._cusp_normalizer_is_normalizer
         if self._cusp_normalizer_is_normalizer.has_key(j):
             return self._cusp_normalizer_is_normalizer[j]
-        if not self._is_Gamma0:
+        if not self.is_Gamma0():
             self._cusp_normalizer_is_normalizer[j]=(0,0)
             return self._cusp_normalizer_is_normalizer[j]
         l = self._level
@@ -694,14 +695,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             if brute_force==1:
                 if self.is_normalizer(N0):
                     N = SL2Z_elt(N0[0],N0[1],N0[2],N0[3])
-                    for k in range(2,l):
+                    for k in range(2,l+1):
                         N=N._mul(N0) #mul_list_maps(N,N)
                         # print "N=",N,type(N)
                         if N in self:
                             self._cusp_normalizer_is_normalizer[j]=(k,N[3])
                             break
                     if k>=l-1 and self._cusp_normalizer_is_normalizer[j]==(0,0):
-                        warnings.warn("It appears that the normalizer does not have finite order! j={0}, N={1}".format(j,N0))
+                        warnings.warn("It appears that the normalizer does not have finite order! j={0}, N={1}. Group given by S={2} and R={3}".format(j,N0,self.permS,self.permR))
         return self._cusp_normalizer_is_normalizer[j]                        
 
                 
@@ -1987,7 +1988,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return False
             if not is_integer(A[3]):
                 return False
-        else:
+        elif not isinstance(A,SL2Z_elt):
             return False
         p=self.permutation_action(A)
         if self._verbose>1:

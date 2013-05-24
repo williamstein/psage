@@ -375,10 +375,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Use the canonical relabeling of the superclass.
         """
         if inplace==False:
-            G = MySubgroup(o2=self._permS,o3=self._permR)
+            G = MySubgroup(o2=self.permS,o3=self.permR)
             super(MySubgroup_class,G).relabel(inplace=True)
             permS=MyPermutation(G.S2().list())
             permR=MyPermutation(G.S3().list())
+            permR=permR.inverse().conjugate(permS)
             return MySubgroup(o2=permS,o3=permR)
         super(MySubgroup_class,self).relabel(inplace=True)
         self.permS=MyPermutation([x+1 for x in self._S2])

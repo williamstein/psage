@@ -889,6 +889,34 @@ cdef class MyPermutation(SageObject):
     cpdef conjugate_with_transposition(self,int a,int b):
         self._conj_w_transp(a,b)
 
+
+    cpdef is_conjugate_to(self,MyPermutation other,int ret_perm=0):
+        r"""
+        Check if self is conjugate to other.
+        """
+        cdef int N = other._N
+        cdef MyPermutation p
+        if ret_perm==1:
+            p = MyPermutation(length=self._N)
+        if N<>other._N:
+            if ret_perm==1:
+                return 0,p
+            else:
+                return 0
+        cdef list ctA,ctB
+        ctA = self.cycle_type()
+        ctB = other.cycle_type()
+        if ctA<>ctB:
+            if ret_perm==1:
+                return 0,p
+            else:
+                return 0
+        if ret_perm==0:
+            return 1
+        lA = self.cycles_as_perm()
+        lB = other.cycles_as_perm()
+        return 1,get_conjugating_perm_list(lA,lB)
+
     
     cdef int eq_c(self,MyPermutation other):
         if self._N<>other._N:
@@ -1109,6 +1137,9 @@ cdef class MyPermutationIterator(SageObject):
             self._max_num=copy(num_permutations_without_fixed_pts(N-self._num_fixed))
             for i from 0 <= i < self._num_fixed:
                 self._fixed_pts[i]=i+1
+        elif fixed_pts==[]:
+            self._max_num=copy(num_permutations_without_fixed_pts(N))
+            self._num_fixed = 0
         else:
             self._num_fixed = -1
             self._max_num = Integer(factorial(N))
@@ -1116,7 +1147,7 @@ cdef class MyPermutationIterator(SageObject):
             print "fixed_pts in init after=",fixed_pts
             print "self._fixed_pts=",self.fixed_pts()
             print "num=",self.num()
-        if self._num_fixed>0 or self._order>0:
+        if self._num_fixed>0 and self._order>0:
             if (N - max(self._num_fixed,0)) % self._order <>0:
                 self._max_num = Integer(0)
                 self._num = 0
@@ -2088,6 +2119,37 @@ cdef int _set_fixed_eq(int *list,int n, int *fixed_pts, int num_fixed_pts):
     if tmp<>num_fixed_pts:
         return 0
     return 1
+
+cpdef are_conjugate_perm(MyPermutation A,MyPermutation B):
+   r"""
+   Check if the permutation A is conjugate to B
+   """
+   cdef int N = A._N
+   if N<>B._N:
+       return 0
+   cdef list ctA,ctB
+   ctA = A.cycle_type()
+   ctB = B.cycle_type()
+   if ctA<>ctB:
+       return 0
+   lA = A.cycles_as_perm()
+   lB = B.cycles_as_perm()
+   return get_conjugating_perm_list(lA,lB)
+
+
+cpdef get_conjugating_perm_list(list Al,list Bl):
+    r"""
+    Find permutation which conjugates Al to Bl, where Al and Bl are lists given by cycle structures.
+    """
+    cdef dict cperm
+    cdef int i
+    cperm = {}
+    if len(Al)<>len(Bl):
+        raise ValueError,"Need lists of the same length! Got:{0} and {1}".format(Al,Bl)
+    for i in range(len(Al)):
+        cperm[Al[i]-1]=Bl[i]
+    return MyPermutation(cperm.values())
+
 
 cpdef perm_to_cycle(perm):
     r"""

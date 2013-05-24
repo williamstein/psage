@@ -38,6 +38,7 @@ cdef class MyPermutation(SageObject):
     cpdef str export_as_string(self,str sep=*)
     cdef void _conj_w_transp(self,int a, int b)
     cpdef conjugate_with_transposition(self,int a, int b)
+    cpdef is_conjugate_to(self,MyPermutation other,int ret_perm=*)
     cdef void _conjugate_ptr(self,int *entries,int *other)
     cdef MyPermutation _conjugate(self,MyPermutation other)
     cdef MyPermutation _conjugate_list(self,list other)
@@ -102,7 +103,8 @@ cdef class CycleCombinationIterator(Parent):
 #    cdef int permutation_nr_c(self,int M,MyPermutation p)
 
 cdef void _mult_perm(int N, int* res,int *left,int* right)
-    
+cpdef are_conjugate_perm(MyPermutation A,MyPermutation B)
+cpdef get_conjugating_perm_list(list Al,list Bl)
 cdef print_vec(int n,int *list)
 cdef _are_eq_vec(int n,int *a,int *b)
 cdef void _conjugate_perm(int N,int* res,int *a,int* b)

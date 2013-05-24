@@ -33,7 +33,7 @@ include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
 
 from permutation_alg cimport MyPermutation,MyPermutationIterator,CycleCombinationIterator
-from permutation_alg cimport print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm,are_transitive_perm_c,perm_to_cycle_c
+from permutation_alg cimport print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm,are_transitive_perm_c,perm_to_cycle_c,are_conjugate_perm,get_conjugating_perm_list
 
 from psage.modform.maass.mysubgroup import MySubgroup
 
@@ -170,7 +170,7 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
         mpi_verbose=0
     if verbose>0:
         print "mpi_verbose=",mpi_verbose
-    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,verbose=mpi_verbose)
+    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,num_fixed=len(rfx_list),verbose=mpi_verbose)
     if verbose>0:
         print "PRI.list=",printf("%p ", PRI._list_of_perms)
     #for R in P.filter(lambda x: x.fixed_points()==rfx):
@@ -577,7 +577,7 @@ cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get
         mpi_verbose=0
     if verbose>0:
         print "mpi_verbose=",mpi_verbose
-    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,verbose=mpi_verbose)
+    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,num_fixed=len(rfx_list),verbose=mpi_verbose)
     if verbose>0:
         print "PRI.list=",printf("%p ", PRI._list_of_perms)
     #for R in P.filter(lambda x: x.fixed_points()==rfx):
@@ -1008,7 +1008,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         mpi_verbose=0
     if verbose>0:
         print "mpi_verbose=",mpi_verbose
-    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,verbose=mpi_verbose)
+    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,num_fixed=len(rfx_list),verbose=mpi_verbose)
     if verbose>0:
         print "PRI.list=",printf("%p ", PRI._list_of_perms)
     #for R in P.filter(lambda x: x.fixed_points()==rfx):
@@ -1372,7 +1372,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
 
 
 
-cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_new=0):
+cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_strict=0,int check=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     correcponsing to groups G with signature = sig
@@ -1405,7 +1405,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     cdef int *rr2, *rs
 #    cdef MyPermutation rss,pres,rss_tmp,ee,r,rr,epp,rpp,ep,rp,eppp,rppp
     cdef MyPermutation S,R,Sp,Tp,Spc,Stest,Rtest,Rp,Rpc
-    cdef MyPermutation pR,p
+    cdef MyPermutation pR,p,Spp,S_canonical
 
     Sptr = <int*>sage_malloc(sizeof(int)*mu)
     if not Sptr: raise MemoryError
@@ -1440,6 +1440,8 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         Sl.append(Sptr[j])
     spS=str(Sl)
     Sp = MyPermutation(Sl)
+    ## The canonical PSL(2,Z)-representative of S
+    S_canonical = MyPermutation(Sl)
     ### Note that there are only two choices of S which are inequivalent modulo permutations fixing 1
     ### S = (1)...(e2)(1+e2 2+e2)...  or
     ### S = (1 2)(3)...(1+e2)(2+e2 3+e2)...  
@@ -1472,7 +1474,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         mpi_verbose=0
     if verbose>0:
         print "mpi_verbose=",mpi_verbose
-    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,verbose=mpi_verbose)
+    PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,num_fixed=len(rfx_list),verbose=mpi_verbose)
     if verbose>0:
         print "PRI.list=",printf("%p ", PRI._list_of_perms)
     #for R in P.filter(lambda x: x.fixed_points()==rfx):
@@ -1497,71 +1499,77 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
     sig_on()
-    cdef MyPermutation ptest
-    ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    #cdef MyPermutation ptest
+    #ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    if used==NULL:
+        used = <int *>sage_malloc(sizeof(int)*mu)
+    #if verbose>=0:
+    #    start = time()
+    #    for pR in PRI:
+    ##        pass
+    #    print "Time0=",time()-start
+    if verbose>=0:
+        start = time()
+    cdef list Tcyc=[]
     for pR in PRI:
-        #if pR == ptest:
-        #    verbose=2
-        #else:
-        #    verbose = 0
-        if verbose>0:
-            print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
+        if verbose>1:
+            print "S=",S_canonical.to_cycles() #print_vec(mu,Sptr)
             print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
-        if verbose>0:
+        if verbose>1:
             print "Checking transitivity!"
-        if not are_transitive_perm_c(<int*>Sp._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
+        if not are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
             continue
-        if verbose>0:
+
+        if verbose>1:
             print "Checking the number of cusps!"
         _mult_perm(mu,Sptr,<int *>pR._entries,Tptr)
         #T=E*R
         Tcyc=perm_to_cycle_c(mu,Tptr)
-        if verbose>0:
+        if verbose>1:
             print "Tp=",Tcyc
             print "current fixedpts=",PRI.fixed_pts()
             print "number of cusps=",len(Tcyc)
         if len(Tcyc)<>h:
-            if verbose>0:
+            if verbose>1:
                 print "Incorrect number of cusps. remove!"
                 print "next!"
             continue
-        if verbose>0:
+        if verbose>1:
             print "current fixedpts1=",PRI.fixed_pts()
             print "rfx=",print_vec(e3,rfx)
         if get_one_rep:
             if congruence<>-1:
-                G=MySubgroup(o2=Sp,o3=pR)
+                G=MySubgroup(o2=S_canonical,o3=pR)
                 if G.is_congruence() and congruence==1:
-                    return Sp,pR
+                    return S_canonical,pR
                 elif not G.is_congruence() and congruence==0:
-                    return Sp,pR
+                    return S_canonical,pR
             else:
-                return Sp,pR
+                return S_canonical,pR
             continue
         ## We will now further shorten the list by trying to pick representatives for R modulo permutations fixing 1
         # We will do this by choosing the lexicographically 'smallest' possible 3-cycles
         # Recall that we have chosen:
         # S = (1)...(e2)(e2+1 e2+2)(e2+3 e2+4)...(mu-1 mu)
         # R = (e2+1)(e2+3)...(e2+2*e3-1)(a b c)...
-        if used==NULL:
-            used = <int *>sage_malloc(sizeof(int)*mu)
-        for x from 0 <= x < mu: 
+        for x in range(mu):
             used[x]=0
         for i from 0<= i < e3:
             used[rfx[i]-1]=1            
         rcycle_beg=0
         Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
         do_cont = 0
+#        cdef int do_strict = 1
         for rc in Rcycles_list:
             if len(rc)<>3:
                 continue
             # only the 3-cycles are relevant here (not the 1-cycles)
             # cy = (a b c)
-            a=rc[0]; b=rc[1]; c=rc[2]
-            if verbose>0:
+            a=<int>rc[0]; b=<int>rc[1]; c=<int>rc[2]
+            if verbose>1:
                 print "a,b,c=",a,b,c
             used[a-1]=1 # We have fixed a
-            if verbose>0:
+            if verbose>1:
                 print "used=",print_vec(mu,used)
             ## If b and c are equivalent with respect to conjugation by a perm. p which preserves S, i.e. if
             ##   i) S(b)=b and S(c)=c, or
@@ -1569,49 +1577,62 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             ## then we choose b < c
             #if (b<=e2 and c<=e2) or ((b>=end_fc and used[Sptr[b-1]-1]==0) and (c>=end_fc and used[Sptr[c-1]-1]==0)):
             if equivalent_integers_mod_fixS(b,c,mu,e2,end_fc,Sptr,used)==1:
-                if verbose>0:
+                if verbose>1:
                     print b," (b c) and ",c," are equivalent in",rc
                 if b>c:
-                    if verbose>0:
+                    if verbose>1:
                         print "remove (b>c)!"
                     do_cont = 1
                     break
-            for j from a+1<= j < b:
+            ### Apply this also to a 'rotated' version of the cycle, i.e. (b c a )
+
+            if do_strict==1:
+                if equivalent_integers_mod_fixS(a,c,mu,e2,end_fc,Sptr,used)==1:
+                    if verbose>1:
+                        print a," (a c) and ",c," are equivalent in",rc
+                    if b>c:
+                        if verbose>1:
+                            print "remove (b>c)!"
+                        do_cont = 1
+                        break
+#            for j from a+1<= j < b:
+            for j in range(a+1,b):
                # I want to see if there is a j, equivalent to b, smaller than b
                if equivalent_integers_mod_fixS(b,j,mu,e2,end_fc,Sptr,used)==1:
                     #if t1 or (t2 and t3):
-                    if verbose>0:
+                    if verbose>1:
                         print b," (b) and ",j," are equivalent in",rc
                     if j<b:
-                        if verbose>0:
+                        if verbose>1:
                             print "remove!"
                         do_cont = 1
                         break #raise StopIteration()
             if do_cont==1:
-                if verbose>0:
+                if verbose>1:
                     print "breaking0!"
                 break
             used[b-1]=1
-            if verbose>0:
+            if verbose>1:
                 print "used=",print_vec(mu,used)
-            for j from a+1 <= j < c: # I want to see if there is a j, equivalent to c, smaller than c and which is not used
+            for j in range(a+1,c):
+                # I want to see if there is a j, equivalent to c, smaller than c and which is not used
                 if (c<=e2 and j<=e2 and used[j-1]==0) or ((c>e2+e3+1 and used[Sptr[c-1]-1]==0 and used[c-1]==0) and (j>e2+e3+1 and used[Sptr[j-1]-1]==0 and used[j-1]==0)):
-                    if verbose>0:
+                    if verbose>1:
                         print j," (c) and ",c," are equivalent in",rc
                     if j<c:
-                        if verbose>0:
+                        if verbose>1:
                             print "remove!"
                         do_cont = 1 #raise StopIteration()
                         break
             if do_cont==1:
-                if verbose>0:
+                if verbose>1:
                     print "breaking1!"
                 break
             used[c-1]=1
             if verbose>0:
                 print "used=",print_vec(mu,used)
         if do_cont==1:
-            if verbose>0:
+            if verbose>1:
                 print "next and continue!"
             continue
         else:
@@ -1622,7 +1643,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             print "added pR=",pR
             print "current list of Rs and Ts:"
             for r in list_of_R:
-                print ":::::::::::::::: ",r.to_cycles(),";",(Sp*r).to_cycles()
+                print ":::::::::::::::: ",r.to_cycles(),";",(S_canonical*r).to_cycles()
     if gotten<>NULL:
         sage_free(gotten)
     if get_one_rep:
@@ -1650,8 +1671,10 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     #print "after deallPRI.list=",printf("%p ", PRI._list_of_perms)
     # Now list_of_R contains at least one representative for each group with the correct signature
     sig_off()
+    list_of_R.sort()
     if verbose>=0:
         #print "Original list of R=",list_of_R
+        print "Time:",time()-start
         print "Original list of R="
         for i from 0 <= i < len(list_of_R):
             print perm_to_cycle(list_of_R[i])
@@ -1662,6 +1685,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     cdef list list_of_groups=[]
     cdef list list_of_groups_tmp=[]
     cdef list list_R_tmp
+    cdef dict dict_of_R_modpsl
     cdef int do_cnt,t,k,l,llg
     list_of_groups=[] 
     cdef int len_of_list_R = len(list_of_R)
@@ -1669,155 +1693,180 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     list_of_R_tmp = copy(list_of_R)
     if verbose>=0:
         start = time()
+    dict_of_R_modpsl={}
+#    cdef MyPermutation ptmp1,ptmp2
+#    ptmp1 = MyPermutation([[1, 7, 2], [3, 9, 4], [5, 8, 11], [6, 12, 10]])
+#    ptmp2 = MyPermutation([[1, 7, 2], [3, 4, 9], [5, 11, 10], [6, 8, 12]])
+    cdef int* plist=NULL
+    plist = <int*>sage_malloc(sizeof(int)*mu)
+    
+
     for k in range(len(list_of_R)):
         Rp = copy(list_of_R[k])
-        Spc = copy(Sp)
+        Spc = copy(S_canonical)
+        if Rp not in list_of_R_tmp:
+            continue
         for l in range(k+1,len(list_of_R)):                        
-            Rpc= copy(list_of_R[l])
+            Rpc= list_of_R[l]
             if Rpc not in list_of_R_tmp:
                 continue
-            t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpc,ret='perm') #,map_from=1,map_to=1)
-            if t==1 and Rp in list_of_R_tmp:
-                print "{0} is equivalent to {1} with p={2}".format(Rp,Rpc,p)
+            t=are_conjugate_pairs_of_perms_new(S_canonical,Rp,Spc,Rpc,plist,0,0) #,map_from=1,map_to=1)
+            if t==1:
+                if verbose>0:
+                    p = MyPermutation(length=mu)
+                    p.set_entries(plist)
+                    print "{0} is equivalent to {1} with p={2}".format(Rp,Rpc,p)
                 list_of_R_tmp.remove(Rpc)
-                #break
     if verbose>=0:
-        #print "Original list of R=",list_of_R
         print "Tmp list of R="
         for i from 0 <= i < len(list_of_R_tmp):
             print perm_to_cycle(list_of_R_tmp[i])
     if verbose>=0:
         print "Number of original tmp R's:",len(list_of_R_tmp)
         print "Time for zeroth filter= ",time()-start 
-#    list_of_R = copy(list_of_R_tmp)
+    list_of_R = copy(list_of_R_tmp)
     if verbose>=0:
         start = time()
-#    list_R_tmp = copy(list_of_R)
-#            t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpc,ret='perm',map_from=1,map_to=1)
     cdef int cntt = 0
     ### Recall that the original list of R's represent PSL-inequivalent groups
     ### We now want to add back PSL-conjugates
+    cdef list list_of_j,pl
+    cdef int do_cnt1
+    
     for k in range(len(list_of_R)):
         Rp = copy(list_of_R[k])
         ## We want to check if conjugating (S,R) with (1 j) gives a new group not in the list
         if verbose>0:
-            print "R=",Rp
-        do_cnt = 0
+            print "----------------------------------"
+            print "R_{0}={1}".format(k,Rp)
+        do_cnt1 = 0        
         for l in range(len(list_of_groups)):
             Rpc = copy(list_of_groups[l][1])
             Spc = copy(list_of_groups[l][0])
-            t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpc,ret='perm',map_from=1,map_to=1)
+            #t,p=are_conjugate_pairs_of_perms(S_canonical,Rp,Spc,Rpc,ret='perm',map_from=1,map_to=1)
+            t=are_conjugate_pairs_of_perms_new(S_canonical,Rp,Spc,Rpc,plist,1,1)
+            p = MyPermutation(length=mu)
+            p.set_entries(plist)
+            
             cntt+=1
             if t==1:
                 if verbose>0:
-                    print "{0} and {1} are equivalent with p={2}!".format(1,1,p)
+                    print "{0} and {1} are equivalent with p={2}!".format(k,l,p)
                     print "Spc,Rpc=",Spc,Rpc
-                do_cnt = 1
+                do_cnt1 = 1
                 break
-        if do_cnt==0:
+        if do_cnt1==0:
             if verbose>0:
-                print "Append Sp,Rp=",Sp,Rp
-                list_of_groups.append((Sp,Rp))
-        for j in range(2,mu+1):
+                print "Append Sp,Rp ({0})={1},{2}".format(len(list_of_groups),S_canonical,Rp)
+            list_of_groups.append((S_canonical,Rp))
+        else:
+            pass #continue
+        ## first get a list of j's for which the current (S,R)^( 1 j ) are inequivalent
+        dict_of_R_modpsl[Rp]={}
+        list_of_j = []
+        for  j in range(2,mu+1):
             do_cnt = 0
+            if dict_of_R_modpsl[Rp].has_key(j):
+                if verbose>0:
+                    print "Append Sp,Rp ({0}) from dict={1},{2}".format(len(list_of_groups),S_canonical,dict_of_R_modpsl[Rp][j][0])
+                list_of_groups.append(dict_of_R_modpsl[Rp][j][0])
+                #continue
+            for l in range(1,j):
+                t,p=are_conjugate_pairs_of_perms(S_canonical,Rp,S_canonical,Rp,ret='perm',map_from=l,map_to=j)
+                if t==1:
+                    do_cnt = 1
+                    if verbose>0:
+                        print "(S,R)^(1 {0}) =_1 (S,R)^(1 {1})".format(j,l)
+                    break
+            if do_cnt == 0:
+                list_of_j.append(j)
+        if verbose>0:
+            print "list_of_j=",list_of_j
+        for j in range(2,mu+1):
+            Spp = copy(S_canonical)
+            Rpp = copy(Rp)
+            Rpp.conjugate_with_transposition(1,j)
+            Spp.conjugate_with_transposition(1,j)
+            do_cnt = 0
+            if j not in list_of_j:
+                if verbose>0:
+                    print "Not adding: S,R^(1 {0})={1},{2}".format(j,Spp,Rpp)
+                    #t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpp,ret='perm',map_from=1,map_to=1)
+                    #print "Are indeed same group!"
+                #continue
             for l in range(len(list_of_groups)):
                 Rpc = copy(list_of_groups[l][1])
                 Spc = copy(list_of_groups[l][0])
-                t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpc,ret='perm',map_from=1,map_to=j)
+#                if Rpc==Rpp and Spc==Spp:
+#                    continue
+                t,p=are_conjugate_pairs_of_perms(Spp,Rpp,Spc,Rpc,ret='perm',map_from=1,map_to=1)
                 cntt+=1
                 if t==1:
                     if verbose>0:
-                        print "({0})^{1} is equivalent with p={2}!".format(Rp,j,p)
+                        print "({0})^{1} = {2},{3} \n is equivalent with p={4}!".format(Rp,j,Spp,Rpp,p)
                         print "to: Spc,Rpc=",Spc,Rpc                        
                     do_cnt = 1
                     break
             if do_cnt == 1:
                 continue
-            Spc = copy(Sp)
-            Rpp = copy(Rp)
-            Rpp.conjugate_with_transposition(1,j)
-            Spc.conjugate_with_transposition(1,j)
             if verbose>0:
-                print "R,S^(1 {0})={1},{2}".format(j,Rpp,Spc)
-            if Spc(1)<>1 and Spc(1)<>2:
-                Rpp.conjugate_with_transposition(2,Spc(1))
-                Spc.conjugate_with_transposition(2,Spc(1))
-            if verbose>0:
-                print "Appending (S,R)=",Spc,Rpp
+                print "R,S^(1 {0})       ={1},{2}".format(j,Rpp,Spc)
+            ## We try to normalize the fixed points of S:
+            pl = range(1,Rp.N()+1)
+            pl[0]=j; pl[j-1]=1
+            if Spp(1)<>1 and Spp(1)<>2:
+                    Rpp.conjugate_with_transposition(2,Spp(1))
+                    Spp.conjugate_with_transposition(2,Spp(1))
+                    pl[1] = Spp(1)
+                    pl[Spp(1)-1] = 2
+                    #Rpp.conjugate_with_transposition(fix1[l],fix2[l])
+                    #Spp.conjugate_with_transposition(fix1[l],fix2[l])
+            if (j not in list_of_j and not dict_of_R_modpsl[Rp].has_key(j)) or do_cnt1==1:
+                raise ArithmeticError," Contradiction !! "
+            if verbose>0:                
+                print "Appending (S,R){0}={1},{2}".format(len(list_of_groups),Spp,Rpp)
             #if (Spc,Rp) not in list_of_groups:
-            list_of_groups.append((Spc,Rpp))
+            dict_of_R_modpsl[Rp][j]=(Spp,Rpp),MyPermutation(pl)
+            list_of_groups.append((Spp,Rpp))
     if verbose>=0:
         print "Time for zeroth filter= ",time()-start
         print "num of comparisons:",cntt
     list_of_groups.sort(cmp=sort_perms2)
-
-    # list_of_R  will contain a list of representatives for groups
-    # but might contain more than one representative for each group.
-    # Therefore we now filter away the identical groups in PSL(2,Z), i.e. mod 1
     if verbose>=0:
-        print "Preliminary list of groups:"
+        print "List of different groups:"
+        print  "Dict:"
+        for R in dict_of_R_modpsl.keys():
+            print "D[{0}]=".format(R)
+            for j in dict_of_R_modpsl[R].keys():
+                print "\t {0} \t {1}".format(j,dict_of_R_modpsl[R][j])
         for (Rp,Sp) in list_of_groups:
             print (Rp,Sp)
         print "Number of groups:",len(list_of_groups)
     cdef int nlr = len(list_of_R)
-    #if verbose>=0:
-    #    start = time()
-    #if len(list_of_groups)>1:
-    #    list_of_groups_tmp=filter_list_of_pairs_mod_1_mod_S_new(list_of_groups,mu,verbose)
-    #list_of_R_tmp=filter_list_mod_1_mod_S(list_of_R,mu,e2,Sp,verbose)
-    #    list_of_groups=list_of_groups_tmp
-    if verbose>=0:    
-        #print "Time for first filter= ",time()-start
-        print "Preliminary list of DIFFERENT subgroups in PSL(2,Z):" #,map(lambda x:S(x),list_of_R)
-        print "(Note: these may or may not be PSL or PGL conjugate)"
-        #for i from 0 <= i < len(list_of_groups):
-        #    print list_of_groups[i]
-        for i from 0 <= i < len(list_of_groups):            
-            Sp = list_of_groups[i][0]
-            R = list_of_groups[i][1]
-            print "S,R=",Sp.to_cycles(),R.to_cycles()
-        print "Number of groups:",len(list_of_groups)
+    if plist<>NULL:
+        sage_free(plist)
 
 #### CHECK
-    list_of_groups_tmp = copy(list_of_groups)
-    if verbose>=0:
-        start = time()
-    for k in range(len(list_of_groups)):
-        Sp = copy(list_of_groups[k][0])
-        Rp = copy(list_of_groups[k][1])
-        for l in range(k+1,len(list_of_groups)):                        
-            Spc = copy(list_of_groups[l][0])
-            Rpc = copy(list_of_groups[l][1])
-            if (Spc,Rpc) not in list_of_groups_tmp:
-                continue
-#            t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpc,ret='perm',map_from=1,map_to=1)
-            t,p=are_mod1_equivalent(Rp,Sp,Rpc,Spc)
-            if t==1 and (Spc,Rpc) in list_of_R_tmp:
-                print "{0},{1} is equivalent to {2},{3} with p={4}".format(Rp,Sp,Rpc,Spc,p)
-                list_of_groups_tmp.remove((Spc,Rpc))
-                #break
-    if verbose>=0:
-        #print "Original list of R=",list_of_R
-        print "Tmp list of gps="
-        for i from 0 <= i < len(list_of_groups_tmp):
-            print "{0},{1}".format(list_of_groups_tmp[i][0],list_of_groups_tmp[i][1])
-    if verbose>=0:
-        print "Number of original tmp R's:",len(list_of_groups_tmp)
-        print "Time for check filter= ",time()-start 
-
-
+    if check==1:
+        list_of_groups_tmp = copy(list_of_groups)
+        if verbose>=0:
+            start = time()
+        for k in range(len(list_of_groups)):
+            Sp = copy(list_of_groups[k][0])
+            Rp = copy(list_of_groups[k][1])
+            for l in range(k+1,len(list_of_groups)):                        
+                Spc = copy(list_of_groups[l][0])
+                Rpc = copy(list_of_groups[l][1])
+                if (Spc,Rpc) not in list_of_groups_tmp:
+                    continue
+                t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpc,ret='perm') #,map_from=1,map_to=1)
+                if t==1 and p(1)==1:                
+                    raise ArithmeticError,"ERROR: {0},{1} is equivalent to {2},{3} with p={4}".format(Rp,Sp,Rpc,Spc,p)
+        if verbose>=0:
+            print "Number of original tmp R's:",len(list_of_groups_tmp)
+            print "Time for check filter= ",time()-start 
 
 ## END CHECK
-
-
-
-
-
-
-
-
-
-
         
     indicator_list=range(1,len(list_of_R)+1)
     list_of_R_tmp=[]
@@ -1826,9 +1875,33 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     lc_psl_maps=dict() # maps between conjugates
     if verbose>=0:
         start = time()
+    ## At this point dict_of_groups contain information about PSL(2,Z) conjugates
+    # conjugates = {}
+    # conjugate_maps = {}
+    # cdef dict tmpd1,tmpd2
+    # Gmodpsl = []
+    # for Rpp in dict_of_R_modpsl:
+    #     Gmodpsl.append(S_canonical,Rpp)
+    #     tmpd1 = {'psl':[],'pgl':[]}
+    #     tmpd2 = {'psl':[],'pgl':[]}
+    #     for j in dict_of_R_modpsl[Rpp].dict():
+    #         Sp,Rp,p = dict_of_R_modpsl[Rpp][j][0]
+    #         tmpd1['psl'].append((Sp,Rp))
+    #         tmpd2['psl'].append((Sp,Rp))
+    #     conjugates[(S_canonical,Rpp)]=tmpd   
+    # ## Add PGL-conjugates as well.
+    # Gmodpgl = copy(Gmodpsl)
+    # for S,R in Gmodpsl:
+    #     Rs = R.square().conjugate(S)        
+    #     for Sp,Rp in Gmodpsl:
+    #         t,A = are_conjugate_pairs_of_perms(S,Rs,Sp,Rp)
+    #         if t==1:
+    #             conjugates[(S_canonical,Rpp)]=tmpd   
     #sig_on()
-    conjugates,conjugate_maps,Gmodpsl,Gmodpgl=find_conjugate_pairs(list_of_groups,mu,verbose)
-    #sig_off()
+    conjugates,conjugate_maps,Gmodpsl,Gmodpgl=find_conjugate_pairs(list_of_groups,mu,verbose=0)
+    
+
+#sig_off()
 #    lc_psl,lc_psl_maps,list_of_R=filter_list_mod_psl_mod_S_new(list_of_R,mu,e2,e3,Sp,verbose)
     ## in the list of PGL-conjugates we want to only have representatives
     ## of classes modulo PSL
@@ -2409,63 +2482,7 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
                 conjugate_maps[(S,R)]['pgl'].append(pp)
                 checked[j]=1
 
-    #if R in conjugates.keys():
-    #    for R1 in conjugates[R]['psl']:
-    ## in the list of PGL-conjugates we want to only have representatives
-    ## of classes modulo PSL. Observe that prevsiously we have basically only checked
-    ## conjugation modulo PGL / PSL = <J>
-    # cdef tuple grp,grp1
-    # cdef list Gmodpgl_tmp,Gmodpsl_tmp
-    # ### We want to choose a representative with S in canonical form.
-    # Gmodpsl_tmp = copy(Gmodpsl)
-    # for S,R in Gmodpsl:
-    #     if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2:
-    #         i = Gmodpsl_tmp.index((S,R))
-    #         print "Checking PSL:",S,R
-    #         for S1,R1 in conjugates[(S,R)]['psl']:
-    #             if (S1.num_fixed()>0 and S1(1)==1) or S1(1)==2:
-    #                 Gmodpsl_tmp[i]=(S1,R1)
-    #                 print "S1,R1 is ok:",S1,R1
-    #             else:
-    #                 print "S1 not ok:",S1
-    #             if S1(1)==1:  # this is the best option
-    #                 break
-    #         if Gmodpsl_tmp[i]==(S,R):
-    #             print "Could not find appropriate PSL representative for {0}".format((S,R))
-    # Gmodpsl = Gmodpsl_tmp    
-    # Gmodpgl_tmp = copy(Gmodpgl)
-    # cdef list conj_temp
-    # for S,R in Gmodpgl:
-    #     if (S.num_fixed()>0 and S(1)<>1) or S(1)<>2 or (S,R) not in Gmodpsl:
-    #         i = Gmodpgl_tmp.index((S,R))
-    #         print "Checking PGL:",S,R
-    #         conj_tmp = conjugates[(S,R)]['pgl']
-    #         conj_tmp.extend(conjugates[(S,R)]['psl'])
-    #         for S1,R1 in conj_tmp:
-    #             if S1(1) in [1,2] and (S1,R1) in Gmodpsl:
-    #                 Gmodpgl_tmp[i]=(S1,R1)
-    #                 print "S1,R1 is ok:",S1,R1
-    #             else:
-    #                 print "S1 not ok:",S1
-    #             if S1(1)==1:
-    #                 break
-    #         if Gmodpgl_tmp[i]==(S,R):
-    #             print "Could not find appropriate PGL representative for {0}".format((S,R))
-    # Gmodpgl = Gmodpgl_tmp
-    
-    # for grp in conjugate_maps.keys():        
-    #     testlist = copy(conjugates[grp]['pgl'])
-    #     print "testlist=",testlist
-    #     for grp1 in testlist:
-    #         if grp1 not in Gmodpsl:
-    #             i = conjugates[grp]['pgl'].index(grp1)
-    #             print "grp=",grp
-    #             print "remove grp1=",grp1
-    #             print "i=",i
-    #             conjugates[grp]['pgl'].remove(grp1)
-    #             conjugate_maps[grp]['pgl'].pop(i)
-    #             print "new list=",conjugates[grp]
-    #             print "new list=",conjugate_maps[grp]
+
     if checked<>NULL:
         sage_free(checked)
     return conjugates,conjugate_maps,Gmodpsl,Gmodpgl
@@ -2492,7 +2509,7 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',coset_rep=1,check=0,verbose=0):
     A = G1.coset_reps()[pp(1)-1]
     return t,A
 
-cpdef are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,str ret='SL2Z',int map_from=0,int map_to=0,int verbose=0):
+cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,str ret='SL2Z',int map_from=0,int map_to=0,int verbose=0):
     r"""
 
     If map_to>0 we require any permutation p to satisfy p(map map_from)=to map_to
@@ -2560,6 +2577,72 @@ cpdef are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPermutati
 #    return 1,matrix_from_perm((S1,R1),pp,verbose)
     A = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1].SL2Z()
     return 1,A
+
+
+
+cdef int are_conjugate_pairs_of_perms_new(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* plist,int map_from=0,int map_to=0,int verbose=0):
+    r"""
+
+    If map_to>0 we require any permutation p to satisfy p(map map_from)=to map_to
+    """
+
+    #S1,R1 = pair1; S2,R2 = pair2
+    ## First check if R1 and R2 are conjugate
+    cdef int i,j,t=0
+    cdef MyPermutation pp0,pp1,pp,Sc,Scp
+    p = are_conjugate_perm(R1,R2)
+    for i in range(S1.N()):        
+        plist[i] = i+1
+    if isinstance(p,int):
+        return 0
+    pp = <MyPermutation?>p
+    Sc = S1.conjugate(pp)
+    if verbose>0:
+        print "R1,R2=",R1.to_cycles(),R2.to_cycles()
+        print "S1,S2=",S1.to_cycles(),S2.to_cycles()
+        print "p=",pp.to_cycles()
+        print "S^p=",Sc.to_cycles()
+    if map_to<>0:        
+        j = pp(map_from)
+        if verbose>0:
+            print"Need sigma mapping {0} to {1}".format(map_from,j)
+        pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,j,map_to,verbose-1)
+        if verbose>0:
+            print "want total map to take {0} to {1}".format(map_from,map_to)
+            print "p=",p.to_cycles()
+            print "pp=",pp
+            if pp<>None:
+                print "pp*p=",pp*p
+                print "p*pp=",p*pp
+    else:
+        pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,0,0,verbose-1)
+    if t == 0:
+        return 0
+    if verbose>0:
+        pp0 = copy(pp)
+        pp1 = p*pp
+    pp = p*pp
+    if map_from>0:
+        if pp._entries[map_from-1]<>map_to:
+            raise ArithmeticError,"Could not find permutation conjugating and sending {0} to {1}".format(map_from,map_to,pp)
+    if verbose>0:
+        print "pp = pp*p=",pp
+    Scp = S1.conjugate(pp)
+    if verbose>0:
+        print "S1=",S1
+        print "S^pi=",Sc
+        print "S^(pi*sigma)=",Scp
+        Sc = Sc.conjugate(pp0)
+        print "(S^pi)^sigma)=",Sc
+        print "S^(sigma*pi)=",S1.conjugate(pp1)
+    if Scp<>S2:
+        raise ArithmeticError,"Conjugation did not work!"
+    for i in range(S1._N):        
+        plist[i] = pp._entries[i]
+    return 1
+#    return 1,matrix_from_perm((S1,R1),pp,verbose)
+#   A = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1].SL2Z()
+#    return 1,A
     
 
 cpdef matrix_from_perm(gens,p,verbose=0):
@@ -2653,7 +2736,7 @@ cpdef list filter_list_mod_1_mod_S(list listRin, int mu, int e2,MyPermutation S,
 
         if verbose>1:
             print "Checking fixed point set:",thisset
-        PONEI = MyPermutationIterator(mu,fixed_pts=thisset,verbose=mpi_verbose)
+        PONEI = MyPermutationIterator(mu,fixed_pts=thisset,num_fixed=len(thisset),verbose=mpi_verbose)
         #print "Rix=",Rix
         for ir from 0<=ir<nrin:
             if Rix[ir]<>0:
@@ -2810,7 +2893,9 @@ cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,My
     assert S1._N==N and R2._N==N and S2._N==N
     pres = <int*>sage_malloc(sizeof(int)*N)
     p=MyPermutation(length=N)
+    sig_on()
     res = are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,pres,verbose)
+    sig_off()
     p.set_entries(pres)
     if verbose>0:
         print "res=",res
@@ -2836,7 +2921,7 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
     epp = NULL
     rpp=NULL
     for i in range(N):
-        pres[i]=i
+        pres[i]=i+1
     #pres = MyPermutation(length=N)._entries
     res=1
     if _are_eq_vec(N,S1._entries,S2._entries) and _are_eq_vec(N,R1._entries,R2._entries):
@@ -2879,14 +2964,18 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
     rpp =  <int *> sage_malloc(sizeof(int)*N)
     if not rpp:  raise MemoryError
     res = 0
+    if verbose>0:
+        print "HERE 0!"
     #pres = MyPermutation(length=N)
     cdef list thisset,fixptsets,listRout
     cdef list fixptsS1=S1.fixed_elements()
     cdef list fixptsR1=R1.fixed_elements()
     cdef list fixptsS2=S2.fixed_elements()
     cdef list fixptsR2=R2.fixed_elements()
+    if verbose>0:
+        print "HERE 1!"
     cdef MyPermutation p,p0
-    p0=transposition(12,5,7)*transposition(12,6,8)*transposition(12,10,7)*transposition(12,9,8)*transposition(12,10,12)*transposition(12,9,11)*transposition(12,11,12)
+#    p0=transposition(12,5,7)*transposition(12,6,8)*transposition(12,10,7)*transposition(12,9,8)*transposition(12,10,12)*transposition(12,9,11)*transposition(12,11,12)
     #print "pres._entries=",printf("%p ",pres._entries)
     # Check which sets are allowed:
     cdef list iteratorlist=[]
@@ -2899,7 +2988,7 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
             continue
         if 1 not in thisset:
             continue
-        if verbose>2:
+        if verbose>1:
             print "fixset test.:",thisset
         cont=False
         for a in thisset:
@@ -2915,27 +3004,29 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
                 break
         if cont:
             continue # fixptsets.remove(thisset)
-        if verbose>2:
-            print "fixset ok.:",thisset
-        PONEI = MyPermutationIterator(N,fixed_pts=thisset)
-        iteratorlist.append(PONEI)
-    sig_on()
-    for PONEI in iteratorlist:      
         if verbose>1:
-            print "Checking perms in ",PONEI
+            print "fixset ok.:",thisset
+        PONEI = MyPermutationIterator(N,fixed_pts=thisset,num_fixed=len(thisset))
+        iteratorlist.append(PONEI)
+    #sig_on()
+    if verbose>0:
+        print "HERE!"
+    for PONEI in iteratorlist:      
+        #if verbose>1:
+        #    print "Checking perms in ",PONEI
         for p in PONEI:
             if verbose>2:
                 print "p=",p
-            if p==p0:
-                print "p0 is here!"
+            #if p==p0:
+            #    print "p0 is here!"
             _conjugate_perm(N,epp,S1._entries,p._entries) # epp=p*E*p.inverse()
-            if p==p0:
-                print "epp=",print_vec(N,epp)
+            #if p==p0:
+            #    print "epp=",print_vec(N,epp)
             if not _are_eq_vec(N,epp,S2._entries):
                 continue
             _conjugate_perm(N,rpp,R1._entries,p._entries) # rpp=p*R*p.inverse()
-            if p==p0:
-                print "rpp=",print_vec(N,rpp)
+            #if p==p0:
+            #    print "rpp=",print_vec(N,rpp)
             if _are_eq_vec(N,rpp,R2._entries):
                 res = 1
                 for i in range(N):
@@ -2953,44 +3044,24 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
         sage_free(epp)
     if rpp<>NULL:
         sage_free(rpp)
-    sig_off()
+    #sig_off()
+
     return res
 
-    
+
+
+
+
+
+
 cpdef is_consistent_signature(int ix,int nc=0,int e2=0,int e3=0,int g=0):
     #print "rhs=",12+ix-6*nc-3*e2-4*e3
     return int(12*g == 12+ix-6*nc-3*e2-4*e3)
 
 
-cpdef are_conjugate_perm(MyPermutation A,MyPermutation B):
-   r"""
-   Check if the permutation A is conjugate to B
-   """
-   cdef int N = A._N
-   if N<>B._N:
-       return 0
-   cdef list ctA,ctB
-   ctA = A.cycle_type()
-   ctB = B.cycle_type()
-   if ctA<>ctB:
-       return 0
-   lA = A.cycles_as_perm()
-   lB = B.cycles_as_perm()
-   return get_conjugating_perm_list(lA,lB)
 
 
-cpdef get_conjugating_perm_list(list Al,list Bl):
-    r"""
-    Find permutation which conjugates Al to Bl, where Al and Bl are lists given by cycle structures.
-    """
-    cdef dict cperm
-    cdef int i
-    cperm = {}
-    if len(Al)<>len(Bl):
-        raise ValueError,"Need lists of the same length! Got:{0} and {1}".format(Al,Bl)
-    for i in range(len(Al)):
-        cperm[Al[i]-1]=Bl[i]
-    return MyPermutation(cperm.values())
+
 
 
 

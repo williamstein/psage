@@ -73,7 +73,8 @@ cdef class MyPermutationIterator(SageObject):
     cdef int _got_list
     cdef int _num_fixed
     cdef MyPermutationIterator _fixed_pt_free_iterator
-    cdef list _fixed_pt_free_iterator_labels
+    cdef int _has_fixed_pt_free_iterator
+    cdef int * _fixed_pt_free_iterator_labels
     cpdef list(self)
     cpdef list_new(self)
     cpdef _get_list_of_perms(self)

@@ -49,6 +49,9 @@ from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
 import cython
 from psage.modform.maass.mysubgroup import MySubgroup
+
+from libc.stdlib cimport malloc, free
+
 #from Cython.Utils import cached_function, cached_method
 #from sage.all import cached_method
 cdef extern from "math.h":
@@ -79,7 +82,8 @@ cdef class MyPermutation(SageObject):
         #i2=2**200
         #i3=Integer(2)**Integer(200)
         cdef int* used=NULL
-        cdef int i
+        cdef int i,ok,ei
+        cdef str s
         self._entries = NULL
         self._str=''
         self._rep=rep
@@ -87,11 +91,11 @@ cdef class MyPermutation(SageObject):
         self._order=-1
         self._verbose=verbose
         ## If we have a list of lists we are trying to initialize from cycle structure.
-        cdef int mu
-        cdef int mutmp
-        cdef list new_entries
         self._cycles = []
         self._cycle_type=[]
+        self._cycle_lens = NULL
+        cdef list entries_list=[]
+        
         if entries==[]:
             if length>0:
                 self._N = length
@@ -100,45 +104,61 @@ cdef class MyPermutation(SageObject):
         else:
             if isinstance(entries,str):
                 # if the string represents a list
-                if entries.count('[')==1 and entries.count(']')==1:
-                    entries=eval(entries)
+                s = <str> entries
+#                if entries.count('[')==1 and entries.count(']')==1:
+                if s.count('[')==1 and s.count(']')==1:
+                    entries_list=eval(s)
                 else: ## Assume it is a string representation of cycles
-                    entries=self._cycles_from_str(entries)
-            if hasattr(entries,list):
-                entries=entries.list()
-            elif not isinstance(entries,(list,tuple)):
+                    entries_list=self._cycles_from_str(entries)
+            elif hasattr(entries,list):
+                entries_list=entries.list()
+            elif isinstance(entries,(list,tuple)):
+                if isinstance(entries[0],int):
+                    entries_list = <list>entries
+                elif isinstance(entries[0],(list,tuple)):
+                    try:
+                        entries_list = self._list_from_cycles(entries)
+                    except:
+                        pass
+            if len(entries_list)==0 or (length>0 and length<>len(entries_list)):
                 raise ValueError,"Invalid Input for permutation!! entries: {0}".format(entries)           
-            elif len(entries)>0 and isinstance(entries[0],(list,tuple)):
-                try:
-                    entries = self._list_from_cycles(entries)
-                except:
-                    raise ValueError,"Invalid Input for permutation!!! entries: {0}".format(entries)           
             if length>0:
-                if length<>len(entries):
-                    raise ValueError,"Invalid Input for permutation!!!! entries: {0} and length:{1}".format(entries,length)           
                 self._N=length
             else:
-                self._N = len(entries)
+                self._N = len(entries_list)
         self._init = 1        
-        if check==1:
-            used=<int*>sage_malloc(sizeof(int)*self._N)
-            for i in range(self._N):
-                used[i]=0
-            ok=1
         if self._N>0:
-            self._entries = <int*> sage_malloc(sizeof(int)*self._N)
-            if len(entries)>0:
-                # Check consistency: we need every element 1,2,...,N exactly once.
+            if check==1:
+                #print "N=",self._N
+                used=<int*>malloc(sizeof(int)*self._N)
+                if used==NULL:
+                    raise MemoryError
                 for i in range(self._N):
-                    self._entries[i]=entries[i]
-                    if check==1:
-                        if entries[i]>self._N or entries[i]<1:
+                    used[i]=0
+                ok=1
+            self._entries = <int*> sage_malloc(sizeof(int)*self._N)
+            if self._entries==NULL:
+                raise MemoryError
+            if len(entries_list)>0:
+                # Check consistency: we need every element 1,2,...,N exactly once.
+                if check==1 and used<>NULL:
+                    for i in range(self._N):
+                        ei = <int>entries_list[i]
+                        self._entries[i]=ei
+                        if ei>self._N or ei<1:
+                            free(self._entries); self._entries=NULL                            
+                            free(used)
                             raise ValueError,"Invalid Input for permutation!!!!! entries: {0}".format(entries)
-                        if used[entries[i]-1]>0:
+                        if used[ei-1]>0:
+                            free(self._entries); self._entries=NULL
+                            free(used)
                             raise ValueError,"Invalid Input for permutation!!!!!! entries:{0}".format(entries)
                         else:
-                            used[entries[i]-1]=1
-                self._list = entries
+                            used[ei-1]=1
+                else:
+                    for i in range(self._N):
+                        self._entries[i]=<int>entries_list[i]
+                self._list = entries_list
             elif init==1:
                 for i in range(self._N):
                     self._entries[i]=i+1
@@ -146,9 +166,26 @@ cdef class MyPermutation(SageObject):
             else:
                 self._init = 0
         self._hash = 0 
-        if check==1 and used<>NULL:
-            sage_free(used)
-        
+        self._cycle_info = NULL
+        self._cycle_info = <int**>sage_malloc(sizeof(int*)*(self._N+1))
+        for i in range(self._N+1):
+            self._cycle_info[i]=<int*>sage_malloc(sizeof(int)*(self._N+1))
+            for j in range(self._N+1):
+                self._cycle_info[i][j]=0
+        if check==1 and used<>NULL and self._N>0:
+            free(used)
+
+    def __init__(self,entries=[],int length=0,int init=0,int verbose=0,int check=1,int rep=0):
+        r"""
+        The possible representations are the following: if self=MyPermutation(length=7)
+        rep = 0 => 1234567 (compact list)
+        rep = 1 => [1, 2, 3, 4, 5, 6, 7] (verbose list)
+        rep = 2 => [[1], [2], [3], [4], [5], [6], [7]] (cycles)
+        """
+        pass
+
+
+            
     def _cycles_from_str(self,s):
         r"""
         Convert a string of the form (1 3 5)(2 7 9)(4 8 11)(6 10 12)
@@ -163,7 +200,7 @@ cdef class MyPermutation(SageObject):
         self._cycles = cycles
         return self._list_from_cycles(cycles)
 
-    def _list_from_cycles(self,cycles):
+    cpdef list _list_from_cycles(self,list cycles):
         cdef int i,mu,mutmp
         cdef list cycle,res
         mu=1
@@ -190,7 +227,15 @@ cdef class MyPermutation(SageObject):
         r"""
         Copy self.
         """
-        res = MyPermutation(self.list())
+        #l = self.list()
+        #res = MyPermutation(l)
+        return self._copy_c()
+
+    cpdef _copy_c(self):
+        r" copy self"
+        cdef MyPermutation res
+        res = MyPermutation(length=self._N)
+        res.set_entries(self._entries)
         return res
 
     #def __deepcopy__(self):
@@ -302,16 +347,7 @@ cdef class MyPermutation(SageObject):
         raise ValueError,"Can not compare permutation with op={1}!".format(op)
             
 
-    def __init__(self,entries=[],int length=0,int init=0,int verbose=0,int check=1,int rep=0):
-        r"""
-        The possible representations are the following: if self=MyPermutation(length=7)
-        rep = 0 => 1234567 (compact list)
-        rep = 1 => [1, 2, 3, 4, 5, 6, 7] (verbose list)
-        rep = 2 => [[1], [2], [3], [4], [5], [6], [7]] (cycles)
-        """
-        self._cycle_type = []
-
-    cdef void set_entries(self, int *entries):
+    cdef int set_entries(self, int *entries):
         r"""
         Unsafe setting of entries via pointer.
         """
@@ -322,6 +358,7 @@ cdef class MyPermutation(SageObject):
         self._list = []
         self._str=''
         self._init=1
+        return 0
 
     def parent(self):
         return "MyPermutation on {0} letters".format(self._N)
@@ -407,11 +444,13 @@ cdef class MyPermutation(SageObject):
         #return repr(self)
 
     def  __dealloc__(self):
-        if self._entries == NULL:
-            return 
-        sage_free(self._entries)
-        self._entries = NULL
-
+        if self._entries <> NULL:
+            sage_free(self._entries)
+            self._entries = NULL
+        if self._cycle_info <>NULL:
+            sage_free(self._cycle_info)
+            self._cycle_info = NULL
+        
     def set_rep(self,rep=0):
         if rep<>self._rep:
             self._str = ''
@@ -660,11 +699,22 @@ cdef class MyPermutation(SageObject):
         r"""
         The elements not fixed by self.
         """
-        cdef int i
+        cdef int i,num
         cdef list res=[]
+        cdef int* non_fixed=NULL
+        non_fixed = <int*>sage_malloc(sizeof(int)*self._N)
+        num = 0
         for i in range(self._N):
             if self._entries[i]<>i+1:
-                res.append(i+1)
+                non_fixed[num]=i+1
+                num+=1
+            else:
+                non_fixed[i]=0
+        res = range(num)
+        for i in range(num):
+            res[i]=non_fixed[i]
+        if non_fixed<>NULL:
+            sage_free(non_fixed)
         return res
     
     def __mul__(self,other):
@@ -696,10 +746,10 @@ cdef class MyPermutation(SageObject):
             entries[i]=<int>other[i]
         res_ent = <int*>sage_malloc(sizeof(int)*N)
         if entries==NULL: raise MemoryError
-        _mult_perm(N,self._entries,entries,res_ent)
+        _mult_perm_unsafe(N,self._entries,entries,res_ent)
         res = MyPermutation(length=N,init=0,check=0)
         res.set_entries(res_ent)        
-        if entries:
+        if entries<>NULL:
             sage_free(entries)
             entries=NULL
         if res_ent<>NULL:
@@ -711,13 +761,13 @@ cdef class MyPermutation(SageObject):
         cdef MyPermutation res
         cdef int *res_ent=NULL
         cdef int N = self._N
-        res_ent = <int*>sage_malloc(sizeof(int)*N)
+        res_ent = <int*>malloc(sizeof(int)*N)
         if res_ent==NULL: raise MemoryError
-        _mult_perm(N,self._entries,other._entries,res_ent)
+        _mult_perm_unsafe(N,self._entries,other._entries,res_ent)
         res = MyPermutation(length=N,init=0,check=0)
         res.set_entries(res_ent)
         if res_ent<>NULL:
-            sage_free(res_ent)
+            free(res_ent)
             res_ent=NULL
         return res
 
@@ -971,7 +1021,7 @@ cdef class MyPermutation(SageObject):
         return res
 
 
-    cpdef cycles_as_perm(self):
+    def cycles_as_perm(self):
         r"""
         This gives the cycles of self in terms of a permutation, i.e.
         (1 2 3)(6 4 5)  is represented by [1,2,3,6,4,5]
@@ -984,6 +1034,110 @@ cdef class MyPermutation(SageObject):
                 res.append(cycles[i][j])
         return res
 
+    cpdef _perm_to_cycles(self):
+        r"""
+        """
+        cdef int *cycle_lens=NULL
+        cdef int *cycle=NULL
+        cdef int *cy_ptr=NULL
+        cdef int **res_ptr=NULL
+        cdef int i,j,k,l,last,jj,num_c,len_c
+        cdef list cy,res
+        cycle = <int*> malloc(sizeof(int)*self._N)
+        if cycle==NULL: raise MemoryError
+        cy_ptr = <int*> malloc(sizeof(int)*self._N)
+        if cy_ptr == NULL: raise MemoryError
+        cycle_lens = <int*> malloc(sizeof(int)*self._N)
+        if cycle_lens==NULL: raise MemoryError
+        res_ptr = <int**> malloc(sizeof(int*)*self._N)
+        if res_ptr == NULL: raise MemoryError
+        for j in range(self._N):
+            res_ptr[j]=NULL
+            res_ptr[j] = <int*> malloc(sizeof(int)*self._N)
+            if res_ptr[j] == NULL: raise MemoryError
+            for i in range(self._N):
+                res_ptr[j][i] = 0
+        cy = []; res = []
+        last = 0
+        i = perm_to_cycle_c(self._N,self._entries,cycle,cycle_lens)
+        num_c=0
+        for i in range(self._N):
+            l = cycle_lens[i]
+            if l==0:
+                continue
+            for j in range(self._N):
+                cy_ptr[j]=0
+            if last+l>self._N:
+                if cycle<>NULL:
+                    free(cycle)
+                if cycle_lens<>NULL:
+                    free(cycle_lens)
+                if cy_ptr<>NULL:
+                      free(cy_ptr)
+                if res_ptr<>NULL:
+                    for i in range(self._N):
+                        if res_ptr[i]<>NULL:
+                            free(res_ptr[i])
+                    free(res_ptr)
+                raise ArithmeticError,"Got too long cycle length: N={0} and l={1}".format(self._N,l)
+            len_c = 0 
+            for j in range(last,last+l):
+                k = cycle[j]
+                cy_ptr[len_c]=k
+                len_c+=1
+            cycle_lens[num_c]=len_c
+            last = last+l
+            #res.append(cy)
+            for j in range(len_c):
+                if cy_ptr[j]==0:
+                    break
+                res_ptr[num_c][j] = cy_ptr[j]
+            num_c+=1
+            if last>=self._N:
+                break
+        # for i in range(self._N):
+        #     l = cycle_lens[i]
+        #     if l==0:
+        #         continue
+        #     cy=[]
+        #     if last+l>self._N:
+        #         if cycle<>NULL:
+        #             free(cycle)
+        #         if cycle_lens<>NULL:
+        #             free(cycle_lens)
+        #         raise ArithmeticError,"Got too long cycle length: N={0} and l={1}".format(self._N,l)
+        #     for j in range(last,last+l):
+        #         k = cycle[j]
+        #         cy.append(k)
+        #     last = last+l
+        #     res.append(cy)
+        #     if last>=self._N:
+        #         break
+        res = range(num_c)
+        for i in range(num_c):
+            cy = range(cycle_lens[i])
+            for j in range(cycle_lens[i]):
+                cy[j]=res_ptr[i][j]
+            res[i]=cy
+        if cycle<>NULL:
+            free(cycle)
+        if cycle_lens<>NULL:
+            free(cycle_lens)
+        if res_ptr<>NULL:
+            for i in range(self._N):
+                if res_ptr[i]<>NULL:
+                    free(res_ptr[i])
+                    res_ptr[i]=NULL                    
+            free(res_ptr)
+            res_ptr=NULL
+        if cy_ptr<>NULL:
+            free(cy_ptr)
+
+        return res
+
+    
+
+            
     
     def to_cycles(self,ordered=0):
         r"""
@@ -992,13 +1146,22 @@ cdef class MyPermutation(SageObject):
         if not hasattr(self,"_cycles"):
             self._cycles=[]
         if self._cycles == []:
-            if not self._list or not self._entries:
+            if not self._list or self._entries==NULL:
                 self.list()
-            self._cycles = perm_to_cycle_c(self._N,self._entries)
+            #self._cycles = perm_to_cycle_c(self._N,self._entries)
+            self._cycles = self._perm_to_cycles()
         if ordered==1:
             self._cycles.sort(key = lambda x: len(x))
         return self._cycles
 
+
+    cpdef num_cycles(self):
+        r"""
+        Return the number of cycles of self.
+        """
+        return num_cycles_c(self._N,self._entries)
+        
+    
     def cycle_type(self):
         r"""
         Return the cycle type of self.
@@ -1097,7 +1260,7 @@ cdef class MyPermutationIterator(SageObject):
         if self._current_state_c == NULL: raise MemoryError
         self._current_state_o=   self._current_state_c + self._N # used for swap
         self._fixed_pt_free_iterator_labels = NULL
-        
+        self._fixed_pts=NULL
         self._cur = 0 # The index of the current permutation.
         for i in range(self._N):
             self._list_of_perms[0][i]=i+1
@@ -1246,7 +1409,7 @@ cdef class MyPermutationIterator(SageObject):
                 print "num_in_deal=",self._num
                 print "list_o_p="
                 printf("%p ", self._list_of_perms)
-            for i from 0<=i<self._num:
+            for i in range(self._num):
                 if self._verbose>2:
                     print "list_o_p[",i,"]="
                     printf("%p ", self._list_of_perms[i])
@@ -1262,11 +1425,12 @@ cdef class MyPermutationIterator(SageObject):
             sage_free(self._fixed_pts)
             self._fixed_pts=NULL
         if self._current_state_c<>NULL:
+            self._current_state_o=NULL
             sage_free(self._current_state_c)
             self._current_state_c=NULL
-            self._current_state_o=NULL
         if self._fixed_pt_free_iterator_labels<> NULL:
             sage_free(self._fixed_pt_free_iterator_labels)
+            self._fixed_pt_free_iterator_labels=NULL
         if self._verbose>2:
             print "end of dealloc!"
             print "self_l_o_p=",printf("%p ",self._list_of_perms)
@@ -1306,7 +1470,7 @@ cdef class MyPermutationIterator(SageObject):
         if not self._list_of_perms: raise MemoryError
         if self._verbose>2:
             print "we will allocate list at address:",printf("%p ", self._list_of_perms)
-        for i from 0 <= i <= self._num-1:
+        for i in range(self._num):
             self._list_of_perms[i]=NULL
             self._list_of_perms[i] = <int*> sage_malloc(sizeof(int)*self._N)
             if not self._list_of_perms[i]: raise MemoryError
@@ -1320,7 +1484,7 @@ cdef class MyPermutationIterator(SageObject):
         if self._num<=0:
             return 
         if self._list_of_perms:
-            if self._list_of_perms[self._num-1]:
+            if self._list_of_perms[self._num-1]<>NULL:
                 sage_free(self._list_of_perms[self._num-1])
                 self._list_of_perms[self._num-1]=NULL
             self._num=self._num-1
@@ -1784,21 +1948,26 @@ cdef class MyPermutationIterator(SageObject):
 
 
     cpdef list(self):
-        res=list()
         cdef int i,j
         cdef list l
-        if self._max_num==0:
-            return res
+        if self._max_num==0:            
+            return []
         if self._got_list==0:
             self._get_list_of_perms()
-        if self._list_of_perms:
-            for i from 0<=i<=self._num-1:
-                if self._list_of_perms[i]:
-                    l=list()
-                    for j from 0<=j<self._N:
-                        l.append(self._list_of_perms[i][j])
-                    res.append(l)
-        return res
+        if self._list_of_perms<>NULL:
+            res=range(self._num)
+            for i in range(self._num):
+                if self._list_of_perms[i]<>NULL:
+                    l = range(self._N) #list()
+                    for j in range(self._N):
+                        #l.append(self._list_of_perms[i][j])
+                        l[j]=self._list_of_perms[i][j]
+                    res[i]=l
+                else:
+                    res[i]=[]
+            return res
+        else:
+            return []
         
     cpdef _get_list_of_perms(self):
         r"""
@@ -1819,7 +1988,7 @@ cdef class MyPermutationIterator(SageObject):
             print "allocated num=",self._num
         lista = <int*> sage_malloc(sizeof(int)*self._N)
         if not lista: raise MemoryError
-        for i from 0 <= i <= self._N-1:
+        for i in range(self._N): 
             lista[i]=i+1
         self._cur = 0
         num = factorial(self._N) #deepcopy(self.num())
@@ -1998,7 +2167,7 @@ cdef class CycleCombinationIterator(Parent):
 
     def __cinit__(self,MyPermutation R):
         self._cycles = []
-        self._cycle_types = []
+        self._cycle_types = NULL
         self._N = R.N()
         self._length = 1
         self._num_cycles=0
@@ -2008,6 +2177,7 @@ cdef class CycleCombinationIterator(Parent):
         self._got = 0
         cdef list tmp
         cdef int jj
+        self._c_new()
         for c in R.cycles(type=0):
             j = c.order()
             if j==1:
@@ -2021,11 +2191,18 @@ cdef class CycleCombinationIterator(Parent):
                 else:
                     tmp.append(c.pow(jj))
             self._cycles.append(tmp)
-            self._cycle_types.append(j)
+            self._cycle_types[self._num_cycles]= j
             self._length = self._length*j
             self._num_cycles = self._num_cycles + 1
             if j > self._dbase:
                 self._dbase = j
+
+    def _c_new(self):
+        if self._cycle_types<>NULL:
+            sage_free(self._cycle_types)
+        self._cycle_types = <int*>sage_malloc(sizeof(int)*self._N)
+        if self._cycle_types == NULL:
+            raise MemoryError
                 
     
     def __init__(self,MyPermutation R):
@@ -2034,6 +2211,12 @@ cdef class CycleCombinationIterator(Parent):
         """
         pass
 
+    def __dealloc__(self):
+        if self._cycle_types <> NULL:
+            sage_free(self._cycle_types)
+        self._cycle_types=NULL
+    
+    
     def __repr__(self):
         r""" print self (as a list)"""
         s=""
@@ -2047,6 +2230,7 @@ cdef class CycleCombinationIterator(Parent):
     cpdef list(self):
         for i in range(len(self._cache),self._length):
             self._cache.append(self.permutation_nr_c(i))
+            self._got = self._length
         return self._cache
     
     #@cached_method
@@ -2062,7 +2246,20 @@ cdef class CycleCombinationIterator(Parent):
             self._got = M+1
         return self._cache[M]
 
-
+    # @cython.cdivision(True)
+    # cdef MyPermutation permutation_nr_c_old(self,int M): #,MyPermutation p):
+    #     cdef MyPermutation res
+    #     res = MyPermutation(length=self._N)
+    #     cdef int i, M1,j1
+    #     for i in range(self._num_cycles):
+    #         M1 = M % self._dbase            
+    #         #res = res._mult_perm(<MyPermutation>(self._cycles[i]).pow(M1))
+    #         j1 = M1 % self._cycle_types[i]
+    #         if j1>0:
+    #             res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
+    #         M = M / self._dbase # integer division, i.e. M = (M-M1)/self._dbase
+    #     return res
+    @cython.cdivision(True)
     cdef MyPermutation permutation_nr_c(self,int M): #,MyPermutation p):
         cdef MyPermutation res
         res = MyPermutation(length=self._N)
@@ -2070,10 +2267,10 @@ cdef class CycleCombinationIterator(Parent):
         for i in range(self._num_cycles):
             M1 = M % self._dbase            
             #res = res._mult_perm(<MyPermutation>(self._cycles[i]).pow(M1))
-            j1 = M1 % int(self._cycle_types[i])
+            j1 = M1 % self._cycle_types[i]
             if j1>0:
                 res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
-            M = (M-M1)/self._dbase
+            M = M / self._dbase # integer division, i.e. M = (M-M1)/self._dbase
         return res
 
 
@@ -2178,68 +2375,50 @@ cpdef get_conjugating_perm_list(list Al,list Bl):
         cperm[Al[i]-1]=Bl[i]
     return MyPermutation(cperm.values())
 
+cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl):
+    r"""
+    Find permutation which conjugates Al to Bl, where Al and Bl are lists given by cycle structures.
+    """
+    cdef int* cperm=NULL
+    cdef MyPermutation res
+    cdef int i
+    cperm = <int*> sage_malloc(sizeof(int)*mu)
+    if cperm==NULL:
+        raise MemoryError
+    for i in range(mu):
+        cperm[Al[i]-1]=Bl[i]
+    res = MyPermutation(length=mu,init=0,check=0)
+    res.set_entries(cperm)
+    return res
 
 cpdef perm_to_cycle(perm):
     r"""
     Writes a permutation, given as a list of integers, in terms of cycles 
     """
     cdef int N,i,last,l
-    cdef int *cycle_lens, *cycle,*permv
+    cdef int *cycle_lens=NULL
+    cdef int *cycle=NULL
+    cdef int *permv=NULL
     N = len(perm)
     cycle = <int*> sage_malloc(sizeof(int)*N)
-    if not cycle: raise MemoryError
+    if cycle==NULL: raise MemoryError
     cycle_lens = <int*> sage_malloc(sizeof(int)*N)
-    if not cycle_lens: raise MemoryError
+    if cycle_lens==NULL: raise MemoryError
     permv = <int*> sage_malloc(sizeof(int)*N)
-    if not permv: raise MemoryError
-    for i from 0 <= i < N:
+    if permv==NULL: raise MemoryError
+    for i  in range(N):
         permv[i]=perm[i]
         cycle[i]=0
     _to_cycles(N,permv, cycle, cycle_lens)
     res = list()
     cy = list()
     last = 0
-    for i from 0 <= i < N:
+    for i in range(N):
         l = cycle_lens[i]
         if l==0:
             continue
-        cy=[]
-        for j from last<= j < last+l:
-            cy.append(cycle[j])
-        last = last+l
-        res.append(cy)
-        if last>=N:
-            break
-    sage_free(permv)
-    sage_free(cycle_lens)
-    sage_free(cycle)
-    return res
-
-
-
-cdef list perm_to_cycle_c(int N,int *perm):
-    cdef int *cycle_lens, *cycle,*permv
-    cdef list res,cy
-    cdef int i,j,last,l
-    cycle = <int*> sage_malloc(sizeof(int)*N)
-    if not cycle: raise MemoryError
-    cycle_lens = <int*> sage_malloc(sizeof(int)*N)
-    if not cycle_lens: raise MemoryError
-    permv = <int*> sage_malloc(sizeof(int)*N)
-    if not permv: raise MemoryError
-    for i from 0 <= i < N:
-        permv[i]=perm[i]
-        cycle[i]=0
-    _to_cycles(N,permv, cycle, cycle_lens)
-    res = list()
-    cy = list()
-    last = 0
-    for i from 0 <= i < N:
-        l = cycle_lens[i]
-        if l==0:
-            continue
-        cy=[]
-        for j from last<= j < last+l:
+        cy=list()
+        for j in range(last,last+l):
             cy.append(cycle[j])
         last = last+l
         res.append(cy)
@@ -2254,6 +2433,94 @@ cdef list perm_to_cycle_c(int N,int *perm):
     return res
 
 
+cpdef num_cycles_perm(MyPermutation perm):
+    return num_cycles_c(perm._N,perm._entries)
+
+   
+cdef int num_cycles_c(int N,int *perm):
+    cdef int i,n,t0,t1
+    cdef int* used = NULL
+    used = <int*> sage_malloc(sizeof(int)*N)
+    if used==NULL: raise MemoryError
+    for i in range(N):
+        used[i]=0
+    n = 0
+    for i in range(N):
+        if used[i]==1:
+            continue
+        t0 = perm[i]
+        t1 = t0
+        used[i]=1
+        for j in range(N):
+            used[t1-1]=1
+            t1 = perm[t1-1]
+            if t1==t0:
+                break
+        n+=1
+    if used<>NULL:
+        sage_free(used)
+    return n
+        
+        #     l = cycle_lens[i]
+    #     if l==0:
+    #         continue
+    #     cy=list()
+    #     if last+l>N:
+    #         raise ArithmeticError,"Got too long cycle length: N={0} and l={1}".format(N,l)
+    #     for j in range(last,last+l):
+    #         #    print "j=",j
+    #         #    print "cycle[j]=",cycle[j]
+    #         k = cycle[j]
+    #         cy.append(k)
+    #     last = last+l
+    #     res.append(cy)
+    #     if last>=N:
+    #         break
+
+cdef int perm_to_cycle_c(int N,int *perm,int *cycle,int *cycle_lens):
+#    cdef int *cycle_lens=NULL
+#    cdef int *cycle=NULL
+    cdef int *permv=NULL
+    cdef list res,cy
+    cdef int i,j,k,last,l
+    #print "N=",N
+    #cycle = <int*> sage_malloc(sizeof(int)*N)
+    #if cycle==NULL: raise MemoryError
+    #cycle_lens = <int*> sage_malloc(sizeof(int)*N)
+    #if cycle_lens==NULL: raise MemoryError
+    permv = <int*> sage_malloc(sizeof(int)*N)
+    if permv==NULL: raise MemoryError
+    for i in range(N):
+        permv[i]=perm[i]
+        cycle[i]=0
+    _to_cycles(N,permv, cycle, cycle_lens)
+    #res = list()
+    #last = 0
+    # for i in range(N):
+    #     l = cycle_lens[i]
+    #     if l==0:
+    #         continue
+    #     cy=list()
+    #     if last+l>N:
+    #         raise ArithmeticError,"Got too long cycle length: N={0} and l={1}".format(N,l)
+    #     for j in range(last,last+l):
+    #         #    print "j=",j
+    #         #    print "cycle[j]=",cycle[j]
+    #         k = cycle[j]
+    #         cy.append(k)
+    #     last = last+l
+    #     res.append(cy)
+    #     if last>=N:
+    #         break
+    if permv<>NULL:
+        sage_free(permv)
+    #if cycle_lens<>NULL:
+    #    sage_free(cycle_lens)
+    #if cycle<>NULL:
+    #    sage_free(cycle)
+    return 1
+
+
 
 
     
@@ -2264,26 +2531,33 @@ cdef _to_cycles(int N, int *perm, int *cycle, int *cycle_lens):
     INPUT:
       - N integer
       - perm -- allocated array of integers of length N 
-
+      - cycle -- allocated int* of length N
+      - cycle_lens -- allocated int* of length N
     """
     cdef int i,bd_old,ii
     cdef int cycle_bd,tmp
     cycle_bd=0
     ii=0
-    for i from 0 <= i < N:
+    for i in range(N):
         cycle_lens[i]=0 
-    for i from 1 <= i <= N:
+    for i in range(1,N+1):
         if _is_in_list(cycle,i,N):
             continue
         bd_old = cycle_bd
         cycle_bd+=1
+        if cycle_bd > N:
+            break
         cycle[cycle_bd-1]=i
+        if cycle[cycle_bd-1] > N:
+            break
         tmp = perm[cycle[cycle_bd-1]-1]
-        while tmp<>i and cycle_bd <=N:
+        while tmp<>i and tmp <= N and cycle_bd <=N:
             cycle_bd+=1
             cycle[cycle_bd-1]=tmp
             tmp = perm[tmp-1]
         cycle_len = cycle_bd - bd_old
+        if  ii >= N:
+            break
         cycle_lens[ii]=cycle_len
         ii+=1
         if cycle_bd > N or ii >= N:
@@ -2322,10 +2596,11 @@ cdef _to_cycles2(int N, int *perm, int *cycle, int *cycle_lens, int num_cycles):
         if cycle_bd > N or num_cycles >= N:
             break        
         
-cdef void _mult_perm(int N,int *left,int *right,int* res):
+cdef void _mult_perm_unsafe(int N,int *left,int *right,int* res):
         r"""
         This is the standard order of multiplication of permutation.
         res = self*other : i-> other(self(i))
+        This is 'unsafe' since no check of validity of data or arrays is performed.
         """
         cdef int i
         for i in range(N):

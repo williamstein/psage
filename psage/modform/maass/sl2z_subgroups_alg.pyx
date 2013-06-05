@@ -33,13 +33,13 @@ include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
 
 from permutation_alg cimport MyPermutation,MyPermutationIterator,CycleCombinationIterator
-from permutation_alg cimport print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm,are_transitive_perm_c,perm_to_cycle_c,are_conjugate_perm,get_conjugating_perm_list
+from permutation_alg cimport print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm_unsafe,are_transitive_perm_c,perm_to_cycle_c,are_conjugate_perm,get_conjugating_perm_list,get_conjugating_perm_ptr_unsafe,num_cycles_c
 
 from psage.modform.maass.mysubgroup import MySubgroup
-
+from psage.modform.maass.mysubgroups_alg cimport SL2Z_elt
 from sage.modules.vector_integer_dense cimport Vector_integer_dense
 
-from permutation_alg import verbosity,print_cycles,perm_to_cycle,sort_perms
+from permutation_alg import verbosity,sort_perms
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.groups.perm_gps.permgroup import PermutationGroup
 from sage.groups.perm_gps.permgroup_named import SymmetricGroup
@@ -194,14 +194,16 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
     if not Rcycles: raise MemoryError
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
-    sig_on()
+    #DEB sig_on()
+    cdef MyPermutation pT
+    cdef int h_tmp=0
     for pR in PRI: #ii from 0<= ii <max_num:
         #_to_cycles2(mu,pR._entries,Rcycles,rcycle_lens,num_rcycles)
         # we might also make some apriori requirements on R
         # 1) R can not contain all fixed points of E in one cycle
         if verbose>0:
-            print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
-            print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
+            print "S=",Sp.cycles() #print_vec(mu,Sptr)
+            print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)
             #print "pr=",pR
         if verbose>0:
             print "Checking transitivity!"
@@ -212,14 +214,18 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
         #sage_free(gotten)        
         if verbose>0:
             print "Checking the number of cusps!"
-        _mult_perm(mu,Sptr,<int *>pR._entries,Tptr)
+        _mult_perm_unsafe(mu,Sptr,<int *>pR._entries,Tptr)
         #T=E*R
-        Tcyc=perm_to_cycle_c(mu,Tptr)
+        #Tcyc=perm_to_cycle_c(mu,Tptr)
+        h_tmp = num_cycles_c(mu,Tptr)
         if verbose>0:
+            pT = MyPermutation(length=mu)
+            pT.set_entries(Tptr)
+            Tcyc = pT.cycles()
             print "Tp=",Tcyc
             print "current fixedpts=",PRI.fixed_pts()
             print "number of cusps=",len(Tcyc)
-        if len(Tcyc)<>h:
+        if h_tmp<>h:
             if verbose>0:
                 print "Incorrect number of cusps. remove!"
                 print "next!"
@@ -251,7 +257,8 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
         for i from 0<= i < e3:
             used[rfx[i]-1]=1            
         rcycle_beg=0
-        Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
+        Rcycles_list=pR.cycles_as_lists() #perm_to_cycle_c(mu,<int*>pR._entries)
+        #Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
         do_cont = 0
         for rc in Rcycles_list:
             if len(rc)<>3:
@@ -328,7 +335,7 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
             print "current list of Rs and Ts:"
             for r in list_of_R:
                 #print ":::::::::::::::: ",r.cycles(),";",(Sp*r).cycles()
-                print ":::::::::::::::: ",r.to_cycles(),";",(Sp*r).to_cycles()
+                print ":::::::::::::::: ",r.cycles(),";",(Sp*r).cycles()
     if gotten<>NULL:
         sage_free(gotten)
     if get_one_rep:
@@ -352,12 +359,12 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
         sage_free(rcycle_lens)
     #print "after deallPRI.list=",printf("%p ", PRI._list_of_perms)
     # Now list_of_R contains at least one representative for each group with the correct signature
-    sig_off()
+    #DEB sig_off()
     if verbose>0:
         #print "Original list of R=",list_of_R
         print "Original list of R="
         for i from 0 <= i < len(list_of_R):
-            print perm_to_cycle(list_of_R[i])
+            print list_of_R[i]
     list_of_R.sort(cmp=sort_perms)
     # list_of_R  will contain a list of representatives for groups
     # but might contain more than one representative for each group.
@@ -377,8 +384,8 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
         print "Time for first filter= ",time()-start
         print "Preliminary list of DIFFERENT subgroups in PSL(2,Z):" #,map(lambda x:S(x),list_of_R)
         print "(Note: these may or may not be PSL or PGL conjugate)"
-        for i from 0 <= i < len(list_of_R):
-            print perm_to_cycle(list_of_R[i])    
+        for i in range(len(list_of_R)):
+            print list_of_R[i]   
     list_of_groups=copy(list_of_R)
     indicator_list=range(1,len(list_of_R)+1)
     list_of_R_tmp=[]
@@ -387,9 +394,9 @@ cpdef list_all_admissable_pairs_old(sig,int get_details=1,int verbose=0,int get_
     lc_psl_maps=dict() # maps between conjugates
     if verbose>=0:
         start = time()
-    sig_on()
+    #DEB sig_on()
     conjugates,conjugate_maps,Rmodpsl,Rmodpgl=filter_list_mod_S(list_of_R,mu,e2,e3,Sp,verbose)
-    sig_off()
+    #DEB sig_off()
 #    lc_psl,lc_psl_maps,list_of_R=filter_list_mod_psl_mod_S_new(list_of_R,mu,e2,e3,Sp,verbose)
     ## in the list of PGL-conjugates we want to only have representatives
     ## of classes modulo PSL
@@ -601,31 +608,37 @@ cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get
     if not Rcycles: raise MemoryError
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
-    sig_on()
-    cdef MyPermutation ptest
+    #DEB sig_on()
+    cdef MyPermutation ptest,pT
     ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    cdef int h_tmp=0
     for pR in PRI:
         #if pR == ptest:
         #    verbose=2
         #else:
         #    verbose = 0
         if verbose>0:
-            print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
-            print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
+            print "S=",Sp.cycles() #print_vec(mu,Sptr)
+            print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)
         if verbose>0:
             print "Checking transitivity!"
         if not are_transitive_perm_c(<int*>Sp._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
             continue
         if verbose>0:
             print "Checking the number of cusps!"
-        _mult_perm(mu,Sptr,<int *>pR._entries,Tptr)
+        _mult_perm_unsafe(mu,Sptr,<int *>pR._entries,Tptr)
         #T=E*R
-        Tcyc=perm_to_cycle_c(mu,Tptr)
+#        last = 0
+#        Tcyc=perm_to_cycle_c(mu,Tptr)
+        h_tmp = num_cycles_c(mu,Tptr)
         if verbose>0:
+            pT = MyPermutation(length=mu)
+            pT.set_entries(Tptr)
+            Tcyc = pT.cycles()
             print "Tp=",Tcyc
             print "current fixedpts=",PRI.fixed_pts()
             print "number of cusps=",len(Tcyc)
-        if len(Tcyc)<>h:
+        if h_tmp<>h:
             if verbose>0:
                 print "Incorrect number of cusps. remove!"
                 print "next!"
@@ -655,7 +668,8 @@ cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get
         for i from 0<= i < e3:
             used[rfx[i]-1]=1            
         rcycle_beg=0
-        Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
+        Rcycles_list=pR.cycles_as_lists() #perm_to_cycle_c(mu,<int*>pR._entries)
+        #Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
         do_cont = 0
         for rc in Rcycles_list:
             if len(rc)<>3:
@@ -727,7 +741,7 @@ cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get
             print "added pR=",pR
             print "current list of Rs and Ts:"
             for r in list_of_R:
-                print ":::::::::::::::: ",r.to_cycles(),";",(Sp*r).to_cycles()
+                print ":::::::::::::::: ",r.cycles(),";",(Sp*r).cycles()
     if gotten<>NULL:
         sage_free(gotten)
     if get_one_rep:
@@ -754,12 +768,12 @@ cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get
         sage_free(rcycle_lens)
     #print "after deallPRI.list=",printf("%p ", PRI._list_of_perms)
     # Now list_of_R contains at least one representative for each group with the correct signature
-    sig_off()
+    #DEB sig_off()
     if verbose>0:
         #print "Original list of R=",list_of_R
         print "Original list of R="
         for i from 0 <= i < len(list_of_R):
-            print perm_to_cycle(list_of_R[i])
+            print list_of_R[i]
     # Then add all conjugates mod PSL(2,Z) to get all groups before filtering.
     # For uniformity we conjugate so that if 1 is not fixed then S(1)=2
     cdef list list_of_groups=[]
@@ -805,7 +819,7 @@ cpdef list_all_admissable_pairs_old1(sig,int get_details=1,int verbose=0,int get
         for i from 0 <= i < len(list_of_groups):            
             Sp = list_of_groups[i][0]
             R = list_of_groups[i][1]
-            print "S,R=",Sp.to_cycles(),R.to_cycles()
+            print "S,R=",Sp.cycles(),R.cycles()
     indicator_list=range(1,len(list_of_R)+1)
     list_of_R_tmp=[]
     cdef dict lc_psl,lc_pgl,lc_psl_maps,lc_pgl_maps
@@ -960,7 +974,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef int end_fc # end of cycles in S containing fixed points of R
     end_fc = e2+2*e3+1
     #sig_on()
-    for j from 0<=j <=e2-1:
+    for j in range(e2):
         Sptr[j]=j+1
     j = e2
     while j<mu-1:
@@ -971,7 +985,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         print print_vec(mu,Sptr)
     cdef list Sl,Tl
     Sl=[];  Tl=[]
-    for j from 0 <= j <mu:
+    for j in range(mu):
         Sl.append(Sptr[j])
     spS=str(Sl)
     Sp = MyPermutation(Sl)
@@ -1032,30 +1046,37 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     if not Rcycles: raise MemoryError
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
-    sig_on()
+    #DEB sig_on()
     ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    cdef MyPermutation pT
+    cdef int h_tmp=0
+  
     for pR in PRI:
         #if pR == ptest:
         #    verbose=2
         #else:
         #    verbose = 0
         if verbose>0:
-            print "S=",Sp.to_cycles() #print_vec(mu,Sptr)
-            print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
+            print "S=",Sp.cycles() #print_vec(mu,Sptr)
+            print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)
         if verbose>0:
             print "Checking transitivity!"
         if not are_transitive_perm_c(<int*>Sp._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
             continue
         if verbose>0:
             print "Checking the number of cusps!"
-        _mult_perm(mu,Sptr,<int *>pR._entries,Tptr)
+        _mult_perm_unsafe(mu,Sptr,<int *>pR._entries,Tptr)
         #T=E*R
-        Tcyc=perm_to_cycle_c(mu,Tptr)
+        #Tcyc=perm_to_cycle_c(mu,Tptr)
+        h_tmp = num_cycles_c(mu,Tptr)
         if verbose>0:
+            pT = MyPermutation(length=mu)
+            pT.set_entries(Tptr)
+            Tcyc = pT.cycles()
             print "Tp=",Tcyc
             print "current fixedpts=",PRI.fixed_pts()
             print "number of cusps=",len(Tcyc)
-        if len(Tcyc)<>h:
+        if h_tmp<>h:
             if verbose>0:
                 print "Incorrect number of cusps. remove!"
                 print "next!"
@@ -1085,7 +1106,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         for i from 0<= i < e3:
             used[rfx[i]-1]=1            
         rcycle_beg=0
-        Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
+        Rcycles_list=pR.cycles_as_lists() #perm_to_cycle_c(mu,<int*>pR._entries)
+        #Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
         do_cont = 0
         for rc in Rcycles_list:
             if len(rc)<>3:
@@ -1157,7 +1179,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             print "added pR=",pR
             print "current list of Rs and Ts:"
             for r in list_of_R:
-                print ":::::::::::::::: ",r.to_cycles(),";",(Sp*r).to_cycles()
+                print ":::::::::::::::: ",r.cycles(),";",(Sp*r).cycles()
     if gotten<>NULL:
         sage_free(gotten)
     if get_one_rep:
@@ -1184,12 +1206,12 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         sage_free(rcycle_lens)
     #print "after deallPRI.list=",printf("%p ", PRI._list_of_perms)
     # Now list_of_R contains at least one representative for each group with the correct signature
-    sig_off()
+    #DEB sig_off()
     if verbose>0:
         #print "Original list of R=",list_of_R
         print "Original list of R="
         for i from 0 <= i < len(list_of_R):
-            print perm_to_cycle(list_of_R[i])
+            print list_of_R[i]
     # Then add all conjugates mod PSL(2,Z) to get all groups before filtering.
     # For uniformity we conjugate so that if 1 is not fixed then S(1)=2
     cdef list list_of_groups=[]
@@ -1268,7 +1290,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         for i from 0 <= i < len(list_of_groups):            
             Sp = list_of_groups[i][0]
             R = list_of_groups[i][1]
-            print "S,R=",Sp.to_cycles(),R.to_cycles()
+            print "S,R=",Sp.cycles(),R.cycles()
         print "Number of groups:",len(list_of_groups)
     indicator_list=range(1,len(list_of_R)+1)
     list_of_R_tmp=[]
@@ -1498,7 +1520,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     if not Rcycles: raise MemoryError
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
-    sig_on()
+    #DEB sig_on()
     #cdef MyPermutation ptest
     #ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
     if used==NULL:
@@ -1511,10 +1533,13 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     if verbose>=0:
         start = time()
     cdef list Tcyc=[]
+    cdef MyPermutation pT
+    cdef int h_tmp=0
+
     for pR in PRI:
         if verbose>1:
-            print "S=",S_canonical.to_cycles() #print_vec(mu,Sptr)
-            print "R=",pR.to_cycles() #print_vec(mu,<int *>PRI._current_perm)
+            print "S=",S_canonical.cycles() #print_vec(mu,Sptr)
+            print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)
         if verbose>1:
             print "Checking transitivity!"
         if not are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
@@ -1522,14 +1547,17 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
 
         if verbose>1:
             print "Checking the number of cusps!"
-        _mult_perm(mu,Sptr,<int *>pR._entries,Tptr)
+        _mult_perm_unsafe(mu,Sptr,<int *>pR._entries,Tptr)
         #T=E*R
-        Tcyc=perm_to_cycle_c(mu,Tptr)
+        #Tcyc=perm_to_cycle_c(mu,Tptr)
+        h_tmp = num_cycles_c(mu,Tptr)
         if verbose>1:
+            pT = MyPermutation(length=mu)
+            pT.set_entries(Tptr)
             print "Tp=",Tcyc
             print "current fixedpts=",PRI.fixed_pts()
             print "number of cusps=",len(Tcyc)
-        if len(Tcyc)<>h:
+        if h_tmp<>h:
             if verbose>1:
                 print "Incorrect number of cusps. remove!"
                 print "next!"
@@ -1554,10 +1582,10 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         # R = (e2+1)(e2+3)...(e2+2*e3-1)(a b c)...
         for x in range(mu):
             used[x]=0
-        for i from 0<= i < e3:
+        for i in range(e3):
             used[rfx[i]-1]=1            
         rcycle_beg=0
-        Rcycles_list=perm_to_cycle_c(mu,<int*>pR._entries)
+        Rcycles_list=pR.cycles_as_lists() #perm_to_cycle_c(mu,<int*>pR._entries)
         do_cont = 0
 #        cdef int do_strict = 1
         for rc in Rcycles_list:
@@ -1643,7 +1671,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             print "added pR=",pR
             print "current list of Rs and Ts:"
             for r in list_of_R:
-                print ":::::::::::::::: ",r.to_cycles(),";",(S_canonical*r).to_cycles()
+                print ":::::::::::::::: ",r.cycles(),";",(S_canonical*r).cycles()
     if gotten<>NULL:
         sage_free(gotten)
     if get_one_rep:
@@ -1670,25 +1698,25 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         sage_free(rcycle_lens)
     #print "after deallPRI.list=",printf("%p ", PRI._list_of_perms)
     # Now list_of_R contains at least one representative for each group with the correct signature
-    sig_off()
+    #DEB sig_off()
     list_of_R.sort()
     if verbose>=0:
         #print "Original list of R=",list_of_R
         print "Time:",time()-start
         print "Original list of R="
         for i from 0 <= i < len(list_of_R):
-            print perm_to_cycle(list_of_R[i])
+            print list_of_R[i]
     if verbose>=0:
         print "Number of original R's:",len(list_of_R)
     # Then add all conjugates mod PSL(2,Z) to get all groups before filtering.
     # For uniformity we conjugate so that if 1 is not fixed then S(1)=2
     cdef list list_of_groups=[]
     cdef list list_of_groups_tmp=[]
-    cdef list list_R_tmp
+    cdef list list_R_tmp=[]
     cdef dict dict_of_R_modpsl
     cdef int do_cnt,t,k,l,llg
     list_of_groups=[] 
-    cdef int len_of_list_R = len(list_of_R)
+    cdef int len_list_of_R = len(list_of_R)
     ## Do a temporary irst filter
     list_of_R_tmp = copy(list_of_R)
     if verbose>=0:
@@ -1701,7 +1729,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     plist = <int*>sage_malloc(sizeof(int)*mu)
     
 
-    for k in range(len(list_of_R)):
+    for k in range(len_list_of_R):
         Rp = copy(list_of_R[k])
         Spc = copy(S_canonical)
         if Rp not in list_of_R_tmp:
@@ -1720,9 +1748,9 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     if verbose>=0:
         print "Tmp list of R="
         for i from 0 <= i < len(list_of_R_tmp):
-            print perm_to_cycle(list_of_R_tmp[i])
+            print list_of_R_tmp[i]
     if verbose>=0:
-        print "Number of original tmp R's:",len(list_of_R_tmp)
+        print "Number of reduced R's:",len(list_of_R_tmp)
         print "Time for zeroth filter= ",time()-start 
     list_of_R = copy(list_of_R_tmp)
     if verbose>=0:
@@ -1732,8 +1760,8 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     ### We now want to add back PSL-conjugates
     cdef list list_of_j,pl
     cdef int do_cnt1
-    
-    for k in range(len(list_of_R)):
+    len_list_of_R = len(list_of_R)
+    for k in range(len_list_of_R):
         Rp = copy(list_of_R[k])
         ## We want to check if conjugating (S,R) with (1 j) gives a new group not in the list
         if verbose>0:
@@ -1741,8 +1769,8 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             print "R_{0}={1}".format(k,Rp)
         do_cnt1 = 0        
         for l in range(len(list_of_groups)):
-            Rpc = copy(list_of_groups[l][1])
-            Spc = copy(list_of_groups[l][0])
+            Rpc = copy(<MyPermutation>list_of_groups[l][1])
+            Spc = copy(<MyPermutation>list_of_groups[l][0])
             #t,p=are_conjugate_pairs_of_perms(S_canonical,Rp,Spc,Rpc,ret='perm',map_from=1,map_to=1)
             t=are_conjugate_pairs_of_perms_new(S_canonical,Rp,Spc,Rpc,plist,1,1)
             p = MyPermutation(length=mu)
@@ -1762,15 +1790,17 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         else:
             pass #continue
         ## first get a list of j's for which the current (S,R)^( 1 j ) are inequivalent
+        #if verbose>0:
+        #    print "HERE!"Q
         dict_of_R_modpsl[Rp]={}
         list_of_j = []
         for  j in range(2,mu+1):
             do_cnt = 0
-            if dict_of_R_modpsl[Rp].has_key(j):
-                if verbose>0:
-                    print "Append Sp,Rp ({0}) from dict={1},{2}".format(len(list_of_groups),S_canonical,dict_of_R_modpsl[Rp][j][0])
-                list_of_groups.append(dict_of_R_modpsl[Rp][j][0])
-                #continue
+            #if dict_of_R_modpsl[Rp].has_key(j):
+            #    if verbose>0:
+            #        print "Append Sp,Rp ({0}) from dict={1},{2}".format(len(list_of_groups),S_canonical,dict_of_R_modpsl[Rp][j][0])
+            #    list_of_groups.append(dict_of_R_modpsl[Rp][j][0])
+            #    #continue
             for l in range(1,j):
                 t,p=are_conjugate_pairs_of_perms(S_canonical,Rp,S_canonical,Rp,ret='perm',map_from=l,map_to=j)
                 if t==1:
@@ -1790,6 +1820,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             do_cnt = 0
             if j not in list_of_j:
                 if verbose>0:
+                    
                     print "Not adding: S,R^(1 {0})={1},{2}".format(j,Spp,Rpp)
                     #t,p=are_conjugate_pairs_of_perms(Sp,Rp,Spc,Rpp,ret='perm',map_from=1,map_to=1)
                     #print "Are indeed same group!"
@@ -1814,19 +1845,28 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
             ## We try to normalize the fixed points of S:
             pl = range(1,Rp.N()+1)
             pl[0]=j; pl[j-1]=1
+            p = MyPermutation(pl)
             if Spp(1)<>1 and Spp(1)<>2:
-                    Rpp.conjugate_with_transposition(2,Spp(1))
-                    Spp.conjugate_with_transposition(2,Spp(1))
-                    pl[1] = Spp(1)
-                    pl[Spp(1)-1] = 2
-                    #Rpp.conjugate_with_transposition(fix1[l],fix2[l])
-                    #Spp.conjugate_with_transposition(fix1[l],fix2[l])
+                l = Spp(1)
+                p.conjugate_with_transposition(2,l)
+                Rpp.conjugate_with_transposition(2,l)
+                Spp.conjugate_with_transposition(2,l)
+                if verbose>1:
+                    print "j=",j
+                    print "Rpp=",Rpp
+                    print "Spp=",Spp
+                    print "p^{0}={1}".format(l,p)
+                    print "Rpp^{0}={1}".format(l,Rpp)
+                    print "Spp^{0}={1}".format(l,Spp)
+                #if verbose>0:
+                #Rpp.conjugate_with_transposition(fix1[l],fix2[l])
+                #Spp.conjugate_with_transposition(fix1[l],fix2[l])
             if (j not in list_of_j and not dict_of_R_modpsl[Rp].has_key(j)) or do_cnt1==1:
                 raise ArithmeticError," Contradiction !! "
             if verbose>0:                
-                print "Appending (S,R){0}={1},{2}".format(len(list_of_groups),Spp,Rpp)
+                print "Appending (S,R){0}={1},{2},p={3}".format(len(list_of_groups),Spp,Rpp,p)
             #if (Spc,Rp) not in list_of_groups:
-            dict_of_R_modpsl[Rp][j]=(Spp,Rpp),MyPermutation(pl)
+            dict_of_R_modpsl[Rp][j]=(Spp,Rpp),p
             list_of_groups.append((Spp,Rpp))
     if verbose>=0:
         print "Time for zeroth filter= ",time()-start
@@ -1834,11 +1874,13 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     list_of_groups.sort(cmp=sort_perms2)
     if verbose>=0:
         print "List of different groups:"
-        print  "Dict:"
-        for R in dict_of_R_modpsl.keys():
-            print "D[{0}]=".format(R)
-            for j in dict_of_R_modpsl[R].keys():
-                print "\t {0} \t {1}".format(j,dict_of_R_modpsl[R][j])
+        if verbose>0:
+            print  "Dict:"
+            for R in dict_of_R_modpsl.keys():
+                print "D[{0}]=".format(R)
+                for j in dict_of_R_modpsl[R].keys():
+                    (Spp,Rpp),p = dict_of_R_modpsl[R][j]
+                    print "\t {0} \t ({1}, {2}); {3}".format(j,Spp,Rpp,p)
         for (Rp,Sp) in list_of_groups:
             print (Rp,Sp)
         print "Number of groups:",len(list_of_groups)
@@ -1898,7 +1940,7 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
     #         if t==1:
     #             conjugates[(S_canonical,Rpp)]=tmpd   
     #sig_on()
-    conjugates,conjugate_maps,Gmodpsl,Gmodpgl=find_conjugate_pairs(list_of_groups,mu,verbose=0)
+    conjugates,conjugate_maps,Gmodpsl,Gmodpgl=find_conjugate_pairs(list_of_groups,mu,verbose=verbose-1)
     
 
 #sig_off()
@@ -2061,26 +2103,26 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
             if verbose>0:
                 print "------------------------------------------------------------------"
                 print "Comp PSL R[{0}]={1}".format(j,Rpsl)
-                print "p=",p.to_cycles()
+                print "p=",p.cycles()
             Scp = S.conjugate(p)
             if verbose>0:
-                print "R=",R.to_cycles()
-                print "S=",S.to_cycles()
-                print "S^p=",Scp.to_cycles()
+                print "R=",R.cycles()
+                print "S=",S.cycles()
+                print "S^p=",Scp.cycles()
             pp=are_conjugate_wrt_stabiliser(Rpsl,Scp,S,p,&t)
             if verbose>0:
                 print "t=",t
                 print "j=",j
             if t==1:
                 if verbose>0:                    
-                    print "p=",p.to_cycles()
-                    print "pp=",pp.to_cycles()
+                    print "p=",p.cycles()
+                    print "pp=",pp.cycles()
                 #pp = p*pp
                 pp = p*pp 
                 Sc = S.conjugate(pp)
                 if verbose>0:                    
-                    print "pp*p=",pp.to_cycles()
-                    print "S^pp=",Sc.to_cycles()
+                    print "pp*p=",pp.cycles()
+                    print "S^pp=",Sc.cycles()
                 if Sc<>S:
                     raise ArithmeticError,"Conjugation did not work!"
                 else: #if Sc==S: ## the pair is conjugate
@@ -2099,19 +2141,19 @@ cpdef tuple filter_list_mod_S(list listRin, int mu, int e2,int e3,MyPermutation 
                 if verbose>0:
                     print "------------------------------------------------------------------"
                     print "Comp PGL R[{0}]={1}".format(j,Rpgl)
-                    print "p=",p.to_cycles()
+                    print "p=",p.cycles()
                 Scp = S.conjugate(p)
                 if verbose>1 or (i==2 and j==2):
-                    print "R=",R.to_cycles()
-                    print "S=",S.to_cycles()
-                    print "S^p=",Scp.to_cycles()
+                    print "R=",R.cycles()
+                    print "S=",S.cycles()
+                    print "S^p=",Scp.cycles()
                     pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t,0,0,1)
                 else:
                     pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,S,p,&t)
                 if t==1:
                     pp = p*pp
                     if verbose>0:                    
-                        print "pp=",pp.to_cycles()
+                        print "pp=",pp.cycles()
                     Sc = S.conjugate(pp)
                     if Sc<>S:
                         raise ArithmeticError,"Conjugation did not work!"
@@ -2198,29 +2240,29 @@ cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi
             Rpgl = R.square().conjugate(Sc)
             p = are_conjugate_perm(R,Rpsl)
             if p==0:
-                print " {0} and {1} are not conjugate!".format(R.to_cycles(),Rpsl.to_cycles())
+                print " {0} and {1} are not conjugate!".format(R,Rpsl)
             if verbose>0:
                 print "------------------------------------------------------------------"
                 print "Comp PSL R[{0}]={1}".format(j,Rpsl)
-                print "p=",p #.to_cycles()
+                print "p=",p #
             Scp = S.conjugate(p)
             if verbose>0:
-                print "R=",R.to_cycles()
-                print "S=",S.to_cycles()
-                print "S^p=",Scp.to_cycles()
+                print "R=",R
+                print "S=",S
+                print "S^p=",Scp
             pp=are_conjugate_wrt_stabiliser(Rpsl,Scp,Sc,p,&t)
             if verbose>0:
                 print "t=",t
                 print "j=",j
             if t==1:
                 if verbose>0:                    
-                    print "p=",p.to_cycles()
-                    print "pp=",pp.to_cycles()
+                    print "p=",p
+                    print "pp=",pp
                 pp = p*pp
                 Scp = S.conjugate(pp)
                 if verbose>0:                    
-                    print "pp*p=",pp.to_cycles()
-                    print "S^pp=",Sc.to_cycles()
+                    print "pp*p=",pp
+                    print "S^pp=",Sc
                 Rcp = R.conjugate(pp)
                 if Rcp<>Rpsl or Scp<>Sc:
                     raise ArithmeticError,"Error with PSL-conjugating map!"
@@ -2239,19 +2281,19 @@ cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi
                 if verbose>0:
                     print "------------------------------------------------------------------"
                     print "Comp PGL R[{0}]={1}".format(j,Rpgl)
-                    print "p=",p.to_cycles()
+                    print "p=",p
                 Scp = S.conjugate(p)
                 if verbose>1 or (i==2 and j==2):
-                    print "R=",R.to_cycles()
-                    print "S=",S.to_cycles()
-                    print "S^p=",Scp.to_cycles()
+                    print "R=",R
+                    print "S=",S
+                    print "S^p=",Scp
                     pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,Sc,p,&t,0,0,1)
                 else:
                     pp=are_conjugate_wrt_stabiliser(Rpgl,Scp,Sc,p,&t)
                 if t==1:
                     pp = p*pp
                     if verbose>0:                    
-                        print "pp=",pp.to_cycles()
+                        print "pp=",pp
                     Scp = S.conjugate(pp)
                     Rcp= R.conjugate(pp)
                     if Rcp<>Rpgl or Scp<>Sc:
@@ -2354,11 +2396,11 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
         checked[i]=0
     if verbose>=0:
         print "Groups in:",len(listGin)
-    for i in range(0,numr):
-        S,R = listGin[i]
+    #for i in range(0,numr):
+    #    S,R = listGin[i]
     ## First sort the list into PSL(2,Z) conjugacy classes
     for i in range(0,numr):
-        S,R = listGin[i]
+        S,R = copy(listGin[i])
         pp = MyPermutation(length=mu,rep=0)
         if verbose>0:
             print "Test R[{0}]={1}".format(i,R)
@@ -2369,35 +2411,37 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
         Gmodpsl.append((S,R))
         conjugates[(S,R)]={'psl':[(S,R)],'pgl':[]}
         conjugate_maps[(S,R)]={'psl':[pp],'pgl':[]}
-
+        checked[i]=1
         for j in range(i,numr):
             if checked[j]==1:
                 continue
-            Sc,Rpsl = listGin[j]
+            Sc,Rpsl = copy(listGin[j])
+            #print "Sc,Rpsl=",j,listGin[j]
             p = are_conjugate_perm(R,Rpsl)
             if p==0:
-                print " {0} and {1} are not conjugate!".format(R.to_cycles(),Rpsl.to_cycles())
+                print " {0} and {1} are not conjugate!".format(R,Rpsl)
             if verbose>0:
                 print "------------------------------------------------------------------"
                 print "Comp PSL R[{0}]={1}".format(j,Rpsl)
-                print "p=",p #.to_cycles()
+                print "p=",p #
             Scp = S.conjugate(p)
             if verbose>0:
-                print "R=",R.to_cycles()
-                print "S=",Sc.to_cycles()
-                print "S^p=",Scp.to_cycles()
+                print "R=",R
+                print "S=",Sc
+                print "S^p=",Scp
             pp=are_conjugate_wrt_stabiliser(Rpsl,Scp,Sc,p,&t,0,0,verbose-1)
             if t==1:
                 if verbose>0:                    
-                    print "p=",p.to_cycles()
-                    print "pp=",pp.to_cycles()
+                    print "p=",p
+                    print "pp=",pp
                 #  pp = p o pp
                 pp = p*pp
-                Scp = S.conjugate(pp)
+                Scp = copy(S.conjugate(pp))
+                Rcp = copy(R.conjugate(pp))
                 if verbose>0:                    
-                    print "pp*p=",pp.to_cycles()
-                    print "S^pp=",Sc.to_cycles()
-                Rcp = R.conjugate(pp)
+                    print "pp*p=",pp
+                    print "S^pp=",Scp
+                    print "R^pp=",Rcp
                 if Rcp<>Rpsl or Scp<>Sc:
                     raise ArithmeticError,"Error with PSL-conjugating map!"
                 if listGin[j] not in conjugates[(S,R)]['psl']:
@@ -2457,32 +2501,32 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
             Scp = S1.conjugate(p)
             if verbose>0:
                 print "p=",p
-                print "R=",R.to_cycles()
-                print "S=",S.to_cycles()
-                print "S^p=",Scp.to_cycles()
+                print "R=",R
+                print "S=",S
+                print "S^p=",Scp
                 pp=are_conjugate_wrt_stabiliser(R1,Scp,S,p,&t,0,0,1)
             else:
                 pp=are_conjugate_wrt_stabiliser(R1,Scp,S,p,&t)
             if t==1:
                 pp = p*pp
                 if verbose>0:                    
-                    print "pp=",pp.to_cycles()
+                    print "pp=",pp
                 Scp = S.conjugate(pp)
                 Rcp= Rpgl.conjugate(pp)
                 if verbose>0:
-                    print "Rpgl=",Rpgl.to_cycles()
-                    print "S=",S.to_cycles()
+                    print "Rpgl=",Rpgl
+                    print "S=",S
                     
-                    print "S^pp=",Scp.to_cycles()
-                    print "R^pp=",Rcp.to_cycles()
+                    print "S^pp=",Scp
+                    print "R^pp=",Rcp
                 if Rcp<>R1 or Scp<>S1:
                     raise ArithmeticError,"Error with PGL-conjugating map!"
                 conjugates[(S,R)]['pgl'].append((S1,R1))
                 pp.set_rep(0)
                 conjugate_maps[(S,R)]['pgl'].append(pp)
                 checked[j]=1
-
-
+    if verbose>=0:
+        print "Groups out:",len(Gmodpsl)
     if checked<>NULL:
         sage_free(checked)
     return conjugates,conjugate_maps,Gmodpsl,Gmodpgl
@@ -2527,10 +2571,10 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
     pp = <MyPermutation?>p
     Sc = S1.conjugate(pp)
     if verbose>0:
-        print "R1,R2=",R1.to_cycles(),R2.to_cycles()
-        print "S1,S2=",S1.to_cycles(),S2.to_cycles()
-        print "p=",pp.to_cycles()
-        print "S^p=",Sc.to_cycles()
+        print "R1,R2=",R1,R2
+        print "S1,S2=",S1,S2
+        print "p=",pp
+        print "S^p=",Sc
     cdef int j,t=0
     if map_to<>0:        
         j = pp(map_from)
@@ -2539,7 +2583,7 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
         pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,j,map_to,verbose-1)
         if verbose>0:
             print "want total map to take {0} to {1}".format(map_from,map_to)
-            print "p=",p.to_cycles()
+            print "p=",p
             print "pp=",pp
             if pp<>None:
                 print "pp*p=",pp*p
@@ -2575,7 +2619,9 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
     if pp.is_identity():
         return 1,SL2Z([1,0,0,1])
 #    return 1,matrix_from_perm((S1,R1),pp,verbose)
-    A = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1].SL2Z()
+    cdef SL2Z_elt V
+    V = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1]
+    A = V.SL2Z()
     return 1,A
 
 
@@ -2598,10 +2644,10 @@ cdef int are_conjugate_pairs_of_perms_new(MyPermutation S1,MyPermutation R1,MyPe
     pp = <MyPermutation?>p
     Sc = S1.conjugate(pp)
     if verbose>0:
-        print "R1,R2=",R1.to_cycles(),R2.to_cycles()
-        print "S1,S2=",S1.to_cycles(),S2.to_cycles()
-        print "p=",pp.to_cycles()
-        print "S^p=",Sc.to_cycles()
+        print "R1,R2=",R1,R2
+        print "S1,S2=",S1,S2
+        print "p=",pp
+        print "S^p=",Sc
     if map_to<>0:        
         j = pp(map_from)
         if verbose>0:
@@ -2609,7 +2655,7 @@ cdef int are_conjugate_pairs_of_perms_new(MyPermutation S1,MyPermutation R1,MyPe
         pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,j,map_to,verbose-1)
         if verbose>0:
             print "want total map to take {0} to {1}".format(map_from,map_to)
-            print "p=",p.to_cycles()
+            print "p=",p
             print "pp=",pp
             if pp<>None:
                 print "pp*p=",pp*p
@@ -2657,7 +2703,7 @@ cpdef matrix_from_perm(gens,p,verbose=0):
     g = G(p.list())
     H = gap.Group([G(S.list()),G(R.list())])
     if verbose>0:
-        print "gens=({0},{1})".format(S.to_cycles(),R.to_cycles())
+        print "gens=({0},{1})".format(S,R)
         print "G=",G
         print "mu=",mu
         print "p=",p
@@ -2764,11 +2810,11 @@ cpdef list filter_list_mod_1_mod_S(list listRin, int mu, int e2,MyPermutation S,
                         break
                 if is_in==1:
                     if verbose>0:
-                        print "G:",print_cycles(r)
+                        print "G:",r
                         print "is conjugate mod 1 to: nr.",i
-                        print "G':",print_cycles(Rpc)
+                        print "G':",Rpc
                         #print print_cycles(Sl)," and ",print_cycles(rp)," are mod-1-conjugate!"
-                        print "via p=",print_cycles(p)," p*r*p^-1=",Rpc
+                        print "via p=",p," p*r*p^-1=",Rpc
                         print "rp is in list!"
                     #list_of_R.remove(rp)
                     nrout=nrout-1
@@ -2893,14 +2939,14 @@ cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,My
     assert S1._N==N and R2._N==N and S2._N==N
     pres = <int*>sage_malloc(sizeof(int)*N)
     p=MyPermutation(length=N)
-    sig_on()
+    #DEB sig_on()
     res = are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,pres,verbose)
-    sig_off()
+    #DEB sig_off()
     p.set_entries(pres)
     if verbose>0:
         print "res=",res
         print "pres=",print_vec(N,pres)
-        print "p=",p.to_cycles()
+        print "p=",p
     if pres<>NULL:
         sage_free(pres)
     return res,p
@@ -2930,8 +2976,8 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
     # Then check if they are compatble at all:
     fixS=0; fixR=0
     if check:
-        cl1=map(len,S1.to_cycles())
-        cl2=map(len,S2.to_cycles())
+        cl1=map(len,S1.cycles())
+        cl2=map(len,S2.cycles())
         cl1.sort(); cl2.sort()
         if cl1<>cl2:
             res=0
@@ -2940,8 +2986,8 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
                 #print "S1cyc=",S1.to_cycles()
                 print "cl1=",cl1
             fixS=cl1.count(1)
-            cl1=map(len,R1.to_cycles())
-            cl2=map(len,R2.to_cycles())
+            cl1=map(len,R1.cycles())
+            cl2=map(len,R2.cycles())
             cl1.sort(); cl2.sort()
             if cl1<>cl2:
                 res=0
@@ -2957,8 +3003,8 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
         return res
     res=0
     if verbose>0:
-        print "testing G1:={0}:{1}".format(S1.to_cycles(),R1.to_cycles())
-        print "testing G2:={0}:{1}".format(S2.to_cycles(),R2.to_cycles())
+        print "testing G1:={0}:{1}".format(S1,R1)
+        print "testing G2:={0}:{1}".format(S2,R2)
     epp =  <int *>sage_malloc(sizeof(int)*N)
     if not epp:  raise MemoryError
     rpp =  <int *> sage_malloc(sizeof(int)*N)
@@ -3073,8 +3119,8 @@ cpdef stabiliser_of_R_StoSp(MyPermutation pR,MyPermutation pS,MyPermutation pS1,
     assert pS1.order() in [1,2]
     assert pR.order() in [1,3]
     cdef list Rctype = pR.cycle_type()
-    cdef list Rcycles = pR.cycles('list')
-    cdef lR = pR.cycles_as_perm()
+    cdef list Rcycles = pR.cycles()
+    cdef lR = pR.cycles_dered_as_list()
     cdef list cycles1,cycles3
     cdef int nf,nf1,d1,d3
     cdef list fixedS,fixedS1,nonfixedS,nonfixedS1,res,one_cycles,three_cycles
@@ -3141,14 +3187,14 @@ cpdef stabiliser_of_R_StoSp(MyPermutation pR,MyPermutation pS,MyPermutation pS1,
             if verbose>0:
                 print "ll=",ll
                 print "perm3=",p3
-                print "perm0=",p.to_cycles()
+                print "perm0=",p
             ## We now act with all combinations of cycles from R
             for ptmp in three_cycles_R:
                 do_cont = 0
                 pp = p*ptmp
                 if verbose>0:
-                    print "ptmp=",ptmp.to_cycles()
-                    print "pp=",pp.to_cycles()
+                    print "ptmp=",ptmp
+                    print "pp=",pp
                 # if S=pSp^-1 and Sx=x then S(px)=pS(x)=px
                 for x in fixedS:
                     if pp(x) not in fixedS1:
@@ -3170,8 +3216,8 @@ cpdef stabiliser_of_R_StoSp(MyPermutation pR,MyPermutation pS,MyPermutation pS1,
                 if pScon<>pS1:
                     if verbose>0:
                         print "Fails at preserving S!"
-                        print "ppSpp^-1=",pScon.to_cycles()
-                        print "pS1=",pS1.to_cycles()
+                        print "ppSpp^-1=",pScon
+                        print "pS1=",pS1
                     continue
                 res.append(pp)
             ## We only consider permutations which fixes S
@@ -3204,15 +3250,20 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
     p^-1 pR p = pR and p^-1 pS p = pS1   and p(map_from)=map_to
 
     """
-    cdef list Rctype,Rcycles,lR,ll,l0,l
+    cdef list Rctype,Rcycles,lR,l0,l
     cdef list cycles1,cycles3
     cdef int nf,nf1,d1,d3,i,j,mu,do_cont,dd1,dd3,ir,nir
     cdef list fixedS,fixedS1,nonfixedS,nonfixedS1,res,one_cycles,three_cycles
     cdef MyPermutationIterator perms1,perms3
-    cdef MyPermutation p,pp,ptmp,pScon
+    cdef MyPermutation p,pp,ptmp,pScon,p1,p3,perm
     t[0] = 0
-    ll = []
+    cdef int * ll = NULL
     mu = <int>pR.N()
+    cdef int num_one_cycles = pR.num_fixed()
+    cdef int num_three_cycles = (mu - num_one_cycles)/3
+    ll = <int*> sage_malloc(sizeof(int)*mu)
+    if ll == NULL:
+        raise MemoryError
     if pS.is_order_eq_c(2)<>1 or pS1.is_order_eq_c(2)<>1 or pR.is_order_eq_c(3)<>1:
         pp = MyPermutation(length=mu)
         return pp
@@ -3220,18 +3271,50 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
     if nf<>nf1:
         pp = MyPermutation(length=mu)
         return pp
-    lR = pR.cycles_as_perm()
-    Rctype = pR.cycle_type()
-    Rcycles = pR.to_cycles() #'list')
-    d1 = Rctype.count(1)
-    d3 = Rctype.count(3)
+    lR = pR.cycles_ordered_as_list()
+    Rcycles = pR.cycles() #o_cycles() #'list')
+    Rctype = pR._cycle_type
+    cdef int * llR=NULL
+    llR = <int*> sage_malloc(sizeof(int)*mu)
+    if llR == NULL:
+        raise MemoryError
+    for i in range(mu):
+        llR[i]=<int>lR[i]
+    d1 = num_one_cycles # Rctype.count(1)
+    d3 = num_three_cycles #Rctype.count(3)
     cycles1 = []; cycles3=[]
+    cdef int* cycles1ptr = NULL
+    cycles1ptr = <int*>sage_malloc(sizeof(int)*num_one_cycles)
+    if cycles1ptr == NULL:
+        raise MemoryError
+    cdef int** cycles3ptr = NULL
+    cycles3ptr = <int**>sage_malloc(sizeof(int*)*num_three_cycles)
+    if cycles3ptr == NULL:
+        raise MemoryError
+    #for i in range(num_one_cycles):
+    #    cycles1ptr[i]=cycles1[i][0]
+    for i in range(num_three_cycles):
+        cycles3ptr[i] = NULL
+        cycles3ptr[i] = <int*>sage_malloc(sizeof(int)*3)
+        if cycles3ptr[i] == NULL:
+            raise MemoryError
+    cdef int i1=0,i3=0
     for c in Rcycles:
         if len(c)==1:
-            cycles1.append(c)
+            #cycles1.append(c)
+            cycles1ptr[i1]=c[0]
+            i1+=1
         elif len(c)==3:
-            cycles3.append(c)
+            #cycles3.append(c)    
+            cycles3ptr[i3][0] = c[0]
+            cycles3ptr[i3][1] = c[1]
+            cycles3ptr[i3][2] = c[2]
+            i3+=1
     if verbose>0:
+        for i in range(num_one_cycles):
+            cycles1.append(cycles1ptr[i])
+        for i in range(num_three_cycles):
+            cycles3.append([cycles3ptr[i][0],cycles3ptr[i][1],cycles3ptr[i][2]])
         print "cycles1=",cycles1
         print "cycles3=",cycles3
         if map_from>0:
@@ -3239,11 +3322,6 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
     dd1 = int(max(d1,1)); dd3=int(max(d3,1))
     perms1 = MyPermutationIterator(dd1)
     perms3 = MyPermutationIterator(dd3)
-    ## Then we also have to include permutations by the 3-cycles of R
-    three_cycles_perm =[]
-    for p in pR.cycles(type='perm'):
-        if p.is_order_eq_c(3)==1:            
-            three_cycles_perm.append(p)
     cdef CycleCombinationIterator CCIR
     cdef list three_cycles_R
     CCIR = CycleCombinationIterator(pR)
@@ -3251,38 +3329,52 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
     nir = CCIR.length()
     if verbose>0:
         print "three_cycles_R=",three_cycles_R
+    cdef int len_l0
+    l0 = [0 for i in range(mu)]
+    l = [0 for i in range(mu)]
+    perm = MyPermutation(length=mu,check=0,init=0)
     for p1 in perms1:
         if verbose>0:
             print "perm1=",p1
             print "cy1=",cycles1
-        if cycles1<>[]:
-            one_cycles = p1(cycles1) #permute_list(cycles[1],p1)
-        else:
-            one_cycles = []
-        l0 = copy(one_cycles)
-        for p3 in perms3:
-            l = copy(l0)
-            if cycles3<>[]:
-                three_cycles = p3(cycles3) #permute_list(cycles[3],p3)
-            else:
-                three_cycles=[]
-            l.extend(three_cycles)
-            perm = MyPermutation(l)
-#            ll = flatten_list2d(l)
-            ll = flatten_list2d(l)
-            p = get_conjugating_perm_list(ll,lR)
+        if num_one_cycles>0:
+            for i in range(num_one_cycles):
+                #one_cycles = p1(cycles1) #permute_list(cycles[1],p1)
+                #ll[i] = one_cycles[i][0]
+                ll[i]=cycles1ptr[p1._entries[i]-1]
+        for p3 in perms3:            
+            #l = copy(l0)
+            if num_three_cycles>0:
+                #three_cycles = p3(cycles3) #permute_list(cycles[3],p3)
+                for i in range(num_three_cycles):
+                    j = p3._entries[i]-1
+                    ll[num_one_cycles+i*3+0]=cycles3ptr[j][0]
+                    ll[num_one_cycles+i*3+1]=cycles3ptr[j][1]
+                    ll[num_one_cycles+i*3+2]=cycles3ptr[j][2]
+            perm.set_entries(ll)
+            #ll = flatten_list2d(l)
+            #p = get_conjugating_perm_list(l,lR)
+            if verbose>1:
+                for i in range(mu):
+                    print "ll=",i,ll[i]
+                    print "llR=",i,llR[i]
+            p = get_conjugating_perm_ptr_unsafe(mu,ll,llR)
             if verbose>0:
-                print "ll=",ll
+                print "l=",l
                 print "perm3=",p3
-                print "perm0=",p.to_cycles()
+                print "perm0=",p
             ## We now act with all combinations of cycles from R
             for ir in range(nir):
-                ptmp = <MyPermutation> three_cycles_R[ir]
+                #ptmp = <MyPermutation> three_cycles_R[ir]
+#                ptmp = CCIR.permutation_nr(ir)
                 do_cont = 0
-                pp = p._mult_perm(<MyPermutation> ptmp)
+#                pp = p._mult_perm(CCIR.permutation_nr(ir))
+#                _mult_perm_unsafe(mu,p._entries,CCIR.permutation_nr(ir)._entries,pp._entries)
+                pp = p._mult_perm(three_cycles_R[ir])
                 if verbose>0:
-                    print "ptmp=",ptmp.to_cycles()
-                    print "pp=",pp.to_cycles()
+                    ptmp = CCIR.permutation_nr_c(ir)
+                    print "ptmp=",ptmp
+                    print "pp=",pp
                 # if S=pSp^-1 and Sx=x then S(px)=pS(x)=px
                 for i in range(mu):
                      j = pp._entries[i]
@@ -3307,18 +3399,40 @@ cdef MyPermutation are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation p
                     continue
                 pScon = pS._conjugate(pp)
                 if verbose>0:
-                    print "pS^pp=",pScon.to_cycles()
-                if pScon==pS1:
+                    print "pS^pp=",pScon
+                if pScon.eq_c(pS1)==1:
                     t[0] = 1
                     #p_out = pp
                     if verbose>0:
-                        print "p_out = ",pp.to_cycles()
+                        print "p_out = ",pp
+                    if ll <> NULL:
+                        sage_free(ll)
+                    if llR <> NULL:
+                        sage_free(llR)
+                    if cycles1ptr<>NULL:
+                        sage_free(cycles1ptr)
+                    if cycles3ptr<>NULL:
+                        for i in range(num_three_cycles):
+                            if cycles3ptr[i]<>NULL:
+                                sage_free(cycles3ptr[i])
+                        sage_free(cycles3ptr)
                     return pp
             ## We only consider permutations which fixes S
         ## We assume that p ionly has cycles of length 1 or 3 (i.e. it has order 3)
         #perms[i]=MyPermutation(i)
     if verbose>0:
         print "t=",t[0]
+    if ll <> NULL:
+        sage_free(ll)
+    if llR <> NULL:
+        sage_free(llR)
+    if cycles1ptr<>NULL:
+        sage_free(cycles1ptr)    
+    if cycles3ptr<>NULL:
+        for i in range(num_three_cycles):
+            if cycles3ptr[i]<>NULL:
+                sage_free(cycles3ptr[i])
+        sage_free(cycles3ptr)
 #    return 0,0
 
 cdef MyPermutation are_conjugate_wrt_stabiliser_old(MyPermutation pR,MyPermutation pS,MyPermutation pS1,MyPermutation p_in,int* t,int map_one_to=0,int verbose=0):
@@ -3341,9 +3455,9 @@ cdef MyPermutation are_conjugate_wrt_stabiliser_old(MyPermutation pR,MyPermutati
         pp = MyPermutation(length=mu)
         return pp
     Rctype = pR.cycle_type()  
-    lR = pR.cycles_as_perm()
+    lR = pR.cycles_ordered_as_list()
 
-    Rcycles = pR.cycles('list')
+    Rcycles = pR.cycles()
     d1 = Rctype.count(1)
     d3 = Rctype.count(3)
     cycles1 = []; cycles3=[]
@@ -3360,7 +3474,7 @@ cdef MyPermutation are_conjugate_wrt_stabiliser_old(MyPermutation pR,MyPermutati
     perms3 = MyPermutationIterator(dd3)
     ## Then we also have to include permutations by the 3-cycles of R
     three_cycles_perm =[]
-    for p in pR.cycles(type='perm'):
+    for p in pR.cycles_as_permutations():
         if p.is_order_eq(3)==1:            
             three_cycles_perm.append(p)
     cdef list three_cycles_R = []
@@ -3399,14 +3513,14 @@ cdef MyPermutation are_conjugate_wrt_stabiliser_old(MyPermutation pR,MyPermutati
             if verbose>0:
                 print "ll=",ll
                 print "perm3=",p3
-                print "perm0=",p.to_cycles()
+                print "perm0=",p
             ## We now act with all combinations of cycles from R
             for ptmp in three_cycles_R:
                 do_cont = 0
                 pp = p._mult_perm(ptmp)
                 if verbose>0:
-                    print "ptmp=",ptmp.to_cycles()
-                    print "pp=",pp.to_cycles()
+                    print "ptmp=",ptmp
+                    print "pp=",pp
                 # if S=pSp^-1 and Sx=x then S(px)=pS(x)=px
                 for i in range(mu):
                      j = pp._entries[i]
@@ -3429,12 +3543,12 @@ cdef MyPermutation are_conjugate_wrt_stabiliser_old(MyPermutation pR,MyPermutati
                     continue
                 pScon = pS._conjugate(pp)
                 if verbose>0:
-                    print "pS^pp=",pScon.to_cycles()
+                    print "pS^pp=",pScon
                 if pScon==pS1:
                     t[0] = 1
                     #p_out = pp
                     if verbose>0:
-                        print "p_out = ",pp.to_cycles()
+                        print "p_out = ",pp
                     return pp
             ## We only consider permutations which fixes S
         ## We assume that p ionly has cycles of length 1 or 3 (i.e. it has order 3)

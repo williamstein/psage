@@ -166,25 +166,23 @@ cdef class SL2Z_elt(object):
     def __richcmp__(self,other,op):
         if op==2 or op==3:
             if type(self)<>type(other):
-                res=0
+                res=False
             else:
-                res = self._eq(other)
+                res = bool(self._eq(other))
         else:
             raise NotImplementedError,"No ordering of SL2Z elements is implemented!"
-        if op==3 and res==1:
-            res=0
-        elif op==3 and res==0:
-            res=1
+        if op==3:
+            res=not res
         return res
 
     cpdef _eq(self,SL2Z_elt other):
-        if self.ent[0]<><SL2Z_elt>(other).ent[0]:
+        if self.ent[0] <> other.ent[0]:
             res=0
-        elif self.ent[1]<><SL2Z_elt>(other).ent[1]:
+        elif self.ent[1]<>other.ent[1]:
             res=0
-        elif self.ent[2]<><SL2Z_elt>(other).ent[2]:
+        elif self.ent[2]<>other.ent[2]:
             res=0
-        elif self.ent[3]<><SL2Z_elt>(other).ent[3]:
+        elif self.ent[3]<>other.ent[3]:
             res=0
         else:
             res=1        
@@ -366,7 +364,9 @@ cpdef factor_matrix_in_sl2z(A,B=None,C=None,D=None,int verbose=0):
         #test = abs(4*C**2+D**2)**
         return fast_sl2z_factor(A,B,C,D)
     else:
-        if isinstance(A,(SL2Z_elt,list,tuple)):
+        if isinstance(A,SL2Z_elt):
+            a=A[0]; b=A[1]; c=A[2]; d=A[3]
+        elif isinstance(A,(list,tuple)):
             a,b,c,d=A
         else:
             a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]

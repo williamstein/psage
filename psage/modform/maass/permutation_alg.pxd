@@ -14,9 +14,14 @@ cdef class MyPermutation(SageObject):
     cdef long _hash
     cdef void c_new(self,int* entries)
     cdef list _list
-    cdef list _cycles
+    cdef list _cycles_list
+    cdef list _cycles_permutations
+    cdef int _cycles_list_is_ordered 
     cdef list _cycle_type
-    cdef int** _cycle_info # matrix containing all cycles and their lenghts
+    cdef list _cycles_ordered_as_list
+    cdef int* _cycles # matrix containing all cycles and their lenghts
+    cdef int* _cycle_lens
+    cdef int _num_cycles
     cdef str _str
     cdef int _init
     cdef int _order
@@ -30,18 +35,24 @@ cdef class MyPermutation(SageObject):
     cdef int get_unsafe(self,int i)
     cpdef int _get_unsafe(self,int i)
     cpdef conjugate(self,other)
-#    cpdef cycles(self,ordered=?,type=?)
-    cpdef _perm_to_cycles(self)
-    cpdef set_cycle_info(self)
+#    Routines dealing with the cycles
+    cpdef cycles_as_lists(self)
+    cpdef cycles_as_permutations(self)
+    cpdef cycles_ordered_as_list(self)
+    cpdef set_cycle_info(self,int reset=*)
+    cdef int set_cycle_info_c(self)
+    cpdef  list _list_from_cycles(self,list cycles)
     cpdef num_cycles(self)
+
+    
     cpdef is_order_eq(self,int o)
     cdef int is_order_eq_c(self,int o)
     cpdef _get_order(self)
     cpdef _inverse(self)
     cpdef _copy_c(self)
     cpdef str export_as_string(self,str sep=*)
-    cdef void _conj_w_transp(self,int a, int b)
-    cpdef conjugate_with_transposition(self,int a, int b)
+    cdef void _conj_w_transp(self,int a, int b,int verbose=*)
+    cpdef conjugate_with_transposition(self,int a, int b,int verbose=*)
     cpdef is_conjugate_to(self,MyPermutation other,int ret_perm=*)
     cdef void _conjugate_ptr(self,int *entries,int *other)
     cdef MyPermutation _conjugate(self,MyPermutation other)
@@ -54,7 +65,6 @@ cdef class MyPermutation(SageObject):
     cdef int num_fixed_c(self)
     cpdef num_fixed(self)
     cpdef _mult_perm(self,MyPermutation other)
-    cpdef  list _list_from_cycles(self,list cycles)
     cdef int eq_c(self,MyPermutation other)
     cpdef int eq(self,MyPermutation other)
     cdef int N_c(self)
@@ -117,6 +127,5 @@ cpdef transposition(int N,int i,int j)
 cdef int are_transitive_perm_c(int *Rl,int *Sl, int *gotten, int n,int verbose=?)
 cdef int perm_to_cycle_c(int N,int *perm,int* cycle,int* cycle_lens)
 cdef print_vec(int n,int *list)
-cpdef num_cycles_perm(MyPermutation perm)
 cdef int num_cycles_c(int N,int *perm)
 cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl)

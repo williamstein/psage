@@ -1965,40 +1965,53 @@ cpdef list_all_admissable_pairs_new(sig,int get_details=1,int verbose=0,int get_
         conj_psl = conjugates[(S,R)]['psl']
         do_cont = 0
         for S1,R1 in conj_psl:
-            t,A = are_conjugate_pairs_of_perms(S,Rs,S1,R1)
+            t,A,p = are_conjugate_pairs_of_perms(S,Rs,S1,R1)
             if t==1:
-                reflections[(S,R)]={'group':(S1,R1),'map':A}
+                reflections[(S,R)]={'group':(S1,R1),'map':A,'perm':p}
                 do_cont = 1
                 break
         if do_cont==1:
             continue
         for S1,R1 in conj_pgl:
-            t,A = are_conjugate_pairs_of_perms(S,Rs,S1,R1)
+            t,A,p = are_conjugate_pairs_of_perms(S,Rs,S1,R1)
             if t==1:
-                reflections[(S,R)]={'group':(S1,R1),'map':A}
+                reflections[(S,R)]={'group':(S1,R1),'map':A,'perm':p}
                 do_cont = 1
                 break
         if do_cont==1:
             continue
         for Stest,Rtest in Gmodpsl:
-            t,A = are_conjugate_pairs_of_perms(S,Rs,Stest,Rtest)
+            t,A,p = are_conjugate_pairs_of_perms(S,Rs,Stest,Rtest)
             if t==1:
-                reflections[(S,R)]={'group':(Stest,Rtest),'map':A}
+                reflections[(S,R)]={'group':(Stest,Rtest),'map':A,'perm':p}
                 break
     lens_of_cc=[]    
     for Stest,Rtest in Gmodpsl:
         lens_of_cc.append(len(conjugates[(Stest,Rtest)]['psl']))
     d = dict()
     d['sig']=sig
-    #d['S']=Sp
     d['numg']=len(list_of_groups)
-    d['num_cc_psl']=lens_of_cc
+    d['num_cc_psl']=len(Gmodpsl)
+    d['num_cc_pgl']=len(Gmodpgl)
     d['groups']=list_of_groups
     d['groups_mod_psl']=Gmodpsl
     d['groups_mod_pgl']=Gmodpgl
     d['conjugates']=conjugates
     d['conjugate_maps']=conjugate_maps
     d['reflections']=reflections
+    d['numg_mod_pgl']=len(Gmodpsl)
+    # check
+    ## for S,R in Gmodpsl:
+    ##     S1,R1 = reflections[(S,R)]['group'] 
+    ##     p = reflections[(S,R)]['perm'] 
+    ##     if (S1,R1) <> (S,R):
+    ##         d['numg_mod_pgl']+=1
+    ##     if (S1,R1) not in conjugates[(S,R)]['pgl'] or (S1,R1) not in conjugates[(S,R)]['psl']:
+    ##         print "S1,R1=",S1,R1
+    ##         print "psl=",conjugates[(S,R)]['psl']
+    ##         print "pgl=",conjugates[(S,R)]['pgl']
+    ##         print "Possible error!" ## Should issue a warning with warning module....
+    
     for key in d.keys():
         if isinstance(d[key],MyPermutation):
             d[key].set_rep(0)
@@ -2446,7 +2459,7 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
                     raise ArithmeticError,"Error with PSL-conjugating map!"
                 if listGin[j] not in conjugates[(S,R)]['psl']:
                     conjugates[(S,R)]['psl'].append(listGin[j])
-                    pp.set_rep(0)
+                    pp.set_rep(3)
                     conjugate_maps[(S,R)]['psl'].append(pp)
                     checked[j]=1
     ## We now have a list with PSL(2,Z) representatives and their conjugacy classes.
@@ -2553,21 +2566,33 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',coset_rep=1,check=0,verbose=0):
     A = G1.coset_reps()[pp(1)-1]
     return t,A
 
-cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,str ret='SL2Z',int map_from=0,int map_to=0,int verbose=0):
+cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,str ret='all',int map_from=0,int map_to=0,int verbose=0):
     r"""
+    Check if the pairs of permutations (S1,R1) and (S2,R2) are conjugate.
+    If map_to>0 and map_frpm>0 we require any conjugating permutation p to satisfy p(map map_from)=map_to
 
-    If map_to>0 we require any permutation p to satisfy p(map map_from)=to map_to
+    INPUT::
+
+    - 'S1' -- Permutation
+    - 'R1' -- Permutation
+    - 'S2' -- Permutation
+    - 'R2' -- Permutation    
+    - 'ret'-- string (default 'all') Decides the format of the return value.
+              possible values: 'perm','SL2Z','all'
+    - 'map_from' -- integer (default 0) 
+    - 'map_to' -- integer (default 0) 
+    - 'verbose' -- integer (default 0) 
     """
 
-    #S1,R1 = pair1; S2,R2 = pair2
-    ## First check if R1 and R2 are conjugate
     p = are_conjugate_perm(R1,R2)
     cdef MyPermutation pp0,pp1,pp,Sc,Scp
     if p==0:
-        if ret<>'SL2Z':
+        if ret == 'perm':
             return 0,MyPermutation(length=S1.N())
+        elif ret=='SL2Z':
+            return 0,SL2Z_elt(1,0,0,1)
         else:
-            return 0,SL2Z([1,0,0,1])
+            return 0, SL2Z_elt(1,0,0,1),MyPermutation(length=S1.N())
     pp = <MyPermutation?>p
     Sc = S1.conjugate(pp)
     if verbose>0:
@@ -2591,10 +2616,12 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
     else:
         pp=are_conjugate_wrt_stabiliser(R2,Sc,S2,pp,&t,0,0,verbose-1)
     if t == 0:
-        if ret=='SL2Z':
-            return 0, SL2Z([1,0,0,1])
-        else:
+        if ret=='perm':
             return 0, MyPermutation(length=S1.N())
+        elif ret=='SL2Z':
+            return 0, SL2Z_elt(1,0,0,1)        
+        else:
+            return 0, SL2Z_elt(1,0,0,1),MyPermutation(length=S1.N())
     if verbose>0:
         pp0 = copy(pp)
         pp1 = p*pp
@@ -2614,15 +2641,18 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
         print "S^(sigma*pi)=",S1.conjugate(pp1)
     if Scp<>S2:
         raise ArithmeticError,"Conjugation did not work!"
-    if ret<>'SL2Z':
+    if ret=='perm':
         return 1,pp
     if pp.is_identity():
         return 1,SL2Z([1,0,0,1])
 #    return 1,matrix_from_perm((S1,R1),pp,verbose)
     cdef SL2Z_elt V
     V = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1]
-    A = V.SL2Z()
-    return 1,A
+    #A = V.SL2Z()
+    if ret=='SL2Z':
+        return 1,V
+    else:
+        return 1,V,pp
 
 
 

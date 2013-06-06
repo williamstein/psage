@@ -101,7 +101,8 @@ cdef class MyPermutation(SageObject):
         self._cycle_lens = NULL
         self._num_cycles = 0
         cdef list entries_list=[]
-        
+        if verbose>0:
+            print "entries={0} of type {1}".format(entries,type(entries))
         if entries==[]:
             if length>0:
                 self._N = length
@@ -119,7 +120,7 @@ cdef class MyPermutation(SageObject):
             elif hasattr(entries,list):
                 entries_list=entries.list()
             elif isinstance(entries,(list,tuple)):
-                if isinstance(entries[0],int):
+                if isinstance(entries[0],(int,Integer)):
                     entries_list = <list>entries
                 elif isinstance(entries[0],(list,tuple)):
                     try:
@@ -164,7 +165,9 @@ cdef class MyPermutation(SageObject):
                 else:
                     for i in range(self._N):
                         self._entries[i]=<int>entries_list[i]
-                self._list = entries_list
+                self._list = []
+                for i in range(self._N):
+                    self._list.append(<int>entries_list[i])
             elif init==1:
                 for i in range(self._N):
                     self._entries[i]=i+1
@@ -815,6 +818,9 @@ cdef class MyPermutation(SageObject):
         for i in range(self._N):
             res.append(self._entries[i])
         self._list=res
+        if self._verbose>0:
+            print "self._list=",self._list
+            print "type(list[0])=",type(self._list[0])
         return res
 
     cpdef conjugate(self,other):

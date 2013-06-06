@@ -2470,7 +2470,6 @@ cpdef are_conjugate_perm(MyPermutation A,MyPermutation B):
    if N<>B._N:
        return 0
    cdef list ctA,ctB
-   print "------------------------------"
 #   A.set_cycle_info(reset=1)
 #   B.set_cycle_info(reset=1)   
    ctA = A.cycle_type()

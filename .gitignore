@@ -4,8 +4,7 @@ psage.egg-info
 build/
 push
 dist
-#
-#.*
+\#*
 ascent.egg-info
 MANIFEST
 *.c

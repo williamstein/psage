@@ -189,8 +189,9 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
     for j in range(N):
         V[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols))
         for k in range(ncols): #from 0<=k<ncols:
-            V[j][k]=<double complex>0
+            V[j][k]=0
 
+        
     RHS=<double complex**>sage_malloc(sizeof(double complex*)*N)
     if RHS==NULL: raise MemoryError
     for n in range(N):
@@ -241,7 +242,7 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
             if Cvec[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
-                Cvec[i][j][n]=<double complex>0
+                Cvec[i][j][n]=0
     sig_on()
     pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
     sig_off()

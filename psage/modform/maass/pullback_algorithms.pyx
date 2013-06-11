@@ -101,7 +101,7 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
             if Cvec_t[i][j]==NULL:
                 raise MemoryError
             for n from 0<=n<Ql:
-                Cvec_t[i][j][n]=<double complex>0
+                Cvec_t[i][j][n]=0 
 
     pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
     cdef dict Xm,Xpb,Ypb,Cvec,pb

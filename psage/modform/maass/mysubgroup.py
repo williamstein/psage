@@ -753,7 +753,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         
             sage: G=MySubgroup(Gamma0(5))
-            sage: l=G._coset_reps
+            sage: l=G._coset_reps_v0
             sage: G._get_vertices(l)
             sage: G._get_vertices(l)
             [[Infiniy, 0], {0: [ 0 -1]
@@ -763,7 +763,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: pS=P([2,1,4,3,6,5])
             sage: pR=P([3,1,2,5,6,4])
             sage: G=MySubgroup(o2=pS,o3=pR)   
-            sage: G._get_vertices(G._coset_reps)
+            sage: G._get_vertices(G._coset_reps_v0)
             [[Infinity, 0, -1/2], {0: [ 0 -1]
             [ 1  2], Infinity: [1 0]
             [0 1], -1/2: [-1  0]
@@ -1407,7 +1407,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: pS=S([2,1,4,3,6,5])
             sage: pR=S([3,1,2,5,6,4])
             sage: G=MySubgroup(o2=pS,o3=pR)   
-            sage: l=G._get_vertices(G._coset_reps)[0];l
+            sage: l=G._get_vertices(G._coset_reps_v0)[0];l
             [Infinity, 0, -1/2]
             sage: G._get_cusps(l)
         
@@ -1650,7 +1650,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             A=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(A) #.matrix()
             try:
-                for V in self._coset_reps:
+                for V in self._coset_reps_v0:
                     B=V*A
                     if B in self:
                         raise StopIteration
@@ -2780,7 +2780,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             x = RR(x_in); y = RR(y_in); use_dp=True
         elif isinstance(x_in,RealNumber_class):
             RF = x_in.parent(); prec = RF.prec()
-            x = RF(x_in); y = RF(y)
+            x = RF(x_in); y = RF(y_in)
             if prec<=53:
                 use_dp = True
             else:
@@ -2817,7 +2817,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             a,b,c,d=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(a,b,c,d) #.matrix()
             try:
-                for V in self._coset_reps:
+                for V in self._coset_reps_v0:
                     B=V*A
                     if B in self:
                         raise StopIteration

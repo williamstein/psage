@@ -588,7 +588,9 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv
                         besarg=abs(lr)*Ypb[icusp][jcusp][j]
                         if lr<>0.0:
                             besselk_dp_c(&tmpr,R,besarg,besprec,1)
-                            kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
+                            #print "Ypb=",Ypb[icusp][jcusp][j],type(Ypb[icusp][jcusp][j])
+                            #print "tmpr=",tmpr,type(tmpr)
+                            kbesvec[l][icusp][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                             #kbesvec[l][icusp][j]=whittaker_w_dp(weight_sign,R,besarg,pref=1)
                         else:
                             kbesvec[l][icusp][j]=<double>1.0
@@ -1878,9 +1880,9 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
                 raise MemoryError
             for n in range(Ql):
                 Cvec[i][j][n]=0
-    sig_on()
+#    sig_on()
     pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
-    sig_off()
+#    sig_off()
     for j in range(nc):
         tmpr=float(S.alpha(j)[0])
         alphas[j]=<double>tmpr

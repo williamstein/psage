@@ -53,7 +53,7 @@ cdef extern from "complex.h":
     
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 from mysubgroup import MySubgroup
-from mysubgroups_alg import apply_sl2z_map
+from mysubgroups_alg import apply_sl2z_map,pullback_general_group_dp,pullback_general_group
 from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp,normalize_point_to_cusp_mpmath
 from mysubgroups_alg cimport _apply_sl2z_map_dp,_apply_sl2z_map_mpfr,_pullback_to_Gamma0N_dp,pullback_to_hecke_triangle_mat_c_mpfr
 from sage.all import CC,save
@@ -182,7 +182,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
 
     
     """
-    sig_on()
+#    sig_on()
     G = S.group()
     multiplier = S.multiplier()
     #character = S.character
@@ -209,7 +209,6 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     cdef int A[4]
     cdef int pba,pbb,pbc,pbd
     cdef list U
-
     #    AA=[1,0,0,1]
 #    Tj=[1,0,0,1]
     cdef double swi,swj,ar,br,cr,dr
@@ -231,6 +230,8 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     is_Gamma0=<int>G._is_Gamma0
     cdef int*** reps=NULL
     cdef int N
+    if verbose>0:
+        print "In pullback_pts_cplx_dp!"
     if is_Gamma0==1:
         nreps=G._index
         N=G._level
@@ -247,13 +248,18 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
-    
-    #if verbose>0:
-    #    print "nc=",nc
+            reps[j][0][0]=G.coset_reps()[j][0]
+            reps[j][0][1]=G.coset_reps()[j][1]
+            reps[j][1][0]=G.coset_reps()[j][2]
+            reps[j][1][1]=G.coset_reps()[j][3]
+#            reps[j][0][0]=G._coset_reps_v0[j][0]
+#            reps[j][0][1]=G._coset_reps_v0[j][1]
+#            reps[j][1][0]=G._coset_reps_v0[j][2]
+#            reps[j][1][1]=G._coset_reps_v0[j][3]
+
+            
+    if verbose>0:
+        print "nc=",nc
     if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
         use_int=0
     normalizers=<int**>sage_malloc(sizeof(int*)*nc)
@@ -357,7 +363,8 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                                         &pba,&pbb,&pbc,&pbd,0)
                 x1=x; y1=y
             else:
-                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
+#                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
+                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1)
             ## Want to replace this with a cpdef'd function
             #cj,vj= G.closest_cusp(x1,y1,vertex=1)
             vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&x1,&y1)
@@ -535,7 +542,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                         sage_free(reps[j][1])
                     sage_free(reps[j])
             sage_free(reps)
-    sig_off()
+#    sig_off()
 
 @cython.cdivision(True)
 cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec):
@@ -606,10 +613,10 @@ cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     #if verbose>0:
     #    print "Here1"
     if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
@@ -1295,10 +1302,10 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     
     #if verbose>2:
     #    print "nc=",nc
@@ -1840,10 +1847,10 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     
     #if verbose>2:
     #    print "nc=",nc
@@ -2223,10 +2230,10 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     
     #if verbose>2:
     #    print "nc=",nc

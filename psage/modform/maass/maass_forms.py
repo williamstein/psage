@@ -396,7 +396,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                 Y0=get_Y_for_M_dp(S,R,M0,eps)
             if Y0<>0 and M0==0:
                 M0=get_M_for_maass_dp(R,Y0,eps)                
-            if self.weight()==0:
+            if self.weight()==0 and self.group().is_congruence():
                 C = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN,gr=gr)
             else:
                 C = get_coeff_fast_cplx_dp(self,R,Y0,M0,0,NN,gr=gr)

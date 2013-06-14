@@ -60,6 +60,8 @@ from copy import deepcopy
 from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
+
+from psage.modform.maass.permutation_alg cimport MyPermutation
 #from sage.rings.rational.Rational import floor as qq_floor
 import cython
 cdef extern from "math.h":
@@ -1172,6 +1174,86 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
     if done==0:
         raise Exception,"Did not find pullback! A=[%s %s, %s %s]" %(a[0],b[0],c[0],d[0])
 
+
+cpdef pullback_general_group(G,RealNumber x,RealNumber y,int ret_mat=0,int check=0): 
+    r"""
+    Pullback for a general group.
+    """
+    cdef RealNumber xpb,ypb
+    cdef int a,b,c,d,found_coset_rep,j
+    cdef MyPermutation p,pj
+    cdef SL2Z_elt B
+    if G.is_Gamma0():
+        xpb,ypb,a,b,c,d = pullback_to_Gamma0N_mpfr(G,x,y)
+    else:
+        a,b,c,d=pullback_to_psl2z_mat(x,y)
+        A=SL2Z_elt(a,b,c,d) #.matrix()
+        p = G.permutation_action(A).inverse()
+        found_coset_rep=0
+        for j in range(G._index):
+            pj = G.permutation_coset_rep(j)
+            if pj(p(1))==1:
+                found_coset_rep=1
+                B=G._coset_reps_v0[j]*A
+                break
+        if found_coset_rep==0:
+            raise ArithmeticError,"Did not find coset rep. for A^-1=%s" % A.inverse()
+        if check==1:
+            if B not in G:
+                raise ArithmeticError,"Error with coset rep. A={0} and B={1}. V_{2}={3}".format(A,B,j,G._coset_reps_v0[j])
+        xpb,ypb=apply_sl2z_map_mpfr(x,y,B[0],B[1],B[2],B[3])
+        a,b,c,d = B[0],B[1],B[2],B[3]
+    if ret_mat==1:
+        return xpb,ypb,a,b,c,d
+    else:
+        return xpb,ypb
+
+
+cpdef pullback_general_group_dp(G,double x,double y,int ret_mat=0,int check=0,int verbose=0): 
+    r"""
+    Pullback for a general group.
+    """
+    cdef double xpb,ypb
+    cdef int a,b,c,d,found_coset_rep,j
+    cdef MyPermutation p,pj
+    cdef SL2Z_elt B
+    if G.is_Gamma0():
+        xpb,ypb,a,b,c,d = pullback_to_Gamma0N_dp(G,x,y)
+    else:
+        a,b,c,d=pullback_to_psl2z_mat(x,y)
+        A=SL2Z_elt(a,b,c,d) #.matrix()
+        p = G.permutation_action(A).inverse()
+        found_coset_rep=0
+#        print "A=",A
+#        print "pA=",p
+        for j in range(G._index):
+            pj = G.permutation_coset_rep(j)
+#            print "p({0})={1}".format(j,pj)
+            if p(pj(1))==1:
+                found_coset_rep=1
+                B=G._coset_reps_v0[j]*A
+                break
+        if found_coset_rep==0:
+            raise ArithmeticError,"Did not find coset rep. for A^-1={0}, x,y={1},{2}, G={3}".format(A.inverse(),x,y,G)
+        if verbose>0:
+            print "x,y=",x,y
+            print "A=",A
+            print "A.inverse()=",A.inverse()
+            print "coset nr. {0}={1}".format(j,B)
+        if check==1:
+            if B not in G:
+                raise ArithmeticError,"Error with coset rep. A={0} and B={1}. V_{2}={3}".format(A,B,j,G._coset_reps_v0[j])
+        xpb,ypb=apply_sl2z_map_dp(x,y,B[0],B[1],B[2],B[3])
+        a,b,c,d = B[0],B[1],B[2],B[3]
+    if ret_mat==1:
+        return xpb,ypb,a,b,c,d
+    else:
+        return xpb,ypb 
+
+
+
+
+    
 cpdef apply_sl2z_map(x,y,A):
     cdef int a,b,c,d
     cdef RealNumber xx,yy

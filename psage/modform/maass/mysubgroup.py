@@ -98,12 +98,13 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     r"""
     Create an instance of MySubgroup_class.
     """
-    s2 = None; s3=None; is_Gamma0=None
+    s2 = None; s3=None; is_Gamma0=None; level = None
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().list())
         s3 = MyPermutation(A.as_permutation_group().S3().list())
         if isinstance(A,Gamma0_class):
             is_Gamma0=True
+            level = A.level()
         else:
             is_Gamma0=False
             
@@ -124,7 +125,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         s3 = kwds.get("s3",None)
     if s2==None or s3==None:
         raise ValueError,"Could not construct subgroup from input!"
-    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0)
+    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level)
 
 
 class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
@@ -207,8 +208,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "o2=",o2
             print "o3=",o3
             print "str=",str
-        self._level=None
-        self._generalised_level=None;  self._is_congruence=None
+        self._level=kwds.get('level',None)
+        if self._level<>None:
+            self._generalised_level=self._level;  self._is_congruence=True
+        else:
+            self._generalised_level=None;  self._is_congruence=None
         self._perm_group=None;
         self._is_Gamma0=kwds.get('is_Gamma0',None)
         self._coset_rep_perms={}
@@ -256,6 +260,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self.index()==1:
             return "SL(2,Z)"
+        if self.is_Gamma0==True:
+            return "Gamma0({0})".format(self._level)
         s ="Arithmetic Subgroup of SL(2,Z) with index "+str(self._index)+". "
         s+="Given by: \n \t perm(S)="+str(self.permS)+"\n \t perm(ST)="+str(self.permR)
         if hasattr(self,"_display_format") and self._display_format=='long':

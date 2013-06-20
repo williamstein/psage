@@ -106,8 +106,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
             is_Gamma0=True
             level = A.level()
         else:
-            is_Gamma0=False
-            
+            is_Gamma0=False            
     elif A<>None and B<>None:
         if isinstance(A,MyPermutation) and isinstance(B,MyPermutation):
             s2 = A; s3 = B
@@ -204,10 +203,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         self._verbose = verbose
         self._display_format = display_format
-        if self._verbose>1:
-            print "o2=",o2
-            print "o3=",o3
-            print "str=",str
         self._level=kwds.get('level',None)
         if self._level<>None:
             self._generalised_level=self._level;  self._is_congruence=True
@@ -222,6 +217,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._is_symmetric=None
         self.permT=None; self.permP=None
         self._verbose=verbose
+        if self._verbose>1:
+            print "o2=",o2
+            print "o3=",o3
+            print "str=",str
+            print "is_Gamma0=",self._is_Gamma0
+            print "kwds=",kwds
         if data<>{}:
             self.init_group_from_dict(data)
         elif o2<>None and o3<>None:
@@ -260,7 +261,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self.index()==1:
             return "SL(2,Z)"
-        if self.is_Gamma0==True:
+        if self._is_Gamma0==True:
             return "Gamma0({0})".format(self._level)
         s ="Arithmetic Subgroup of SL(2,Z) with index "+str(self._index)+". "
         s+="Given by: \n \t perm(S)="+str(self.permS)+"\n \t perm(ST)="+str(self.permR)

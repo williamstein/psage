@@ -330,7 +330,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
         print "use_int=",use_int
     res={}
                 
-    for ci from 0<=ci<nc: #in G._cusps:
+    for ci in range(nc): #in G._cusps:
         # if ci==0:
         #     verbose=3
         # else:
@@ -346,17 +346,21 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
         else:
             wi_d=widths[ci] #<double>G._cusp_data[ci]['width'] #(ci)
             swi=sqrt(wi_d)
-        for j from 0 <= j < Ql: #1-Q,Q):
+        for j in range(Ql): #1-Q,Q):
             x=Xm[j]; y=Y
             a=normalizers[ci][0]; b=normalizers[ci][1]
             c=normalizers[ci][2]; d=normalizers[ci][3]
+            if verbose>2:
+                print "normalizer[",ci,"]=",a,b,c,d
+                print "width = ",wi
+                print "x0,y0=",x,y
             if use_int==1:
                 _normalize_point_to_cusp_dp(&x,&y,a,b,c,d,wi)
             else:
                 _normalize_point_to_cusp_real_dp(&x,&y,a,b,c,d,wi_d)
             #[x,y]   = normalize_point_to_cusp_dp(G,ci,Xm[j],Y)
             if verbose>2:
-                print "x0,y0=",x,y
+                print "N(z0)=",x,y
             if is_Gamma0 == 1:
                 #x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
                 _pullback_to_Gamma0N_dp(reps,nreps,N,&x,&y,
@@ -364,7 +368,9 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                 x1=x; y1=y
             else:
 #                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
-                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1)
+                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1,verbose=verbose)
+                if verbose>2:
+                    print "Pbz=",x1,y1
             ## Want to replace this with a cpdef'd function
             #cj,vj= G.closest_cusp(x1,y1,vertex=1)
             vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&x1,&y1)
@@ -372,12 +378,11 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             if pba<=0 and pbb<=0 and pbc<=0 and pbd<=0:
                 pba=-pba; pbb=-pbb; pbc=-pbc; pbd=-pbd
             if verbose>2:
-                print "normalizer[",ci,"]=",a,b,c,d
                 print "x0,y0=",x,y
                 print "j=",j+Qs
                 print "Xm,Y=",Xm[j],Y
                 print "x,y=",x,y
-                print "a,b,c,d,wi=",pba,pbb,pbc,pbd,wi
+                print "Pbmap=",pba,pbb,pbc,pbd
                 print "x1,y1=",x1,y1
                 print "cj,vj=",cj,vj
             #cjj=G._cusps.index(cj)

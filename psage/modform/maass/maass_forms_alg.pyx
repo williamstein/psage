@@ -2083,7 +2083,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     else:
         ncols=N
     if verbose>1:
-        print "In get_coef_cplx_dp R=",R
+        print "In get_coef_cplx_dp R=",R, "M=",M," Q=",Q
     if verbose>2:
         print "N=",N
         print "Vals=",Vals
@@ -2223,7 +2223,7 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         if verbose>1:
             print "setc_list[",i,"]=",setc_list[i]
             for j in range(comp_dim):
-                print "vals_list[",i,j,"]=",vals_list[i][j]
+                print "vals_list[",i,j,"]=",vals_list[j][i]
         i=i+1
     if num_rhs>0 and num_rhs<>comp_dim:
         raise ValueError,"Need same number of right hand sides (or just one) as the number of set coefficients!"

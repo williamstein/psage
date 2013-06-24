@@ -49,7 +49,7 @@ from sage.interfaces.all import gap
 
 from time import clock, time
 
-from logging import warn,error
+from logging import warning,error
 
 ## Namingscheme: oldX is more recent with higher number of X
 
@@ -134,7 +134,13 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     ## Without loss of generality, up to PSL(2,Z) conjugacy we can choose those fixed points as
     ## e2+1, e2+3,...,e2+2*e3-1 
     cdef list rfx_list = []
-    rfx_list=range(e2+1,e2+2*e3,2)
+    if mu>=3:
+        rfx_list=range(e2+1,e2+2*e3,2)
+    elif mu==2:
+        rfx_list = [1,2]
+    else:
+        rfx_list = [1]
+        
     cdef int* rfx
     rfx = <int*>sage_malloc(sizeof(int)*e3)
     for i in range(e3):
@@ -680,7 +686,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     d['conjugates']=conjugates
     d['conjugate_maps']=conjugate_maps
     d['reflections']=reflections
-    d['numg_mod_pgl']=len(Gmodpsl)
+
+    
     # check
     ## for S,R in Gmodpsl:
     ##     S1,R1 = reflections[(S,R)]['group'] 
@@ -1038,7 +1045,7 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
                     break
             if Gmodpsl_tmp[i]==(S,R):
                 s = "Could not find appropriate PSL representative for {0}".format((S,R))
-                warn.warning(s)
+                warning(s)
             else:
                 j = conjugates[(S,R)]['psl'].index((S1,R1))
                 p = conjugate_maps[(S,R)]['psl'][j]
@@ -1062,7 +1069,7 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
                         s+= "S1,R1={0},{1} \n".format(S1,R1)
                         s+= "S1,R1^p={0},{1} \n".format(S1.conjugate(ptmp),R1.conjugate(ptmp))
                         s+ "conjugates[S,R][{0}]={1}".format(k,tmp_dict['psl'][k])
-                        warn.warning(s)
+                        warning(s)
                 #conjugate_maps[(S1,R1)] = tmp_dict 
     Gmodpsl = Gmodpsl_tmp
 #    print "Conjugates(S,R)=",conjugates.get((SS,RR),[])
@@ -1229,7 +1236,10 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
     if ret=='perm':
         return 1,pp
     if pp.is_identity():
-        return 1,SL2Z([1,0,0,1])
+        if ret=='SL2Z':
+            return 1,SL2Z([1,0,0,1])
+        else:
+            return 1,SL2Z([1,0,0,1]),pp
 #    return 1,matrix_from_perm((S1,R1),pp,verbose)
     cdef SL2Z_elt V
     V = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1]

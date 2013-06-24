@@ -399,6 +399,10 @@ class MaassWaveForms (AutomorphicFormSpace):
             if self.weight()==0 and self.group().is_congruence():
                 C = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN,gr=gr)
             else:
+                if self._verbose>0:
+                    print "Using routine without symmetry!"
+                    print "Y0=",Y0
+                    print "M0=",M0
                 C = get_coeff_fast_cplx_dp(self,R,Y0,M0,0,NN,gr=gr)
             if gr<>0:
                 return C
@@ -1785,10 +1789,11 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
                             print "|C1-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],self._coeffs[0][j],t)
                         else:
                             print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C2[j],self._coeffs[0][j],t)
-                else:
+                elif C1.has_key(j) and C2.has_key(j):
                     t=abs(C1[j]-C2[j])
                     if self._verbose>0:
                         print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],C2[j],t)
+                        
                 if t>er:
                     er=t
             if er<>0:
@@ -1889,13 +1894,13 @@ class MaassWaveformElement(AutomorphicFormElement): #(Parent):
             print "Norm=",norm
             # print "nd=",mpmath.mp.dps
         do_cplx=1
-        if S.multiplier().is_real() and sym_type in [0,1]:
+        if S.multiplier().is_real() and sym_type in [0,1] and S._use_real:            
             do_cplx=0
         #if self._dim>1:
         #    raise NotImplementedError,"Vector-valued Maass waveforms are currently not implemented!"
         if ndigs<=15:
             if do_cplx:
-                if self.weight()==0:
+                if self.weight()==0 and self.group().is_congruence():
                     X=get_coeff_fast_cplx_dp_sym(S,RR(R),RR(Y),int(M),int(Q),norm)
                 else:
                     X=get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),int(Q),norm)

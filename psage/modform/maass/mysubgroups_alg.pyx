@@ -1188,11 +1188,11 @@ cpdef pullback_general_group(G,RealNumber x,RealNumber y,int ret_mat=0,int check
     else:
         a,b,c,d=pullback_to_psl2z_mat(x,y)
         A=SL2Z_elt(a,b,c,d) #.matrix()
-        p = G.permutation_action(A).inverse()
+        p = G.permutation_action(A)
         found_coset_rep=0
         for j in range(G._index):
             pj = G.permutation_coset_rep(j)
-            if pj(p(1))==1:
+            if p(pj(1))==1:
                 found_coset_rep=1
                 B=G._coset_reps_v0[j]*A
                 break
@@ -1222,7 +1222,7 @@ cpdef pullback_general_group_dp(G,double x,double y,int ret_mat=0,int check=0,in
     else:
         a,b,c,d=pullback_to_psl2z_mat(x,y)
         A=SL2Z_elt(a,b,c,d) #.matrix()
-        p = G.permutation_action(A).inverse()
+        p = G.permutation_action(A) #.inverse()
         found_coset_rep=0
 #        print "A=",A
 #        print "pA=",p
@@ -1428,7 +1428,7 @@ cdef void _normalize_point_to_cusp_mpfr(mpfr_t x,mpfr_t y,int a,int b,int c,int 
         #u=u/wi
         #v=v/wi
 
-cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0):    
+cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0): #,int verbose=0):    
     r"""
     Compute the normalized point with respect to the cusp cu
     """
@@ -1443,6 +1443,8 @@ cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0):
         b=-b; c=-c
     else:
         [a,b,c,d]=G.cusp_normalizer(cu)
+#    if verbose>0:
+#        print "normalizer,width=",a,b,c,d,wi
     _normalize_point_to_cusp_dp(&xx,&yy,a,b,c,d,wi,inv)
     return xx,yy
     #return [u,v]
@@ -1461,9 +1463,12 @@ cdef void _normalize_point_to_cusp_dp(double *x,double *y,int a,int b,int c,int 
         x[0]=x[0]*wir
         y[0]=y[0]*wir
     #assert a*d-b*c==1
-    #print "x,y1=",x[0],y[0]
+#    if verbose>0:
+#        print "z0=",x[0],y[0]
     _apply_sl2z_map_dp(x,y,a,b,c,d)
-    if inv and wi<>1:
+#    if verbose>0:
+#        print "N(z0)=",x[0],y[0]
+    if inv==1 and wi<>1:
         x[0]=x[0]/wir
         y[0]=y[0]/wir
 

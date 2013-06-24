@@ -1423,7 +1423,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         for p in l:
             are_eq=False
             for c in lc:
-                if(self.are_equivalent_cusps(p,c)):
+                if self.are_equivalent_cusps(p,c):
                     are_eq=True
                     continue
             if(not are_eq):
@@ -2065,16 +2065,19 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             j = self._cusps.index((p,q))
             return self._cusp_data[j]['width']
         else:
-            print "cusp=",cusp
+            if self._verbose>1:
+                print "cusp=",cusp
             # if we are here we did not find the cusp in the list so we have to find an equivalent in the list
-            p,q=self.cusp_equivalent_to(cusp)
-            return self._cusp_data[(p,q)]['width']
+            c=self.cusp_representative(cusp)
+            p = c.numerator(); q = c.denominator()
+            j = self._cusps.index((p,q))
+            return self._cusp_data[j]['width']
         
         raise ArithmeticError,"Could not find the width of %s" %cusp
 
     def cusp_data(self,c):
         r""":
-        Returns cuspdata in the same format as for the generic Arithmetic subgrou
+        Returns cuspdata in the same format as for the generic Arithmetic subgroup, i.e. a tuple (A,h,s) where A is a generator of the stabiliser of c, h is the width of c and s is the orientation. 
 
         EXAMPLES::
 
@@ -2091,17 +2094,27 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1  0], 4, 1)
 
         """
-        (p,q),A=self.cusp_equivalent_to(c)
+        c,A=self.cusp_representative(c,transformation='matrix')
+        p = c.numerator(); q = c.denominator()
         if (p,q) not in self._cusps:
-            return 0,0,0
+            raise ArithmeticError,"Could not find cusp representative!"
         i =self._cusps.index((p,q))
         width = self._cusp_data[i]['width']
-        if A == [1,0,0,1]:
-            n = self._cusp_data[i]['normalizer']
+        if A == SL2Z_elt(1,0,0,1):
+            n = self._cusp_data[i]['stabilizer']
         else:
-            w = lift_to_sl2z(q, p, 0 )
-            n = SL2Z([w[3 ], w[1 ], w[2 ],w[0 ]])
-        return (n,width,1)
+            w = lift_to_sl2z(q,p,0)
+            g = SL2Z_elt(w[3], w[1], w[2],w[0])
+            for d in range(1,1+self.index()):
+                B = g * SL2Z_elt(1,d,0,1) * g.inverse() 
+                if B in self:
+                    return (B, d, 1)
+                else:
+                    B = g * SL2Z_elt(-1,-d,0,-1) * g.inverse()
+                    if B in self:
+                        return (B, d, -1)
+            raise ArithmeticError, "Can't find stabilizer!"
+
 
 
         ## try:
@@ -2130,7 +2143,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         cc = Cusp(cusp)
         for c in self.cusps():
-            t,A = cc.is_Gamma0_equiv(c,1,"matrix")
+            t,A = cc.is_gamma0_equiv(c,1,"matrix")
             if not t:
                 continue
             if A not in self:
@@ -2202,16 +2215,23 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         
         """
+        if isinstance(cusp,(int,Integer)):
+            cusp = self._cusps[cusp]
         if isinstance(cusp,Cusp):        
             p=cusp.numerator(); q=cusp.denominator()
         elif isinstance(cusp,tuple):
             p=cusp[0];q=cusp[1]
-        if (p,q) in self._cusps:
-            return self._cusp_data[(p,q)]['normalizer']
         else:
-            (p,q),A=self.cusp_equivalent_to(cusp)
+            raise ValueError,"Could not construct a cusp from {0}".format(cusp)
+        if (p,q) in self._cusps:
+            j = self._cusps.index((p,q))
+            return self._cusp_data[j]['normalizer']
+        else:
+            c,A=self.self.cusp_representative(cusp,transformation='matrix')
+            p = c.numerator(); q = c.denominator()
             if A==1:
-                return self._cusp_data[(p,q)]['normalizer']
+                j = self._cusps.index((p,q))
+                return self._cusp_data[j]['normalizer']
             else:
                 w = lift_to_sl2z(q, p, 0 )
                 g = SL2Z_elt(w[3 ], w[1 ], w[2 ],w[0 ])

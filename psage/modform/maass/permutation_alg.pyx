@@ -270,7 +270,7 @@ cdef class MyPermutation(SageObject):
 
 
     def __reduce__(self):
-        return(MyPermutation,(self._list,self._N,self._init,self._verbose))
+        return(MyPermutation,(self.list(),self._N,self._init,self._verbose))
 
     def _pickle(self):
         if self._verbose>0:

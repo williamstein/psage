@@ -1881,7 +1881,10 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
             for n in range(Ql):
                 Cvec[i][j][n]=0
 #    sig_on()
-    pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    cdef int t=0
+    t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    if t==1:
+        raise ArithmeticError,"Need smaller Y than {0}".format(Y)
 #    sig_off()
     for j in range(nc):
         tmpr=float(S.alpha(j)[0])
@@ -2128,7 +2131,10 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
                 raise MemoryError
             for n in range(Ql):
                 Cvec[i][j][n]=0
-    pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    cdef int t = 0
+    t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    if t==1:
+        raise ArithmeticError,"Need smaller Y than {0}".format(Y)
     cdef double * alphas=NULL
     alphas=<double*>sage_malloc(sizeof(double)*nc)
     for j in range(nc):
@@ -2366,7 +2372,10 @@ cpdef get_coeff_fast_real_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
                 raise MemoryError
             for n in range(Ql):
                 Cvec[i][j][n]=<double>0
-    pullback_pts_real_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    cdef int t=0
+    t = pullback_pts_real_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    if t==1:
+        raise ArithmeticError,"Need smaller Y than {0}".format(Y)    
     alphas=<double*>sage_malloc(sizeof(double)*nc)
     for j in range(nc):
         alphas[j]=float(S.alpha(j)[0])
@@ -2701,7 +2710,10 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
                 mpc_init2(Cvec[i][j][n],prec)
     cdef RealNumber weight
     weight=RF(0)
-    pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm,Xpb,Ypb,Cvec)
+    cdef int t=0
+    t = pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm,Xpb,Ypb,Cvec)
+    if t==1:
+        raise ArithmeticError,"Need smaller Y than {0}".format(Y)
     #pb=pullback_pts_mpc_new(S,Qs,Qf,Y)
     #Xm=pb['xm']; Xpb=pb['xpb']; Ypb=pb['ypb']; Cv=pb['cvec']
     s=nc*Ml
@@ -4711,7 +4723,10 @@ cpdef get_coeff_and_signs_fast_real_dp(S,double R,double Y,int M,int Q,double Y2
                 raise MemoryError
             for n in range(Ql):
                 Cvec[i][j][n]=<double>0
-    pullback_pts_real_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    cdef int t=0
+    t = pullback_pts_real_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    if t==1:
+        raise ArithmeticError,"Need smaller Y than {0}".format(Y)
     cdef double * alphas=NULL
     alphas=<double*>sage_malloc(sizeof(double)*nc)
     for j in range(nc):
@@ -4928,8 +4943,11 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
             if Cvec[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
-                Cvec[i][j][n]=0 
-    pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+                Cvec[i][j][n]=0
+    cdef int t=0
+    t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    if t==1:
+        raise ArithmeticError,"Need smaller Y than {0}".format(Y)
     cdef double * alphas=NULL
     alphas=<double*>sage_malloc(sizeof(double)*nc)
     for j in range(nc):

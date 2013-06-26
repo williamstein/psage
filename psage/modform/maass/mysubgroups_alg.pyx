@@ -1094,7 +1094,7 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
 
 
 @cython.cdivision(True) ## N should never be 0
-cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose):
+cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose=0):
     r""" Mpfr version of pullback alg for Gamma_0(N).
     (the reason for this restriction is the more complicated membership tests otherwise involved)
 
@@ -1156,14 +1156,14 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
             d1 = V[1][0]*b[0]+V[1][1]*d[0]
             a[0]=a1; b[0]=b1; c[0]=c1; d[0]=d1
             #_apply_sl2z_map_mpc(xout,yout,xin,yin,a,b,c,d)
-            if verbose>0:
+            if verbose>2:
                 print "Coset rep nr. ",j,"=",a[0],b[0],c[0],d[0]
                 #_apply_sl2z_map_dp(x,y,a,b,c,d)
             _apply_sl2z_map_dp(x,y,V[0][0],V[0][1],V[1][0],V[1][1])
             #reps[0][0][0]=a; reps[0][0][1]=b; reps[0][1][0]=c; reps[0][1][1]=d; 
             done=1
             break #return 
-    if verbose>0:
+    if verbose>2:
         print "pb_to_Gamma:",x[0],y[0]
     if V[0]<>NULL:
         sage_free(V[0])
@@ -1235,7 +1235,7 @@ cpdef pullback_general_group_dp(G,double x,double y,int ret_mat=0,int check=0,in
                 break
         if found_coset_rep==0:
             raise ArithmeticError,"Did not find coset rep. for A^-1={0}, x,y={1},{2}, G={3}".format(A.inverse(),x,y,G)
-        if verbose>0:
+        if verbose>2:
             print "x,y=",x,y
             print "A=",A
             print "A.inverse()=",A.inverse()

@@ -408,13 +408,13 @@ class MaassWaveForms (AutomorphicFormSpace):
             #    Y0=get_Y_for_M_dp(S,R,M0,eps)
             #if Y0<>0 and M0==0:
             #    M0=get_M_for_maass_dp(R,Y0,eps)                
-            if self.weight()==0 and self.group().is_congruence():
-                C = get_coeff_fast_cplx_dp_sym(self,R,Y,M,0,NN,gr=gr)
-            else:
-                if self._verbose>0:
-                    print "Using routine without symmetry!"
-                    print "R,Y0,M=",R,Y0,M
-                C = get_coeff_fast_cplx_dp(self,R,Y,M,0,NN,gr=gr)
+            #if self.weight()==0 and self.group().is_congruence():
+            #    C = get_coeff_fast_cplx_dp_sym(self,R,Y,M,0,NN,gr=gr)
+            #else:
+            #    if self._verbose>0:
+            #        print "Using routine without symmetry!"
+            #        print "R,Y0,M=",R,Y0,M
+            C = get_coeff_fast_cplx_dp(self,R,Y,M,0,NN,gr=gr)
             if gr<>0:
                 return C
             if self._verbose>0:
@@ -437,10 +437,10 @@ class MaassWaveForms (AutomorphicFormSpace):
 #            if len(C.keys())>1:
 #                res = []
 #                for i in C.keys():
-#                    res.append(MaassWaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
+#                    res.append(Maasswaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
 #                return res
 #            else:
-            return MaassWaveform(self,R,C=C,compute=False,Y=Y,norm=NN)
+            return Maasswaveform(self,R,C=C,compute=False,Y=Y,norm=NN)
 
             #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
             #F._coeffs[0]=X[0]
@@ -467,10 +467,10 @@ class MaassWaveForms (AutomorphicFormSpace):
     
         if self._verbose>0:
             print "Get Hecke basis with:{0},{1},{2},{3},{4}".format(R,Y0,M0,Q,dim)
-        if self.weight()==0:
-            X = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN)
-        else:
-            X = get_coeff_fast_cplx_dp(self,R,Y0,M0,0,NN)
+        #if self.weight()==0:
+        #    X = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,0,NN)
+        #else:
+        X = get_coeff_fast_cplx_dp(self,R,Y0,M0,0,NN)
             #X = get_coeff_fast_cplx_dp_sym(self,R,Y0,M0,Q,NN)
         if p==None:
             p = self.get_primitive_p()
@@ -479,7 +479,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         for i in H.keys(): #range(dim):
             #print "H[",i,"][0][-1]=",H[i][0][-1]
             #C={0:H[i]}
-            F = MaassWaveform(self,R,C=H[i],sdim=1,compute=False,hecke_p=p)
+            F = Maasswaveform(self,R,C=H[i],sdim=1,compute=False,hecke_p=p)
             res.append(F)
         return res
 
@@ -494,7 +494,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         
         """
         # Dummy element
-        F=MaassWaveform(self,R2,sym_type=sym_type,dim=dim,compute=False)
+        F=Maasswaveform(self,R2,sym_type=sym_type,dim=dim,compute=False)
         param=self.set_default_parameters(R2,Mset,Yset,ndigs)
         Y=param['Y']
         Q=param['Q']
@@ -1454,7 +1454,9 @@ class MaassWaveForms (AutomorphicFormSpace):
 ##     return diff
 
 #class MaassWaveformElement (SageObject):
-def MaassWaveform(space,eigenvalue,**kwds):
+
+
+def Maasswaveform(space,eigenvalue,**kwds):
     r"""
     Return a Maass waveform as an element of type MaassWaveformElement_class
     """
@@ -1487,6 +1489,7 @@ def MaassWaveform(space,eigenvalue,**kwds):
     ## to T_p we don't want to use p for testing.    
     data['_from_hecke_p']=kwds.get('hecke_p',0)
     data['_test']=kwds.get('test',0)
+    data['compute']=kwds.get('compute',0)
     data['_version']=1  ## Might be necessary in the future
     return MaassWaveformElement_class(data)
 
@@ -1503,7 +1506,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         sage: G=MySubgroup(Gamma0(1))
         sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-        sage: F=MaassWaveformElement(G,R)    
+        sage: F=Maasswaveform(G,R)    
         Maass waveform with parameter R=9.5336952613536
         in Space of Maass waveforms on the group G:
         Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
@@ -1512,7 +1515,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         Constructed from G=Modular Group SL(2,Z)
         sage: G=MySubgroup(Gamma0(4))
         sage: R=mpmath.mpf(3.70330780121891)
-        sage: F=MaassWaveformElement(G,R);F
+        sage: F=Maasswaveform(G,R);F
         Maass waveform with parameter R=3.70330780121891
         Member of the Space of Maass waveforms on the group G:
         Arithmetic Subgroup of PSL2(Z) with index 6. Given by: 
@@ -1552,7 +1555,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         EXAMPLES::
             sage: G=MySubgroup(Gamma0(1))
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(G,R)    
+            sage: F=Maasswaveform(G,R)    
             Maass waveform with parameter R=9.5336952613536
             in Space of Maass waveforms on the group G:
             Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
@@ -1561,7 +1564,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             Constructed from G=Modular Group SL(2,Z)
             sage: G=MySubgroup(Gamma0(4))
             sage: R=mpmath.mpf(3.70330780121891)
-            sage: F=MaassWaveformElement(G,R);F
+            sage: F=Maasswaveform(G,R);F
             Maass waveform with parameter R=3.70330780121891
             Member of the Space of Maass waveforms on the group G:
             Arithmetic Subgroup of PSL2(Z) with index 6. Given by: 
@@ -1583,18 +1586,6 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #import mpmath
         for key in data.keys():
             self.__dict__[key]=data[key]
-#        if hasattr(G,"_is_maass_waveform_space"):
-#            self._space=G
-#        else:
-#            self._space= MaassWaveForms (G)
-#        self._group=self._space._group
-#        self._cusp_evs = self._space._cusp_evs
-#
-#        self._R=R
-#        if sym_type<>None:
-#            self._space.set_sym_type(sym_type)
-#        self._dim=dim
-#        self._version=1  ## Might be necessary in the future
         AutomorphicFormElement.__init__(self,self._space,self._coeffs,prec=self._prec,principal_part={},verbose=self._verbose)
         #if nd>15:
         #    mpmath.mp.dps=nd
@@ -1610,15 +1601,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 self._errest = self.test()
             self._M0 = max(self._coeffs[0][0].keys())
         else:
-            dprec=2.**-nd
+            dprec=2.**(-self._nd)
             self._M0=get_M_for_maass(self._R,
-                                     self._group.minimal_height(),
+                                     self._space._group.minimal_height(),
                                      dprec) 
-            if compute==True:
+            if data.get('compute',False)==True:
                 self._coeffs=self.get_coeffs()
             else:
                 self._coeffs = {0: {}}
-                for j in range(self._group.ncusps()):
+                for j in range(self._space._group.ncusps()):
                     self._coeffs[0][j]={}
         
                     
@@ -1629,7 +1620,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(Gamma0(1),R,nd=50);F
+            sage: F=Maasswaveform(Gamma0(1),R,nd=50);F
             Maass waveform with parameter R=9.5336952613535575543442352359287703238212563951073
             Member of the Space of Maass waveforms on the group G:
             Arithmetic Subgroup of PSL2(Z) with index 1.Given by
@@ -1665,13 +1656,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         r"""
         Return self._group 
         """
-        return self._group
+        return self._space._group
 
     def level(self):
-        if self._group.is_congruence():
-            return self._group.level()
+        if self._space._group.is_congruence():
+            return self._space.__group.level()
         else:
-            return self._group.generalised_level()
+            return self._space._group.generalised_level()
 
     def eigenvalue(self):
         return self._R  #eigenvalue
@@ -1712,7 +1703,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         
             sage: G=MySubgroup(Gamma0(1))
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(G,R)    
+            sage: F=Maasswaveform(G,R)    
             sage: F.C(2)
             mpc(real='-1.068333551223568', imag='2.5371356217909904e-17')
             sage: F.C(3)
@@ -1743,7 +1734,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         
             sage: G=MySubgroup(Gamma0(1))
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(G,R)    
+            sage: F=Maasswaveform(G,R)    
             sage: F.test()
             7
 
@@ -1806,7 +1797,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             nd=self._nd #+5
             Ctmp = deepcopy(self._coeffs)
             if self._Y<=0:
-                [M0,Y0]=find_Y_and_M(self._group,self._R,nd)
+                [M0,Y0]=find_Y_and_M(self._space._group,self._R,nd)
                 self.get_coeffs(Mset=M0,Yset=Y0,ndigs=nd,overwrite=1,norm=self._norm)
                 C1 = deepcopy(self._coeffs[0][0])
             else:
@@ -1944,9 +1935,9 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 if self.weight()==0 and self.group().is_congruence():
                     X=get_coeff_fast_cplx_dp_sym(S,RR(R),RR(Y),int(M),int(Q),norm)
                 else:
-                    X=get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),int(Q),norm)
+                    X=get_coeff_fast_cplx_dp_nosym(S,RR(R),RR(Y),int(M),int(Q),norm)
             else:
-                X=get_coeff_fast_real_dp(S,RR(R),RR(Y),int(M),int(Q),norm)
+                X=get_coeff_fast_real_dp_nosym(S,RR(R),RR(Y),int(M),int(Q),norm)
             ## We still want the variables to have Sage types and not primitive python types
             for i in X.keys():
                 for j in X[i].keys():

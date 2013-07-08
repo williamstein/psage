@@ -437,10 +437,10 @@ class MaassWaveForms (AutomorphicFormSpace):
 #            if len(C.keys())>1:
 #                res = []
 #                for i in C.keys():
-#                    res.append(MaassWaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
+#                    res.append(Maasswaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
 #                return res
 #            else:
-            return MaassWaveform(self,R,C=C,compute=False,Y=Y,norm=NN)
+            return Maasswaveform(self,R,C=C,compute=False,Y=Y,norm=NN)
 
             #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
             #F._coeffs[0]=X[0]
@@ -479,7 +479,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         for i in H.keys(): #range(dim):
             #print "H[",i,"][0][-1]=",H[i][0][-1]
             #C={0:H[i]}
-            F = MaassWaveform(self,R,C=H[i],sdim=1,compute=False,hecke_p=p)
+            F = Maasswaveform(self,R,C=H[i],sdim=1,compute=False,hecke_p=p)
             res.append(F)
         return res
 
@@ -494,7 +494,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         
         """
         # Dummy element
-        F=MaassWaveform(self,R2,sym_type=sym_type,dim=dim,compute=False)
+        F=Maasswaveform(self,R2,sym_type=sym_type,dim=dim,compute=False)
         param=self.set_default_parameters(R2,Mset,Yset,ndigs)
         Y=param['Y']
         Q=param['Q']
@@ -1454,7 +1454,9 @@ class MaassWaveForms (AutomorphicFormSpace):
 ##     return diff
 
 #class MaassWaveformElement (SageObject):
-def MaassWaveform(space,eigenvalue,**kwds):
+
+
+def Maasswaveform(space,eigenvalue,**kwds):
     r"""
     Return a Maass waveform as an element of type MaassWaveformElement_class
     """
@@ -1503,7 +1505,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         sage: G=MySubgroup(Gamma0(1))
         sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-        sage: F=MaassWaveformElement(G,R)    
+        sage: F=Maasswaveform(G,R)    
         Maass waveform with parameter R=9.5336952613536
         in Space of Maass waveforms on the group G:
         Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
@@ -1512,7 +1514,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         Constructed from G=Modular Group SL(2,Z)
         sage: G=MySubgroup(Gamma0(4))
         sage: R=mpmath.mpf(3.70330780121891)
-        sage: F=MaassWaveformElement(G,R);F
+        sage: F=Maasswaveform(G,R);F
         Maass waveform with parameter R=3.70330780121891
         Member of the Space of Maass waveforms on the group G:
         Arithmetic Subgroup of PSL2(Z) with index 6. Given by: 
@@ -1552,7 +1554,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         EXAMPLES::
             sage: G=MySubgroup(Gamma0(1))
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(G,R)    
+            sage: F=Maasswaveform(G,R)    
             Maass waveform with parameter R=9.5336952613536
             in Space of Maass waveforms on the group G:
             Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
@@ -1561,7 +1563,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             Constructed from G=Modular Group SL(2,Z)
             sage: G=MySubgroup(Gamma0(4))
             sage: R=mpmath.mpf(3.70330780121891)
-            sage: F=MaassWaveformElement(G,R);F
+            sage: F=Maasswaveform(G,R);F
             Maass waveform with parameter R=3.70330780121891
             Member of the Space of Maass waveforms on the group G:
             Arithmetic Subgroup of PSL2(Z) with index 6. Given by: 
@@ -1629,7 +1631,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(Gamma0(1),R,nd=50);F
+            sage: F=Maasswaveform(Gamma0(1),R,nd=50);F
             Maass waveform with parameter R=9.5336952613535575543442352359287703238212563951073
             Member of the Space of Maass waveforms on the group G:
             Arithmetic Subgroup of PSL2(Z) with index 1.Given by
@@ -1712,7 +1714,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         
             sage: G=MySubgroup(Gamma0(1))
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(G,R)    
+            sage: F=Maasswaveform(G,R)    
             sage: F.C(2)
             mpc(real='-1.068333551223568', imag='2.5371356217909904e-17')
             sage: F.C(3)
@@ -1743,7 +1745,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         
             sage: G=MySubgroup(Gamma0(1))
             sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=MaassWaveformElement(G,R)    
+            sage: F=Maasswaveform(G,R)    
             sage: F.test()
             7
 

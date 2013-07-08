@@ -1707,6 +1707,15 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
         sage_free(tmp)
 
 
+cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):
+        r"""
+        Pick the correct method...
+        """
+        if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0: 
+            return get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
+        return get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,eps=1e-12)
+        
+            
 
 cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):
     r"""
@@ -2037,7 +2046,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     #    return res[0]
     return res
 
-cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,norm_c=1):
+cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,norm_c=1):
     r"""
     An efficient method to get coefficients in the double complex case.
     """

@@ -3,7 +3,7 @@ include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
 include "sage/rings/mpc.pxi"
 #include "../ext/gmp.pxi"
-include "sage/ext/python_int.pxi"
+#include "sage/ext/python_int.pxi"
 from sage.structure.sage_object cimport SageObject
 from sage.structure.parent cimport Parent
 from sage.rings.integer cimport Integer

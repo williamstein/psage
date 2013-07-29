@@ -28,7 +28,7 @@ from psage.rings.mpfr_nogil cimport *
 
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
-        
+    
 #from sage.libs.mpfr cimport *
 cdef mpc_rnd_t rnd
 cdef mp_rnd_t rnd_re

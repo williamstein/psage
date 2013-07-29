@@ -306,7 +306,10 @@ class AutomorphicFormSpace(Parent):
         if(self._from_group):
             s+=str(self._from_group)
         else:
-            s+="the group G:\n"+str(self._group)
+            if self.group().index()==1:
+                s+=" SL(2,Z)"
+            else:
+                s+="the group G\n"+str(self._group)
         return s
 
 
@@ -1116,6 +1119,9 @@ class AutomorphicFormSpace(Parent):
                 except:
                     return C.append((V,N))
         #mpmath.mp.dps=dpold
+        if verbose>0:
+            print "C[0][-1]=",C.get(0,{}).get(0,{}).get(-1,None)
+
         res=list()
         if get_c:
             return C
@@ -2267,8 +2273,10 @@ class AutomorphicFormElement(SageObject):
                 s+=self.list_coefficients(N=N,cusp=j,norm=norm,print_part=print_part,component=component,out_prec=out_prec)
                 #assert isinstance(cusp,(int,Integer))
             return s
-        C = self._coeffs.get(component,{}).get(cusp,{})
-        l = C.keys()
+        C = {} #copy(self._coeffs.get(component,{}).get(cusp,{}))
+        #Cplus = []
+        #Cminus = []
+        l = self._coeffs.get(component,{}).get(cusp,{}).keys()
         l_plus = []; l_minus=[]
         for n in l:
             if abs(n)>N:
@@ -2277,12 +2285,12 @@ class AutomorphicFormElement(SageObject):
                 l_plus.append(n)
             else:
                 l_minus.append(n)
-        for (j,n) in  self.principal_part()['+'].keys(): 
-            if j==cusp:
-                l_plus.append(n); C[n]=self.principal_part()['+'][(j,n)]
-        for (j,n) in  self.principal_part()['-'].keys(): 
-            if j==cusp:
-                l_minus.append(n); C[n]=self.principal_part()['-'][(j,n)]
+        #for (j,n) in  self.principal_part().get('+',{}).keys(): 
+        #    if j==cusp:
+        #        l_plus.append(n); C[n]=self.principal_part()['+'][(j,n)]
+        #for (j,n) in  self.principal_part().get('-',{}).keys(): 
+        #    if j==cusp:
+        #        l_minus.append(n); C[n]=self.principal_part()['-'][(j,n)]
         l_plus.sort(cmp=self.my_zzcmp)
         l_minus.sort(cmp=self.my_zzcmp)
         scaling_factors=[]
@@ -2322,7 +2330,10 @@ class AutomorphicFormElement(SageObject):
                 al = al0
             for n in l_plus:
                 nal = n + al
-                c = C[n]
+                if n<0:
+                    c = C.get(component,n,0)
+                else:
+                    c = self.C(component,cusp,n)
                 if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
                 elif hasattr(c,"real"):
@@ -2339,12 +2350,12 @@ class AutomorphicFormElement(SageObject):
             if al0.denominator()<1000: 
                 al = al0
             if norm:
-                norm_minus = F.C(cusp,-1)  #self.principal_part()['-'].get((cusp,0),F.C(cusp,0))
+                norm_minus = self.C(component,cusp,-1)  #self.principal_part()['-'].get((cusp,0),F.C(cusp,0))
                 if abs(norm_minus) < RF(2.0)**(-self.prec()/2.0):
                     try:
                         for n in l_minus:
                             if n>0:
-                                norm_minus = F.C(cusp,n)
+                                norm_minus = self.C(component,cusp,n)
                                 if abs(norm_minus) > RF(2.0)**(-self.prec()/2.0):
                                     raise StopIteration()
                         raise ArithmeticError,"Could not find non-zero negative coefficient to normalize with!"
@@ -2354,13 +2365,13 @@ class AutomorphicFormElement(SageObject):
                 norm_minus = CF(1)             
             for n in l_minus:    
                 nal = n + al
-                c = C[n]
+                c = self.C(component,cusp,n)
                 if isinstance(c,(int,mpf,complex)): 
                     c = CF(c.real,c.imag)
                 else:
                     c = CF(c.real(),c.imag())
                 if nal>0:
-                    nn = abs(nal)**(1-k)
+                    nn = abs(nal)**(1-self.weight())
                     c = c/norm_minus/nn
 
                 s+="C^{{-}}_{{ {0} }} ({1}) = {2} \n ".format(cusp,n,c)
@@ -2681,19 +2692,19 @@ class AutomorphicFormElement(SageObject):
         sp=""
         for (r,n) in self._principal_part['+']:
             a=self._principal_part['+'][(r,n)]
-            if(a<>0):
-                x=QQ(n+RR(self._space.alpha(r)[0]))            
-            if(a<>1):
-                if(a>0 and len(sp)>0):
+            if a<>0:
+                x=QQ(n+self._space.alpha(r)[0])            
+            if a<>1:
+                if a>0 and len(sp)>0:
                     ast="+"+str(a)
                 else:
                     ast=str(a)
-                if(x<>0):
+                if x<>0:
                     sp=sp+ast+"q^{"+str(x)+"}"
                 else:
                     sp=sp+ast
             else:
-                if(x<>0):
+                if x<>0:
                     sp=sp+"q^{"+str(x)+"}"
                 else:
                     sp=sp+"1"
@@ -2801,17 +2812,50 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
     def __init__(self,G,weight=0,multiplier=None,holomorphic=False,weak=True,cuspidal=False,verbose=0,**kwds):
         r""" Initialize the space of automorphic forms.
         """
-        if isinstance(G,AutomorphicFormSpace):
-            multiplier = G.multiplier().dual_multiplier()
-            weight = QQ(2)-QQ(G.weight())
-        elif multiplier==None or not isinstance(multiplier,MultiplierSystem):
-            multiplier = extract_multiplier(G,weight,**kwds)
-        self._group = multiplier.group()
-        self._from_group=self._group._G
-        ## Make sure we have consistent weight
-        if not multiplier.is_consistent(weight):
-            raise ValueError,"Weight {0} and multiplier are not consistent!".format(weight)
-        
+        if(isinstance(G,MySubgroup)):
+            self._group=G
+            self._from_group=G._G
+        else:
+            if is_int(G):
+                self._group=MySubgroup(Gamma0(G))
+                self._from_group=Gamma0(G)
+            elif( hasattr(G,'is_subgroup') and G.is_subgroup(SL2Z)):
+                self._group=MySubgroup(G)
+                self._from_group=G
+            elif( hasattr(G,'_is_space_of_automorphic_functions')):
+                # We can use the inverse of the \xi_k operator to map M_{k,rho} to H_{2-k,\bar{rho}} and 
+                self._group=G._group
+                self._from_group=G._from_group
+                self._verbose = G._verbose
+                weight=QQ(2)-QQ(G.weight())
+                x=G.character()
+                if x.is_trivial():
+                    character=trivial_character(self._group.level())
+                elif(isinstance(x,sage.modular.dirichlet.DirichletCharacter)):
+                    if(x.order()<=2):
+                        character=x
+                    else:
+                        # the conjugate character
+                        character=x.parent()[0]/x   
+                elif(isinstance(x,type(trivial))):  # if x is a function
+                    character = x
+                else:
+                    raise ValueError, "Unknown character! x:%s" % x
+            else:
+                raise ValueError, "Could not initialize space from G:%s" % G
+            
+            
+        # We need a level divisible by 4
+        if multiplier==None:
+            if is_int(weight):
+                multiplier=TrivialMultiplier(self._group)
+            else:
+                if(self._group.level() % 4 <>0):
+                    raise ValueError," Need level divisible by 4. Got:%s " % self._group.level()
+                #if ( int(2*weight) % 4 == 1):
+                multiplier=ThetaMultiplier(self._group,weight=weight)
+                #else:
+                #    multiplier=ThetaMultiplier(self._group,dual=True)
         self._class_name ="HarmonicWeakMaassForms"
         #AutomorphicFormSpace.__init__(self,GG,weight=weight,multiplier=multiplier,character=character,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,dprec=dprec,verbose=verbose)
         AutomorphicFormSpace.__init__(self,self._group,weight=weight,multiplier=multiplier,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,verbose=verbose,**kwds)

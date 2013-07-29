@@ -162,7 +162,8 @@ ext_modules = [
               libraries = ['pari']),
 
     Extension("psage.modform.rational.special_fast",
-              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
+#              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
+              ["psage/modform/rational/special_fast.pyx"],
               libraries = ['gmp', 'flint'],
               language = 'c++',
               include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],
@@ -220,8 +221,9 @@ my_extensions = [
               ['psage/modform/maass/pullback_algorithms.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
+              include_dirs = numpy_include_dirs,
               extra_link_args=['-fopenmp']),
-#              include_dirs = numpy_include_dirs),
+
     Extension('psage.modform.maass.linear_system',
               ['psage/modform/maass/linear_system.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
@@ -246,7 +248,7 @@ my_extensions = [
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-#              include_dirs = numpy_include_dirs,
+              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
               
@@ -296,8 +298,8 @@ my_extensions = [
         
     Extension('psage.modform.maass.eisenstein_series',
               ['psage/modform/maass/eisenstein_series.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-#              include_dirs = numpy_include_dirs),
+              libraries = ['m','gmp','mpfr','mpc'],
+              include_dirs = numpy_include_dirs),
 
     Extension("psage.modform.maass.test_parallel",
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],

@@ -48,7 +48,7 @@ from sage.rings.integer import Integer,is_Integer
 from sage.rings.integer_ring cimport Integer
 from sage.rings.complex_double import CDF
 from sage.all import log_b
-from numpy import array
+#from numpy import array
 from sage.all import exp,I,CC,find_root
 from sage.matrix.all import MatrixSpace
 ## Since I want to import sinand cos from math.h 
@@ -56,8 +56,8 @@ from sage.matrix.all import MatrixSpace
 #from sage.all import cos as scos
 #from libc.math cimport sin as dsin
 #from libc.math cimport cos as dcos
-import numpy as np
-cimport numpy as cnp
+#import numpy as np
+#cimport numpy as cnp
 #cimport cython
 
 from maass_forms_alg cimport SMAT_cplx_dp,set_Mv_Qv_symm
@@ -189,8 +189,9 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
     for j in range(N):
         V[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols))
         for k in range(ncols): #from 0<=k<ncols:
-            V[j][k]=<double complex>0
+            V[j][k]=0
 
+        
     RHS=<double complex**>sage_malloc(sizeof(double complex*)*N)
     if RHS==NULL: raise MemoryError
     for n in range(N):
@@ -241,7 +242,7 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
             if Cvec[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
-                Cvec[i][j][n]=<double complex>0
+                Cvec[i][j][n]=0
     sig_on()
     pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
     sig_off()

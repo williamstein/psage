@@ -60,6 +60,8 @@ from copy import deepcopy
 from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
+
+from psage.modform.maass.permutation_alg cimport MyPermutation
 #from sage.rings.rational.Rational import floor as qq_floor
 import cython
 cdef extern from "math.h":
@@ -166,25 +168,23 @@ cdef class SL2Z_elt(object):
     def __richcmp__(self,other,op):
         if op==2 or op==3:
             if type(self)<>type(other):
-                res=0
+                res=False
             else:
-                res = self._eq(other)
+                res = bool(self._eq(other))
         else:
             raise NotImplementedError,"No ordering of SL2Z elements is implemented!"
-        if op==3 and res==1:
-            res=0
-        elif op==3 and res==0:
-            res=1
+        if op==3:
+            res=not res
         return res
 
     cpdef _eq(self,SL2Z_elt other):
-        if self.ent[0]<><SL2Z_elt>(other).ent[0]:
+        if self.ent[0] <> other.ent[0]:
             res=0
-        elif self.ent[1]<><SL2Z_elt>(other).ent[1]:
+        elif self.ent[1]<>other.ent[1]:
             res=0
-        elif self.ent[2]<><SL2Z_elt>(other).ent[2]:
+        elif self.ent[2]<>other.ent[2]:
             res=0
-        elif self.ent[3]<><SL2Z_elt>(other).ent[3]:
+        elif self.ent[3]<>other.ent[3]:
             res=0
         else:
             res=1        
@@ -366,7 +366,9 @@ cpdef factor_matrix_in_sl2z(A,B=None,C=None,D=None,int verbose=0):
         #test = abs(4*C**2+D**2)**
         return fast_sl2z_factor(A,B,C,D)
     else:
-        if isinstance(A,(SL2Z_elt,list,tuple)):
+        if isinstance(A,SL2Z_elt):
+            a=A[0]; b=A[1]; c=A[2]; d=A[3]
+        elif isinstance(A,(list,tuple)):
             a,b,c,d=A
         else:
             a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
@@ -926,15 +928,17 @@ cpdef pullback_to_Gamma0N_mpfr(G,RealNumber x,RealNumber y):
     cdef RealNumber xx,yy
     N=G.level()
     nreps=G.index()
+    if G._coset_reps_v0==None:
+        G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
     reps= <int ***> sage_malloc(sizeof(int**) * nreps)
     for j from 0 <=j<nreps:
         reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
         reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
         reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
-        reps[j][0][0]=G._coset_reps[j][0]
-        reps[j][0][1]=G._coset_reps[j][1]
-        reps[j][1][0]=G._coset_reps[j][2]
-        reps[j][1][1]=G._coset_reps[j][3]
+        reps[j][0][0]=G._coset_reps_v0[j][0]
+        reps[j][0][1]=G._coset_reps_v0[j][1]
+        reps[j][1][0]=G._coset_reps_v0[j][2]
+        reps[j][1][1]=G._coset_reps_v0[j][3]
 
     xx=RealNumber(x.parent(),x)
     yy=RealNumber(x.parent(),y)
@@ -956,15 +960,17 @@ cdef void pullback_to_Gamma0N_mpfr_c(G,mpfr_t xout,mpfr_t yout, mpfr_t xin,mpfr_
     #cdef RealNumber xx,yy
     N=G.level()
     nreps=G.index()
+    if G._coset_reps_v0==None:
+        G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
     reps= <int ***> sage_malloc(sizeof(int**) * nreps)
-    for j from 0 <=j<nreps:
+    for j in range(nreps):
         reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
         reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
         reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
-        reps[j][0][0]=G._coset_reps[j][0]
-        reps[j][0][1]=G._coset_reps[j][1]
-        reps[j][1][0]=G._coset_reps[j][2]
-        reps[j][1][1]=G._coset_reps[j][3]
+        reps[j][0][0]=G._coset_reps_v0[j][0]
+        reps[j][0][1]=G._coset_reps_v0[j][1]
+        reps[j][1][0]=G._coset_reps_v0[j][2]
+        reps[j][1][1]=G._coset_reps_v0[j][3]
 
     mpfr_set(xout,xin,rnd_re)
     mpfr_set(yout,yin,rnd_re)
@@ -1046,8 +1052,10 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
     cdef int nreps,N,j
     cdef int a,b,c,d
     cdef double xx,yy
-    N=G._level
-    nreps=G._index
+    N=G.level()
+    nreps=G.index()
+    if G._coset_reps_v0==None:
+        G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
     reps= <int ***> sage_malloc(sizeof(int**) * nreps)
     for j from 0 <=j<nreps:
         reps[j]=NULL
@@ -1061,10 +1069,10 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
         reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
         if reps[j][1]==NULL:
             raise MemoryError
-        reps[j][0][0]=G._coset_reps[j][0]
-        reps[j][0][1]=G._coset_reps[j][1]
-        reps[j][1][0]=G._coset_reps[j][2]
-        reps[j][1][1]=G._coset_reps[j][3]
+        reps[j][0][0]=G._coset_reps_v0[j][0]
+        reps[j][0][1]=G._coset_reps_v0[j][1]
+        reps[j][1][0]=G._coset_reps_v0[j][2]
+        reps[j][1][1]=G._coset_reps_v0[j][3]
         #print "reps[",j,",00=",reps[j][0][0]
         #print "reps[",j,",01=",reps[j][0][1]
         #print "reps[",j,",10=",reps[j][1][0]
@@ -1086,7 +1094,7 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
 
 
 @cython.cdivision(True) ## N should never be 0
-cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose):
+cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose=0):
     r""" Mpfr version of pullback alg for Gamma_0(N).
     (the reason for this restriction is the more complicated membership tests otherwise involved)
 
@@ -1148,14 +1156,14 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
             d1 = V[1][0]*b[0]+V[1][1]*d[0]
             a[0]=a1; b[0]=b1; c[0]=c1; d[0]=d1
             #_apply_sl2z_map_mpc(xout,yout,xin,yin,a,b,c,d)
-            if verbose>0:
+            if verbose>2:
                 print "Coset rep nr. ",j,"=",a[0],b[0],c[0],d[0]
                 #_apply_sl2z_map_dp(x,y,a,b,c,d)
             _apply_sl2z_map_dp(x,y,V[0][0],V[0][1],V[1][0],V[1][1])
             #reps[0][0][0]=a; reps[0][0][1]=b; reps[0][1][0]=c; reps[0][1][1]=d; 
             done=1
             break #return 
-    if verbose>0:
+    if verbose>2:
         print "pb_to_Gamma:",x[0],y[0]
     if V[0]<>NULL:
         sage_free(V[0])
@@ -1166,6 +1174,86 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
     if done==0:
         raise Exception,"Did not find pullback! A=[%s %s, %s %s]" %(a[0],b[0],c[0],d[0])
 
+
+cpdef pullback_general_group(G,RealNumber x,RealNumber y,int ret_mat=0,int check=0): 
+    r"""
+    Pullback for a general group.
+    """
+    cdef RealNumber xpb,ypb
+    cdef int a,b,c,d,found_coset_rep,j
+    cdef MyPermutation p,pj
+    cdef SL2Z_elt B
+    if G.is_Gamma0():
+        xpb,ypb,a,b,c,d = pullback_to_Gamma0N_mpfr(G,x,y)
+    else:
+        a,b,c,d=pullback_to_psl2z_mat(x,y)
+        A=SL2Z_elt(a,b,c,d) #.matrix()
+        p = G.permutation_action(A)
+        found_coset_rep=0
+        for j in range(G._index):
+            pj = G.permutation_coset_rep(j)
+            if p(pj(1))==1:
+                found_coset_rep=1
+                B=G._coset_reps_v0[j]*A
+                break
+        if found_coset_rep==0:
+            raise ArithmeticError,"Did not find coset rep. for A^-1=%s" % A.inverse()
+        if check==1:
+            if B not in G:
+                raise ArithmeticError,"Error with coset rep. A={0} and B={1}. V_{2}={3}".format(A,B,j,G._coset_reps_v0[j])
+        xpb,ypb=apply_sl2z_map_mpfr(x,y,B[0],B[1],B[2],B[3])
+        a,b,c,d = B[0],B[1],B[2],B[3]
+    if ret_mat==1:
+        return xpb,ypb,a,b,c,d
+    else:
+        return xpb,ypb
+
+
+cpdef pullback_general_group_dp(G,double x,double y,int ret_mat=0,int check=0,int verbose=0): 
+    r"""
+    Pullback for a general group.
+    """
+    cdef double xpb,ypb
+    cdef int a,b,c,d,found_coset_rep,j
+    cdef MyPermutation p,pj
+    cdef SL2Z_elt B
+    if G.is_Gamma0():
+        xpb,ypb,a,b,c,d = pullback_to_Gamma0N_dp(G,x,y)
+    else:
+        a,b,c,d=pullback_to_psl2z_mat(x,y)
+        A=SL2Z_elt(a,b,c,d) #.matrix()
+        p = G.permutation_action(A) #.inverse()
+        found_coset_rep=0
+#        print "A=",A
+#        print "pA=",p
+        for j in range(G._index):
+            pj = G.permutation_coset_rep(j)
+#            print "p({0})={1}".format(j,pj)
+            if p(pj(1))==1:
+                found_coset_rep=1
+                B=G._coset_reps_v0[j]*A
+                break
+        if found_coset_rep==0:
+            raise ArithmeticError,"Did not find coset rep. for A^-1={0}, x,y={1},{2}, G={3}".format(A.inverse(),x,y,G)
+        if verbose>2:
+            print "x,y=",x,y
+            print "A=",A
+            print "A.inverse()=",A.inverse()
+            print "coset nr. {0}={1}".format(j,B)
+        if check==1:
+            if B not in G:
+                raise ArithmeticError,"Error with coset rep. A={0} and B={1}. V_{2}={3}".format(A,B,j,G._coset_reps_v0[j])
+        xpb,ypb=apply_sl2z_map_dp(x,y,B[0],B[1],B[2],B[3])
+        a,b,c,d = B[0],B[1],B[2],B[3]
+    if ret_mat==1:
+        return xpb,ypb,a,b,c,d
+    else:
+        return xpb,ypb 
+
+
+
+
+    
 cpdef apply_sl2z_map(x,y,A):
     cdef int a,b,c,d
     cdef RealNumber xx,yy
@@ -1340,7 +1428,7 @@ cdef void _normalize_point_to_cusp_mpfr(mpfr_t x,mpfr_t y,int a,int b,int c,int 
         #u=u/wi
         #v=v/wi
 
-cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0):    
+cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0): #,int verbose=0):    
     r"""
     Compute the normalized point with respect to the cusp cu
     """
@@ -1355,6 +1443,8 @@ cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0):
         b=-b; c=-c
     else:
         [a,b,c,d]=G.cusp_normalizer(cu)
+#    if verbose>0:
+#        print "normalizer,width=",a,b,c,d,wi
     _normalize_point_to_cusp_dp(&xx,&yy,a,b,c,d,wi,inv)
     return xx,yy
     #return [u,v]
@@ -1373,9 +1463,12 @@ cdef void _normalize_point_to_cusp_dp(double *x,double *y,int a,int b,int c,int 
         x[0]=x[0]*wir
         y[0]=y[0]*wir
     #assert a*d-b*c==1
-    #print "x,y1=",x[0],y[0]
+#    if verbose>0:
+#        print "z0=",x[0],y[0]
     _apply_sl2z_map_dp(x,y,a,b,c,d)
-    if inv and wi<>1:
+#    if verbose>0:
+#        print "N(z0)=",x[0],y[0]
+    if inv==1 and wi<>1:
         x[0]=x[0]/wir
         y[0]=y[0]/wir
 

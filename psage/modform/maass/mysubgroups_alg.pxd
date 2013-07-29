@@ -34,7 +34,7 @@ cdef void _pullback_to_psl2z_mpfr(mpfr_t x,mpfr_t y)
 
 cdef void _pullback_to_Gamma0N_mpfr(int*** reps ,int nreps, int N,mpfr_t x,mpfr_t y)
 
-cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose)
+cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose=?)
 
 #cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double *y,int *a,int *b,int *c,int *d,int verbose)
 cdef int closest_vertex_dp_c(int nv,int **vertex_maps,double *widths,double* x,double* y,int verbose=?)

@@ -1109,8 +1109,15 @@ class AlphaZ:
 
 import os
 path = '/tmp/hmf-%s'%os.environ['USER']
-if not os.path.exists(path):
+#if not os.path.exists(path):
+# We want to avoid a race condition... 
+try: 
     os.makedirs(path)
+except OSError, e:
+    if e.errno <> 17:
+        raise e
+
+    
 @disk_cached_function(path, memory_cache=True)
 def hecke_elements(P):
     if P.norm() == 4:

@@ -186,10 +186,6 @@ class WeilModule (FormalSums):
     def _neg_index(self,ii):
         return cython_neg_index(ii,self._gen_orders)
 
-    def neg_index(self,x):
-        r""" Return the index of minus x in the list of basis elements in self."""
-        return self._neg_index(x)
-    
     @cached_method
     def _elt(self,ii):
         return cython_elt(ii,self._gen_orders)
@@ -232,7 +228,7 @@ class WeilModule (FormalSums):
         Coerce object into an appopriate child object
         of self if possible.
 
-        We coerce
+        We ccoerce
         - an element of $A$ into an elemnt of $K[A]$.
 
         EXAMPLES
@@ -406,7 +402,7 @@ class WeilModule (FormalSums):
             if p!=2:
                 pexc[q]=(r*(q-1 )+4 *k) % 8 
             else:
-                odts[q]=((t+4 *k) % 8 )
+                odts[q]=((t+4 *k) % 8 ) # Can we have more than one 2-adic component at one time?
                 if t<>0:
                     types[q]="I" # odd
                 else:
@@ -1198,22 +1194,17 @@ ss    Describes an element of a Weil module $K[A]$.
                          where 1 means that we compute this entry
                          of the matrix rho_{Q}(A) 
         """
-        #print "A_in_acton_of=",A
         a=A[0 ,0 ]; b=A[0 ,1 ]; c=A[1 ,0 ]; d=A[1 ,1 ] #[a,b,c,d]=elts(A)
         if(c % self._level <>0 ):
             raise ValueError, "Must be called with Gamma0(l) matrix! not A=" %(A)
         r = matrix(self._K,self._n)
-        z4 = CyclotomicField(4).gens()[0]
-        F = self.parent().finite_quadratic_module()
-        L = F.list()
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
-                #if(self._L[ii]==d*self._L[jj] and (filter==None or filter[ii,jj]==1 )):
-                if (F[ii]==d*F[jj] and (filter==None or filter[ii,jj]==1) ):
-                    argl=self._level*b*d*self.Q(jj)
+                if(self._L[ii]==d*self._L[jj] and (filter==None or filter[ii,jj]==1 )):
+                    argl=self._level*b*d*self.Q(self._L[jj])
                     r[ii,jj]=self._zl**argl
         # Compute the character 
-        signature = self._inv['signature']
+        signature = inv['signature']
         if( self._level % 4  == 0 ):
             test = (signature + kronecker(-1 ,self._n)) % 4
             if(is_even(test)):
@@ -1224,7 +1215,7 @@ ss    Describes an element of a Weil module $K[A]$.
                 if( d % 4  == 1 ):
                     chi = 1 
                 else:
-                    chi=z4**power
+                    chi=I**power
                 chi=chi*kronecker(c,d)
             else:
                 if(test==3 ):
@@ -1266,7 +1257,6 @@ ss    Describes an element of a Weil module $K[A]$.
                 sign=1
             return self._action_of_T(b,sign,filter)
         if c % self._level == 0 :
-            #print "A1=",A
             return self._action_of_Gamma0(A)
         if abs(c)==1 and a==0:
             if self._verbose>0:
@@ -1306,6 +1296,11 @@ ss    Describes an element of a Weil module $K[A]$.
             print "si=",si
             print "sign=",sign
         for na in range(0 ,self._n):
+            #print "na=",na
+            #alpha=self._L[na]
+            #if sign==-1:
+            #    na=self._minus_element[na] #-alpha
+            #na=self._L.index(-alpha)
             for nb in range(0 ,self._n):
                 if filter <> None and filter[na,nb]==0:
                     continue

@@ -3,8 +3,9 @@ include "sage/ext/stdsage.pxi"
 include "sage/ext/cdefs.pxi"
 include "sage/rings/mpc.pxi"
 #include "../ext/gmp.pxi"
-include "sage/ext/python_int.pxi"
+#include "sage/ext/python_int.pxi"
 from sage.structure.sage_object cimport SageObject
+from sage.structure.parent cimport Parent
 from sage.rings.integer cimport Integer
 
 cdef class MyPermutation(SageObject):
@@ -13,7 +14,14 @@ cdef class MyPermutation(SageObject):
     cdef long _hash
     cdef void c_new(self,int* entries)
     cdef list _list
-    cdef list _cycles
+    cdef list _cycles_list
+    cdef list _cycles_permutations
+    cdef int _cycles_list_is_ordered 
+    cdef list _cycle_type
+    cdef list _cycles_ordered_as_list
+    cdef int* _cycles # matrix containing all cycles and their lenghts
+    cdef int* _cycle_lens
+    cdef int _num_cycles
     cdef str _str
     cdef int _init
     cdef int _order
@@ -23,16 +31,29 @@ cdef class MyPermutation(SageObject):
     #cpdef mult(self,MyPermutation other)
     #cdef _mult(self,MyPermutation other,MyPermutation res)
     #cdef _mult_list(self,list other,MyPermutation res)
-    cdef void set_entries(self,int *entries)
+    cdef int set_entries(self,int *entries)
     cdef int get_unsafe(self,int i)
     cpdef int _get_unsafe(self,int i)
     cpdef conjugate(self,other)
+#    Routines dealing with the cycles
+    cpdef cycles_as_lists(self)
+    cpdef cycles_as_permutations(self)
+    cpdef cycles_ordered_as_list(self)
+    cpdef set_cycle_info(self,int reset=*)
+    cdef int set_cycle_info_c(self)
+    cpdef  list _list_from_cycles(self,list cycles)
+    cpdef num_cycles(self)
+
+    
     cpdef is_order_eq(self,int o)
+    cdef int is_order_eq_c(self,int o)
     cpdef _get_order(self)
     cpdef _inverse(self)
+    cpdef _copy_c(self)
     cpdef str export_as_string(self,str sep=*)
-    cdef void _conj_w_transp(self,int a, int b)
-    cpdef conjugate_with_transposition(self,int a, int b)
+    cdef void _conj_w_transp(self,int a, int b,int verbose=*)
+    cpdef conjugate_with_transposition(self,int a, int b,int verbose=*)
+    cpdef is_conjugate_to(self,MyPermutation other,int ret_perm=*)
     cdef void _conjugate_ptr(self,int *entries,int *other)
     cdef MyPermutation _conjugate(self,MyPermutation other)
     cdef MyPermutation _conjugate_list(self,list other)
@@ -44,7 +65,6 @@ cdef class MyPermutation(SageObject):
     cdef int num_fixed_c(self)
     cpdef num_fixed(self)
     cpdef _mult_perm(self,MyPermutation other)
-            
     cdef int eq_c(self,MyPermutation other)
     cpdef int eq(self,MyPermutation other)
     cdef int N_c(self)
@@ -67,7 +87,8 @@ cdef class MyPermutationIterator(SageObject):
     cdef int _got_list
     cdef int _num_fixed
     cdef MyPermutationIterator _fixed_pt_free_iterator
-    cdef list _fixed_pt_free_iterator_labels
+    cdef int _has_fixed_pt_free_iterator
+    cdef int * _fixed_pt_free_iterator_labels
     cpdef list(self)
     cpdef list_new(self)
     cpdef _get_list_of_perms(self)
@@ -80,14 +101,31 @@ cdef class MyPermutationIterator(SageObject):
     cdef _get_next_permutation_recursive(self,int tmp, int start,long num,int *lista)
     cpdef get_perms_test(self)
 
+cdef class CycleCombinationIterator(Parent):
+    cdef list _cycles
+    cdef int* _cycle_types
+    cdef int _N
+    cdef int _length
+    cdef int _num_cycles
+    cdef int _dbase
+    cdef list _cache
+    cdef int _got
+    cpdef list(self)
+    #    cdef dict __cached_methods
+    cpdef length(self)
+    cpdef  MyPermutation permutation_nr(self,int M)
+    cdef MyPermutation permutation_nr_c(self,int M)
+#    cdef int permutation_nr_c(self,int M,MyPermutation p)
 
-
-cdef void _mult_perm(int N, int* res,int *left,int* right)
-    
+cdef void _mult_perm_unsafe(int N, int* res,int *left,int* right)
+cpdef are_conjugate_perm(MyPermutation A,MyPermutation B)
+cpdef get_conjugating_perm_list(list Al,list Bl)
 cdef print_vec(int n,int *list)
 cdef _are_eq_vec(int n,int *a,int *b)
 cdef void _conjugate_perm(int N,int* res,int *a,int* b)
 cpdef transposition(int N,int i,int j)
 cdef int are_transitive_perm_c(int *Rl,int *Sl, int *gotten, int n,int verbose=?)
-cdef list perm_to_cycle_c(int N,int *perm)
+cdef int perm_to_cycle_c(int N,int *perm,int* cycle,int* cycle_lens)
 cdef print_vec(int n,int *list)
+cdef int num_cycles_c(int N,int *perm)
+cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl)

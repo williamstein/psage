@@ -23,6 +23,8 @@ r"""
  EXAMPLES::
 """
 
+from sage.all import SageObject
+
 class VectorValuedModularFormsModule_generic_class(SageObject):
  
     def __init__(self, module):
@@ -35,5 +37,5 @@ class VectorValuedModularFormsModule_generic_class(SageObject):
         return self.graded_component(k)
 
     def __repr__(self):
-        return "Module of vector valued modular forms for the representation given by the module %s.".format(self._M)
+        return "Module of vector valued modular forms for the representation given by the module {0}.".format(self._M)
     

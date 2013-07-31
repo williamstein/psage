@@ -25,11 +25,26 @@ r"""
  EXAMPLES::
 """
 
-class JacobiFormsModule_class(SageObject):
+# python imports
+
+from sage.modules.free_module import *
+from sage.modular.arithgroup.congroup_sl2z import *
+from sage.all import Integer, ModularFormsRing, CommutativeRing
+from psage.modform.jacobi.space import *
+
+class ModularFormsForSL2Z(ModularFormsRing, CommutativeRing):
+
+    def __init__(self):
+        super(ModularFormsForSL2Z, self).__init__(SL2Z)
+
+class JacobiFormsModule_class(FreeModule_generic):
  
     def __init__(self, lattice, character):
         self._L = lattice
         self._h = character
+        rank = self.__calculate_rank()
+        M = ModularFormsForSL2Z()
+        super(JacobiFormsModule_class,self).__init__(M, rank, rank)
 
     def lattice(self):
         return self._L
@@ -41,10 +56,28 @@ class JacobiFormsModule_class(SageObject):
         return self._h
 
     def graded_component(self, k):
-        return JacobiFormsSpace(k, self._L, self._h, self)
+        return JacobiFormsSpace_class(k, self._L, self._h, self)
 
     def subspace (self, k):
         return self.graded_component(k)
 
+    def generators(self):
+        raise NotImplementedError("Currently not implemented")
+
+    def __calculate_rank(self):
+        # this will work once the lattice class is used and Nils's
+        # implementation of the module class
+        if self._L != None:
+            L = self._L
+            o_inv = L.o_invariant()
+            V2 = L.bullet_vectors_of_order_2()
+            return (Integer(L.det()) + Integer(len(V2)*(-1)**(self.__par + o_inv)).divide_knowing_divisible_by(2))
+        else:
+        # stupid... just for testing purposes
+            return Integer(1)
+
+    def dimension(self, k):
+        return self.graded_component(k).dimension()
+
     def __repr__(self):
-        return "Module of Jacobi forms of index %s, character epsilon^%s.".format(self._L, self._h)
+        return "Module of Jacobi forms of index {0}, character epsilon^{1}.".format(self._L, self._h)

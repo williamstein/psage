@@ -23,6 +23,8 @@ r"""
  EXAMPLES::
 """
 
+from sage.all import SageObject
+
 class VectorValuedModularForm_generic_class(SageObject):
  
     def __init__(self, weight, module, ambient_space=None, ambient_module=None):
@@ -35,19 +37,19 @@ class VectorValuedModularForm_generic_class(SageObject):
         r"""
           Returns the Fourier expansion of self.
         """
-        return NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
 
     def ambient_space(self):
         r"""
           Returns the ambient space of vector valued modular forms.
         """
-        return NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
 
     def ambient_module(self):
         r"""
           Returns the ambient module of vector valued modular forms.
         """
-        return NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
 
     def weight(self):
         return self._k
@@ -56,4 +58,4 @@ class VectorValuedModularForm_generic_class(SageObject):
         return self._M
 
     def __repr__(self):
-        return "Modular form of weight %s for the representation given by %s".format(self._k, self._M)
+        return "Modular form of weight {0} for the representation given by {1}".format(self._k, self._M)

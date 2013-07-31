@@ -23,12 +23,18 @@ r"""
  EXAMPLES::
 """
 
-class VectorValuedModularFormsSpace_generic_class(FreeModule):
+from sage.all import SageObject
+from sage.modules.free_module import *
+from sage.modular.arithgroup.congroup_sl2z import *
+
+class VectorValuedModularFormsSpace_generic_class(FreeModule_generic):
  
     def __init__(self, weight, module, ambient_module=None):
         self._k = weight
         self._M = module
         self._ambient_module = ambient_module
+        rank = self.__calculate_rank()
+        super(JacobiFormsModule_class,self).__init__(ModularForms(SL2Z), rank, rank)
 
     def ambient_space(self):
         return self
@@ -55,7 +61,7 @@ class VectorValuedModularFormsSpace_generic_class(FreeModule):
         return NotImplementedError("Currently not implemented.")
 
     def __repr__(self):
-        return "Space of vector valud modular forms of weight %s and representation given by the module %s, of dimension %s"\
+        return "Space of vector valud modular forms of weight {0} and representation given by the module {1}, of dimension {2}"\
                .format(self._k, self._M, self.dimension())
 
 class VectorValuedModularFormsSubspace_generic_class(VectorValuedModularFormsSpace_generic_class):
@@ -76,11 +82,11 @@ class VectorValuedCuspFormsSpace_generic_class(VectorValuedModularFormsSubspace_
         return self.dimension_cusp_forms()
 
     def __repr__(self):
-        return "Vector valued cusp forms of weight %s and representation given by the module %s, of dimension %s"\
+        return "Vector valued cusp forms of weight {0} and representation given by the module {1}, of dimension {2}"\
                .format(self._k, self._M, self.dimension())
 
 
-class JacobiEisensteinFormsSpace_class(JacobiFormsSubspace_class):
+class VectorValuedEisensteinFormsSpace_generic_class(VectorValuedModularFormsSubspace_generic_class):
 
     def __init__(self, weight, module, ambient_space=None):
         super(VectorValuedEisensteinFormsSpace_generic_class, self).__init__(ambient_space)
@@ -90,7 +96,7 @@ class JacobiEisensteinFormsSpace_class(JacobiFormsSubspace_class):
         return self.dimension_eisenstein_forms()
 
     def __repr__(self):
-        return "Vector valued Eisenstein forms of weight %s and representation given by the module %s, of dimension %s"\
+        return "Vector valued Eisenstein forms of weight {0} and representation given by the module {1}, of dimension {2}"\
                .format(self._k, self._M, self.dimension())
 
 def VectorValuedModularForms(weight, module):

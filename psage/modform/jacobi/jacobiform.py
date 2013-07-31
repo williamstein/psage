@@ -25,7 +25,10 @@ r"""
  EXAMPLES::
 """
 
-class JacobiForm_class(SageObject):
+from sage.all import SageObject
+from sage.modules.free_module_element import FreeModuleElement_generic_dense
+
+class JacobiForm_class(FreeModuleElement_generic_dense):
  
     def __init__(self, weight, lattice, character, ambient_space=None, ambient_module=None):
         self._k = weight
@@ -33,12 +36,14 @@ class JacobiForm_class(SageObject):
         self._h = character
         self._ambient_space = ambient_space
         self._ambient_module = ambient_module
+        self.parent = ambient_space
+        
 
     def fourier_expansion(self):
         r"""
           Returns the Fourier expansion of self.
         """
-        return NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
 
     def ambient_space(self):
         r"""
@@ -69,4 +74,4 @@ class JacobiForm_class(SageObject):
         return self._h
 
     def __repr__(self):
-        return "Jacobi form of weight %s, index %s and character epsilon^%s".format(self._k, self._L, self._h)
+        return "Jacobi form of weight {0}, index {1} and character epsilon^{2}".format(self._k, self._L, self._h)

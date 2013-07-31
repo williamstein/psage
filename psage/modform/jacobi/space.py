@@ -25,13 +25,19 @@ r"""
  EXAMPLES::
 """
 
-class JacobiFormsSpace_class(FreeModule):
+from sage.modules.free_module import *
+from sage.all import QQ
+
+class JacobiFormsSpace_class(FreeModule_generic):
  
     def __init__(self, weight, lattice, character, ambient_module=None):
         self._k = weight
         self._L = lattice
         self._h = character
         self._ambient_module = ambient_module
+        #Calculate the dimension here??
+        self._dimension = 0
+        super(JacobiFormsSpace_class,self).__init__(QQ,self._dimension, self._dimension)
 
     def ambient_space(self):
         return self
@@ -57,19 +63,19 @@ class JacobiFormsSpace_class(FreeModule):
         return self._h
 
     def dimension(self):
-        return NotImplementedError("Currently not implemented.")
+        raise NotImplementedError("Currently not implemented.")
 
     def dimension_cusp_forms(self):
-        return NotImplementedError("Currently not implemented.")
+        raise NotImplementedError("Currently not implemented.")
 
     def dimension_eisenstein_forms(self):
-        return NotImplementedError("Currently not implemented.")
+        raise NotImplementedError("Currently not implemented.")
 
     def vector_valued_forms(self):
-        return NotImplementedError("Currently not implemented.")
+        raise NotImplementedError("Currently not implemented.")
 
     def __repr__(self):
-        return "Space of Jacobi forms of weight %s, index %s, character epsilon^%s of dimension %s"\
+        return "Space of Jacobi forms of weight {0}, index {1}, character epsilon^{2} of dimension {3}"\
                .format(self._k, self._L, self._h, self.dimension())
 
 class JacobiFormsSubspace_class(JacobiFormsSpace_class):
@@ -90,14 +96,14 @@ class JacobiCuspFormsSpace_class(JacobiFormsSubspace_class):
         return self.dimension_cusp_forms()
     
     def dimension_eisenstein_forms(self):
-        return ValueError("This space is cuspidal.")
+        raise ValueError("This space is cuspidal.")
 
     def __repr__(self):
-        return "Space of Jacobi cusp forms of weight %s, index %s, character epsilon^%s of dimension %s"\
+        return "Space of Jacobi cusp forms of weight {0}, index {1}, character epsilon^{2} of dimension {3}"\
                .format(self._k, self._L, self._h, self.dimension())
 
 
-class JacobiEisensteinFormsSpace_class(JacobiFormsSubspace_class):
+class JacobiEisensteinFormsSpace_class(JacobiFormsSpace_class):
 
     def __init__(self, weight, lattice, character, ambient_space=None):
         super(JacobiEisensteinFormsSpace_class, self).__init__(ambient_space)
@@ -107,10 +113,10 @@ class JacobiEisensteinFormsSpace_class(JacobiFormsSubspace_class):
         return self.dimension_eisenstein_forms()
 
     def dimension_cusp_forms(self):
-        return ValueError("This space is an Eisenstein space.")
+        raise ValueError("This space is an Eisenstein space.")
 
     def __repr__(self):
-        return "Space of Jacobi Eisenstein forms of weight %s, index %s, character epsilon^%s of dimension %s"\
+        return "Space of Jacobi Eisenstein forms of weight {0}, index {1}, character epsilon^{2} of dimension {3}"\
                .format(self._k, self._L, self._h, self.dimension())
 
 def JacobiForms(weight, lattice, character):

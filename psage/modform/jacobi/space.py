@@ -26,18 +26,18 @@ r"""
 """
 
 from sage.modules.free_module import *
-from sage.all import QQ
+from sage.all import QQ, Parent, SageObject
+from psage.modform.jacobi.jacobiform import *
 
-class JacobiFormsSpace_class(FreeModule_generic):
+class JacobiFormsSpace_class(Parent):
+
+    Element = JacobiForm_space_element
  
     def __init__(self, weight, lattice, character, ambient_module=None):
         self._k = weight
         self._L = lattice
         self._h = character
         self._ambient_module = ambient_module
-        #Calculate the dimension here??
-        self._dimension = 0
-        super(JacobiFormsSpace_class,self).__init__(QQ,self._dimension, self._dimension)
 
     def ambient_space(self):
         return self

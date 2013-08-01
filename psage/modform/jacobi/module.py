@@ -27,9 +27,8 @@ r"""
 
 # python imports
 
-from sage.modules.free_module import *
 from sage.modular.arithgroup.congroup_sl2z import *
-from sage.all import Integer, ModularFormsRing, CommutativeRing, Infinity
+from sage.all import Integer, ModularFormsRing, CommutativeRing, Infinity, SageObject, Parent
 from psage.modform.jacobi.space import *
 from psage.modform.jacobi.jacobiform import *
 
@@ -38,15 +37,15 @@ class ModularFormsForSL2Z(ModularFormsRing, CommutativeRing):
     def __init__(self):
         super(ModularFormsForSL2Z, self).__init__(SL2Z)
 
-class JacobiFormsModule_class(FreeModule_generic):
+class JacobiFormsModule_class(Module):
+
+    Element = JacobiForm_module_element
  
     def __init__(self, lattice, character):
         self._L = lattice
         self._h = character
-        rank = self.__calculate_rank()
-        M = ModularFormsForSL2Z()
-        self._element_class = JacobiForm_class
-        super(JacobiFormsModule_class,self).__init__(M, rank, rank)
+        self._rank = self.__calculate_rank()
+        super(JacobiFormsModule_class,self).__init__(ModularFormsForSL2Z())
 
     def lattice(self):
         return self._L
@@ -66,6 +65,9 @@ class JacobiFormsModule_class(FreeModule_generic):
     def generators(self):
         raise NotImplementedError("Currently not implemented")
 
+    def rank(self):
+        return self._rank
+
     def __calculate_rank(self):
         # this will work once the lattice class is used and Nils's
         # implementation of the module class
@@ -82,7 +84,9 @@ class JacobiFormsModule_class(FreeModule_generic):
         return self.graded_component(k).dimension()
 
     def zero(self):
-        return JacobiForm_zero(-Infinity, self._L, self._h, ambient_module=self)
+        return JacobiForm_module_element_zero(self)
 
     def __repr__(self):
         return "Module of Jacobi forms of index {0}, character epsilon^{1}.".format(self._L, self._h)
+
+

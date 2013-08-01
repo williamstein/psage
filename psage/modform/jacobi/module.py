@@ -97,11 +97,11 @@ class JacobiFormsModule_generic_class(UniqueRepresentation, Parent):
     class Element(JacobiForm_class, Element):
 
         def __init__(self, weight, parent, prec=10, definition=list()):
-            Element.__init__(self, parent = parent)
-            JacobiForm_class.__init__(self, weight, parent.lattice(), parent.character(), prec)
             if not isinstance(definition, list):
                 raise ValueError("`definition` has to be instance of type::`list`.")
             self._definition = definition
+            Element.__init__(self, parent = parent)
+            JacobiForm_class.__init__(self, weight, parent.lattice(), parent.character(), prec)
 
         def definition(self):
             return self._definition

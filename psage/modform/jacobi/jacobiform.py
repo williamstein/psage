@@ -32,7 +32,6 @@ from sage.modular.modform.element import ModularFormElement
 class JacobiForm_class(SageObject):
  
     def __init__(self, weight, lattice, character, prec=10):
-        print "Init of JacobiForm_class"
         self._k = weight
         self._L = lattice
         self._h = character

@@ -28,17 +28,23 @@ r"""
 # python imports
 
 from sage.modular.arithgroup.congroup_sl2z import *
-from sage.all import Integer, ModularFormsRing, CommutativeRing, Infinity, SageObject, Parent
+from sage.all import Integer, ModularFormsRing, CommutativeRing, Infinity, SageObject, Parent, IntegerRing
 from psage.modform.jacobi.space import *
 from psage.modform.jacobi.jacobiform import *
 from sage.structure.unique_representation import *
 from sage.structure.element_wrapper import *
 from sage.categories.graded_modules_with_basis import *
+from sage.categories.commutative_rings import *
+from sage.modular.modform.element import ModularFormElement
 
-class ModularFormsForSL2Z(ModularFormsRing, CommutativeRing):
+class ModularFormsForSL2Z(UniqueRepresentation, Parent):
 
     def __init__(self):
-        super(ModularFormsForSL2Z, self).__init__(SL2Z)
+        Parent.__init__(self, category=CommutativeRings(IntegerRing()))
+
+    class Element(ElementWrapper):
+        wrapped_class = ModularFormElement
+        
 
 class JacobiFormsModule_generic_class(UniqueRepresentation, Parent):
  
@@ -47,6 +53,7 @@ class JacobiFormsModule_generic_class(UniqueRepresentation, Parent):
         self._h = character
         self._rank = self.__calculate_rank()
         Parent.__init__(self, category = GradedModulesWithBasis(ModularFormsForSL2Z()))
+        self._base = ModularFormsForSL2Z()
         #super(JacobiFormsModule_class,self).__init__(ModularFormsForSL2Z())
 
     def lattice(self):
@@ -108,6 +115,17 @@ class JacobiFormsModule_generic_class(UniqueRepresentation, Parent):
 
         def __add__(self, other):
             f = other
-            return self.parent()(self._k+f.weight(), definition = self._definition + f.definition())
+            if not self._k == f.weight():
+                raise ValueError("The weights have to agree.")
+            return self.parent()(self._k, definition = self._definition + f.definition())
+
+        def __mul__(self, f):
+            kk = self._k + f.weight()
+            newdef_map = lambda t: (f*t[0], t[1])
+            newdef = map(newdef_map, self._definition)
+            return self.parent()(kk, definition = newdef)
+
+        def _neg_(self):
+            return self.parent()(self._k, definition = map(lambda t: (-t[0],t[1]), self._definition))
 
 

@@ -29,8 +29,9 @@ r"""
 
 from sage.modules.free_module import *
 from sage.modular.arithgroup.congroup_sl2z import *
-from sage.all import Integer, ModularFormsRing, CommutativeRing
+from sage.all import Integer, ModularFormsRing, CommutativeRing, Infinity
 from psage.modform.jacobi.space import *
+from psage.modform.jacobi.jacobiform import *
 
 class ModularFormsForSL2Z(ModularFormsRing, CommutativeRing):
 
@@ -44,6 +45,7 @@ class JacobiFormsModule_class(FreeModule_generic):
         self._h = character
         rank = self.__calculate_rank()
         M = ModularFormsForSL2Z()
+        self._element_class = JacobiForm_class
         super(JacobiFormsModule_class,self).__init__(M, rank, rank)
 
     def lattice(self):
@@ -78,6 +80,9 @@ class JacobiFormsModule_class(FreeModule_generic):
 
     def dimension(self, k):
         return self.graded_component(k).dimension()
+
+    def zero(self):
+        return JacobiForm_zero(-Infinity, self._L, self._h, ambient_module=self)
 
     def __repr__(self):
         return "Module of Jacobi forms of index {0}, character epsilon^{1}.".format(self._L, self._h)

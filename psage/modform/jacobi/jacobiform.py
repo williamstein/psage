@@ -25,24 +25,29 @@ r"""
  EXAMPLES::
 """
 
-from sage.all import SageObject
-from sage.modules.free_module_element import FreeModuleElement_generic_dense
+from sage.all import SageObject, PowerSeriesRing, QQbar
+from sage.modules.free_module_element import FreeModuleElement
 
-class JacobiForm_class(FreeModuleElement_generic_dense):
+class JacobiForm_class(FreeModuleElement):
  
-    def __init__(self, weight, lattice, character, ambient_space=None, ambient_module=None):
+    def __init__(self, weight, lattice, character, ambient_space=None, ambient_module=None, prec=10):
         self._k = weight
         self._L = lattice
         self._h = character
         self._ambient_space = ambient_space
         self._ambient_module = ambient_module
-        self.parent = ambient_space
-        
+        # self._parent = ambient_space
+        self._prec = prec
+        # _feparent: this is the ambient space in which the Fourier expansion of self lives
+        # we have to think about this...
+        self._feparent = PowerSeriesRing(QQbar, 'q,z')
 
-    def fourier_expansion(self):
+    def fourier_expansion(self, prec=None):
         r"""
           Returns the Fourier expansion of self.
         """
+        if prec == None:
+            prec = self._prec
         raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
 
     def ambient_space(self):
@@ -75,3 +80,9 @@ class JacobiForm_class(FreeModuleElement_generic_dense):
 
     def __repr__(self):
         return "Jacobi form of weight {0}, index {1} and character epsilon^{2}".format(self._k, self._L, self._h)
+
+
+class JacobiForm_zero(JacobiForm_class):
+
+    def fourier_expansion(self, prec=None):
+        return self._feparent.zero()

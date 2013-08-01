@@ -31,7 +31,7 @@ from psage.modform.jacobi.jacobiform import *
 
 class JacobiFormsSpace_class(Parent):
 
-    Element = JacobiForm_space_element
+    #Element = JacobiForm_space_element
  
     def __init__(self, weight, lattice, character, ambient_module=None):
         self._k = weight

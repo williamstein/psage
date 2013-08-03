@@ -1553,7 +1553,6 @@ class FiniteQuadraticModule_ambient (AdditiveAbelianGroup_class,FiniteGroup):
         c = vector(x.list())
         return self._reduce( c.dot_product( self.__J * c))
 
-
     def B( self, x, y):
         r"""
         Return the value $B(x,y) = Q(x+y)-Q(x)-Q(y)$ (as rational reduced mod $\ZZ$).

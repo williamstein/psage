@@ -49,7 +49,7 @@ import mpmath.matrices.matrices
 mpmath.matrices.matrices.matrix = mpmath.matrix
 import random
 import tempfile,os
-from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign
+from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign,Newforms
 from sage.rings.complex_mpc import MPComplexField,MPComplexNumber
 
 from mysubgroup import *
@@ -75,7 +75,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
     """
 
-    def __init__(self,WM,k=QQ(1)/QQ(2),holomorphic=False,dprec=15,sym=True,dr=None,verbose=0,**kwds):
+    def __init__(self,WM,k=QQ(1)/QQ(2),holomorphic=False,dprec=15,sym=True,dual=False,verbose=0,**kwds):
         r"""
         Create a space of vector-valued harmonic weak Maass forms for the Weil representation of a finite quadratic module.
 
@@ -107,25 +107,23 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
         """
         # If WR is an integer we construct the corr. Weil rep.
-        if is_int(WM):
-            N=WM
-            if dr:
-                WR=WeilRepDiscriminantForm(N,dual=True)
-            else:
-                WR=WeilRepDiscriminantForm(N)
-            #print "k=",k,type(k)
-            self.WM=WeilRepMultiplier(WR,weight=QQ(k))
-        elif isinstance(WM,WeilRepDiscriminantForm):
-            self.WM=WeilRepMultiplier(WM,weight=k)
-        elif isinstance(WM,WeilRepMultiplier):
+        if isinstance(WM,WeilRepMultiplier):
             self.WM=WM
+        elif is_int(WM) or isinstance(WM,WeilRepDiscriminantForm):
+            if is_int(WM):
+                N=WM
+            else:
+                N = WM.N
+            WR = WeilModule(N)
+            self.WM=WeilRepMultiplier(WR,weight=QQ(k),dual=dr)
+        else:
+            raise ValueError,"Got invalid multiplier: {0}".format(WM)
         self.group=MySubgroup(self.WM.group())
         self.weight=k
         self._weight_rat=QQ(RR(k))
         self.dprec=dprec
         self._pullback_prec = ceil(dprec*3.32)
         self._setupV_prec = ceil(dprec*3.32)
-
         self._verbose=verbose
         if not holomorphic:
             self._harmonic = True
@@ -133,33 +131,21 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         else:
             self._weak_holomorphic=True
         #self.prec=prec
-        #self.WM=WM
-        self.WR=self.WM.WR
-        N=self.WM.WR.N
         # if we want to force dual representation and try to use
         # a Weil representation WM which is not dual we change WM
-        multiplier = WeilRepMultiplier(self.WR,weight=QQ(k))
+        if isinstance(WM,WeilRepMultiplier):
+            multiplier = WM
+        else:
+            multiplier = WeilRepMultiplier(WM,dual=dual,weight=QQ(k))
+        self.group=multiplier.group()       
+        self._is_dual_rep=multiplier.is_dual()
         
-        AutomorphicFormSpace.__init__(self,self.group,weight=self.weight,multiplier=multiplier,holomorphic=holomorphic,weak=True,cuspidal=False,dprec=self.dprec,verbose=verbose)
-  
-        self._is_dual_rep=self.WR._is_dual_rep
-        if not sym:
-            self.D=self.WR.D  # index set
-            self._sym_type=0
-            self.D_as_int=range(0,len(self.WR.D))
-        else: # use symmetry
-            self._sym_type=self.get_sym_type()
-            if(self._sym_type==-1):
-                Dstart=int(1); Dfinish=int(N-1)
-            else:
-                Dstart=int(0); Dfinish=int(N)
-            self.D=list()
-            for j in range(Dstart,Dfinish+1): 
-                self.D.append(self.WR.D[j])
-            self.D_as_int=range(Dstart,Dfinish+1)
-        self._rank=len(self.D)
-        if(len(self.D)==0):
-            if(self.WR.is_dual()):
+        AutomorphicFormSpace.__init__(self,self.group,weight=self.weight,multiplier=multiplier,holomorphic=holomorphic,weak=True,cuspidal=False,dprec=self.dprec,verbose=verbose)        
+
+        self._index_set = multiplier.D()
+        self._rank=multiplier.rank()
+        if len(self._index_set)==0:
+            if self._is_dual_rep:
                 rep='dual rep.'
             else:
                 rep='reg. rep.'
@@ -167,7 +153,12 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         self.members=list() 
         #if hasattr(self.WM.WR
         #self._dimension_cusp_forms = 
-    
+
+    def index_set(self):
+        return self._index_set
+
+    def rank(self):
+        return self._rank
 
     def __reduce__(self):
         r""" Used for pickling.
@@ -179,13 +170,13 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         sage: save(M,"M.sobj")
 
         """
-        return(VVHarmonicWeakMaassForms,(self.WR,self.weight,self.dprec,self._sym_type,self._is_dual_rep))
+        return(VVHarmonicWeakMaassForms,(self.multiplier(),self.weight,self.dprec,self._sym_type,self._is_dual_rep))
 
     def _cmp_(self,other):
         r""" Compare self to other"""
         if(not isinstance(other,VVHarmonicWeakMaassForms)):
             return False
-        eq=(self.WR == other.WR) and (self.weight_rat==other.weight_rat)
+        eq=(self.multiplier() == other.WR) and (self.weight_rat==other.weight_rat)
         eq = eq and (self.prec==other.prec) and (self._sym_type==other._sym_type)
         eq = eq and (self._is_dual_rep==other._is_dual_rep)
         return eq
@@ -203,9 +194,9 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
         """
         s="Space of Vector-Valued harmonic weak Maass forms"
-        s+=" on "+str(self.WR.group)+" of weight "+str(self._weight_rat)+" "
-        s+=" and values in CC[ZZ/"+str(2*self.WR.N)+"ZZ]."
-        s+="\nRepresentation is "+str(self.WR)
+        s+=" on "+str(self.multiplier().group)+" of weight "+str(self._weight_rat)+" "
+        s+=" and values in CC[ZZ/"+str(2*self.multiplier().N)+"ZZ]."
+        s+="\nRepresentation is "+str(self.multiplier())
         return s
 
     def _latex_(self):
@@ -224,14 +215,14 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         old=s="\\begin{verbatim}\\end{verbatim}"
         new=""
   ##       s="\\text{Space of Vector-Valued harmonic weak Maass forms on }"
-##         s+=latex(self.WR.group)+" \\text{ of weight } \\frac{"+str(p)+"}{"+str(q)+"}"
-##         s+="\\text{and values in } \\mathbb{C}\\left[\\mathbb{Z}/"+latex(2*self.WR.N)+"\\mathbb{Z}\\right]\\text{.}"
-##         s+="$ \\text{ The representation is }"+latex(self.WR)+"\\text{.}"
+##         s+=latex(self.multiplier().group)+" \\text{ of weight } \\frac{"+str(p)+"}{"+str(q)+"}"
+##         s+="\\text{and values in } \\mathbb{C}\\left[\\mathbb{Z}/"+latex(2*self.multiplier().N)+"\\mathbb{Z}\\right]\\text{.}"
+##         s+="$ \\text{ The representation is }"+latex(self.multiplier())+"\\text{.}"
         s="\\begin{verbatim}\\end{verbatim}"
         s+=" Space of Vector-Valued harmonic weak Maass forms on $"
-        s+=latex(self.WR.group)+"$  of weight  $\\frac{"+str(p)+"}{"+str(q)+"}$"
-        s+="and values in $\\mathbb{C}\\left[\\mathbb{Z}/"+latex(2*self.WR.N)+"\\mathbb{Z}\\right]$. "
-        s+="The representation is "+self.WR._latex_().replace(old,new)+"."
+        s+=latex(self.multiplier().group)+"$  of weight  $\\frac{"+str(p)+"}{"+str(q)+"}$"
+        s+="and values in $\\mathbb{C}\\left[\\mathbb{Z}/"+latex(2*self.multiplier().N)+"\\mathbb{Z}\\right]$. "
+        s+="The representation is "+self.multiplier()._latex_().replace(old,new)+"."
         
         return s
 
@@ -291,13 +282,13 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         elif maxD<>None:
             # Need the correct M0 to use for getting this many coefficients. 
             prec = None
-            M0_set=ceil(maxD/len(self.D_as_int)) # should be approximately good
-            for m in range(1,maxD*len(self.D_as_int)+1):
+            M0_set=ceil(maxD/self.rank()) # should be approximately good
+            for m in range(1,maxD*self.rank()+1):
                 min_d=maxD
                 ## We need to make sure that all discriminants below maxD are accounted for
-                for r in self.D_as_int:  
-                    D=self.D_from_rn((r,m))
-                    if(D < min_d):
+                for r in self.index_set():
+                    D=D_from_rn(self.multiplier(),(r,m))
+                    if D < min_d:
                         min_d=D
                 if(min_d >= maxD):
                     M0_set=m
@@ -321,14 +312,14 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                     (r,m) = t
                 if isinstance(t,(int,Integer)):
                     if not self.is_Heegner_disc(t):
-                        raise ValueError,"Need discriminant satisfying Heegner condition, i.e. square mod %s. Got:%s" %(self.WR.level(),t)
-                    (r,m) = rn_from_D(self.WR,t)
+                        raise ValueError,"Need discriminant satisfying Heegner condition, i.e. square mod %s. Got:%s" %(self.multiplier().level(),t)
+                    (r,m) = rn_from_D(self.multiplier(),t)
                 d[(r,m)]=p[t]
                 # Also check that principal part adheres to the symmetry if present
                 if self._sym_type<>0:
-                    minus_r = self.WR.negative_element(r)
+                    minus_r = self.multiplier().weil_module().neg_index(r)
                     if p.has_key((minus_r,m)):
-                        if p[(minus_r,m)]<>sym_type*p[(r,m)]:
+                        if p[(minus_r,m)]<>self.sym_type*p[(r,m)]:
                             raise ValueError,"Need symmetric principal part! Got:{0}".format(PP)
             P0.append(d)
         P=P0[0]  ### More than one principal part is not implemented yet...
@@ -381,7 +372,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             W=vv_harmonic_wmwf_setupV(self,P,Y,M,Q,self.weight,self._sym_type,verbose=self._verbose)
         W['space']=self
         W['PP']=P
-        s="tmpWN"+str(self.WR.N)+"-"
+        s="tmpWN"+str(self.multiplier().N)+"-"
         dirv=["/local/stroemberg/tmp/","/tmp","."]
         try:
             for dirs in dirv:
@@ -457,17 +448,17 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             print "m_start=",m_start
         for m in range(m_start,m_stop):
             #m=m*sgn
-            for x in self.WR.Qv:
+            for x in self.multiplier().Qv:
                 y=QQ(x+m)
-                D=ZZ(y*self.WR.level())
+                D=ZZ(y*self.multiplier().level())
                 if self._verbose > 0:
-                    print m,self.WR.Qv.index(x),D,y
+                    print m,self.multiplier().Qv.index(x),D,y
                 if(D==0 and sgn<>0): # don't count the zero unless we want zero
                     continue
                 if(res.count(D)==0):
                     res.append(D)
                 if(abs(y)<xmin and n==1):
-                    j = self.WR.Qv.index(x)
+                    j = self.multiplier().Qv.index(x)
                     if j in self.D(): #_as_int):
                         rmin=j
                         xmin=x                
@@ -503,10 +494,10 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         INPUT:
         -''D'' -- integer
         """ 
-        Dr = D % self.WR.level()
-        if self.WR.is_dual():
+        Dr = D % self.multiplier().level()
+        if self.multiplier().is_dual():
             Dr = -Dr
-        if Dr in self.WR.Qv_times_level:
+        if Dr in self.multiplier().Qv_times_level:
             return True
         else:
             return False
@@ -528,13 +519,13 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             if isinstance(t,tuple):
                 (c,l) = t
             elif isinstance(t,(int,Integer)):
-                (c,l)=rn_from_D(self.WR,t)
+                (c,l)=rn_from_D(self.multiplier(),t)
             else:
                 raise ValueError,"Incorrect principal part: t={0}".format(t)
-            if c in self.WR.D:
-                tmp=l+self.WR.Qv[self.WR.D.index(c)]
-            elif c in range(len(self.WR.Qv)):
-                tmp=l+self.WR.Qv[c]
+            if c in self.multiplier().D:
+                tmp=l+self.multiplier().Qv[self.multiplier().D.index(c)]
+            elif c in range(len(self.multiplier().Qv)):
+                tmp=l+self.multiplier().Qv[c]
             else:
                     raise ValueError,"Incorrect principal part: c,l={0},{1}".format(c,l)
             if self._verbose>0:
@@ -566,7 +557,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         [Cp0,Cp1]=self.get_Cp(K0)
         Cm=self.get_Cm(K0,K1)
         #print "Cp0,Cp1,Cm=",mppr(Cp0),mppr(Cp1),mppr(Cm)
-        fak=len(self.WR.D)
+        fak=len(self.multiplier().D)
         try:
             for m in range(minm,minm+10000):
                 errest1=fak*self.err_est_vv_hwmf_pos(Y,m,Cp0,Cp1)
@@ -614,7 +605,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         #    raise ValueError," Error bounds only accurate for k<1.5! got k=%s" % self.weight
         mp2=mpmath.mpf(2)
         twominusk=mp2-self.weight        
-        tmp=mpmath.mpf(len(self.WR.D))
+        tmp=mpmath.mpf(len(self.multiplier().D))
         tmp0=mpmath.sqrt(tmp)+mpmath.mpf(1)
         tmp1=mpmath.pi()*mpmath.mpf(4)
         Cp1=tmp1*mpmath.sqrt(abs(K0))
@@ -634,7 +625,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         #if(self.weight>=1.5):
         #    raise ValueError," Error bounds only accurate for k<1.5! got k=%s" % self.weight
         twominusk=mp2-self.weight
-        tmp=mpmath.mpf(len(self.WR.D))
+        tmp=mpmath.mpf(len(self.multiplier().D))
         tmp1=mppi*mp2
         tmp1=mpmath.power(tmp1,twominusk)
         tmp3=mpmath.zeta(twominusk)
@@ -658,7 +649,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
         twopiY=mpmath.pi()*mp2*Y
         fourpiY=mp2*twopiY
-        tmp=mpmath.mpf(len(self.WR.D))        
+        tmp=mpmath.mpf(len(self.multiplier().D))        
         etmp1=mpmath.sqrt(mpmath.mpf(m))-Cp1/fourpiY
         etmp2=mpmath.exp(-twopiY*etmp1**2)
         etmp3=mp2+mpsqrtpi*Cp1/mp2/mpmath.sqrt(twopiY)
@@ -675,7 +666,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         #    raise ValueError," Error bounds only accurate for k<1.5! got k=%s" % weight
         etmp1=abs(mpmath.mpf(1-self.weight))
         twopiY=mp2*Y*mpmath.pi()
-        tmp=mpmath.mpf(len(self.WR.D))
+        tmp=mpmath.mpf(len(self.multiplier().D))
         if(self.weight>0):
             etmp2=mp2*mpmath.mpf(m-1)*twopiY
             etmp2=mpmath.power(etmp2,-self.weight)
@@ -726,9 +717,9 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             N['Vals'].append({})
             N['Vals'].append({})
             N['SetCs'].append([])
-            for j in range(len(self.WR.D)):
-                a=self.WR.D[j]
-                x=self.WR.Qv[j]
+            for j in range(len(self.multiplier().D)):
+                a=self.multiplier().D[j]
+                x=self.multiplier().Qv[j]
                 #N['Vals'][i][(0,j)]=dict()
                 if x==0:
                     if c_t=="pp":
@@ -780,14 +771,14 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
     # def _one_rn_from_D(self,D):
     #     r""" Find the (r,n) s.t. +-D/4N= n +- q(r)
     #     """            
-    #     Dv=QQ(D)/QQ(self.WR.level())
+    #     Dv=QQ(D)/QQ(self.multiplier().level())
     #     sig=1
-    #     if self.WR._is_dual_rep:
+    #     if self.multiplier()._is_dual_rep:
     #         sig=-1
-    #     for r in self.WR.D:
-    #         x=self.WR.Q(r)
+    #     for r in self.multiplier().D:
+    #         x=self.multiplier().Q(r)
     #         if(is_int(Dv-x)):
-    #             rr=self.WR.D.index(r)
+    #             rr=self.multiplier().D.index(r)
     #             n=sig*int(Dv-x)
     #             return (rr,n)
     #     return None
@@ -817,16 +808,16 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
     #     (r,n)=t
     #     sig=1
     #     #print "r=",r
-    #     if(r in self.WR.D):
-    #         x=self.WR.Q(r)
-    #     elif(r in self.WR.D_as_integers):
-    #         x=self.WR.Q(self.WR.D[r])
+    #     if(r in self.multiplier().D):
+    #         x=self.multiplier().Q(r)
+    #     elif(r in self.multiplier().D_as_integers):
+    #         x=self.multiplier().Q(self.multiplier().D[r])
     #     else:
     #         raise TypeError,"Need (r,n) in proper format forcoefficients! I.e. n integer and r in D or integer!"
     #     #print "x=",x
-    #     if self.WR._is_dual_rep:
+    #     if self.multiplier()._is_dual_rep:
     #         sig=-1
-    #     D=sig*self.WR.level()*(n+sig*x)
+    #     D=sig*self.multiplier().level()*(n+sig*x)
     #     return D
 
 
@@ -1277,7 +1268,7 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
     # return x
     return X
 
-def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn=False):
+def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn=False,verbose=0):
     r"""
     Solve the linear system to obtain the Fourier coefficients of Maass forms
 
@@ -1466,6 +1457,7 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
                         continue
                     if verbose>3:
                         print "r,k=",r,k
+                        print "r-roffs,k-coffs=",r-roffs,k-coffs
                     LHS[r-roffs,k-coffs]=V[r,k]
         #print "LHS[",r,k,"]=",LHS[r-roffs,k-coffs]
     #else:
@@ -1843,7 +1835,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
     r"""
     A harmonic weak Maass form.
     """
-    def __init__(self,M,principal_part=None,C=None,prec=None,Lv=None):
+    def __init__(self,M,principal_part=None,C=None,prec=53,Lv=None):
         r"""
         Initialize a harmonic weak Maass form element.
         INPUT:
@@ -1868,7 +1860,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         
 
 
-    """
+        """
 
         if(isinstance(M,type(Newforms(1,12)[0]))):
             self._init_from_newform_(M,principal_part,C,prec)
@@ -1876,17 +1868,11 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         if(C <> None):
             if(M.dim <> len(C.keys())):
                 raise ValueError,"Coefficient vector of wrong format! Got length=%s" % len(C)
-        #if(not isinstance(M
-	## We inherit symmetry from the space
-	self._sym_type = M._sym_type
-	self._set_sym_map(M)
+    	## We inherit symmetry from the space
+	    self._sym_type = M._sym_type
         self._class_name = "VVHarmonicWeakMaassFormElement"
         AutomorphicFormElement.__init__(self,M,C=C,prec=prec,principal_part=principal_part)
 
-        #self.space=M
-        #self.principal_part=PP
-        #self.coeffs=C
-        #self.prec=prec
         self._verbose = self._space._verbose
         self.maxdigs=prec # the number of digits needed to be displayed to print all digits of the coefficients
         if(Lv<>None):
@@ -1905,38 +1891,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             self.shim_corr=None
 
 
-    def _set_sym_map(self,M):
-	r"""
-	controls which components are equivalent (or zero) under symmetry.
-	"""
-	self._sym_map = {}
-	N = M.WR.N
-	self._sym_reps = range(2*N)
-	if self._sym_type not in [1,-1]:
-	    return 
-	else:
-	    if self._sym_type == 1:
-		self._sym_reps = range(N+1)
-		for i in self._sym_reps:
-		    self._sym_map[i]=i
-		    if i<>N and i<>0:
-			self._sym_map[2*N-i]=i
-            else:
-		self._sym_reps = range(1,N)
-		for i in self._sym_reps:
-		    self._sym_map[i]=i
-		    self._sym_map[2*N-i]=i
-		self._sym_map[0]=None # Gets mapped to zero
-		self._sym_map[N]=None # Gets mapped to zero
-
-    def sym_type(self):
-	return self._sym_type
-
-    def sym_map(self):
-	return self._sym_map
-    
-    def sym_reps(self):
-	return self._sym_reps
+   
 
     def __reduce__(self):
         r"""
@@ -1960,7 +1915,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         """
         
         s="Element of "+str(self._space)+" with principal part: "
-        WR=self._space.WR
+        WR=self._space.multiplier()
         sp=""
         for (b,m) in self._principal_part:
             a=self._principal_part[(b,m)]
@@ -1996,7 +1951,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         new=""
         s="\\begin{verbatim}\\end{verbatim}"
         s+="Element of "+self._space._latex_().replace(old,new)+" With principal part "
-        WR=self._space.WR
+        WR=self._space.multiplier()
         # If we have more than one non-zero element in the principal part we have to
         # addd a + between terms
         sp=""
@@ -2163,7 +2118,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         """
         # we first need an initial set of coefficients
         C=self._coeffs; P=self._principal_part; M=self._space
-        WR=M.WR; weight=M.weight
+        WR=M.multiplier(); weight=M.weight
         if(self.prec>= prec or len(C)>0):
             # presumable we already have good coefficients
             pass
@@ -2183,17 +2138,17 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         # endif
         # check if we  have all coefficients we wanted
         maxc=max(C[C.keys()[0]].keys())
-        if(maxc>=max(nrange)):
+        if maxc>=max(nrange):
             print "Have all we need!"
             pass
         else:
             # we do not have all coefficients we need
             print "Need to compute more!!"
             Ns=nrange # [maxc,max(nrange)]
-            if(irange<>None):
+            if irange<>None:
                 Is=irange
             else:
-                Is=[min(M.D_as_int),max(M.D_as_int)]
+                Is=[min(M.D()),max(M.D())]
 
             # Try to find good Y
             # Recall that the error in the negative part is usually smaller than in the positive part
@@ -2256,13 +2211,13 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 if isinstance(t,tuple):
                     (c,l) = t
                 elif isinstance(t,(int,Integer)):
-                    (c,l)=rn_from_D(self._space.WR,t)
+                    (c,l)=rn_from_D(self._space.multiplier(),t)
                 else:
                     raise ValueError,"Incorrect principal part: t={0}".format(t)
-                if c in self._space.WR.D:
-                    tmp=l+self._space.WR.Qv[self._space.WR.D.index(c)]
-                elif c in range(len(self._space.WR.Qv)):
-                    tmp=l+self._space.WR.Qv[c]
+                if c in self._space.multiplier().D():
+                    tmp=l+self._space.multiplier().Qv[self._space.index_set().index(c)]
+                elif c in range(len(self._space.multiplier().Qv)):
+                    tmp=l+self._space.multiplier().Qv[c]
                 else:
                     raise ValueError,"Incorrect principal part: c,l={0},{1}".format(c,l)
                 if(abs(tmp)>Kmax):
@@ -2271,7 +2226,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             Cm=self._space.get_Cm(Kmax,Cmax)
             self.Cp0=Cp0; self.Cp1=Cp1; self.Cm=Cm
 
-        fak=len(self._space.WR.D)
+        fak=len(self._space.index_set())
         #print "Cp0,Cp1,Cm=",Cp0,Cp1,Cm
         #print "fak=",fak
 
@@ -2295,7 +2250,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 if(isinstance(t,tuple)):
                     tt=t
                 elif(is_int(t)):
-                    tt=rn_from_D(self._space.WR,t)
+                    tt=rn_from_D(self._space.multiplier(),t)
                 if(tt<>None):
                     c=self.get_one_coefficient(tt[0],tt[1])
                     l.append(c)
@@ -2303,7 +2258,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         elif(is_int(n)):
             return self.get_one_coefficient(L,n)
         elif(is_int(L)):
-            tt=rn_from_D(self._space.WR,L)
+            tt=rn_from_D(self._space.multiplier(),L)
             if(tt<>None):
                 return self.get_one_coefficient(tt[0],tt[1])
         else:
@@ -2319,15 +2274,15 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         r""" Return coefficient c(r,n) if it exists
         """
         c=None
-        if( not r in self._space.WR.D and not r in self._space.WR.D_as_integers):
+        if not r in self._space.multiplier().D(): # and not r in self._space.WR.D_as_integers:
             raise ValueError,"Component r=%s is not valid!" % r
         # We also see if the coefficient can be provided via symmetry
         # If r is in D we swap it to its index
-        if( r in self._space.WR.D ):
-            rr=self._space.WR.D.index(r)
+        if r in self._space.multiplier().D():
+            rr=self._space.multiplier().D().index(r)
         else:
             rr=r
-        minus_rr=(len(self._space.WR.D)-rr) % len(self._space.WR.D)
+        minus_rr=(len(self._space.multiplier().D())-rr) % len(self._space.multiplier().D())
         #print "rr=",rr
         #print "-rr=",minus_rr
         if self._space._is_dual_rep:
@@ -2421,10 +2376,10 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                     self._coeffs[r][n]=c
             else:
                 # see if it is a possible index at all
-                if(not r in self._space.WR.D_as_integers):
+                if not r <0 or r > self._space.multiplier().ambient_rank():
                     raise ValueError,"Key %s corr to (r,n)=(%s,%s) is invalid for the current space!" %(p,r,n)
-                elif(not r in self._space.WR.D_as_int):
-                    if(self._space._sym_type==-1 and (r==0 or r==self._space.WR.N)):
+                elif not r in self._space.multiplier().D():
+                    if self._space._sym_type==-1 and (r==0 or r==self._space.multiplier().N):
                         # Should be 0 by symmetry
                         if(abs(c)>10**(1-self.prec)):
                             raise ValueError,"Coefficient should be zero by symmetry. Got c(%s,%s)=%s!" %(r,n,c)
@@ -2432,11 +2387,11 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                             self._coeffs[r][n]=0
                     else:
                         # is equal to +- c(-r,n)
-                        mr=2*self.WR.N-r
+                        mr=2*self.multiplier().N-r
                         if(self._coeffs.has_key(mr)):
                             if(self._coeffs[mr].has_key(n)):
                                 c_old=self._coeffs[mr][n]
-                                if( abs(c-self._space.WR._sym_type*c_old)> 10**(1-self.prec)):
+                                if( abs(c-self._space.multiplier()._sym_type*c_old)> 10**(1-self.prec)):
                                     st="Might add an erronous coefficient! Got c(%s,%s)=%s. " % (r,n,c)
                                     st+="From previous coefficients should have %s" % (self._space._sym_type*c_old)
                                     raise ValueError,st
@@ -2503,7 +2458,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             sig=-1
         maxi=max(self._coeffs.keys())
         w1=len(str(maxi))
-        w2=max(map(len,str(self._space.WR.D).split()))
+        w2=max(map(len,str(self._space.WR.D()).split()))
         maxn=max(self._coeffs[self._coeffs.keys()[0]].keys())
         w3=len(str(maxn))+1
         C=self._coeffs
@@ -2576,7 +2531,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         else:
                             ls=""
                     if(latex):
-                        D=self._space.WR.D[r]
+                        D=self._space.WR.D()[r]
                         if(is_int(D)):
                             p=numerator(D); q=denominator(D)                        
                             sr="\\frac{"+str(p)+"}{"+str(q)+"}"
@@ -2625,7 +2580,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             w1=len(str(dmax))+1
         else:
             w1=len(str(maxD))+1
-        w2=max(map(len,str(self._space.WR.D).split()))
+        w2=max(map(len,str(self._space.WR.D()).split()))
         w3=len(str(maxn))+1
         mp0=mpmath.mpf(0)
         mpold=mpmath.mp.dps
@@ -2823,19 +2778,21 @@ def one_rn_from_D(WR,D):
     """            
     Dv=QQ(D)/QQ(WR.level())
     sig=1
-    if WR._is_dual_rep:
+    if WR.is_dual():
         sig=-1
-    for r in WR.D:
-        x=WR.Q(r)
-        if(is_int(Dv-x)):
-            rr=WR.D.index(r)
-            n=sig*int(Dv-x)
+    for r in WR.D():
+        x=WR.Qv[r]
+        nn = Dv-sig*x
+        print "D/N -{0} Q({1})={2}".format(sig,r,x)
+        if is_int(nn):
+            rr=WR.D().index(r)
+            n=int(Dv-sig*x)
             return (rr,n)
     return None
 
 @cached_function
 def D_from_rn(WR,t):
-    r""" Find the D s.t. +-D/4N= n +- q(r)
+    r""" Find the D s.t. +-D/Level = n +- q(r)
     """
     if(isinstance(t,list)):
         lout=list()
@@ -2845,12 +2802,12 @@ def D_from_rn(WR,t):
                 lout.append(D)
         return lout
     else:
-        return one_D_from_rn(WR,t)
+        return _one_D_from_rn(WR,t)
 
 
 @cached_function
 def _one_D_from_rn(WR,t):
-    r""" Find the D s.t. +-D/4N= n +- q(r)
+    r""" Find the D s.t. +-D/Level = n +- q(r)
     """
     #print "t=",t,type(t)
     if(not isinstance(t,tuple)):
@@ -2858,14 +2815,14 @@ def _one_D_from_rn(WR,t):
     (r,n)=t
     sig=1
     #print "r=",r
-    if(r in WR.D):
-        x=WR.Q(r)
-    elif(r in WR.D_as_integers):
-        x=WR.Q(WR.D[r])
+    if r in WR.D():
+        x=WR.Qv[r]
+    #elif r in WR.D_as_integers:
+    #    x=WR.Q(WR.D[r])
     else:
         raise TypeError,"Need (r,n) in proper format forcoefficients! I.e. n integer and r in D or integer!"
     #print "x=",x
-    if sWR._is_dual_rep:
+    if WR.is_dual():
         sig=-1
     D=sig*WR.level()*(n+sig*x)
     return D

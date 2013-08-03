@@ -62,7 +62,7 @@ class MultiplierSystem(SageObject):
         self._group = group
         self._dim = dimension
         self._ambient_rank=kwargs.get('ambient_rank',None)
-        
+        self._kwargs = kwargs
         self._verbose = kwargs.get("verbose",0)
         if self._verbose>0:
              print "Init multiplier system!"
@@ -126,7 +126,18 @@ class MultiplierSystem(SageObject):
         return self.__class__,t 
     #return(TrivialMultiplier,(self._group,self._dim,(self._conductor,self._char_nr),self._is_dual,self._is_trivial))
     #    return(type(self),(self._group,self._dim,(self._conductor,self._char_nr),self._is_dual,self._is_trivial))
-        
+
+    def dual_multiplier(self):
+        r"""
+        Returns the dual multiplier of self.
+        """
+        m = copy(self)
+        m._is_dual = int(not self._is_dual)
+        o = self._character.order()
+        m._character = self._character**(o-1)
+        m._weight = QQ(2) - QQ(self._weight)
+        return m
+    
     def __repr__(self):
         r"""
         Needs to be defined in subclasses.
@@ -137,7 +148,7 @@ class MultiplierSystem(SageObject):
         return self._group
 
     def is_dual(self):
-        return int(self._dual)
+        return int(self._is_dual)
     def level(self):
         return self._level
     def weight(self):
@@ -154,6 +165,8 @@ class MultiplierSystem(SageObject):
         else:
             raise NotImplementedError,"Do not know how the multiplier should act on {0}".format(A)
 
+        
+        
     def _action(self):
         raise NotImplemented," Needs to be overridden by subclasses!"
     def is_trivial(self):
@@ -264,7 +277,8 @@ class TrivialMultiplier(MultiplierSystem):
             self._prec=prec
         else:
             prec = None
-            
+
+        
     def set_character_values(self):
         l = self._character.values()
         self._character_values=[]
@@ -392,7 +406,8 @@ class EtaMultiplier(MultiplierSystem):
 
     def z(self):
         return self._z
-
+    
+     
     def _action(self,A):
         if self._version==1:
             return self._action1(A)
@@ -710,36 +725,39 @@ class WeilRepMultiplier(MultiplierSystem):
             self._weil_module = WeilModule(WR)
         elif hasattr(WR,"signature"):
             self._weil_module=WR
-
         else:
             raise ValueError,"{0} is not a Weil module!".format(WR)
         self._sym_type = 0
 
-        if group <>SL2Z:
+        if group.level() <>1:
             raise NotImplementedError,"Only Weil representations of SL2Z implemented!"
-        self._group = MySubgroup(1)
+        self._group = MySubgroup(Gamma0(1))
         self._dual = int(dual)
         self._sgn = (-1)**self._dual
         self.Qv=[]
         self._weight = weight
+        self._use_symmetry = use_symmetry
+        self._kwargs = kwargs
+        self._sgn = (-1)**int(dual)        
+        half = QQ(1)/QQ(2)
+        threehalf = QQ(3)/QQ(2)
         if use_symmetry:
-            t=2*weight
-            try:
-                Integer(t)
-            except:
-                raise ValueError, "Need half-integral value of weight! Got k=%s" %(weight)
-            ti=Integer(float(t))
-            if (ti % 4) == 1:
-                if (self._sgn*self._weil_module.signature()) % 4 == 1:
-                    sym_type = 1
-                else:
-                    sym_type= -1
+            ## First find weight mod 2:
+            twok= QQ(2)*QQ(weight)
+            if not twok.is_integral():
+                raise ValueError,"Only integral or half-integral weights implemented!"
+            kmod2 = QQ(twok % 4)/QQ(2)
+            if dual:
+                sig_mod_4 = -self._weil_module.signature() % 4
             else:
-                if (self._sgn*self._weil_module.signature()) % 4 == 3:
-                    sym_type = 1
-                else:
-                    sym_type= -1
-            N = QQ(self._weil_module.rank())/QQ(2)
+                sig_mod_4 = self._weil_module.signature() % 4
+            sym_type = 0
+            if (kmod2,sig_mod_4) in [(half,1),(threehalf,3),(0,0),(1,2)]:
+                sym_type = 1
+            elif (kmod2,sig_mod_4) in [(half,3),(threehalf,1),(0,2),(1,0)]:
+                sym_type = -1
+            else:
+                raise ValueError,"The Weil module with signature {0} is incompatible with the weight {1}!".format( self._weil_module.signature(),weight)
             ## Deven and Dodd contains the indices for the even and odd basis
             Deven=[]; Dodd=[]
             if sym_type==1:
@@ -749,14 +767,17 @@ class WeilRepMultiplier(MultiplierSystem):
             self._sym_type=sym_type
             dim = len(self._D)  #Dfinish-Dstart+1
         else:
-            dim = len(self._weil_module.D)
+            dim = len(self._weil_module.finite_quadratic_module().list())
+            self._D = range(dim)
+            self._sym_type=0
         if hasattr(self._weil_module,"finite_quadratic_module"):
-            for x in self._weil_module.finite_quadratic_module().list():
+            for x in list(self._weil_module.finite_quadratic_module()):
                 self.Qv.append(self._weil_module.finite_quadratic_module().Q(x))
         else:
             self.Qv=self._weil_module.Qv
         ambient_rank = self._weil_module.rank()
-        MultiplierSystem.__init__(self,self._group,dimension=dim,ambient_rank=ambient_rank)
+        MultiplierSystem.__init__(self,self._group,dual=dual,dimension=dim,ambient_rank=ambient_rank)
+
 
     def __repr__(self):
         s="Weil representation corresponding to "+str(self._weil_module)
@@ -766,7 +787,18 @@ class WeilRepMultiplier(MultiplierSystem):
         #return self._weil_module.rho(A)
         return self._weil_module.matrix(A)
 
-
+    def sym_type(self):
+        return self._sym_type
+    
+    def dual_multiplier(self):
+        r"""
+        Returns the dual multiplier of self.
+        """
+        weight = QQ(2) - QQ(self._weight)
+        dual = int(not self._is_dual)
+        m = WeilRepMultiplier(self._weil_module,weight,use_symmetry,self._group,dual=dual,**self._kwargs)
+        return m
+   
     def D(self):
         r"""
         Returns the indices of a basis of the (symmetrized) discriminant form of self.
@@ -786,17 +818,21 @@ class WeilRepMultiplier(MultiplierSystem):
         """
         if self._verbose>0:
             print "is_consistent at wr! k={0}".format(k)
-        twok = 2*k
+        twok =QQ(2)*QQ(k)
         if not twok.is_integral():
             return False
         if self._sym_type <>0:
-            if is_odd(self._weil_module.signature()):                
-                return (twok % 4 == (self._sym_type*self._weil_module.signature()) % 4)
+            if self.is_dual():
+                sig_mod_4 = -self._weil_module.signature() % 4
             else:
-                if self._weil_module.signature() % 4 == (1 - self._sym_type) % 4:
+                sig_mod_4 = self._weil_module.signature() % 4
+            if is_odd(self._weil_module.signature()):                
+                return (twok % 4 == (self._sym_type*sig_mod_4 %4))
+            else:
+                if sig_mod_4 == (1 - self._sym_type) % 4:
                     return twok % 4 == 0
                 else:
-                    return twok % 4 == 1
+                    return twok % 4 == 2
         if is_even(twok) and  is_even(self._weil_module.signature()):
                 return True
         if is_odd(twok) and  is_odd(self._weil_module.signature()):

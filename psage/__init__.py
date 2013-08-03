@@ -1,4 +1,5 @@
 from modform import *
+from modules import *
 from zfunctions import *
 from matrix import *
 from rings import mpc_extras

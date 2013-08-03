@@ -1,3 +1,4 @@
+# cython: profile = True
 # -*- coding: utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2013 Stephan Ehlen, Nils Skoruppa
@@ -55,7 +56,7 @@ from sage.rings.qqbar import QQbar
 from sage.all import exp, Integer, pi, I, cputime, CyclotomicField
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
-cpdef cython_el_index(list c, gen_orders):
+cdef long cython_el_index(list c, list gen_orders):
     cdef long ii, jj = 0
     cdef long md = 1
     cdef long m = 0
@@ -69,7 +70,7 @@ cpdef cython_el_index(list c, gen_orders):
         md=md*m
     return ii
 
-cpdef cython_elt(long ii,gen_orders):
+cdef list cython_elt(long ii,gen_orders):
     elt = list()
     cdef long md = 1
     cdef long jj = 0
@@ -83,7 +84,7 @@ cpdef cython_elt(long ii,gen_orders):
         ii = ii/md
     return elt
 
-cpdef cython_neg_index(long ii, gen_orders):
+cdef long cython_neg_index(long ii, gen_orders):
     cdef long jj=0
     cdef list elt = cython_elt(ii,gen_orders)
     cdef int r = len(gen_orders)
@@ -97,7 +98,7 @@ cpdef norm_cmp(x, y):
     else:
         return int(1)
 
-cdef B(int i, int j, int **JJ, list gen_orders):
+cdef int B(int i, int j, int **JJ, list gen_orders):
     cdef int r = len(gen_orders)
     cdef list ll = cython_elt(j, gen_orders)
     cdef list kk = cython_elt(i, gen_orders)

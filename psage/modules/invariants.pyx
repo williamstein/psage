@@ -1,3 +1,53 @@
+# -*- coding: utf-8 -*-
+#*****************************************************************************
+#  Copyright (C) 2013 Stephan Ehlen, Nils Skoruppa
+#
+#  Distributed under the terms of the GNU General Public License (GPLv2)
+#
+#    This code is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#  The full text of the GPL is available at:
+#
+#                  http://www.gnu.org/licenses/
+#*****************************************************************************
+r"""
+ Implements an algorithm to compute the invariants
+ of the group ring attached to a finite quadratic module
+ under the Weil representation.
+
+ AUTHORS::
+
+  - Nils Skoruppa <nils.skoruppa@gmail.com>
+  - Stephan Ehlen <stephan.j.ehlen@gmail.com>
+
+ EXAMPLES::
+
+  sage: A = FiniteQuadraticModule('5^2')
+  sage: %time X=cython_invariants(A)
+  QQbar
+  0.036002: table
+  [5, 5]
+  Gram matrix conversion: 0.0
+  0.000000: +- reps
+  ni = 5
+  n = 13
+  0.000000: sorting
+  0.028001: init of H
+  0.616040: kernel
+  0.072004: span
+  CPU times: user 1.16 s, sys: 0.04 s, total: 1.20 s
+  Wall time: 1.25 s
+  sage: X
+  ([(0, 0, 2), (7, 0, 1), (8, 0, 1), (11, 0, 1), (14, 0, 1)],
+  Vector space of degree 5 and dimension 2 over Algebraic Field
+  Basis matrix:
+  [ 1.000000000000000?                   0  1.000000000000000?  1.000000000000000?             0.?e-16]
+  [                  0  1.000000000000000? -1.000000000000000? -1.000000000000000?  1.000000000000000?])
+"""
+
 #from psage.modules.finite_quadratic_module import *
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
@@ -57,11 +107,9 @@ cdef B(int i, int j, int **JJ, list gen_orders):
         for jj in range(r):
             if ii <= jj:
                 res = res + ll[ii]*kk[jj]*JJ[ii][jj]
-            #elif ii == jj:
-            #    res = res + ll[ii]*kk[jj]*JJ[ii][jj]
     return 2*res
 
-cpdef cython_invariants_new(FQM, K = QQbar):
+cpdef cython_invariants(FQM, K = QQbar):
     try:
         s = FQM.sigma_invariant()
         s2 = Integer( s**2)

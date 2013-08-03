@@ -310,6 +310,18 @@ my_extensions = [
 
 ext_modules.extend(my_extensions)
 
+## Stephan Ehlen's additional modules
+
+sehlen_extensions = [
+      Extension('psage.modules.invariants',
+              sources = ['psage/modules/invariants.pyx'],
+              libraries = ['m']
+#              include_dirs = numpy_include_dirs),
+     )
+]
+
+ext_modules.extend(sehlen_extensions)
+
 # I just had a long chat with Robert Bradshaw (a Cython dev), and he
 # told me the following functionality -- turning an Extension with
 # Cython code into one without -- along with proper dependency

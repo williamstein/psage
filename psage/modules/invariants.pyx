@@ -1,4 +1,4 @@
-# cython: profile = True
+# cython: profile = False
 # -*- coding: utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2013 Stephan Ehlen, Nils Skoruppa
@@ -50,10 +50,13 @@ r"""
 """
 
 #from psage.modules.finite_quadratic_module import *
+
+include "stdsage.pxi"
+
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField#, sage_malloc, sage_free
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 cdef long cython_el_index(list c, list gen_orders):
@@ -170,13 +173,13 @@ cpdef cython_invariants(FQM, K = QQbar):
     cdef int r = len(gen_orders)
     J = FQM.__dict__['_FiniteQuadraticModule_ambient__J']
     t = cputime()
-    cdef int **JJ = NULL
-    JJ = <int**>sage_malloc(sizeof(int*)*r)
+    cdef int** JJ = NULL
+    JJ = <int**> sage_malloc(sizeof(int*) * r)
     if JJ == NULL:
         raise MemoryError('Cannot allocate memory.')
     for i in range(r):
         JJ[i] = NULL
-        JJ[i] = <int*>sage_malloc(sizeof(int)*r)
+        JJ[i] = <int*> sage_malloc(sizeof(int)*r)
         if JJ[i] == NULL:
             raise MemoryError('Cannot allocate memory.')
         for j in range(r):

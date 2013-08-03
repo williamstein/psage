@@ -19,7 +19,7 @@ AUTHORS:
 #*****************************************************************************
 
 from psage.modules import *
-from sage.all import SageObject
+from sage.all import SageObject, Integer, RR
 import sys
 
 class VectorValuedModularForms(SageObject):
@@ -57,7 +57,7 @@ class VectorValuedModularForms(SageObject):
         self._n2 = n2
         m=self._M.order()
         self._m=m
-        d = 1/2*(m+n2) # |discriminant group/{+/-1}|
+        d = Integer(1)/Integer(2)*(m+n2) # |discriminant group/{+/-1}|
         self._d = d
         self._alpha3=None
         self._alpha4=None
@@ -80,8 +80,8 @@ class VectorValuedModularForms(SageObject):
             M2=self._M.kernel_subgroup(2).as_ambient()[0]
             self._alpha3  = sum([(1-a)*m for a,m in M2.values().iteritems() if a != 0])
             self._alpha3 += sum([(1-a)*m for a,m in self._M.values().iteritems() if a != 0])
-            self._alpha3 = self._alpha3 / 2
-            self._alpha4 = 1/2*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
+            self._alpha3 = self._alpha3 / Integer(2)
+            self._alpha4 = 1/Integer(2)*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
         d=self._d
         m=self._m
         alpha3=self._alpha3
@@ -95,11 +95,11 @@ class VectorValuedModularForms(SageObject):
         g3=self._M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
         #print g3
-        alpha1 = RR((d / 4)) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / 8)) * g2)
+        alpha1 = RR((d / Integer(4))) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / Integer(8))) * g2)
         #print alpha1
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
         #print alpha2
-        dim = round(real(d + (d * k / 12) - alpha1 - alpha2 - alpha3));
+        dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3));
         return dim
 
     def dimension_cusp_forms(self,k):

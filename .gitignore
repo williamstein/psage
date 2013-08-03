@@ -60,3 +60,5 @@ psage/ellcurve/minmodel/sqrt5.c
 psage/number_fields/sqrt5/prime.c
 psage/ellcurve/lseries/aplist_sqrt5.c
 psage/modform/rational/special_fast.c
+hilbert_modular_group_alg.old.pyx
+test_nf.pyx

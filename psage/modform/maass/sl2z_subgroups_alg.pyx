@@ -160,6 +160,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     else:
         mpi_verbose=0
     if verbose>0:
+        print "verbose=",verbose
         print "mpi_verbose=",mpi_verbose
     PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,num_fixed=len(rfx_list),verbose=mpi_verbose)
     if verbose>0:
@@ -198,7 +199,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef int h_tmp=0
     cdef long checked=0
     for pR in PRI:
-        checked+=0
+        checked+=1
         if verbose>1:
             print "S=",S_canonical.cycles() #print_vec(mu,Sptr)
             print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)

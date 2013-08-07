@@ -178,7 +178,7 @@ class AutomorphicFormSpace(Parent):
         r""" Initialize the space of automorphic forms.
         """
         self._from_group = None # try to keep the group used to construct the MyGroup instance
-        if isinstance(G,(MySubgroup,HeckeTriangleGroup)):
+        if isinstance(G,(MySubgroup_class,HeckeTriangleGroup)):
             self._group=G
         elif is_int(G):
             self._from_group = Gamma0(G)
@@ -1151,7 +1151,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
             multiplier="theta"
             G=MySubgroup(Gamma0(4*G.level()))
             print "Initializing through Shimura corr!"
-        if(isinstance(G,MySubgroup)):
+        if(isinstance(G,MySubgroup_class)):
             self._group=G
             self._from_group=G._G
         elif is_int(G):
@@ -2778,7 +2778,7 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
     def __init__(self,G,weight=0,multiplier=None,holomorphic=False,weak=True,cuspidal=False,verbose=0,**kwds):
         r""" Initialize the space of automorphic forms.
         """
-        if(isinstance(G,MySubgroup)):
+        if(isinstance(G,MySubgroup_class)):
             self._group=G
             self._from_group=G._G
         else:
@@ -2986,7 +2986,7 @@ class HolomorphicModularForms(AutomorphicFormSpace):
             if multiplier==None:
                 multiplier=G.multiplier()
         else:
-            if(isinstance(G,MySubgroup)):
+            if(isinstance(G,MySubgroup_class)):
                 self._group=G
                 self._from_group=G._G
             else:

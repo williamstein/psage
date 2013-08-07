@@ -177,7 +177,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0=0,int ndig=10,int dim=
         for i in range(fstop-fstart):
             Ctmp[yi][i] = <double complex*>sage_malloc(sizeof(double complex)*nc*2)
             for j in range(nc*2):
-                Ctmp[yi][i][j]=<double complex>0.0
+                Ctmp[yi][i][j]=0
     Qfak=<double*>sage_malloc(sizeof(double)*nc)
     if Qfak==NULL: raise MemoryError
     Mv=<int**>sage_malloc(sizeof(int*)*nc)
@@ -379,7 +379,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0=0,int ndig=10,int dim=
                 for n in range(Ql):
                     Xpb[yi][i][j][n]=<double>0
                     Ypb[yi][i][j][n]=<double>0
-                    Cvec[yi][i][j][n]=<double complex>0
+                    Cvec[yi][i][j][n]=0
     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N1,&Ml,&Ql,M0,Q,verbose)
     if verbose>0:
         print "in phase 2 with eps=",eps
@@ -410,7 +410,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0=0,int ndig=10,int dim=
                 V[yi][i][l]=<double complex*>sage_malloc(sizeof(double complex)*(N1))
                 if V[yi][i][l]==NULL: raise MemoryError
                 for n in range(N1):
-                    V[yi][i][l][n]=<double complex>0.0
+                    V[yi][i][l][n]=0
     for yi in range(numy):
         #sig_on()
         pullback_pts_cplx_dp(S,1-Q,Q,Yv[yi],Xm[yi],Xpb[yi],Ypb[yi],Cvec[yi])
@@ -633,7 +633,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0=0,int ndig=10,int dim=
                                 for l in range(Ql):
                                     Xpb[yi][i][j][l]=<double>0
                                     Ypb[yi][i][j][l]=<double>0
-                                    Cvec[yi][i][j][l]=<double complex>0
+                                    Cvec[yi][i][j][l]=0
                                 if verbose>3:
                                     print "After assigning! {0}:{1}".format(yi,j)
 
@@ -659,7 +659,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0=0,int ndig=10,int dim=
                         for i in range(2*nc): #cuspbb-cuspa):
                             for l in range(n_step):
                                 for j in range(N1):
-                                    V[yi][i][l][j]=<double complex>0.0
+                                    V[yi][i][l][j]=0
                         #sig_on()
                         compute_V_cplx_dp_sym_for_phase2(V[yi],N1,Xm[yi],Xpb[yi],Ypb[yi],Cvec[yi],
                                                          cusp_evs,alphas,Mv,Qv,Qfak,

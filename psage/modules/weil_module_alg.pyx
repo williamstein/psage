@@ -23,7 +23,7 @@ CLASSES:
 
 AUTHOR:
 
- - Stephan Ehlen 
+ - Stephan Ehlen <stephan.j.ehlen@gmail.com>
  - Fredrik Stroemberg <fredrik314@gmail.com>
 
 
@@ -55,18 +55,17 @@ cpdef cython_el_index(c, gen_orders):
         md=md*m
     return ii
 
-
 cpdef cython_elt(long ii,gen_orders):
-    elt=list()
+    elt = list()
     cdef long md = 1
     cdef long jj = 0
+    cdef long c = 0
     for jj in range(0,len(gen_orders)):
-        md=gen_orders[jj]
-        c=ii%md
+        md = gen_orders[jj]
+        c = ii%md
         elt.append(c)
-        ii=ii-c
-        ii=ii
-        ii=ii/md
+        ii = ii-c
+        ii = ii/md
     return elt
 
 cpdef cython_neg_index(long ii, gen_orders):

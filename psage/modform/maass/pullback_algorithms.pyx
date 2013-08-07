@@ -53,7 +53,7 @@ cdef extern from "complex.h":
     
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 from mysubgroup import MySubgroup
-from mysubgroups_alg import apply_sl2z_map
+from mysubgroups_alg import apply_sl2z_map,pullback_general_group_dp,pullback_general_group
 from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp,normalize_point_to_cusp_mpmath
 from mysubgroups_alg cimport _apply_sl2z_map_dp,_apply_sl2z_map_mpfr,_pullback_to_Gamma0N_dp,pullback_to_hecke_triangle_mat_c_mpfr
 from sage.all import CC,save
@@ -101,9 +101,11 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
             if Cvec_t[i][j]==NULL:
                 raise MemoryError
             for n from 0<=n<Ql:
-                Cvec_t[i][j][n]=<double complex>0
-
-    pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+                Cvec_t[i][j][n]=0 
+    cdef int res
+    res = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+    if res==1:
+        raise ArithmeticError,"Y is too large!"
     cdef dict Xm,Xpb,Ypb,Cvec,pb
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
@@ -145,7 +147,7 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
         sage_free(Cvec_t)
     return pb
 @cython.cdivision(True)
-cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec):
+cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec):
     r""" Computes a whole array of pullbacked points using double precision
 
     INPUT:
@@ -160,11 +162,18 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     
     OUTPUT:
 
+    
     - ``pb`` -- dictonary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
        - 'cvec' -- complex[0:nc,0:nc,Qf-Qs+1] : mult. factor
+
+    RETURNS::
+
+
+    - 0 -- if everything is ok
+    - 1 -- if Y is too large
 
     EXAMPLES::
 
@@ -182,7 +191,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
 
     
     """
-    sig_on()
+#    sig_on()
     G = S.group()
     multiplier = S.multiplier()
     #character = S.character
@@ -209,7 +218,6 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     cdef int A[4]
     cdef int pba,pbb,pbc,pbd
     cdef list U
-
     #    AA=[1,0,0,1]
 #    Tj=[1,0,0,1]
     cdef double swi,swj,ar,br,cr,dr
@@ -231,6 +239,8 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
     is_Gamma0=<int>G._is_Gamma0
     cdef int*** reps=NULL
     cdef int N
+    if verbose>0:
+        print "In pullback_pts_cplx_dp!"
     if is_Gamma0==1:
         nreps=G._index
         N=G._level
@@ -247,13 +257,18 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
-    
-    #if verbose>0:
-    #    print "nc=",nc
+            reps[j][0][0]=G.coset_reps()[j][0]
+            reps[j][0][1]=G.coset_reps()[j][1]
+            reps[j][1][0]=G.coset_reps()[j][2]
+            reps[j][1][1]=G.coset_reps()[j][3]
+#            reps[j][0][0]=G._coset_reps_v0[j][0]
+#            reps[j][0][1]=G._coset_reps_v0[j][1]
+#            reps[j][1][0]=G._coset_reps_v0[j][2]
+#            reps[j][1][1]=G._coset_reps_v0[j][3]
+
+            
+    if verbose>0:
+        print "nc=",nc
     if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
         use_int=0
     normalizers=<int**>sage_malloc(sizeof(int*)*nc)
@@ -324,7 +339,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
         print "use_int=",use_int
     res={}
                 
-    for ci from 0<=ci<nc: #in G._cusps:
+    for ci in range(nc): #in G._cusps:
         # if ci==0:
         #     verbose=3
         # else:
@@ -340,24 +355,31 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
         else:
             wi_d=widths[ci] #<double>G._cusp_data[ci]['width'] #(ci)
             swi=sqrt(wi_d)
-        for j from 0 <= j < Ql: #1-Q,Q):
+        for j in range(Ql): #1-Q,Q):
             x=Xm[j]; y=Y
             a=normalizers[ci][0]; b=normalizers[ci][1]
             c=normalizers[ci][2]; d=normalizers[ci][3]
+            if verbose>2:
+                print "normalizer[",ci,"]=",a,b,c,d
+                print "width = ",wi
+                print "x0,y0=",x,y
             if use_int==1:
                 _normalize_point_to_cusp_dp(&x,&y,a,b,c,d,wi)
             else:
                 _normalize_point_to_cusp_real_dp(&x,&y,a,b,c,d,wi_d)
             #[x,y]   = normalize_point_to_cusp_dp(G,ci,Xm[j],Y)
             if verbose>2:
-                print "x0,y0=",x,y
+                print "N(z0)=",x,y
             if is_Gamma0 == 1:
                 #x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
                 _pullback_to_Gamma0N_dp(reps,nreps,N,&x,&y,
                                         &pba,&pbb,&pbc,&pbd,0)
                 x1=x; y1=y
             else:
-                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
+#                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
+                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1,verbose=verbose)
+                if verbose>2:
+                    print "Pbz=",x1,y1
             ## Want to replace this with a cpdef'd function
             #cj,vj= G.closest_cusp(x1,y1,vertex=1)
             vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&x1,&y1)
@@ -365,12 +387,11 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             if pba<=0 and pbb<=0 and pbc<=0 and pbd<=0:
                 pba=-pba; pbb=-pbb; pbc=-pbc; pbd=-pbd
             if verbose>2:
-                print "normalizer[",ci,"]=",a,b,c,d
                 print "x0,y0=",x,y
                 print "j=",j+Qs
                 print "Xm,Y=",Xm[j],Y
                 print "x,y=",x,y
-                print "a,b,c,d,wi=",pba,pbb,pbc,pbd,wi
+                print "Pbmap=",pba,pbb,pbc,pbd
                 print "x1,y1=",x1,y1
                 print "cj,vj=",cj,vj
             #cjj=G._cusps.index(cj)
@@ -416,7 +437,7 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             #[x3,y3] = normalize_point_to_cusp_dp(G,cj,x2,y2,inv=1)
             Xpb[ci][cj][j]=x3*twopi
             # Recall that Ypb must be greater than Y otherwise we need a better Y
-            if y3>=Y-ep0:
+            if y3>=Y+ep0:
                 Ypb[ci][cj][j]=y3
             else:
                 if verbose>0:
@@ -430,7 +451,8 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                     print "x3,y3=",x3,y3
                     print "Normalizer=",a,b,c,d
                     print "ep0=",ep0
-                raise ArithmeticError,"Need smaller value of Y. Got:{0}".format(Y) 
+                return 1
+                #raise ArithmeticError,"Need smaller value of Y. Got:{0}".format(Y) 
             if verbose>2:
                 print "ci,cj=",ci,cj
                 print "Tj=",pba,pbb,pbc,pbd
@@ -535,10 +557,11 @@ cdef void pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                         sage_free(reps[j][1])
                     sage_free(reps[j])
             sage_free(reps)
-    sig_off()
+    return 0
+#    sig_off()
 
 @cython.cdivision(True)
-cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec):
+cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec):
     r"""
     Computes a whole array of pullbacked points using double precision
     The multiplier/Character is supposed to be real in this case.
@@ -606,10 +629,10 @@ cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     #if verbose>0:
     #    print "Here1"
     if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
@@ -729,7 +752,7 @@ cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
             #[x3,y3] = normalize_point_to_cusp_dp(G,cj,x2,y2,inv=1)
             Xpb[ci][cj][j]=x3*twopi
             # Recall that Ypb must be greater than Y otherwise we need a better Y
-            if y3>=Y-ep0:
+            if y3>=Y+ep0:
                 Ypb[ci][cj][j]=y3
             else:
                 if verbose>0:
@@ -742,7 +765,8 @@ cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                     print "x2,y2=",x2,y2
                     print "x3,y3=",x3,y3
                     print "Normalizer=",a,b,c,d
-                raise ArithmeticError,"Need smaller value of Y. Got: y3={0} and Y-ep={1}".format(y3,Y-ep0) 
+                return 1
+            #raise ArithmeticError,"Need smaller value of Y. Got: y3={0} and Y-ep={1}".format(y3,Y-ep0) 
             if verbose>2:
                 print "ci,cj=",ci,cj
                 print "Tj=",pba,pbb,pbc,pbd
@@ -789,7 +813,7 @@ cdef void pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xp
                     sage_free(reps[j])
             sage_free(reps)
     sig_off()
-
+    return 0
 
 
 def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
@@ -1295,10 +1319,10 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     
     #if verbose>2:
     #    print "nc=",nc
@@ -1598,13 +1622,16 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
                 #Cvec_t[i][j][n]=<double complex>0
     G=S._group
     cdef int is_hecke = 0
+    cdef int res = 0
     if is_Hecke_triangle_group(G):
-        pullback_pts_hecke_triangle_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+        res = pullback_pts_hecke_triangle_mpc_new_c(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
     else:
         if Qs<0:
-            pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,Cvec_t)
+            res = pullback_pts_mpc_new_c(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,Cvec_t)
         else:
-            pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,RCvec_t,CSvec_t)
+            res = pullback_pts_mpc_new_c_sym(S,Qs,Qf,Y.value,Xm_t,Xpb_t,Ypb_t,RCvec_t,CSvec_t)
+    if res==1:
+        raise ArithmeticError,"Need smaller Y!"
     cdef dict Xm,Xpb,Ypb,Cvec,pb,RCvec,CSvec
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
@@ -1713,7 +1740,7 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     return pb
 
 @cython.cdivision(True)
-cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
+cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types.
@@ -1748,6 +1775,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
         ...
         ArithmeticError: Need smaller value of Y
 
+     Returns 1 if Y is too large
     
     """
     # WE let the input determine the precision
@@ -1840,10 +1868,10 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     
     #if verbose>2:
     #    print "nc=",nc
@@ -1957,7 +1985,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
             mpfr_set(Xpb[ci][cj][j],x3.value,rnd_re)
             mpfr_mul(Xpb[ci][cj][j],Xpb[ci][cj][j],twopi.value,rnd_re)
             # Recall that Ypb must be greater than Y otherwise we need a better Y
-            tmp=RF(y3+ep0)
+            tmp=RF(y3-ep0)
             if mpfr_cmp(tmp.value,Y)>=0:
                 mpfr_set(Ypb[ci][cj][j],y3.value,rnd_re)
             else:
@@ -1970,7 +1998,7 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
                     print "x3,y3=",x3,"\n",y3
                     print "Xpb=",mpfr_get_d(Xpb[ci][cj][j],rnd_re)
                     print "Ypb=",mpfr_get_d(Ypb[ci][cj][j],rnd_re)
-                raise ArithmeticError,"Need smaller value of Y" 
+                return 1 #raise ArithmeticError,"Need smaller value of Y" 
             if verbose > 2:
                 print "ci,cj=",ci,cj
                 print "Xm=",mpfr_get_d(Xm[j],rnd_re)
@@ -2075,9 +2103,10 @@ cdef pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, 
     mpfr_clear(swi); mpfr_clear(swj)
     mpfr_clear(x0);  mpfr_clear(y0)
     mpfr_clear(YY)
+    return 0
 
 @cython.cdivision(True)
-cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec,int*** CSvec):
+cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpfr_t ****RCvec,int*** CSvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types.
@@ -2223,10 +2252,10 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
             reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
             if reps[j][1]==NULL:
                 raise MemoryError
-            reps[j][0][0]=G._coset_reps[j][0]
-            reps[j][0][1]=G._coset_reps[j][1]
-            reps[j][1][0]=G._coset_reps[j][2]
-            reps[j][1][1]=G._coset_reps[j][3]
+            reps[j][0][0]=G._coset_reps_v0[j][0]
+            reps[j][0][1]=G._coset_reps_v0[j][1]
+            reps[j][1][0]=G._coset_reps_v0[j][2]
+            reps[j][1][1]=G._coset_reps_v0[j][3]
     
     #if verbose>2:
     #    print "nc=",nc
@@ -2351,7 +2380,7 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
             mpfr_set(Xpb[ci][cj][j],x3.value,rnd_re)
             mpfr_mul(Xpb[ci][cj][j],Xpb[ci][cj][j],twopi.value,rnd_re)
             # Recall that Ypb must be greater than Y otherwise we need a better Y
-            tmp = RF(y3+ep0)
+            tmp = RF(y3-ep0)
             if mpfr_cmp(tmp.value,Y)>=0:
                 mpfr_set(Ypb[ci][cj][j],y3.value,rnd_re)
             else:
@@ -2364,7 +2393,8 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
                     print "x3,y3=",x3,"\n",y3
                     print "Xpb=",mpfr_get_d(Xpb[ci][cj][j],rnd_re)
                     print "Ypb=",mpfr_get_d(Ypb[ci][cj][j],rnd_re)
-                raise ArithmeticError,"Need smaller value of Y" 
+                #raise ArithmeticError,"Need smaller value of Y"
+                return 1
             if verbose > 2:
                 print "ci,cj=",ci,cj
                 print "Xm=",mpfr_get_d(Xm[j],rnd_re)
@@ -2501,9 +2531,10 @@ cdef pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
     mpfr_clear(swi); mpfr_clear(swj)
     mpfr_clear(x0);  mpfr_clear(y0)
     mpfr_clear(YY)
+    return 0
 
 @cython.cdivision(True)
-cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
+cdef int pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpfr_t* Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
 
     r""" Computes a whole array of pullbacked points-
          using MPFR/MPC types. For Hecke triangle groups
@@ -2604,12 +2635,13 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpfr_t*
         # If we want to normalize points we need z0-> z0 /lambda
         # Recall that Ypb must be greater than Y otherwise we need a better Y
         if mpfr_cmp(y0,Yep)<=0:
-            if verbose > 0:
+            return 1
+            #if verbose > 0:
         #        print "Xm,Y=",Xm[j],Y
         #        mpfr_set(tmpx.value,x0,rnd_re)
         #        mpfr_set(tmpy.value,y0,rnd_re)
         #        print "xpb,ypb=",tmpx,"\n",tmpy
-                raise ArithmeticError,"Need smaller value of Y" 
+        #raise ArithmeticError,"Need smaller value of Y" 
                 # We also get the multiplier if we need it
         mpfr_div(x0,x0,lambdaq,rnd_re)
         mpfr_div(y0,y0,lambdaq,rnd_re)
@@ -2637,7 +2669,7 @@ cdef pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpfr_t*
     mpfr_clear(x0);  mpfr_clear(y0)
     mpfr_clear(Yep); mpfr_clear(lambdaq);mpfr_clear(twopi)
     mpfr_clear(a);mpfr_clear(b);mpfr_clear(c);mpfr_clear(d)
-    
+    return 0
 # @cython.cdivision(True)
 # cdef pullback_pts_mpc_new2(S,int Qs,int Qf,RealNumber Y,RealNumber weight, Vector_real_mpfr_dense Xm,mpfr_t*** Xpb, mpfr_t*** Ypb,mpc_t ***Cvec):
 #     r""" Computes a whole array of pullbacked points-

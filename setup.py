@@ -162,7 +162,8 @@ ext_modules = [
               libraries = ['pari']),
 
     Extension("psage.modform.rational.special_fast",
-              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
+#              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
+              ["psage/modform/rational/special_fast.pyx"],
               libraries = ['gmp', 'flint'],
               language = 'c++',
               include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],

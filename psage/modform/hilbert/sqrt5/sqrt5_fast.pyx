@@ -27,6 +27,7 @@ All the code in this file is meant to be highly optimized.
 
 include 'stdsage.pxi'
 include 'cdefs.pxi'
+include 'python.pxi'
 
 from sage.rings.all import Integers, is_Ideal, ZZ, QQ
 from sage.matrix.all import MatrixSpace, zero_matrix

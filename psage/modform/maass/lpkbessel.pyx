@@ -94,7 +94,6 @@ cdef double d_100 =<double> 100.0
 cdef double complex c_one =<double complex> 1.0
 cdef double complex c_zero =<double complex> 0.0
 
-
 cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):  
     r"""
     Modified K-Bessel function in double precision. Chooses the most appropriate algorithm.

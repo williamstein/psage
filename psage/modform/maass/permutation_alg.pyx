@@ -713,7 +713,7 @@ cdef class MyPermutation(SageObject):
         cdef int N = self._N
         res_ent = <int*>sage_malloc(sizeof(int)*N)
         if res_ent==NULL: raise MemoryError
-        _mult_perm(N,self._entries,other._entries,res_ent)
+        _mult_perm_unsafe(N,self._entries,other._entries,res_ent)
         res = MyPermutation(length=N,init=0,check=0)
         res.set_entries(res_ent)
         if res_ent<>NULL:
@@ -1267,6 +1267,7 @@ cdef class MyPermutationIterator(SageObject):
             self._current_state_o=NULL
         if self._fixed_pt_free_iterator_labels<> NULL:
             sage_free(self._fixed_pt_free_iterator_labels)
+            self._fixed_pt_free_iterator_labels=NULL
         if self._verbose>2:
             print "end of dealloc!"
             print "self_l_o_p=",printf("%p ",self._list_of_perms)
@@ -2322,10 +2323,11 @@ cdef _to_cycles2(int N, int *perm, int *cycle, int *cycle_lens, int num_cycles):
         if cycle_bd > N or num_cycles >= N:
             break        
         
-cdef void _mult_perm(int N,int *left,int *right,int* res):
+cdef void _mult_perm_unsafe(int N,int *left,int *right,int* res):
         r"""
-        This is the standard order of multiplication of permutation.
+        This is the standard order of multiplication of permutations.
         res = self*other : i-> other(self(i))
+        This is 'unsafe' in that no check for bounds or valid data is performed. 
         """
         cdef int i
         for i in range(N):

@@ -77,6 +77,8 @@ cdef class MyPermutationIterator(SageObject):
     cdef long _cur
     cdef int _verbose
     cdef int _current_piv
+    cdef int _map_from
+    cdef int _map_at_most_to
     cdef int * _current_state_c
     cdef int * _current_state_o
     cdef int * _current_perm 

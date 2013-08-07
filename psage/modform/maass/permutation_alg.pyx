@@ -1328,8 +1328,10 @@ cdef class MyPermutationIterator(SageObject):
     """
     
     #    def __cinit__(self,N,verbose=0,order=0,num_fixed=-1,fixed_pts=None,**kwds):
-    def __cinit__(self,N,int order=0,int num_fixed=-1,list fixed_pts=[],int verbose=0,is_subiterator=0):
+    def __cinit__(self,N,int order=0,int num_fixed=-1,list fixed_pts=[],int verbose=0,is_subiterator=0,map_from=0,map_at_most_to=0):
         r"""
+
+        If a=map_from and b=map_at_least_to with a,b,>0 then we iterate over R s.t. R(a)>b
         
         """
         self._N=N
@@ -1347,7 +1349,6 @@ cdef class MyPermutationIterator(SageObject):
         self._list_of_perms=NULL
         self._current_perm=NULL
         self._fixed_pts=NULL
-
         if fixed_pts<>[]:
             self._num_fixed=len(fixed_pts)
         if num_fixed>0:
@@ -1364,6 +1365,15 @@ cdef class MyPermutationIterator(SageObject):
         if self._verbose>0:
             print "in cinit! verbose=",self._verbose
             print "fixdpts=",fixed_pts
+        self._map_from = <int>map_from
+        self._map_at_most_to =<int> map_at_most_to
+        if self._verbose>0:
+            print "map_from=",map_from,self._map_from
+            print "map_at_most_to=",map_at_most_to,self._map_at_most_to   
+        if self._map_from>0 and self._map_at_most_to<=0:
+            raise ValueError,"Inconsistent condition on R's! {0}: {1}".format(map_from,map_at_most_to)
+
+
         self._c_new()
 
     def _c_new(self):
@@ -1390,7 +1400,7 @@ cdef class MyPermutationIterator(SageObject):
             if self._fixed_pts==NULL: raise MemoryError
             
         
-    def __init__(self,N,order=0,num_fixed=-1,fixed_pts=None,verbose=0,is_subiterator=0):
+    def __init__(self,N,order=0,num_fixed=-1,fixed_pts=None,verbose=0,is_subiterator=0,map_from=0,map_at_most_to=0):
         r"""
 
         INPUT:
@@ -1407,7 +1417,7 @@ cdef class MyPermutationIterator(SageObject):
             print "fixed_pts=",fixed_pts
         self._has_fixed_pt_free_iterator = 0
         self._fixed_pt_free_iterator = None
-#        self._fixed_pt_free_iterator_labels=list()
+        #        self._fixed_pt_free_iterator_labels=list()
         self._is_subiterator=is_subiterator
         if fixed_pts<>None and fixed_pts<>[]:
             if isinstance(fixed_pts,list) and self._num_fixed<>len(fixed_pts):
@@ -1457,7 +1467,7 @@ cdef class MyPermutationIterator(SageObject):
     def set_fixed_pt_free_iterator(self):
         if self._num_fixed<=0:
             return 
-        self._fixed_pt_free_iterator = MyPermutationIterator(self._N-self._num_fixed,num_fixed=0,order=self._order,verbose=self._verbose,is_subiterator=1)
+        self._fixed_pt_free_iterator = MyPermutationIterator(self._N-self._num_fixed,num_fixed=0,order=self._order,verbose=self._verbose,is_subiterator=1,map_from=self._map_from,map_at_most_to=self._map_at_most_to)
         #self._fpfree_labels=list()
         self._has_fixed_pt_free_iterator=1
         if self._fixed_pt_free_iterator_labels==NULL:
@@ -1713,6 +1723,7 @@ cdef class MyPermutationIterator(SageObject):
         """
         if self._verbose>0:
             print "in _goto_first! N=",self._N," cur=",self._cur
+            print "map_from0=",self._map_from,self._map_at_most_to
         cdef int done = 1
         if self._cur<>0:
             self._rewind()
@@ -1723,6 +1734,9 @@ cdef class MyPermutationIterator(SageObject):
                 done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
             if done==1 and self._num_fixed>=0:
                 done = _set_fixed_eq(self._current_perm,self._N,self._fixed_pts,self._num_fixed)
+            if done==1 and self._map_from>0:
+                if self._current_perm[self._map_from-1]>self._map_at_most_to:
+                    done = 0
         if done==0: # If the current perm is not in the desired resulting list we go forward
             if self._fixed_pt_free_iterator:
                 self._fixed_pt_free_iterator._goto_first()
@@ -1773,7 +1787,7 @@ cdef class MyPermutationIterator(SageObject):
             self._fixed_pt_free_iterator._next() #_free()
             self.set_current_from_ffree()                
         if self._verbose>0:
-            for i from 0 <= i < self._N:
+            for i in range(self._N):
                 print "cur_p[",i,"]=",self._current_perm[i]
             print "cur =",self._cur 
 
@@ -1853,7 +1867,7 @@ cdef class MyPermutationIterator(SageObject):
                 self._cur = self._cur+1
                 if t<0:
                     if self._verbose>2:
-                        print "current_perm=",self.current_perm()
+                        print "current_perm0=",self.current_perm()
                     mpz_clear(mpzmmax)
                     return 
                 #raise ArithmeticError,"Got index <0 from swap!"
@@ -1861,6 +1875,7 @@ cdef class MyPermutationIterator(SageObject):
                 self._current_perm[t] = self._current_perm[t+1]
                 self._current_perm[t+1] = tmp
             else:
+                
                 done=0
                 ii=1
                 mpz_init(mpzmmax)
@@ -1883,13 +1898,25 @@ cdef class MyPermutationIterator(SageObject):
                     self._current_perm[t+1] = tmp                    
                     if debug>0: 
                         if self._verbose>2 and self._current_perm[0]==1 and self._current_perm[1]==2:
-                            print "current_perm=",self.current_perm()
-                    if self._order>0:
+                            print "current_perm1=",self.current_perm()
+                    done = 1
+                    if self._verbose > 0:
+                        print "map_from1=",self._map_from
+                        print "map at most to =",self._map_at_most_to                     
+                    if self._map_from>0:
+                        if self._verbose > 1:
+                            print "map_from2=",self._map_from
+                            print "map at most to =",self._map_at_most_to
+                        if self._current_perm[self._map_from-1]>self._map_at_most_to:
+                            done = 0
+                            if self._verbose > 1:
+                                print "Continue since R({0})={1}>{2}".format(self._map_from,self._current_perm[self._map_from-1],self._map_at_most_to)
+                    if done==1 and self._order>0:
                         done = _is_of_order(self._N,self._current_perm,self._order)
-                    else:
-                        done=1
+                        #else:
+                        #    done=1
                     if self._verbose > 1:
-                        print "current_perm=",self.current_perm()
+                        print "current_perm2=",self.current_perm()
                     #    print "of correct order=",done
                     if self._num_fixed==0 and done==1:
                         done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
@@ -2139,23 +2166,32 @@ cdef class MyPermutationIterator(SageObject):
             print "start=",start
             print "num=",num
             print "cur=",self._cur
+            print "map_from3=",self._map_from,self._map_at_most_to
         if self._order<=1 and self._num_fixed<0:
             for i from 0 <= i <= self._N-1:
                 self._list_of_perms[self._cur][i]=lista[i]            
             self._cur = self._cur+1
         else:
-            # First test if of correct order.
-            test_o =_is_of_order(self._N,lista,self._order)
-            if self._verbose>3:
-                print "test_o=",test_o
-                print "num_fixed=",self._num_fixed
-            if self._num_fixed>0 and test_o:
+            # First 
+            if self._map_from>0:
+                test_o  = 1
+                if self._current_perm[self._map_from-1]>self._map_at_most_to:
+                    test_o = 0
+                if self._verbose > 1:
+                    print "Continue since R({0})={1}>{2}".format(self._map_from,self._current_perm[self._map_from-1],self._map_at_most_to)
+            # Then test if of correct order.
+            if test_o==1:
+                test_o =_is_of_order(self._N,lista,self._order)
+                if self._verbose>3:
+                    print "test_o=",test_o
+                    print "num_fixed=",self._num_fixed
+            if self._num_fixed>0 and test_o==1:
                 if self._verbose>3:
                     print "compare fixed points of perm with ",self.fixed_pts()
                 test_f  = _set_fixed_eq(lista,self._N,self._fixed_pts,self._num_fixed)
                 if self._verbose>3:
                     print "fixed points agree :",test_f
-            elif self._num_fixed==0 and test_o:
+            elif self._num_fixed==0 and test_o==1:
                 test_f =_num_fixed_eq(lista,self._N,self._num_fixed)
                 if self._verbose>3:
                     print "test_f=",test_f

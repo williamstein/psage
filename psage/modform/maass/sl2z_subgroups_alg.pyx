@@ -162,13 +162,21 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     if verbose>0:
         print "verbose=",verbose
         print "mpi_verbose=",mpi_verbose
+    cdef int max_fixed_by_R = 0
+    if rfx_list<>[]:
+        max_fixed_by_R = max(rfx_list)+2
+    else:
+        max_fixed_by_R = e2 + 1
+    cdef int first_non_fixed_elt = 1
+    if 1 in rfx_list:
+        first_non_fixed_elt = 2 
     PRI = MyPermutationIterator(mu,order=3,fixed_pts=rfx_list,num_fixed=len(rfx_list),verbose=mpi_verbose)
     if verbose>0:
         print "PRI.list=",printf("%p ", PRI._list_of_perms)
     #for R in P.filter(lambda x: x.fixed_points()==rfx):
     max_num = PRI.max_num()
     if verbose>0:
-        print "max. num of possible R=",max_num
+        print "max. num of possible R=",max_num        
         print "original fixedpts=",PRI.fixed_pts()
     cdef int num_rcycles
     cdef int* rcycle_lens=NULL
@@ -198,8 +206,17 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef MyPermutation pT
     cdef int h_tmp=0
     cdef long checked=0
+  
+    if verbose>1:
+        print "First cycle check test if R({0})>{1}".format(first_non_fixed_elt,max_fixed_by_R)
     for pR in PRI:
         checked+=1
+        ## If a is the first element not fixed by R and x = max of fixed elments by R
+        ## then we can always assume R(a)<=x+2
+        if verbose>1:
+            print "Checking first cycle! "            
+        if pR._entries[first_non_fixed_elt-1]>max_fixed_by_R:
+            continue
         if verbose>1:
             print "S=",S_canonical.cycles() #print_vec(mu,Sptr)
             print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)
@@ -219,7 +236,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             pT.set_entries(Tptr)
             print "Tp=",Tcyc
             print "current fixedpts=",PRI.fixed_pts()
-            print "number of cusps=",len(Tcyc)
+            print "number of cusps=",h_tmp
         if h_tmp<>h:
             if verbose>1:
                 print "Incorrect number of cusps. remove!"

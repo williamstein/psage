@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 # -*- coding: utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Stromberg <stroemberg@mathematik.tu-darmstadt.de>,

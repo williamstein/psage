@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 # -*- coding: utf-8 -*-
 r"""
 Algorithms and classes for permutations representing subgroups of the modular group, as implemented in 'MySubgroup'.

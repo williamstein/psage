@@ -74,7 +74,7 @@ cdef class MyPermutationIterator(SageObject):
     cdef int _N
     cdef long _num
     cdef Integer _max_num
-    cdef long _cur
+    cdef Integer _cur
     cdef int _verbose
     cdef int _current_piv
     cdef int _map_from
@@ -117,6 +117,7 @@ cdef class CycleCombinationIterator(Parent):
     cpdef length(self)
     cpdef  MyPermutation permutation_nr(self,int M)
     cdef MyPermutation permutation_nr_c(self,int M)
+    cdef int permutation_nr_c_ptr(self,int M,int* res)    
 #    cdef int permutation_nr_c(self,int M,MyPermutation p)
 
 cdef void _mult_perm_unsafe(int N, int* res,int *left,int* right)

@@ -112,8 +112,8 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
             s2 = A; s3 = B
         else:
             try:
-                s2 = MyPermutation(A)
-                s3 = MyPermutation(B)
+                s2 = MyPermutation(A.domain())
+                s3 = MyPermutation(B.domain())
             except ValueError as ve:
                 raise ValueError,"Can not construct permutations! {0}".format(ve)
     else:
@@ -124,6 +124,8 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         s3 = kwds.get("s3",None)
     if s2==None or s3==None:
         raise ValueError,"Could not construct subgroup from input!"
+    if is_Gamma0:
+        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0)
     return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level)
 
 
@@ -231,7 +233,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)
                 
         self._uid = self._get_uid()
-        self.class_name='MySubgroup'            
+        self.class_name='MySubgroup_class'            
 
 
     def _repr_(self):
@@ -318,7 +320,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             Not implmented!
         """
         data = self.__dict__
-        return (MySubgroup_class, (self.permS,self.permR,self._verbose,data))            
+        return (self.__class__, (self.permS,self.permR,self._verbose,data))            
 
 
 
@@ -381,12 +383,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Use the canonical relabeling of the superclass.
         """
         if inplace==False:
-            G = MySubgroup(o2=self.permS,o3=self.permR)
+            G = self.__class__(o2=self.permS,o3=self.permR)
             super(MySubgroup_class,G).relabel(inplace=True)
             permS=MyPermutation(G.S2().domain())
             permR=MyPermutation(G.S3().domain())
             permR=permR.inverse().conjugate(permS)
-            return MySubgroup(o2=permS,o3=permR)
+            return self.__class__(o2=permS,o3=permR)
         super(MySubgroup_class,self).relabel(inplace=True)
         self.permS=MyPermutation([x+1 for x in self._S2])
         self.permR=MyPermutation([x+1 for x in self._S3])
@@ -443,12 +445,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
         self._is_congruence = super(MySubgroup_class,self).is_congruence()
-        if self._is_congruence==True:
-            #print "Adding level!"
-#            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
-            self.level = types.MethodType(level,self,MySubgroup_class)
-            #self._level = self.level()
-            #print "level=",self._level
+#         if self._is_congruence==True:
+#             #print "Adding level!"
+# #            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
+#             self.level = types.MethodType(level,self,MySubgroup_class)
+#             #self._level = self.level()
+#             #print "level=",self._level
         self.get_data_from_group()       
 
     def init_group_from_dict(self,dict):
@@ -1189,6 +1191,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         EXAMPLES::
 
+            sage: P=SymmetricGroup(7)
             sage: pS=P([1,3,2,5,4,7,6]); pS
             (2,3)(4,5)(6,7)
             sage: pR=P([3,2,4,1,6,7,5]); pR
@@ -3307,9 +3310,11 @@ class MySubgroup_congruence_class (MySubgroup_class):
         super(MySubgroup_congruence_class,self).__init__(o2,o3,verbose,display_format,data,**kwds)
         if not self.is_congruence():
             raise ValueError,"Self is not a congruence subgroup!"
+        self.class_name='MySubgroup_congruence_class'            
+
     def level(self):
         return self.generalised_level()
-
+ 
     
 ### Hecke triangle groups
 class HeckeTriangleGroup(SageObject):

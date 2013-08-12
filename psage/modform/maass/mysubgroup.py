@@ -100,8 +100,8 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     """
     s2 = None; s3=None; is_Gamma0=None; level = None
     if isinstance(A,ArithmeticSubgroup):
-        s2 = MyPermutation(A.as_permutation_group().S2().list())
-        s3 = MyPermutation(A.as_permutation_group().S3().list())
+        s2 = MyPermutation(A.as_permutation_group().S2().domain())
+        s3 = MyPermutation(A.as_permutation_group().S3().domain())
         if isinstance(A,Gamma0_class):
             is_Gamma0=True
             level = A.level()
@@ -383,8 +383,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if inplace==False:
             G = MySubgroup(o2=self.permS,o3=self.permR)
             super(MySubgroup_class,G).relabel(inplace=True)
-            permS=MyPermutation(G.S2().list())
-            permR=MyPermutation(G.S3().list())
+            permS=MyPermutation(G.S2().domain())
+            permR=MyPermutation(G.S3().domain())
             permR=permR.inverse().conjugate(permS)
             return MySubgroup(o2=permS,o3=permR)
         super(MySubgroup_class,self).relabel(inplace=True)

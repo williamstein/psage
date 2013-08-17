@@ -466,12 +466,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def get_data_from_group(self):
         if self._verbose>0:
             print "in Get_data_from_Group"
-        if self._is_congruence:
-            self._generalised_level = self.level()
-            self._level = self._generalised_level
+        if self._level <> None:
+            self._generalised_level = self._level
         else:
-            self._generalised_level = None
-            self._level = None            
+            self._generalised_level = super(MySubgroup_class,self).generalised_level()
+            if self._is_congruence:
+                self._level = self._generalised_level
+            else:
+                self._level = None            
         self._coset_reps_v0 = None
         self._coset_reps_v1 = None
                                                          

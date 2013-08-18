@@ -593,15 +593,25 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     ## More advanced functions
     ###
 
-    def is_Gamma0(self):
+    def is_Gamma0(self,test=0):
         if self._is_Gamma0==None:
             self._is_Gamma0=False
             if self.is_congruence():
-                N = self.level()
+                N = self.generalised_level() # Is the level in this case
+                ## TODO: See which is the quickest test
                 G = Gamma0(N)
-                if G.index()==G.index():
-                    if self.is_subgroup(G):
-                        self._is_Gamma0=True
+                self._is_Gamma0=True
+                if test==1:
+                    for g in self.gens():
+                        if g.c() % N <> 0:
+                            self._is_Gamma0 = False
+                            break
+                else:
+                    if not self.is_subgroup(G):
+                        self._is_Gamma0=False
+                        break
+                if G.index() <> G.index(): # If self is a subgroup of Gamma0(N) and the index is equal...
+                    self._is_Gamma0=False 
         return self._is_Gamma0
     
     def is_symmetric(self,ret_map=0,verbose=0):

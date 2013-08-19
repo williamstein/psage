@@ -609,7 +609,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 else:
                     if not self.is_subgroup(G):
                         self._is_Gamma0=False
-                        break
                 if G.index() <> G.index(): # If self is a subgroup of Gamma0(N) and the index is equal...
                     self._is_Gamma0=False 
         return self._is_Gamma0

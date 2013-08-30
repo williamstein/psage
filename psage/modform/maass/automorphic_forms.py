@@ -153,7 +153,6 @@ EXAMPLES::
 
 import mpmath
 from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing
-from sage.rings.real_mpfr import RealNumber
 from mpmath import mpf
 from mysubgroup import *
 from automorphic_forms_alg import *

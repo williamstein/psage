@@ -106,7 +106,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     is_symmetric = kwds.get('is_symmetric')
     symmetry_map = kwds.get('symmetry_map')
     if isinstance(A,MySubgroup_class):
-        return Mysubgroup_class(A.__dict__,**kwds)
+        return MySubgroup_class(A.__dict__,**kwds)
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().domain())
         s3 = MyPermutation(A.as_permutation_group().S3().domain())

@@ -97,10 +97,16 @@ from sage.modular.arithgroup.arithgroup_perm import *
 def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},**kwds):
     r"""
     Create an instance of MySubgroup_class.
+
+    INPUT:
+
+    - A -- can be 
     """
     s2 = None; s3=None; is_Gamma0=None; level = None
     is_symmetric = kwds.get('is_symmetric')
     symmetry_map = kwds.get('symmetry_map')
+    if isinstance(A,MySubgroup_class):
+        return Mysubgroup_class(A.__dict__,**kwds)
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().domain())
         s3 = MyPermutation(A.as_permutation_group().S3().domain())
@@ -118,6 +124,11 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
                 s3 = MyPermutation(B.domain())
             except ValueError as ve:
                 raise ValueError,"Can not construct permutations! {0}".format(ve)
+    elif A<>None:
+        if hasattr(A,"p2") and hasattr(A,"p3"):
+            s2 = MyPermutation(A.p2); s3 = MyPermutation(A.p3)
+        elif hasattr(A,"s2") and hasattr(A,"s3"):
+            s2 = MyPermutation(A.s2); s3 = MyPermutation(A.s3)
     else:
         s2 = kwds.get("o2",None)
         s3 = kwds.get("o3",None)
@@ -205,7 +216,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
           
         """
+        if data<>{}:
+            self.init_group_from_dict(data,**kwds)
         self._verbose = verbose
+        self._is_Gamma0=kwds.get('is_Gamma0',None)
+        self._is_symmetric=kwds.get('is_symmetric')
+        self._symmetry_map = kwds.get('symmetry_map')        
         self._display_format = display_format
         self._level=kwds.get('level',None)
         if self._level<>None:
@@ -213,13 +229,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             self._generalised_level=None;  self._is_congruence=None
         self._perm_group=None;
-        self._is_Gamma0=kwds.get('is_Gamma0',None)
         self._coset_rep_perms={}
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
         self._generators_as_slz_elts=[]
-        self._is_symmetric=kwds.get('is_symmetric')
-        self._symmetry_map = kwds.get('symmetry_map')
         self.permT=None; self.permP=None
         self._verbose=verbose
         if self._verbose>1:
@@ -228,9 +241,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "str=",str
             print "is_Gamma0=",self._is_Gamma0
             print "kwds=",kwds
-        if data<>{}:
-            self.init_group_from_dict(data)
-        elif o2<>None and o3<>None:
+        if o2<>None and o3<>None:
             self.init_group_from_permutations(o2,o3)
         else:
             raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)
@@ -494,15 +505,16 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 #             #print "level=",self._level
         self.get_data_from_group()       
 
-    def init_group_from_dict(self,dict):
+    def init_group_from_dict(self,data,**kwds):
         r"""
         Initalize self from a dictionary.
         """
         if self._verbose>0:
             print "in init_from_dict"
-        for key in dict.keys():
-            self.__dict__[key] = dict[key]
-        
+        for key in data:
+            self.__dict__[key] = data[key]
+        for key in kwds:
+            self.__dict__[key] = kwds[key]            
 
     def get_data_from_group(self):
         if self._verbose>0:

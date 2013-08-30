@@ -125,11 +125,16 @@ cdef class MyPermutation(SageObject):
             if isinstance(entries,str):
                 # if the string represents a list
                 s = <str> entries
-#                if entries.count('[')==1 and entries.count(']')==1:
+#               if entries.count('[')==1 and entries.count(']')==1:
+                # The string can either be given as a string of cycles or a string giving a list
                 if s.count('[')==1 and s.count(']')==1:
                     entries_list=eval(s)
-                else: ## Assume it is a string representation of cycles
+                elif s.count('(')>=1 and s.count(')')>=1:
+                    ## Assume it is a string representation of cycles
                     entries_list=self._cycles_from_str(entries)
+                else:
+                    # It could be given by self.export_as_string()
+                    entries_list=self.list_from_string(s)
             elif hasattr(entries,list):
                 entries_list=entries.list()
             elif isinstance(entries,(list,tuple)):
@@ -258,7 +263,7 @@ cdef class MyPermutation(SageObject):
     #    res = MyPermutation(self._list)
     #    return res
 
-    cpdef str export_as_string(self,str sep=''):
+    cpdef str export_as_string(self,str sep='0'):
         r"""
         Export self as string.
         """
@@ -266,15 +271,41 @@ cdef class MyPermutation(SageObject):
         cdef int base
         base=self._N+1
         cdef int i
-        if base<=36 and sep=='':
+        # We don't want to use alphanumeric characters as separators except for 0
+        if sep.isalnum() and sep<>'0':
+            raise ValueError,"Need a non-alphanumeric separator! Got {0}".format(sep)
+        if base<=36 and (sep=='0' or sep==""):
             for i from 0<=i<self._N:
                 s+=Integer(self._entries[i]).str(base)
         else: # If we have more than one symbol per char we insert zeros instead
             for i from 0<=i<self._N-1:
                 s+=str(self._entries[i])+sep
             s+=str(self._entries[self._N-1])
+        if sep<>"0" and sep<>"":
+            s+=".{0}".format(sep)  ## If not "0" we give the separator explicitly
         return s
-            
+
+    cpdef list list_from_string(self,s):
+        r"""
+        Try to make a list out of a string  returned by the above function
+        """
+        base = 10
+        if s.count(".")==1:
+            s,sep = s.split(".")
+        elif s.count("0")>0:
+            sep = "0"
+        else:
+            sep=""  ##
+            base = len(s)+1 ### The base
+        if sep<>"":
+            slist = s.split(sep)
+        else:
+            slist = s
+        res = []
+        for x in slist:
+            res.append(Integer(x,base))
+        return res
+    
     cdef void c_new(self,int* entries):
         cdef int i
         if self._entries<>NULL:
@@ -311,6 +342,9 @@ cdef class MyPermutation(SageObject):
         """
         if self._verbose>0:
             print "in _unpickle_v0!"
+        print "data=",data
+        if not isinstance(data,basestring):
+            raise ValueError,"Can not unpickle object: {0} as MyPermutation!".format(data)
         smu,sentries=data.split()
         self._N = int(smu)
         cdef int i
@@ -1129,7 +1163,7 @@ cdef class MyPermutation(SageObject):
                     for i in range(len(pl)-1):
                         p0._entries[pl[i]-1]=pl[i+1]
                     p0._entries[pl[-1]-1]=pl[0]
-                self._cycles_permutations.append(p0)
+                    self._cycles_permutations.append(p0)
         return self._cycles_permutations
 
     cpdef cycles_as_lists(self):
@@ -1341,7 +1375,6 @@ cdef class MyPermutation(SageObject):
             if len(c)>1:
                 res.append(c)
         return res
-
 
 
 def EndOfList(Exception):
@@ -2331,19 +2364,19 @@ cdef class MyPermutationIterator(SageObject):
         if not self._current_state_o: raise MemoryError
         self._c_alloc_list_of_perms(factorial(self._N))
         reset_swap(self._N,self._current_state_c,self._current_state_o)
-        for i from 0<= i< self._N:
+        for i in range(self._N):
             self._list_of_perms[0][i]=i+1
         if self._verbose>1:
-            for i from 0<= i< self._N:                
+            for i in range(self._N):                
                 print "start_list[",0,"]=",self._list_of_perms[0][i]            
         if self._verbose>1:
             s=""; ss=""
-            for i from 0<= i< self._N:
+            for i in range(self._N):
                 s+=" ",self._current_state_o[i]
                 ss+=" ",self._current_state_c[i]
             print "o[0]="+s
             print "c[0]="+ss
-        for m from 1<= m < self._num:
+        for m in range(1,self._num):
             t=next_swap(self._N,self._current_state_c,self._current_state_o)
             if self._verbose>1:
                 s=""; ss=""
@@ -2353,7 +2386,7 @@ cdef class MyPermutationIterator(SageObject):
                 print "o[0]="+s
                 print "c[0]="+ss
 
-            for i from 0<= i< self._N:
+            for i in range(self._N):
                 if i==t:
                     self._list_of_perms[m][t]=self._list_of_perms[m-1][t+1]
                 elif i==t+1:

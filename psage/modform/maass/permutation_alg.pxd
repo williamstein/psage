@@ -51,6 +51,7 @@ cdef class MyPermutation(SageObject):
     cpdef _inverse(self)
     cpdef _copy_c(self)
     cpdef str export_as_string(self,str sep=*)
+    cpdef list list_from_string(self,s)
     cdef void _conj_w_transp(self,int a, int b,int verbose=*)
     cpdef conjugate_with_transposition(self,int a, int b,int verbose=*)
     cpdef is_conjugate_to(self,MyPermutation other,int ret_perm=*)

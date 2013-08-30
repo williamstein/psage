@@ -99,6 +99,8 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     Create an instance of MySubgroup_class.
     """
     s2 = None; s3=None; is_Gamma0=None; level = None
+    is_symmetric = kwds.get('is_symmetric')
+    symmetry_map = kwds.get('symmetry_map')
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().domain())
         s3 = MyPermutation(A.as_permutation_group().S3().domain())
@@ -125,8 +127,8 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     if s2==None or s3==None:
         raise ValueError,"Could not construct subgroup from input!"
     if is_Gamma0:
-        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0)
-    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level)
+        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,is_symmetric=1,symmetry_map=SL2Z_elt(1,0,0,1))
+    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level,is_symmetric=is_symmetric,symmetry_map=symmetry_map)
 
 
 class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
@@ -216,7 +218,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
         self._generators_as_slz_elts=[]
-        self._is_symmetric=None
+        self._is_symmetric=kwds.get('is_symmetric')
+        self._symmetry_map = kwds.get('symmetry_map')
         self.permT=None; self.permP=None
         self._verbose=verbose
         if self._verbose>1:
@@ -378,23 +381,57 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         # return False
         #return self.is_subgroup(G) and G.is_subgroup(self)
 
-    def relabel(self,inplace=True):
+    def relabel(self,inplace=True,label_on='R'):
         r"""
-        Use the canonical relabeling of the superclass.
+
+        INPUT:
+        
+        - inplace -- bool
+        - label_on    -- 'R', 'S' or 'T (default 'R').
+                      Relabel so that either permR,permS or permT are ordered, e.g.
+                      R = (1 2 3)(4 5 6)(7 8 9)
+                      S = (1)(2 3)(4 5)
+                      T = (1 2 3 4 5 6 7 8 9)
         """
         if inplace==False:
             G = self.__class__(o2=self.permS,o3=self.permR)
-            super(MySubgroup_class,G).relabel(inplace=True)
-            permS=MyPermutation(G.S2().domain())
-            permR=MyPermutation(G.S3().domain())
-            permR=permR.inverse().conjugate(permS)
-            return self.__class__(o2=permS,o3=permR)
-        super(MySubgroup_class,self).relabel(inplace=True)
-        self.permS=MyPermutation([x+1 for x in self._S2])
-        self.permR=MyPermutation([x+1 for x in self._S3])
-        ## Relabel the rest as well
-        self.permT = self.permS*self.permR
-        self.permP = self.permT*self.permS*self.permT
+            return G.relabel(inplace=True,label_on=label_on)
+        if label_on == 'R':
+            super(MySubgroup_class,self).relabel(inplace=True)
+            self.permS=MyPermutation([x+1 for x in self._S2])
+            self.permR=MyPermutation([x+1 for x in self._S3])
+            ## Relabel the rest as well
+            self.permT = self.permS*self.permR
+            self.permP = self.permT*self.permS*self.permT
+        else:
+            if label_on=='S':
+                Pold = self.permS
+                cycle_lens = self.permS.cycle_type()
+            elif label_on=='T':
+                cycle_lens = self.permT.cycle_type()
+            Pold = self.permT            
+            Pnew = []; j=1
+            for i in cycle_lens:
+                Pnew.append([x for x in range(j,i+j)])
+                j = i+j
+            if self._verbose>0:
+                print "Pnew=",Pnew
+            Pnew = MyPermutation(Pnew)
+            if self._verbose>0:
+                print "Pnew=",Pnew
+            t,p = Pold.is_conjugate_to(Pnew,ret_perm=1)
+            if t<>1:
+                raise ArithmeticError,"Could not conjugate {0} to {1}!".format(Pold,Pnew)
+            if self._verbose>0:
+                print "p=",p
+            self.permS = self.permS.conjugate(p)
+            self.permR = self.permR.conjugate(p)
+            self.permT = self.permS*self.permR
+            self.permP = self.permT*self.permS*self.permT            
+        if self._verbose>0:
+            print "Snew=",self.permS
+            print "Rnew=",self.permR
+            print "Tnew=",self.permT            
         ## Finally we have to make sure that the coset representatives have the same order
         ## The simplest way to do this is simply to reset the lists.
         self._coset_reps_v0 = None
@@ -418,6 +455,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r"""
         Initialize the group using the two permutations of order 2 and 3.
         """
+        if not isinstance(o2,MyPermutation):
+            o2 = MyPermutation(o2)
+        if not isinstance(o3,MyPermutation):
+            o3 = MyPermutation(o3)
         o2.set_rep(3)
         o3.set_rep(3)
         if self._verbose>0:
@@ -534,7 +575,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self._genus == None:
             self._genus=1 +QQ(self.index() - 6*self.ncusps()-3*self.nu2()-4 *self.nu3())/QQ(12)
-        return self._genus
+        return int(self._genus)
 
     def nu2(self):
         r""" Number of elliptic fixed points of order 2 of self.
@@ -618,9 +659,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Check if self has a reflectional symmetry, i.e. check that 
         """
         if self._is_symmetric <>None:
-            return self._is_symmetric
-        if self.is_congruence():
+            if ret_map==1:
+                return self._is_symmetric,self._symmetry_map
+            else:
+                return self._is_symmetric
+        if self.is_Gamma0():
             self._is_symmetric = True
+            self._sym_perm = MyPermutation(length=self.index())            
         else:
             pS = self.permS
             pR = self.permS*self.permR**2*self.permS
@@ -633,8 +678,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             else:
                 self._is_symmetric = False
                 self._sym_perm = MyPermutation(length=self.index())
+        self._symmetry_map = self.permutation_action(self._sym_perm)
         if ret_map==1:
-            return self._is_symmetric,self._sym_perm
+            return self._is_symmetric,self._symmetry_map
         else:
             return self._is_symmetric
         
@@ -3031,9 +3077,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if p==0:
             WQ=SL2Z_elt(0,-1,1,0)
             A =Id 
-            l = self.level()
+            l = self.generalised_level()
             return (WQ,A,p,q,l)
-        N = self.level()
+        N = self.generalised_level()
         if self._verbose>0:
             print "p=",p
             print "q=",q
@@ -3064,7 +3110,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         #for Q in self._level.divisors():
         #    divs.append(Q)
-        for Q in self._level.divisors():
+        for Q in N.divisors():
             divs.append(-Q)
             #divs.append(-Q)
         res=[]
@@ -3073,7 +3119,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 print "Q=",Q
             c1 = Cusp(QQ(Q)/QQ(N)) #Cusp(QQ(Q)/QQ(N))
             c2 = Cusp(QQ(p)/QQ(q))
-            t,A=Cusp.is_gamma0_equiv(c1, c2, self._level, transformation='matrix')
+            t,A=Cusp.is_gamma0_equiv(c1, c2, N, transformation='matrix')
             if self._verbose>0:
                 #print "c1=",c1
                 #print "c2=",c2

@@ -24,7 +24,7 @@ from sage.rings.arith import divisors,gcd,inverse_mod
 from sage.modular.dirichlet import DirichletGroup
 from sage.rings.all import RR
 from sage.modular.arithgroup.all import Gamma0
-from sage.all import trivial_character,timeit,RealNumber,ComplexNumber,log,is_squarefree,prime_range,next_prime,deepcopy
+from sage.all import trivial_character,timeit,log,is_squarefree,prime_range,next_prime,deepcopy
 from maass_forms_alg import *
 from lpkbessel import *
 from automorphic_forms import *

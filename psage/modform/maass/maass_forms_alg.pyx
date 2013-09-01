@@ -695,7 +695,10 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv
         sage_free(ef1)
     if ef2_r<>NULL:
         for n in range(Ml):
-            sage_free(ef2_r[n])
+            if ef2_r[n]<>NULL:
+                for icusp in range(nc):
+                    sage_free(ef2_r[n][icusp])
+                sage_free(ef2_r[n])    
         sage_free(ef2_r)
     if ef2_c<>NULL:
         for n in range(Ml):
@@ -1712,9 +1715,9 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         Pick the correct method...
         """
         if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0: 
-            return get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
-        return get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,eps=1e-12)
-        
+            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
+        res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,eps=1e-12)
+        return res
             
 
 cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):

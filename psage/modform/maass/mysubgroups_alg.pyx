@@ -57,7 +57,6 @@ from sage.rings.rational cimport Rational
 from sage.rings.rational_field import QQ
 from sage.all import RR,ZZ,SL2Z,matrix
 from copy import deepcopy
-from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
 

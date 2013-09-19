@@ -43,7 +43,6 @@ from sage.modules.vector_integer_dense cimport Vector_integer_dense
 from sage.rings.integer cimport Integer
 import sage.combinat.permutation_cython
 from sage.combinat.permutation_cython cimport reset_swap,next_swap
-from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm

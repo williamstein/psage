@@ -106,7 +106,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     is_symmetric = kwds.get('is_symmetric')
     symmetry_map = kwds.get('symmetry_map')
     if isinstance(A,MySubgroup_class):
-        return MySubgroup_class(A.__dict__,**kwds)
+        return MySubgroup_class(data=A.__dict__,**kwds)
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().domain())
         s3 = MyPermutation(A.as_permutation_group().S3().domain())
@@ -132,6 +132,10 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     else:
         s2 = kwds.get("o2",None)
         s3 = kwds.get("o3",None)
+    is_symmetric = kwds.get('is_symmetric',None); symmetry_map = kwds.get('symmetry_map',None)
+    if hasattr(A,'__dict__'):
+        is_symmetric = A.__dict__.get('is_symmetric',is_symmetric)
+        symmetry_map = A.__dict__.get('symmetry_map',symmetry_map)
     if s2==None or s3==None:
         s2 = kwds.get("s2",None)
         s3 = kwds.get("s3",None)
@@ -216,12 +220,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
           
         """
-        if data<>{}:
-            self.init_group_from_dict(data,**kwds)
         self._verbose = verbose
-        self._is_Gamma0=kwds.get('is_Gamma0',None)
-        self._is_symmetric=kwds.get('is_symmetric')
-        self._symmetry_map = kwds.get('symmetry_map')        
         self._display_format = display_format
         self._level=kwds.get('level',None)
         if self._level<>None:
@@ -233,19 +232,33 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
         self._generators_as_slz_elts=[]
-        self.permT=None; self.permP=None
-        self._verbose=verbose
+        self._symmetrizable_cusp={}
+        self._cusp_normalizer_is_normalizer=None
+        self._vertices=None; self._vertex_data=None
+        self._cusps=None; self._nvertices=None
+        self._cusp_data=[]; self._vertex_widths=[]
+        self._vertex_maps=[]; self._cusp_maps=[]
+        self.permT=None; self.permP=None; self.permS=None; self.permR=None
+        self._coset_reps_v0 = None; self._coset_reps_v1 = None
+        self._nu2=None; self._nu3=None
+        self._ncusps=None; self._genus=None 
+        self._signature=None; self._verbose=verbose
+        self._is_Gamma0=kwds.get('is_Gamma0',None)
+        self._is_symmetric=kwds.get('is_symmetric')
+        self._symmetry_map = kwds.get('symmetry_map')        
         if self._verbose>1:
             print "o2=",o2
             print "o3=",o3
             print "str=",str
             print "is_Gamma0=",self._is_Gamma0
             print "kwds=",kwds
-        if o2<>None and o3<>None:
+        if data<>{}:
+            self.init_group_from_dict(data,**kwds)
+        elif o2<>None and o3<>None:
             self.init_group_from_permutations(o2,o3)
         else:
             raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)
-                
+        self._display_format = display_format                
         self._uid = self._get_uid()
         self.class_name='MySubgroup_class'            
 
@@ -406,7 +419,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if inplace==False:
             G = self.__class__(o2=self.permS,o3=self.permR)
-            return G.relabel(inplace=True,label_on=label_on)
+            G.relabel(inplace=True,label_on=label_on)
+            return G
         if label_on == 'R':
             super(MySubgroup_class,self).relabel(inplace=True)
             self.permS=MyPermutation([x+1 for x in self._S2])
@@ -476,7 +490,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "in init_from_perm"
             print "o2=",o2
             print "o3=",o3
-
+            if self._verbose>1:
+                print "dict=",self.__dict__
         if isinstance(o2,MyPermutation):            
             self.permS=o2
         else:
@@ -496,7 +511,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         l  = [i-1 for i in self.permT.list()]
         r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
-        self._is_congruence = super(MySubgroup_class,self).is_congruence()
+        if self._is_congruence == None:
+            self._is_congruence = super(MySubgroup_class,self).is_congruence()
 #         if self._is_congruence==True:
 #             #print "Adding level!"
 # #            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
@@ -512,9 +528,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if self._verbose>0:
             print "in init_from_dict"
         for key in data:
-            self.__dict__[key] = data[key]
+            if data[key]<>None:
+                self.__dict__[key] = data[key]
         for key in kwds:
-            self.__dict__[key] = kwds[key]            
+            if kwds[key]<>None:
+                self.__dict__[key] = kwds[key]            
 
     def get_data_from_group(self):
         if self._verbose>0:
@@ -527,25 +545,18 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 self._level = self._generalised_level
             else:
                 self._level = None            
-        self._coset_reps_v0 = None
-        self._coset_reps_v1 = None
-                                                         
         #self._coset_reps_list=copy(self._coset_reps)
         self._test_consistency_perm(self.permS,self.permR)
         self._nu2=num_fixed(self.permS.list())
         self._nu3=num_fixed(self.permR.list())
-        self._ncusps=None
-        self._genus=None 
-        self._signature=None
-        
         
         ## Get information about cusps and vertices
         l=self._get_all_cusp_data(self.coset_reps())
         self._vertices,self._vertex_data,self._cusps,self._cusp_data=l        
         self._nvertices=len(self._vertices)
-        self._vertex_widths=list()
-        self._vertex_maps=list()
-        self._cusp_maps=list()
+        #self._vertex_widths=list()
+        #self._vertex_maps=list()
+        #self._cusp_maps=list()
         for i in range(len(self._vertices)):
             wi = self._cusp_data[self._vertex_data[i]['cusp']]['width']
             self._vertex_widths.append(wi)
@@ -558,7 +569,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         # We might also want to see which cusps are simultaneously
         # symmetrizable with respect to reflection in the imaginary axis 
-        self._symmetrizable_cusp=dict()
+        #self._symmetrizable_cusp=dict()
 
         ## Then we chek if the cusps are symmetrizable in the sense that the normalizing maps
         ## are normalizers of the group.
@@ -567,7 +578,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._cusp_normalizer_is_normalizer={0: (1,1) }# The first map is just the identity
         for j in range(1,self.ncusps()):
             d=self.cusp_normalizer_is_normalizer(j,1)
-
+        if self._verbose>1:
+            print "inited from group, dict=",self.__dict__
 
     def index(self):
         if self._index == None:
@@ -666,11 +678,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     self._is_Gamma0=False 
         return self._is_Gamma0
     
-    def is_symmetric(self,ret_map=0,verbose=0):
+    def is_symmetric(self,ret_map=0,recompute=False,force_check=False,verbose=0):
         r"""
-        Check if self has a reflectional symmetry, i.e. check that 
+        Check if self has a reflectional symmetry, i.e. check that G^* is conjugate to G
         """
-        if self._is_symmetric <>None:
+        if self._is_symmetric <>None and recompute==False:
             if ret_map==1:
                 return self._is_symmetric,self._symmetry_map
             else:
@@ -679,18 +691,52 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._is_symmetric = True
             self._sym_perm = MyPermutation(length=self.index())            
         else:
-            pS = self.permS
-            pR = self.permS*self.permR**2*self.permS
-            ## Now have to see if (pS,pR) is conjugate to (self.permS,self.permR)
-            ## by a permutation fixing 1
-            t,p = are_mod1_equivalent(self.permS,self.permR,pS,pR,verbose=verbose)
-            if t==1:
+            # Do a generic test. First simply check if G^*=G
+            t = [ SL2Z_elt(x.a(),-x.b(),-x.c(),x.d()) in self for x in self.gens()].count(False)
+            self._sym_perm = None
+            if t==0:
                 self._is_symmetric = True
-                self._sym_perm = p
-            else:
-                self._is_symmetric = False
                 self._sym_perm = MyPermutation(length=self.index())
-        self._symmetry_map = self.permutation_action(self._sym_perm)
+                self._symmetry_map = SL2Z_elt(1,0,0,1)            
+            if self._sym_perm == None:
+                # Then see if it conjugate via some map A which is not identity
+                # A = S:
+                t = [ SL2Z_elt(x.d(),x.c(),x.b(),x.a()) in self for x in self.gens()].count(False)
+                if t == 0:
+                    self._is_symmetric = True
+                    self._sym_perm = self.permS
+                    self._symmetry_map = SL2Z_elt(0,-1,1,0)
+            if self._sym_perm == None: 
+                # A = T^n
+                if verbose>0:
+                    print "Checking symmetry with conjugation of T^n!"
+                for n in range(1,self.generalised_level()+1):
+                    t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
+                    if t == 0:
+                        self._is_symmetric = True
+                        self._sym_perm = self.permT**n
+                        self._symmetry_map = SL2Z_elt(1,n,0,1)
+                        if verbose>0:
+                            print "is symmetric with T^{0}".format(n)
+                        break
+            if self._sym_perm == None and force_check==True:
+                if verbose>0:
+                    print "Checking symmetry with conjugation of general maps!"
+                # Check if we are symmetric with some other map
+                # Since this might take long time we only do this if explicitly told to... 
+                pS = self.permS
+                pR = self.permS*self.permR**2*self.permS
+                ## Now have to see if (pS,pR) is conjugate to (self.permS,self.permR)
+                ## by a permutation fixing 1
+                t,p = are_mod1_equivalent(self.permS,self.permR,pS,pR,verbose=verbose)
+                if t==1:
+                    self._is_symmetric = True
+                    self._sym_perm = p
+                else:
+                    self._is_symmetric = False
+                    self._sym_perm = MyPermutation(length=self.index())
+            if self._symmetry_map == None and isinstance(self._sym_perm,MyPermutation):
+                self._symmetry_map = self.permutation_action(self._sym_perm)
         if ret_map==1:
             return self._is_symmetric,self._symmetry_map
         else:
@@ -793,6 +839,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Note: If self is a G amma_0(l) then A[1,1]==1 mod l
 
         """
+        if j not in self._cusp_data:
+            raise ValueError,"{0} is not the index of a cusp! ".format(j)
         if not self._symmetrizable_cusp.has_key(j):
             a,b,c,d=self._cusp_data[j]['normalizer']
             self._symmetrizable_cusp[j]=0

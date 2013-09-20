@@ -137,17 +137,18 @@ cpdef eval_maass_lp(F,x,y):
     Evaluate a Maass form
     """
     cdef float R = <float>F._R
-    cdef float Y = <float>F._group.minimal_height()
+    cdef float Y = <float>F.group().minimal_height()
     cdef float xx=<float>x
     cdef float yy=<float>y
-    RF=RealField(F._prec)
-    G=F._group
+    cdef int a,b,c,d
+    RF=RealField(F.prec())
+    G=F.group()
     # pullback
-    x1,y1,Tw =  G.pullback(x,y)
+    x1,y1,a,b,c,d =  G.pullback(x,y)
     print "pullback=",x1,y1
     v = G.closest_vertex(x1,y1)
     cj= G._vertex_data[v]['cusp'] #representative[v]
-    cdef int cjj= G._cusps.index(cj)
+    cdef int cjj= G._cusps[cj]
     a,b,c,d=G._vertex_data[v]['map']
     if a<>1 or b<>0 or c<>0 or d<>1:
         print "apply map :",a,b,c,d
@@ -168,13 +169,66 @@ cpdef eval_maass_lp(F,x,y):
             term=sqrt(y)*besselk_dp(R,ary*n)*fun(arx*n)
             res=res+F.coeffs[cjj][n]
     else:
-        arx=CC(twopi*x3*I)
+        arx=twopi*x3
         ary=twopi*y3
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*exp(arx*n)
+            term=besselk_dp(R,ary*n)*cexpi(arx*n)
             res=res+F.coeffs[cjj][n]*term
     ## we have trivial character here...
     return res
+
+
+cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):
+    r"""
+    Evaluate a Maass form on a set of nx equally distributed points z=x_i + iy
+    """
+    cdef double  xx
+    cdef double yy=<float>y
+    cdef double h
+    twopi=2.0*M_PI
+    h = float(x1-x0)/float(nx-1)
+    cdef double* kbvec, *coeffs
+    kbvec = <double*>sage_malloc(nx*sizeof(double))
+    kbvec[0] = 0
+    coeffs = <double*>sage_malloc(nx*sizeof(double))
+    ary=twopi*yy
+    arx=twopi*xx
+    for n in range(1,M0):
+        kbvec[n]=sqrt(y)*besselk_dp(R,ary*n)
+    cdef double tmp = 0
+    cdef list res
+    res = []
+    cdef double complex tmpc 
+    if sym_type  == 1:
+        for i in range(0,nx):
+            xx = x0+i*h
+            arx = twopi*xx
+            tmp = 0
+            for n in range(1,M0):
+                tmp  += C[n].real_part()*kbvec[n]*cos(arx*n)
+            res.append(tmp)
+    elif  sym_type  == -1:
+        for i in range(nx):
+            xx = x0+i*h
+            arx = twopi*xx
+            tmp = 0
+            for n in range(1,M0):
+                tmp  += C[n].real_part()*kbvec[n]*sin(arx*n)
+            res.append(tmp)
+    else:
+        for i in range(nx):
+            xx = x0+i*h
+            arx = CC(0,twopi*xx)
+            tmpc = 0
+            for n in range(1,M0):
+                tmpc  += C[n]*kbvec[n]*exp(arx*n)
+            res.append(tmp)
+
+    ## we have trivial character here...
+    return res
+
+
+
 
 cpdef whittaker_w_dp(double k,double R,double Y,int pref=0):
     rarg = mpmath.mp.mpc(0,R)

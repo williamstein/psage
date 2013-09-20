@@ -196,7 +196,7 @@ class AutomorphicFormSpace(Parent):
         # And then the multiplier system, which should be an instance of MultiplierSystem or Subclass thereof, or None.
         if isinstance(character,sage.modular.dirichlet.DirichletCharacter):
             self._character = character
-        elif is_int(character) and self._group.is_congruence():
+        elif is_int(character) and self._group.is_Gamma0():
             DG = DirichletGroup(self._group.level())
             if character >0 and character <len(DG): 
                 self._character = DG[character]

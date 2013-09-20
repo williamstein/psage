@@ -1029,7 +1029,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         """
         l=[]
-        for x in self.list():
+        for x in self:
             y = c*x
             if y==self(0):
                 l.append(x)

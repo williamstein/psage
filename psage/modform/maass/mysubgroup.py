@@ -2140,7 +2140,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if c[1]<>0:
                     self._cusps_as_cusps.append(Cusp(QQ(c[0])/QQ(c[1])))
                 else:
-                    self._cusps_as_cusps.append(Cusp(Infinity))
+                    self._cusps_as_cusps.append(Cusp(1,0))
         return self._cusps_as_cusps
 
     def vertices(self):
@@ -2152,7 +2152,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if c[1]<>0:
                     self._vertices_as_cusps.append(Cusp(QQ(c[0])/QQ(c[1])))
                 else:
-                    self._vertices_as_cusps.append(Cusp(Infinity))
+                    self._vertices_as_cusps.append(Cusp(1,0))
         return self._vertices_as_cusps
 
     def nvertices(self):
@@ -2329,7 +2329,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.cusp_normalizer(Cusp(-1/2))
             [-1  0]
             [ 2 -1]
-            sage: G.cusp_normalizer(Cusp(Infinity))
+            sage: G.cusp_normalizer(Cusp(1,0))
             [1 0]
             [0 1]
 
@@ -2491,7 +2491,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         #     x0=-1 ; x1=1 ; y0=-1 ; y1=1 
         # else:
         #     # find the width of the fundamental domain
-        #     w=0  #self.cusp_width(Cusp(Infinity))
+        #     w=0  #self.cusp_width(Cusp(1,0))
         #     wmin=0 ; wmax=1 
         #     for V in self.coset_reps():
         #         if V[2]==0  and V[0]==1:
@@ -3450,7 +3450,7 @@ class HeckeTriangleGroup(SageObject):
         self._coset_reps = [1]
         self._vertices   = [(1,0)]  # List of vertices corresponding to the coset reps.
         self._cusps      = [(1,0)] # Subset of representatives
-        self._cusps_as_cusps=[Cusp(Infinity)]
+        self._cusps_as_cusps=[Cusp(1,0)]
         self._S=None
         self._R=None
         self._T=None

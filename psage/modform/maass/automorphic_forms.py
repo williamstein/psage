@@ -197,7 +197,7 @@ class AutomorphicFormSpace(Parent):
         if isinstance(character,sage.modular.dirichlet.DirichletCharacter):
             self._character = character
         elif is_int(character) and self._group.is_Gamma0():
-            DG = DirichletGroup(self._group.level())
+            DG = DirichletGroup(self.level())
             if character >0 and character <len(DG): 
                 self._character = DG[character]
             else:
@@ -433,8 +433,11 @@ class AutomorphicFormSpace(Parent):
     def level(self):
         r""" Return the level of self (if self.group is a congruence subgroup).
         """
-        return self._group.level()
-    
+        if not self._group.is_congruence():
+            raise ValueError,"Level is only defined for congruence subgroups!"
+        return self._group.generalised_level()
+
+        
     def rep(self,A):
         r"""
         Calculate the representation = multiplier (including character) of self on the matrix A
@@ -535,7 +538,7 @@ class AutomorphicFormSpace(Parent):
         r"""
         Use Cohen and Oesterle to compute the difference: dim(S_k)-dim(M_{2-k})
         """
-        N = self._group.level()
+        N = self._group.generalised_level()
         cond = self._character.conductor()
         #k = QQ(RR(self._weight)) 
         kk = ZZ(k - QQ(1)/QQ(2))
@@ -636,7 +639,7 @@ class AutomorphicFormSpace(Parent):
         """
         if self._dimension>=0:
             return self._dimension
-        if self._weight < 2 or self._group.level()<>1:
+        if self._weight < 2 or self.level()<>1:
             return -1
         if hasattr(self._multiplier,"dimension_cusp_forms"):
             if self._cuspidal:
@@ -1148,7 +1151,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
                 cuspidal=False
             # by default we go to Gamma0(4N)
             multiplier="theta"
-            G=MySubgroup(Gamma0(4*G.level()))
+            G=MySubgroup(Gamma0(4*G.generalised_level()))
             print "Initializing through Shimura corr!"
         if(isinstance(G,MySubgroup_class)):
             self._group=G
@@ -1163,7 +1166,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
             raise ValueError,"Did not get a group G={0}".format(G)
         if multiplier=="theta":
             if isinstance(self._character,int):
-                modulus = self._group._level; ch = self._character
+                modulus = self.level(); ch = self._character
             elif isinstance(self._character,tuple):
                 modulus,ch=self._character
             multiplier=ThetaMultiplier(self._group,dchar=(modulus,ch),weight=weight)
@@ -1188,15 +1191,15 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         if construct:
             if character==None:
                 try:
-                    s="HalfIntegralWeightForms("+str(self._group.level())+","+str(QQ(weight))+")"
+                    s="HalfIntegralWeightForms("+str(self.level())+","+str(QQ(weight))+")"
                     self._magma_space=magma.new(s)
                 except TypeError,RuntimeError:
                     pass
             else:
                 try:
                     ## Want to find the corresponding magma character
-                    D1 = DirichletGroup(self._group.level())
-                    s = "DirichletGroup("+str(self._group.level())+")"
+                    D1 = DirichletGroup(self.level())
+                    s = "DirichletGroup("+str(self.level())+")"
                     Dm = magma.new(s)
                     magma_index_char=-1
                     # print "my vals=",character.values()
@@ -1204,7 +1207,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
                         x = Dm.Elements()[j]
                         # print "x.vals=",x.ValueList()
                         try:
-                            for i in range(self._group.level()):
+                            for i in range(self.level()):
                                 if(x(i)<>character(i)):
                                     raise StopIteration()
                                 # if we are here we have found the correct characte
@@ -1216,7 +1219,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
                     if(magma_index_char>=0):
                         i = magma_index_char
                         s="HalfIntegralWeightForms(Elements(DirichletGroup("
-                        s=s+str(self._group.level())+"))["+str(i)+"],"+str(QQ(weight))+")"
+                        s=s+str(self.level())+"))["+str(i)+"],"+str(QQ(weight))+")"
                         print "S=",s 
                         self._magma_space=magma.new(s)
                     else:
@@ -1228,7 +1231,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
             w_minus_half=QQ(RR(weight))-QQ(1)/QQ(2)
             k=2*ZZ(w_minus_half)
             if(self._shimura_image==None and weight >1):
-                N=ZZ(self._group.level()/4)
+                N=ZZ(self.level()/4)
                 #
                 # print "wt=",weight,type(weight)
                 if character==None or (character**2).is_trivial():
@@ -1750,6 +1753,7 @@ class AutomorphicFormElement(SageObject):
         #    raise TypeError,"Need an element of AutomorphicFormSpace. got %s" %M
         if M._verbose>1:
             print "MM=",M
+            print "dim=",M._rdim
         if(not hasattr(M,"_is_automorphic_form_space")):
              raise TypeError,"Need an element of AutomorphicFormSpace. got %s" %M
         if(C <> None):
@@ -2795,7 +2799,7 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
                 weight=QQ(2)-QQ(G.weight())
                 x=G.character()
                 if x.is_trivial():
-                    character=trivial_character(self._group.level())
+                    character=trivial_character(self.level())
                 elif(isinstance(x,sage.modular.dirichlet.DirichletCharacter)):
                     if(x.order()<=2):
                         character=x
@@ -2815,8 +2819,8 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
             if is_int(weight):
                 multiplier=TrivialMultiplier(self._group)
             else:
-                if(self._group.level() % 4 <>0):
-                    raise ValueError," Need level divisible by 4. Got:%s " % self._group.level()
+                if(self.level() % 4 <>0):
+                    raise ValueError," Need level divisible by 4. Got:%s " % self.level()
                 #if ( int(2*weight) % 4 == 1):
                 multiplier=ThetaMultiplier(self._group,weight=weight)
                 #else:
@@ -4320,7 +4324,7 @@ def _set_character(character):
     elif isinstance(character,sage.modular.dirichlet.DirichletCharacter) or isinstance(character,function):
         pass
     elif is_int(character):
-        self._character=DirichletGroup(self._group.level()).list()[character]
+        self._character=DirichletGroup(self.level()).list()[character]
     else:
         raise TypeError," Got an unknown character : %s " % character
     return character

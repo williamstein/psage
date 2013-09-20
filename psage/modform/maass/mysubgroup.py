@@ -246,6 +246,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._is_Gamma0=kwds.get('is_Gamma0',None)
         self._is_symmetric=kwds.get('is_symmetric')
         self._symmetry_map = kwds.get('symmetry_map')        
+        self._vertices_as_cusps = []
         if self._verbose>1:
             print "o2=",o2
             print "o3=",o3
@@ -2176,6 +2177,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.cusp_width(Cusp(0))
             4
         """
+        if isinstance(cusp,(int,Integer)):
+            return self._cusp_data[j]['width']
         p=None; q=None
         if isinstance(cusp,Cusp):        
             p=cusp.numerator(); q=cusp.denominator()
@@ -2214,6 +2217,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1  0], 4, 1)
 
         """
+        if isinstance(cusp,(int,Integer)):
+            c = Cusp(self._cusps[c])
+            
         c,A=self.cusp_representative(c,transformation='matrix')
         p = c.numerator(); q = c.denominator()
         if (p,q) not in self._cusps:
@@ -2397,8 +2403,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
         """
-        if self.is_congruence():
-            l=self.level()
+        if self.is_Gamma0():
+            l=self.generalised_level()
             if self.is_Gamma0():
                 return RR(sqrt(3.0))/RR(2*l)
         # For all other groups we have have to locate the largest width
@@ -3014,7 +3020,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
     def is_Hecke_triangle_group(self):
-        if self.is_Gamma0() and self.level()==1:
+        if self.is_Gamma0() and self.generalised_level()==1:
             return True
         else:
             return False

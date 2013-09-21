@@ -141,9 +141,10 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         s3 = kwds.get("s3",None)
     if s2==None or s3==None:
         raise ValueError,"Could not construct subgroup from input!"
+    reps_from_farey = kwds.get('farey',None)
     if is_Gamma0:
-        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,is_symmetric=1,symmetry_map=SL2Z_elt(1,0,0,1))
-    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level,is_symmetric=is_symmetric,symmetry_map=symmetry_map)
+        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,is_symmetric=1,symmetry_map=SL2Z_elt(1,0,0,1),reps_from_farey=reps_from_farey)
+    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level,is_symmetric=is_symmetric,symmetry_map=symmetry_map,reps_from_farey=reps_from_farey)
 
 
 class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
@@ -240,9 +241,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._vertex_maps=[]; self._cusp_maps=[]
         self.permT=None; self.permP=None; self.permS=None; self.permR=None
         self._coset_reps_v0 = None; self._coset_reps_v1 = None
+        self._coset_reps_v2 = None
         self._nu2=None; self._nu3=None
         self._ncusps=None; self._genus=None 
         self._signature=None; self._verbose=verbose
+        self._reps_from_farey = kwds.get('reps_from_farey',None)
         self._is_Gamma0=kwds.get('is_Gamma0',None)
         self._is_symmetric=kwds.get('is_symmetric')
         self._symmetry_map = kwds.get('symmetry_map')        
@@ -462,6 +465,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         ## The simplest way to do this is simply to reset the lists.
         self._coset_reps_v0 = None
         self._coset_reps_v1 = None
+        self._coset_reps_v2 = None
         # if self._coset_reps_v0<>None or self._coset_reps_v1<>None:
         #     reps_values = [self.permutation_action(x)(1) for x in self.coset_reps()]
         #     reps_indices= [reps_values.index(x+1) for x in range(self.index())]
@@ -1005,6 +1009,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1 -2]]
     
         """
+        if self._verbose>0:
+            print "In get_coset_reps from G"
         if self.is_Gamma0():
             return self._get_coset_reps_from_Gamma0N()
         cl=list()
@@ -1093,6 +1099,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         return cl
 
     def _get_coset_reps_from_Gamma0N(self):
+        if self._verbose>0:
+            print "In get_coset_reps from Gamma0(N)"
         cl=list()
         S=SL2Z_elt(0,-1,1,0)
         T=SL2Z_elt(1,1,0,1)
@@ -1204,6 +1212,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1 -2]]
     
         """
+        if self._verbose>0:
+            print "In get_coset_reps from G_2"
         cl=list()
         lvl=G.generalised_level()
         # Start with identity rep.
@@ -1604,6 +1614,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1  0]]
 
         """
+        if self._verbose>0:
+            print "in coset_reps: farey = ",self._reps_from_farey
+        if self._reps_from_farey:
+            version = 2
         if version==0:
             if self._coset_reps_v0==None:
                 self._coset_reps_v0 = self._get_coset_reps_from_perms() #self.permS,self.permR)
@@ -1612,6 +1626,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             if self._coset_reps_v1==None:
                 self._coset_reps_v1 = super(MySubgroup_class,self).coset_reps()
             return self._coset_reps_v1
+        elif version==2:
+            if self._coset_reps_v2==None:
+                self._coset_reps_v2 = []
+                for A in self.farey_symbol().coset_reps():
+                    self._coset_reps_v2.append(SL2Z_elt(A.d(),-A.b(),-A.c(),A.a()))
+            return self._coset_reps_v2
         else:
             raise NotImplementedError
 
@@ -1729,7 +1749,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in,ret_mat=1,prec=201):
+    def pullback(self,x_in,y_in,ret_mat=1,prec=201,**kwds):
         r""" Find the pullback of a point in H to the fundamental domain of self
         INPUT:
 
@@ -2449,9 +2469,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         from sage.plot.colors import rainbow
         L = 1000
         if options['method']=='Farey':
-            coset_reps = map(lambda x: SL2Z_elt(x[0,0],x[0,1],x[1,0],x[1,1]), self.farey_symbol().coset_reps())
+            version = 2
         else:
-            coset_reps = self.coset_reps()
+            version = options.pop('version',0)
+            #coset_reps = map(lambda x: SL2Z_elt(x[1,1],-x[0,1],-x[1,0],x[0,0]), self.farey_symbol().coset_reps())
+            #else:
+        coset_reps = self.coset_reps(version=version)
         model = options['model']
         verbose = options.get('verbose',0)
         if model=="D2":
@@ -2700,7 +2723,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     t,A=Cusp(pp,qq).is_gamma0_equiv(Cusp(v),1,transformation='matrix')
                     if self._verbose>0:
                         print "are eq:",Cusp(pp,qq),Cusp(v)
-                        print "A=",A
+                        print "A=",A,type(A)
+                        
                     if t==1 and A in self:
                         a,b,c,d=A
                         cii=cusps.index((pp,qq))
@@ -2900,13 +2924,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201):
+    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201,farey=False):
         r""" Find the pullback of a point in H to the fundamental domain of self
         INPUT:
 
          - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
          - ''prec''      -- (default 201) precision in bits
          - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
+         - 'farey' -- Boolean. Set to True if pull back to the Farey symbol domain.
         OUTPUT:
         
          - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
@@ -2959,7 +2984,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             except TypeError as er:
                 raise TypeError,"Could not get point in upper half-plane from {0}! {1}!".format(x_in,er)
 
-        if self._is_Gamma0:
+        if self._is_Gamma0 and not farey:
             if use_dp:
                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
             elif use_mpfr:
@@ -2969,8 +2994,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             a,b,c,d=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(a,b,c,d) #.matrix()
+            if farey:
+                reps = self.coset_reps(version=2)
+            else:
+                reps = self.coset_reps()
             try:
-                for V in self._coset_reps_v0:
+                for V in reps:
                     B=V*A
                     if B in self:
                         raise StopIteration

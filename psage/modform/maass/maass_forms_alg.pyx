@@ -46,7 +46,7 @@ from sage.modular.cusps import Cusp
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer,is_Integer
 from sage.rings.complex_double import CDF
-from sage.all import log_b
+from sage.all import log_b,RR
 from numpy import array
 from sage.all import exp,I,CC
 from sage.all import find_root
@@ -132,7 +132,7 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 
 from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par
 
-cpdef eval_maass_lp(F,x,y,int fi=0,int use_pb=1):
+cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
     r"""
     Evaluate a Maass form
     """
@@ -149,39 +149,39 @@ cpdef eval_maass_lp(F,x,y,int fi=0,int use_pb=1):
     if use_pb == 1:
         x1,y1,a,b,c,d =  G.pullback(x,y)
         #print "pullback=",x1,y1
-        v = G.closest_vertex(x1,y1)
-        cj= G._vertex_data[v]['cusp'] #representative[v]
-        a,b,c,d=G._vertex_data[v]['cusp_map']
-        if a<>1 or b<>0 or c<>0 or d<>1:
-            #print "apply map :",a,b,c,d
-            x2,y2 = apply_sl2z_map_mpfr(RF(x),RF(y),a,b,c,d)
-        else:
-            x2=x1;y2=y1
-        ca,cb = G._cusps[cj]
+        #v = G.closest_vertex(x1,y1)
+        #cj= G._vertex_data[v]['cusp'] #representative[v]
+        #a,b,c,d=G._vertex_data[v]['cusp_map']
+        #if a<>1 or b<>0 or c<>0 or d<>1:
+        #    #print "apply map :",a,b,c,d
+        #    x2,y2 = apply_sl2z_map_mpfr(RF(x),RF(y),a,b,c,d)
+        #else:
+        #    x2=x1;y2=y1
+        #ca,cb = G._cusps[cj]
     else:
-        x2 = x; y2 = y
+        x1 = x; y1 = y
         ca=1; cb=0; cj=0
-    [x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+    #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     res=0
     twopi=RF(2)*RF.pi()
     if F._sym_type in [0,1]:
-        if F._sym_type==1:
+        if F._sym_type==0:
             fun=cos
-        elif F._sym_type==0:
+        elif F._sym_type==1:
             fun=sin
-        arx=twopi*x3
-        ary=twopi*y3
+        arx=twopi*x1
+        ary=twopi*y1
         for n in range(1,F._M0):
-            term=sqrt(y)*besselk_dp(R,ary*n)*fun(arx*n)
+            term=sqrt(y1)*besselk_dp(R,ary*n)*fun(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
     else:
-        arx=twopi*x3
-        ary=twopi*y3
+        arx=twopi*x1
+        ary=twopi*y1
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*cexpi(arx*n)
+            term=sqrt(y1)*besselk_dp(R,ary*n)*cexpi(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
     ## we have trivial character here...
-    return res
+    return res*exp(RR.pi()*R*0.5)
 
 
 cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):

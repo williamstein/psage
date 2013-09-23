@@ -557,6 +557,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         
         ## Get information about cusps and vertices
         l=self._get_all_cusp_data(self.coset_reps())
+        if self._verbose>0:
+            print "coset_reps=",self.coset_reps()
         self._vertices,self._vertex_data,self._cusps,self._cusp_data=l        
         self._nvertices=len(self._vertices)
         #self._vertex_widths=list()
@@ -1624,7 +1626,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return self._coset_reps_v0
         elif version==1:
             if self._coset_reps_v1==None:
-                self._coset_reps_v1 = super(MySubgroup_class,self).coset_reps()
+                self._coset_reps_v1 = []
+                for A in super(MySubgroup_class,self).coset_reps():
+                    self._coset_reps_v1.append(SL2Z_elt(A.a(),A.b(),A.c(),A.d()))
+   
             return self._coset_reps_v1
         elif version==2:
             if self._coset_reps_v2==None:
@@ -1749,75 +1754,77 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in,ret_mat=1,prec=201,**kwds):
-        r""" Find the pullback of a point in H to the fundamental domain of self
-        INPUT:
+    # def pullback(self,x_in,y_in,ret_mat=1,prec=201,**kwds):
+    #     r""" Find the pullback of a point in H to the fundamental domain of self
+    #     INPUT:
 
-         - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
-         - ''prec''      -- (default 201) precision in bits
-         - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
-        OUTPUT:
+    #      - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
+    #      - ''prec''      -- (default 201) precision in bits
+    #      - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
+    #     OUTPUT:
         
-         - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
-                           xpb and ypb are complex numbers with precision prec 
-        EXAMPLES::
+    #      - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
+    #                        xpb and ypb are complex numbers with precision prec 
+    #     EXAMPLES::
 
 
-            sage: S=SymmetricGroup(6)
-            sage: pS=S([2,1,4,3,6,5])
-            sage: pR=S([3,1,2,5,6,4])
-            sage: G=MySubgroup(o2=pS,o3=pR)
-            sage: [x,y,B]=G.pullback(0.2,0.5,53); x,y;B
-            (-0.237623762376238, 0.123762376237624)
-            [-1  0]
-            [ 4 -1]
-            sage: (B**-1).acton(x+I*y)
-            0.200000000000000 + 0.500000000000000*I
+    #         sage: S=SymmetricGroup(6)
+    #         sage: pS=S([2,1,4,3,6,5])
+    #         sage: pR=S([3,1,2,5,6,4])
+    #         sage: G=MySubgroup(o2=pS,o3=pR)
+    #         sage: [x,y,B]=G.pullback(0.2,0.5,53); x,y;B
+    #         (-0.237623762376238, 0.123762376237624)
+    #         [-1  0]
+    #         [ 4 -1]
+    #         sage: (B**-1).acton(x+I*y)
+    #         0.200000000000000 + 0.500000000000000*I
 
 
-        """
-        #x=deepcopy(x_in); y=deepcopy(y_in)
-        if self.is_Gamma0():
-            if isinstance(x_in,float):
-                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
-            elif isinstance(x_in,Expression):
-                prec=round(RR(len(str(x_in).split(".")[1])/log_b(2,10)))
-                RF=RealField(prec)
-                x=RF(x_in); y=RF(y_in)
-                if prec<=53:
-                    xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
-                else:
-                    xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
-            else:
-                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x_in,y_in)
-            if ret_mat==1:
-                return xpb,ypb,SL2Z_elt(a,b,c,d)
-            else:
-                return xpb,ypb,int(a),int(b),int(c),int(d)
-        else:
-            A=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
-            A=SL2Z_elt(A) #.matrix()
-            try:
-                for V in self._coset_reps_v0:
-                    B=V*A
-                    if B in self:
-                        raise StopIteration
-            except StopIteration:            
-                pass
-            else:
-                raise ArithmeticError,"Did not find coset rep. for A=%s" % A
-            #if ret_int==1:
-            #    a,b,c,d=B[0,0],B[0,1],B[1,0],B[1,1]
-            if isinstance(x_in,float):
-                xpb,ypb=apply_sl2z_map_dp(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
-            else:
-                xpb,ypb=apply_sl2z_map_mpfr(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
+    #     """
+    #     #x=deepcopy(x_in); y=deepcopy(y_in)
+    #     version = kwds.get('version',0)
+    #     if self.is_Gamma0() and version == 0:
+    #         if isinstance(x_in,float):
+    #             xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
+    #         elif isinstance(x_in,Expression):
+    #             prec=round(RR(len(str(x_in).split(".")[1])/log_b(2,10)))
+    #             RF=RealField(prec)
+    #             x=RF(x_in); y=RF(y_in)
+    #             if prec<=53:
+    #                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
+    #             else:
+    #                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
+    #         else:
+    #             xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x_in,y_in)
+    #         if ret_mat==1:
+    #             return xpb,ypb,SL2Z_elt(a,b,c,d)
+    #         else:
+    #             return xpb,ypb,int(a),int(b),int(c),int(d)
+    #     else:
+    #         A=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
+    #         A=SL2Z_elt(A) #.matrix()
+    #         reps = self.coset_reps(version)
+    #         try:
+    #             for V in reps:
+    #                 B=V*A
+    #                 if B in self:
+    #                     raise StopIteration
+    #         except StopIteration:            
+    #             pass
+    #         else:
+    #             raise ArithmeticError,"Did not find coset rep. for A=%s" % A
+    #         #if ret_int==1:
+    #         #    a,b,c,d=B[0,0],B[0,1],B[1,0],B[1,1]
+    #         if isinstance(x_in,float):
+    #             xpb,ypb=apply_sl2z_map_dp(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
+    #         else:
+    #             xpb,ypb=apply_sl2z_map_mpfr(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
 
 
-            if ret_mat==1:
-                return xpb,ypb,B.matrix()
-            else:
-                return xpb,ypb,B[0,0],B[0,1],B[1,0],B[1,1]
+    #         if ret_mat==1:
+    #             return xpb,ypb,B.matrix()
+    #         else:
+    #             return xpb,ypb,B[0,0],B[0,1],B[1,0],B[1,1]
     def is_congruence(self):
         r""" Is self a congruence subgroup or not?
 
@@ -2467,30 +2474,42 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if options['show_pairing'] and not options['method']=='Farey':
             raise NotImplementedError,"Pairings are only implemented for Farey symbols."
         from sage.plot.colors import rainbow
+        from plot_dom import HyperbolicTriangle
+        
         L = 1000
-        if options['method']=='Farey':
-            version = 2
-        else:
-            version = options.pop('version',0)
-            #coset_reps = map(lambda x: SL2Z_elt(x[1,1],-x[0,1],-x[1,0],x[0,0]), self.farey_symbol().coset_reps())
-            #else:
+        #if options['method']=='Farey':
+        #    version = 2
+        #else:
+        ret_domain = options.pop('domain',False)
+        countour_only= options.pop('contour',False)
+        version = options.pop('version',0)
+        #coset_reps = map(lambda x: SL2Z_elt(x[1,1],-x[0,1],-x[1,0],x[0,0]), self.farey_symbol().coset_reps())
+        #else:
         coset_reps = self.coset_reps(version=version)
         model = options['model']
         verbose = options.get('verbose',0)
+        if verbose>0:
+            print "options=",options
         if model=="D2":
             g=draw_funddom_d(coset_reps,format,I)
         else:
             g = Graphics()
             A0 = CC(-0.5,sqrt(3.)/2)
             B0 = CC(0.5,sqrt(3.)/2)
-            C0 = CC(0,L)
+            if model == 'D':
+                C0 = CC(infinity)
+            else:
+                C0 = CC(0,L)
             for x in coset_reps:
                 #a, b, c, d = x[3], -x[1], -x[2], x[0]
                 A,B = [x.acton(z) for z in [A0,B0]]
-                if x[2]<>0:
-                    C = CC(x[0]/x[2],0)
+                if x.c()<>0:
+                    C = CC(RR(x.a())/RR(x.c()),0)
                 else:
-                    C = CC( (A.real()+B.real())*0.5,L)
+                    if model == 'D':
+                        C = CC(infinity)
+                    else:
+                        C = CC( (A.real()+B.real())*0.5,L)
                 if verbose>0:                    
                     print "coset rep=",x
                     print "Triangle: ({0},{1},{2})".format(A,B,C)
@@ -2500,51 +2519,94 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                              alpha=options['alpha'], \
                                              model=model)
                 
-                if options['show_tesselation']:
-                    g += my_hyperbolic_triangle(A, B, C, color="gray",
-                                               model=model)
+                if model=='H' and options['show_tesselation']:
+                    g += my_hyperbolic_triangle(A, B, C, color="gray",fill=True,
+                                                model=model)
+        if countour_only==True:
+            # Remove interior arcs from path...
+            print "Removing interior arcs:"
+            if model == 'H' or model == 'D':
+                n = len(g)
+                for j in range(n-1,-1,-1):
+                    if not hasattr(g[j],"path"):
+                        continue
+                    path0 = g[j].path
+                    path1 = []
+                    path_has_interior_pts = False
+                    #print "Checking path=",path0
+                    for p in path0:
+                        p0 = copy(p)
+                        for i in range(len(p)):
+                            x = CC(p[i])
+                            #print "x(orig)=",x,abs(x)==1.0
+                            if model == 'D':
+                                if abs(abs(x)-1.0)<1e-12:
+                                    continue
+                                x = CC(0,1)*(CC(x)+CC(1,0))/(CC(1,0)-CC(x))
+                            #print "x=",x
+                            if self.is_interior_point(x,version=version):
+                                path_has_interior_pts = True
+                                #print "point is interior!"
+                                break
+                                #del(p0[i])
+                        #path1.append(p0)
+                    if path_has_interior_pts:
+                        #new_prim = deepcopy(g[j])
+                        #new_prim.path = path1
+                        #print "removing path:",g[j]
+                        del(g[j])
+                        #print "adding path:",new_prim
+                        #g.add_primitive(new_prim)
+
         d = g.get_minmax_data()
         if model=='H':
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
         else:
-            g+=circle((0,0),1)
+            if not ret_domain:
+                g+=circle((0,0),1)
             g.set_axes_range(-1, 1, -1, 1)    
-
-            
-
-
-      # if axes<>None:
-        #     [x0,x1,y0,y1]=axes
-        # elif model=="D":
-        #     x0=-1 ; x1=1 ; y0=-1 ; y1=1 
-        # else:
-        #     # find the width of the fundamental domain
-        #     w=0  #self.cusp_width(Cusp(1,0))
-        #     wmin=0 ; wmax=1 
-        #     for V in self.coset_reps():
-        #         if V[2]==0  and V[0]==1:
-        #             if V[1]>wmax:
-        #                 wmax=V[1]
-        #             if V[1]<wmin:
-        #                 wmin=V[1]
-        #     #print "wmin,wmax=",wmin,wmax
-        #     #x0=-1; x1=1; y0=-0.2; y1=1.5
-        #     x0=wmin-1 ; x1=wmax+1 ; y0=-0.2 ; y1=1.5 
-        # g.set_aspect_ratio(1 )
-        # g.set_axes_range(x0,x1,y0,y1)
-        # if(filename<>None):
-        #     fig = g.matplotlib()
-        #     fig.set_canvas(FigureCanvasAgg(fig))
-        #     axes = fig.get_axes()[0 ]
-        #     axes.minorticks_off()
-        #     axes.set_yticks([])
-        #     fig.savefig(filename,**kwds)
-        # else:
-
+            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        
         return g
-
-
+    def is_interior_point(self,x,version=1,verbose=0):
+        r"""
+        Test if x is an interior point of the desired fundamental domain of self.
+        """
+        ep = 1e-8
+        x0 = CC(x) + CC(0,ep)
+        x1 = CC(x) + CC(0,-ep)
+        x2 = CC(x) + CC(ep,0)
+        x3 = CC(x) + CC(-ep,0)
+        z0 = self.pullback(x0.real(),x0.imag(),version=version)
+        if isinstance(z0,tuple):
+            z0 = CC(z0[0],z0[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x0,z0)
+        if z0 <> x0:
+            return False           
+        z1 = self.pullback(x1.real(),x1.imag(),version=version)
+        if isinstance(z1,tuple):
+            z1 = CC(z1[0],z1[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x1,z1)
+        if z1 <> x1:
+            return False        
+        z2 = self.pullback(x2.real(),x2.imag(),version=version)
+        if isinstance(z2,tuple):
+            z2 = CC(z2[0],z2[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x2,z2)
+        if z2 <> x2:
+            return False
+        z3 = self.pullback(x3.real(),x3.imag(),version=version)
+        if isinstance(z3,tuple):
+            z3 = CC(z3[0],z3[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x3,z3)
+        if z3 <> x3:
+            return False
+        return True
+        
     def show_symmetry_props(self):
         r"""
         Display the symmetry properties of self.
@@ -2878,6 +2940,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "vertex_data=",vertex_data
             print "cusps=",cusps
             print "cusp_data=",cusp_data
+            print "coset+reps=",coset_reps
             #continue
             # Small test:
         #if len(cusps)<>len(cusp_widths):
@@ -2924,14 +2987,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201,farey=False):
+    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201,version = 0,**kwds):
         r""" Find the pullback of a point in H to the fundamental domain of self
         INPUT:
 
          - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
          - ''prec''      -- (default 201) precision in bits
          - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
-         - 'farey' -- Boolean. Set to True if pull back to the Farey symbol domain.
+         - 'version' -- Integer, 0, 1, or 2. Determine which verson of the fundamental domain to use.
         OUTPUT:
         
          - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
@@ -2984,7 +3047,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             except TypeError as er:
                 raise TypeError,"Could not get point in upper half-plane from {0}! {1}!".format(x_in,er)
 
-        if self._is_Gamma0 and not farey:
+        if self._is_Gamma0 and version == 0:
             if use_dp:
                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
             elif use_mpfr:
@@ -2994,10 +3057,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             a,b,c,d=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(a,b,c,d) #.matrix()
-            if farey:
-                reps = self.coset_reps(version=2)
-            else:
-                reps = self.coset_reps()
+            reps = self.coset_reps(version=version)
             try:
                 for V in reps:
                     B=V*A

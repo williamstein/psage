@@ -1,14 +1,18 @@
+
 """ Excerpt from my MySubgroup class. Contains routines to draw fundamental domains.
 
 r"""
 import matplotlib.patches as patches
 import matplotlib.path as path
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from sage.all import I,Gamma0,Gamma1,Gamma,SL2Z,ZZ,RR,ceil,sqrt,CC,line,text,latex,exp,pi,infinity
 
 
 from sage.plot.all import Graphics,arc
 from sage.plot.arc import Arc
+from sage.plot.line import Line
+from sage.plot.point import Point
 from sage.plot.primitive import GraphicPrimitive
 from sage.plot.colors import to_mpl_color
 from sage.plot.misc import options, rename_keyword
@@ -18,73 +22,69 @@ from sage.plot.hyperbolic_arc import hyperbolic_arc
 from sage.plot.bezier_path import BezierPath
 
 def draw_fundamental_domain(N,group='Gamma0',model="H",axes=None,filename=None,**kwds):
-        r""" Draw fundamental domain
-        INPUT:
-         - ''model'' -- (default ''H'')
-             = ''H'' -- Upper halfplane
-             = ''D'' -- Disk model
-         - ''filename''-- filename to print to
-         - ''**kwds''-- additional arguments to matplotlib 
-         - ''axes''  -- set geometry of output
-             =[x0,x1,y0,y1] -- restrict figure to [x0,x1]x[y0,y1]
+    r""" Draw fundamental domain
+    INPUT:
+        - ''model'' -- (default ''H'')
+        - ''H'' -- Upper halfplane
+        - ''D'' -- Disk model
+        - ''filename''-- filename to print to
+        - ''**kwds''-- additional arguments to matplotlib 
+        - ''axes''  -- set geometry of output
+        =[x0,x1,y0,y1] -- restrict figure to [x0,x1]x[y0,y1]
 
-        EXAMPLES::
+    EXAMPLES::
 
-            sage: G=MySubgroup(Gamma0(3))
-            sage: G.draw_fundamental_domain()
+        sage: G=MySubgroup(Gamma0(3))
+        sage: G.draw_fundamental_domain()
 
-        """
-        G=eval(group+'('+str(N)+')')
-        #print G
-        name ="$"+latex(G)+"$"
-        ## need a "nice" set of coset representatives to draw a connected fundamental domain. Only implemented for Gamma_0(N)
-        coset_reps = nice_coset_reps(G)
-        #if(group=='Gamma0'):
-        #else:
-        #coset_reps = list(G.coset_reps())
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
-        if(model=="D"):
-            g=draw_funddom_d(coset_reps,format,I)
-        else:
-            g=draw_funddom(coset_reps,format)
-        if(axes<>None):
-            [x0,x1,y0,y1]=axes
-        elif(model=="D"):
-            x0=-1 ; x1=1 ; y0=-1.1 ; y1=1 
-        else:
-            # find the width of the fundamental domain
-            w=0  #self.cusp_width(Cusp(Infinity))
-            wmin=0 ; wmax=1
-            max_x = RR(0.55)
-            rho = CC( exp(2*pi*I/3))
-            for V in coset_reps:
-                ## we also compare the real parts of where rho and infinity are mapped
-                r1 = (V.acton(rho)).real()
-                if(V[1,0]<>0):
-                    inf1 = RR(V[0,0] / V[1,0])
-                else:
-                    inf1 = 0
-                if(V[1 ,0 ]==0  and V[0 ,0 ]==1 ):
-                    if(V[0 ,1 ]>wmax):
-                        wmax=V[0 ,1 ]
-                    if(V[0 ,1 ]<wmin):
-                        wmin=V[0 ,1 ]
-                if( max(r1,inf1) > max_x):
-                    max_x = max(r1,inf1)
+    """
+    G=eval(group+'('+str(N)+')')
+    #print G
+    name ="$"+latex(G)+"$"
+    ## need a "nice" set of coset representatives to draw a connected fundamental domain. Only implemented for Gamma_0(N)
+    coset_reps = nice_coset_reps(G)
+    if(model=="D"):
+        g=draw_funddom_d(coset_reps,format,I)
+    else:
+        g=draw_funddom(coset_reps,format)
+    if(axes<>None):
+        [x0,x1,y0,y1]=axes
+    elif(model=="D"):
+        x0=-1 ; x1=1 ; y0=-1.1 ; y1=1 
+    else:
+        # find the width of the fundamental domain
+        w=0  #self.cusp_width(Cusp(Infinity))
+        wmin=0 ; wmax=1
+        max_x = RR(0.55)
+        rho = CC( exp(2*pi*I/3))
+        for V in coset_reps:
+            ## we also compare the real parts of where rho and infinity are mapped
+            r1 = (V.acton(rho)).real()
+            if(V[1,0]<>0):
+                inf1 = RR(V[0,0] / V[1,0])
+            else:
+                inf1 = 0
+            if(V[1 ,0 ]==0  and V[0 ,0 ]==1 ):
+                if(V[0 ,1 ]>wmax):
+                    wmax=V[0 ,1 ]
+                if(V[0 ,1 ]<wmin):
+                    wmin=V[0 ,1 ]
+            if( max(r1,inf1) > max_x):
+                max_x = max(r1,inf1)
             #print "wmin,wmax=",wmin,wmax
             #x0=-1; x1=1; y0=-0.2; y1=1.5
-            x0=RR(-max_x) ; x1=RR(max_x) ; y0=RR(-0.15) ; y1=RR(1.5) 
-        ## Draw the axes manually (since  can't figure out how to do it automatically)
-        ax = line([[x0,0.0],[x1,0.0]],color='black')
+        x0=RR(-max_x) ; x1=RR(max_x) ; y0=RR(-0.15) ; y1=RR(1.5) 
+    ## Draw the axes manually (since  can't figure out how to do it automatically)
+    ax = line([[x0,0.0],[x1,0.0]],color='black')
         #ax = ax + line([[0.0,y0],[0.0,y1]],color='black')
         ## ticks
-        ax = ax + line([[-0.5,-0.01],[-0.5,0.01]],color='black')
-        ax = ax + line([[0.5,-0.01],[0.5,0.01]],color='black')
-        g = g + ax
-	if model=="H":
-		t = text(name, (0, -0.1), fontsize=16, color='black')
-	else:
-		t = text(name, (0, -1.1), fontsize=16, color='black')		
+    ax = ax + line([[-0.5,-0.01],[-0.5,0.01]],color='black')
+    ax = ax + line([[0.5,-0.01],[0.5,0.01]],color='black')
+    g = g + ax
+    if model=="H":
+        t = text(name, (0, -0.1), fontsize=16, color='black')
+    else:
+        t = text(name, (0, -1.1), fontsize=16, color='black')
         g = g + t
         g.set_aspect_ratio(1)
         g.set_axes_range(x0,x1,y0,y1)
@@ -190,8 +190,8 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
     @options(center=CC(0,1))
     def __init__(self, A, B, C,**options):
         """
-            Initialize HyperbolicTriangle under the map (z-z0)/(z-\bar(z0)):
-
+        Initialize HyperbolicTriangle under the map (z-z0)/(z-\bar(z0)):
+        
         Examples::
         
             sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
@@ -200,23 +200,28 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         """
         A, B, C = (CC(A), CC(B), CC(C))
         self.path = []
+        self._options = {}
         self._graphics = Graphics()
+        self._verbose = options.pop('verbose',None)
         Z0 = options['center'] #.get('center',C(0,1))
+        options.pop('center',None)
+        #options.pop('fill',None)
+        self._options.update(options)
         self._z0=CC(Z0); self._z0bar=CC(Z0).conjugate()        
         self._hyperbolic_arc_d(A, B, True);
         self._hyperbolic_arc_d(B, C);
         self._hyperbolic_arc_d(C, A);
         #BezierPath.__init__(self, self.path, options)
-        options.pop('center',None)
-        if options=={} or options==None:
-            self._options = {}
-        else:
-            self._options = options
+
+
         #super(HyperbolicTriangleDisc,self).__init__(options)
         self.A, self.B, self.C = (A, B, C)
 
     def _cayley_transform(self,z):
-            return (CC(z)-self._z0)/(CC(z)-self._z0bar)
+        #print "z=",z,z==infyinity,type(z),type(infinity)
+        if z==infinity or z==CC(infinity):
+            return CC(1,0)
+        return (CC(z)-self._z0)/(CC(z)-self._z0bar)
 
     def _hyperbolic_arc_d(self, z0, z3, first=False):
         """
@@ -224,15 +229,38 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         the hyperbolic arc between the complex numbers z0 and z3 in the
         hyperbolic plane.
         """
+
         w0 = self._cayley_transform(z0)
         w3 = self._cayley_transform(z3)
-        if w0.real()==0 and w3.real() == 0:
-            y = (w0.imag() + w0.imag())/2
+        if self._verbose>0:
+            print "in plane z0,z3=",z0,z3
+            print "in disc: ",w0,w3
+        npts = 10
+        if z0 == infinity or z0==CC(infinity):
+            zm = [z3 + I*(j+0.5) for j in range(npts)]
+            wm = [self._cayley_transform(x) for x in zm]
+            pts = [w3]
+            pts.extend(wm)
+            pts.append(w0)
+            opt = self._options
+            opt['fill']=False
+            self._graphics.add_primitive(BezierPath([[(x.real(),x.imag()) for x in pts ]],opt))
+            return 
+        if z3 == infinity  or z3==CC(infinity):
+            zm = [z0 + I*(j+0.5) for j in range(npts)]
+            wm = [self._cayley_transform(x) for x in zm]
+            pts = [w0]
+            pts.extend(wm)
+            pts.append(w3)
+            opt = self._options
+            opt['fill']=False
+            self._graphics.add_primitive(BezierPath([[(x.real(),x.imag()) for x in pts ]],opt))
+            #self._graphics.add_primitive(Line([w1.real(),w2.real()],[w1.imag(),w2.imag()],self._options))
             #self.path.append([(0,w0.imag()),CC(0,y), (0,w3.imag())])
-            self._graphics.add_primitive(BezierPath([(0,w0.imag()),CC(0,y), (0,w3.imag())],self._options))
             return
-        z0,z3 = CC(z0), CC(z3) 
-        if z0.imag() == 0 and z3.imag() == 0:
+        x0=z0.real(); y0 = z0.imag()
+        x3=z3.real(); y3 = z3.imag()
+        if y0 == 0 and y3 == 0:
             p = (z0.real()+z3.real())/2
             r = abs(z0-p)
             zm = CC(p, r)
@@ -240,20 +268,66 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             self._hyperbolic_arc_d(zm, z3)
             return
         else:
-            p = (abs(z0)*abs(z0)-abs(z3)*abs(z3))/(z0-z3).real()/2 # center of the circle in H
-            r = abs(z0-p) # radius of the circle in H
-            zm = ((z0+z3)/2-p)/abs((z0+z3)/2-p)*r+p
-            t = (8*zm-4*(z0+z3)).imag()/3/(z3-z0).real()
-            z1 = z0 + t*CC(z0.imag(), (p-z0.real()))
-            z2 = z3 - t*CC(z3.imag(), (p-z3.real()))
-            zm = self._cayley_transform(zm)
-            w1 = self._cayley_transform(z1)
-            w2 = self._cayley_transform(z2)
-
+            p = ((x0+x3)*(x3-x0)+(y0+y3)*(y3-y0))/(2*(x3-x0)) 
+            r = sqrt((p - x0)**2 + y0**2)  # radius of the circle in H
+            zm = ((z0+z3)/2-p)/abs((z0+z3)/2-p)*r+p  # midpoint (at least approximately) of geodesic between z0 and z3
+            t0 = CC(z0 - p).argument()
+            t3 = CC(z3 - p).argument()
+            if x0 <= x3:
+                zm = [p + r*exp(I*(t0+t*(t3-t0)/npts)) for t in range(npts+1)]
+                #print "zm=",zm
+            else:
+                zm = [p + r*exp(I*(t0+t*(t3-t0)/npts)) for t in range(npts+1)]            
+                #print "zm=",zm
+            wm = [self._cayley_transform(x) for x in zm]
+            opt = self._options
+            opt['fill']=False
+            w0 = self._cayley_transform(z0)
+            w3 = self._cayley_transform(z3)
+            pts = [w0]
+            pts.extend(wm)
+            pts.append(w3)
+            self._graphics.add_primitive(BezierPath([[(x.real(),x.imag()) for x in pts ]],opt))
+            return 
+            #print "z0_test=",(p+r*exp(t0*I))
+                #print "z3_test=",(p+r*exp(t3*I))
+#t = (8*zm-4*(z0+z3)).imag()/3/(z3-z0).real()
+            # I have no idea what these points should represent....
+            #z1 = z0 + t*CC(z0.imag(), (p-z0.real()))
+            #z2 = z3 - t*CC(z3.imag(), (p-z3.real()))
+            wm = [self._cayley_transform(x) for x in zm]
+            pp = self._cayley_transform(CC(p,0))
+            w1 = self._cayley_transform(z0)
+            w2 = self._cayley_transform(z3)
             c = self._cayley_transform(CC(p,0)) # center of circle on the unit disk.
+            if self._verbose>0:
+                print "p,r=",p,r     
+                print "zm=",zm
+                #print "t=",t
+                #print "tt=",(8*zm-4*(z0+z3)).imag()/3/(z3-z0).real()
+
+                print "C(c)=",pp
+                print "C(zm)=",wm
+                print "C(z0)=",w1
+                print "C(z3)=",w2
+                #print "z2=",z2
+            
             r = abs(w1-c) # radius
-            theta = t
-        self._graphics.add_primitive(Arc((zm.real(),zm.imag()),r,sector=(-t,t),options=self._options))
+            t0 = CC(w0 - pp).argument()
+            t3 = CC(w3 - pp).argument()
+            t = abs(t0-t3)
+        if self._verbose>0:
+            print "adding a:rc ",zm.real(),zm.imag(),r,r,t,t0,t3
+        self._graphics.add_primitive(Line([w1.real(),w2.real(),wm.real()],[w1.imag(),w2.imag(),wm.imag()],{'thickness':2,'alpha':1,
+                                                                                       'rgbcolor':'blue',
+                                                                                                         'legend_label':""}))
+        self._graphics.add_primitive(Point([w1.real(),w2.real(),wm.real()],[w1.imag(),w2.imag(),wm.imag()],{'size':10,'alpha':1,
+                                                                                                            'faceted':True,
+                                                                                                            'rgbcolor':'red',
+                                                                                                            'legend_label':""}))
+        
+        #self._graphics.add_primitive(Arc(pp.real(),pp.imag(),r,r,t,t0,t3,self._options))
+        #self._graphics. Arc(zm.real(),zm.imag(),r,r,abs(t),-abs(t),abs(t),self._options)
 
     def __call__(self):
         return self._graphics
@@ -270,7 +344,8 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
 
 
 @rename_keyword(color='rgbcolor')
-@options(alpha=1, fill=False, thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
+#@options(alpha=1,fill=False,  thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
+@options(alpha=1,  thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
 def my_hyperbolic_triangle(a, b, c, **options):
     """
     Return a hyperbolic triangle in the complex hyperbolic plane with points
@@ -318,7 +393,7 @@ def my_hyperbolic_triangle(a, b, c, **options):
     return g
 
 
-def draw_funddom_d(coset_reps,format="MP",z0=I):
+def draw_funddom_d(coset_reps,format="MP",z0=I,verbose=0):
     r""" Draw a fundamental domain for self in the circle model
     INPUT:
     - ''format''  -- (default 'Disp') How to present the f.d.
@@ -338,8 +413,8 @@ def draw_funddom_d(coset_reps,format="MP",z0=I):
     bdcirc=_circ_arc(0 ,2 *pi,0 ,1 ,1000 )
     g=g+bdcirc
     # Corners
-    x1=-RR(0.5) ; y1=RR(sqrt(3 )/2)
-    x2=RR(0.5) ; y2=RR(sqrt(3 )/2)
+    x1=-RR(0.5); y1=RR(sqrt(3 )/2)
+    x2=RR(0.5); y2=RR(sqrt(3 )/2)
     z_inf=1 
     l1 = _geodesic_between_two_points_d(x1,y1,x1,infinity)
     l2 = _geodesic_between_two_points_d(x2,y2,x2,infinity)
@@ -347,12 +422,14 @@ def draw_funddom_d(coset_reps,format="MP",z0=I):
     tri=c0+l1+l2
     g=g+tri
     for A in coset_reps:
-        [a,b,c,d]=A
-        if(a==1  and b==0  and c==0  and d==1 ):
+        a,b,c,d=A
+        if a==1  and b==0  and c==0  and d==1:
             continue
-        if(a<0 ):
-            a=-a; b=-b; c=-c; d=-1 
-        if(c==0 ): # then this is easier
+        if a<0:
+            a=-a; b=-b; c=-c; d=-d 
+        if verbose>0:
+                print "a,b,c,d=",a,b,c,d
+        if c==0: # then this is easier
             l1 = _geodesic_between_two_points_d(x1+b,y1,x1+b,infinity)
             l2 = _geodesic_between_two_points_d(x2+b,y2,x2+b,infinity)
             c0 = _geodesic_between_two_points_d(x1+b,y1,x2+b,y2)
@@ -365,11 +442,17 @@ def draw_funddom_d(coset_reps,format="MP",z0=I):
             y1_t=y1/den
             den=(c*x2+d)**2 +c**2 *y2**2 
             x2_t=(a*c*(x2**2 +y2**2 )+(a*d+b*c)*x2+b*d)/den
-            y2_t=y2/den
+            y2_t=y2/den            
             inf_t=a/c
+            if verbose>0:
+                    print "x1_t=",x1_t
+                    print "y1_t=",y1_t
+                    print "x2_t=",x2_t
+                    print "y2_t=",y2_t
+                    print "inf_t=",inf_t
             c0=_geodesic_between_two_points_d(x1_t,y1_t,x2_t,y2_t)
-            c1=_geodesic_between_two_points_d(x1_t,y1_t,inf_t,0.0 )
-            c2=_geodesic_between_two_points_d(x2_t,y2_t,inf_t,0.0 )
+            c1=_geodesic_between_two_points_d(x1_t,y1_t,inf_t,1.0 )
+            c2=_geodesic_between_two_points_d(x2_t,y2_t,inf_t,1.0 )
             tri=c0+c1+c2
             g=g+tri
     g.xmax(1 )

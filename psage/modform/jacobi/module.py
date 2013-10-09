@@ -146,10 +146,13 @@ class JacobiFormsModule_generic_class(UniqueRepresentation, Module):
             return self.parent()(kk, definition = newdef)
 
         def __lmul__(self, f):
-            self.__mul__(f)
+            return self.__mul__(f)
 
         def __rmul__(self, f):
-            self.__mul__(f)
+            return self.__mul__(f)
+
+        def _acted_upon_(self, f, self_on_left=False):
+            return self.__mul__(f)
 
         def _neg_(self):
             return self.parent()(self._k, definition = map(lambda t: (t[0],-t[1]), self._definition))

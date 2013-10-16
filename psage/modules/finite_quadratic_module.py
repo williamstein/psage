@@ -569,7 +569,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             if p!=2:
                 lci  = z**((r*(1-q))%8) * d**(h%2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
-            elif k == n and o:
+            elif k == n and o != None:
                 #print "t!"
                 return 0,0
             else:
@@ -587,19 +587,15 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Compute the p-signature of self.
         p=-1 is the real signature.
-
-        TODO 1): use the formulas (for example from above) for p-signatures and Milgram's formula
-        TODO 2): implement for other primes
         """
-        if p<>-1:
-            raise NotImplementedError,"Only real signature implemented!"
-        ## This is also not the correct definition unless the
-        ## FQM is a discriminant form
-        raise NotImplementedError,"Signature is not implemented!"
-        ev = self.gram().eigenvalues()
-        b_plus = len( filter(lambda x:x>0,ev))
-        b_minus= len(ev)-b_plus
-        return b_plus - b_minus
+        if p == -1:
+            p = None
+        inv = self.char_invariant(1,p)
+        inv = inv[0].list()
+        if inv.count(1)>0:
+            return inv.index(1)
+        else:
+            return inv.index(-1) + 4
         
     ###################################
     ## Deriving quadratic modules
@@ -3176,8 +3172,7 @@ class JordanDecomposition( SageObject):
             eps = kronecker( F.det(), p)
             genus = [p, n, r, eps]
             if 2 == p and self.is_type_I(F):
-                t = F.trace()%8
-                #TODO: print F,t what happens for p=2?
+                t = sum(filter(lambda x: is_odd(x), F.diagonal())) % 8
                 genus.append( t)
             jd[q] = ( basis, tuple(genus))
             ol.append( (p,n))
@@ -3360,11 +3355,11 @@ def FiniteQuadraticModuleRandom(discbound=100,normbound=100,verbose=0):
     N = A.kernel()
     if verbose>0:
         print "A=",A
-        print "|A.list()|=",len(A.list())
+        print "|A.list()|=",len(list(A))
         print "N=",N
     if False == N.is_isotropic():
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
-    if len(A.list()) == 1:
+    if len(list(A)) == 1:
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
     if  max( map(max,A.gram().rows()))==0 and min( map(min,A.gram().rows()))==0:
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
@@ -3397,7 +3392,7 @@ def test_fqm_random(fqbound=100,nbound=10,cbound=10,size_bd=50,verbose=0):
         l=size_bd+1        
         while l>size_bd:
             FQ=FiniteQuadraticModuleRandom(fqbound,nbound,verbose-1)
-            l=len(FQ.list())
+            l=len(list(FQ))
             #info=get_factors2(FQ.jordan_decomposition())
         t = _test_one_F(FQ)
         if t<>True:
@@ -3418,6 +3413,7 @@ def test_one_F(FQ='4_1'):
         s1 = naive_Gauss_sum(FQ,a)
         if abs(CC(s0[0])*CC(s0[1])-CC(s1[0])/CC(s1[1]**2))>1e-10:
                 if verbose>0:
+                    print 'a=', a
                     print "s0=",s0,CC(s0[0]*s0[1])
                     print "s1=",s1,CC(s1[0]/s1[1]**2)
                 return False,a,FQ
@@ -3445,9 +3441,9 @@ def naive_Gauss_sum(FQ,a):
     N = FQ.level()
     z = CyclotomicField(N).gens()[0]
     res = 0
-    for x in FQ.list():
+    for x in list(FQ):
         res += z**(a*(FQ.Q(x)*N))
-    return res,ZZ(len(FQ.list())).sqrt()
+    return res,ZZ(len(list(FQ))).sqrt()
 
     
 

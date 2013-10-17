@@ -1847,11 +1847,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 print "Hecke is ok up to ",d,"digits!"
             return d
 
-    def eval(self,x,y,prec=1E-10):
+    def eval(self,x,y,version=1,use_pb=1,prec=1E-10):
         r"""
         Evaluate self.
         """
-        return eval_maass_lp(self,RR(x),RR(y))
+        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
             
 
     def plot(self,xlim,ylim,num_pts,**kwds):

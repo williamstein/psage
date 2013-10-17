@@ -57,7 +57,6 @@ from sage.rings.rational cimport Rational
 from sage.rings.rational_field import QQ
 from sage.all import RR,ZZ,SL2Z,matrix
 from copy import deepcopy
-from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
 
@@ -1368,10 +1367,10 @@ cdef void _apply_gl2z_map_mpfr(mpfr_t x,mpfr_t y,int a,int b,int c,int d):
 
 cpdef normalize_point_to_cusp_mpfr(G ,int ca,int cb,RealNumber x,RealNumber y,int inv=0):    
     r"""
-    Compute the normalized point with respect to the cusp cu
+    Compute the normalized point with respect to the cusp (ca,cb)
     
-    """
-    cdef int wi=G._cusp_data[(ca,cb)]['width']
+    """  
+    cdef int wi=G.cusp_width((ca,cb))
     if cb==0 and wi==1: # Inf is the first cusp
         return [x,y]
     #
@@ -1432,7 +1431,7 @@ cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0): #,int verbos
     r"""
     Compute the normalized point with respect to the cusp cu
     """
-    if(cu==Cusp(infinity) and G.cusp_width(cu)==1): # Inf is the first cusp
+    if (cu == (1,0) or cu==Cusp(infinity)) and G.cusp_width(cu)==1: # Inf is the first cusp
         return [x,y]
     cdef int wi=G.cusp_width(cu)
     cdef double xx,yy

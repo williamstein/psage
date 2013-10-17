@@ -43,7 +43,6 @@ from sage.modules.vector_integer_dense cimport Vector_integer_dense
 from sage.rings.integer cimport Integer
 import sage.combinat.permutation_cython
 from sage.combinat.permutation_cython cimport reset_swap,next_swap
-from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
@@ -122,7 +121,7 @@ cdef class MyPermutation(SageObject):
             else:
                 raise ValueError,"Invalid Input for permutation! entries: {0} and length:{1}".format(entries,length)           
         else:
-            if isinstance(entries,str):
+            if isinstance(entries,basestring):
                 # if the string represents a list
                 s = <str> entries
 #               if entries.count('[')==1 and entries.count(']')==1:
@@ -3361,7 +3360,7 @@ def has_binkey(x,n):
     """
     if x==0:
         return 0
-    if not isinstance(x,str):
+    if not isinstance(x,basestring):
         s=bin(x)
     else:
         s=x

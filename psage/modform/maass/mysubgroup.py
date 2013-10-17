@@ -106,7 +106,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     is_symmetric = kwds.get('is_symmetric')
     symmetry_map = kwds.get('symmetry_map')
     if isinstance(A,MySubgroup_class):
-        return MySubgroup_class(A.__dict__,**kwds)
+        return MySubgroup_class(data=A.__dict__,**kwds)
     if isinstance(A,ArithmeticSubgroup):
         s2 = MyPermutation(A.as_permutation_group().S2().domain())
         s3 = MyPermutation(A.as_permutation_group().S3().domain())
@@ -132,14 +132,19 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     else:
         s2 = kwds.get("o2",None)
         s3 = kwds.get("o3",None)
+    is_symmetric = kwds.get('is_symmetric',None); symmetry_map = kwds.get('symmetry_map',None)
+    if hasattr(A,'__dict__'):
+        is_symmetric = A.__dict__.get('is_symmetric',is_symmetric)
+        symmetry_map = A.__dict__.get('symmetry_map',symmetry_map)
     if s2==None or s3==None:
         s2 = kwds.get("s2",None)
         s3 = kwds.get("s3",None)
     if s2==None or s3==None:
         raise ValueError,"Could not construct subgroup from input!"
+    reps_from_farey = kwds.get('farey',None)
     if is_Gamma0:
-        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,is_symmetric=1,symmetry_map=SL2Z_elt(1,0,0,1))
-    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level,is_symmetric=is_symmetric,symmetry_map=symmetry_map)
+        return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,is_symmetric=1,symmetry_map=SL2Z_elt(1,0,0,1),reps_from_farey=reps_from_farey)
+    return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level,is_symmetric=is_symmetric,symmetry_map=symmetry_map,reps_from_farey=reps_from_farey)
 
 
 class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
@@ -216,12 +221,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
           
         """
-        if data<>{}:
-            self.init_group_from_dict(data,**kwds)
         self._verbose = verbose
-        self._is_Gamma0=kwds.get('is_Gamma0',None)
-        self._is_symmetric=kwds.get('is_symmetric')
-        self._symmetry_map = kwds.get('symmetry_map')        
         self._display_format = display_format
         self._level=kwds.get('level',None)
         if self._level<>None:
@@ -233,19 +233,36 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._coset_rep_strings={}
         self._cusps_as_cusps=[]
         self._generators_as_slz_elts=[]
-        self.permT=None; self.permP=None
-        self._verbose=verbose
+        self._symmetrizable_cusp={}
+        self._cusp_normalizer_is_normalizer=None
+        self._vertices=None; self._vertex_data=None
+        self._cusps=None; self._nvertices=None
+        self._cusp_data=[]; self._vertex_widths=[]
+        self._vertex_maps=[]; self._cusp_maps=[]
+        self.permT=None; self.permP=None; self.permS=None; self.permR=None
+        self._coset_reps_v0 = None; self._coset_reps_v1 = None
+        self._coset_reps_v2 = None
+        self._nu2=None; self._nu3=None
+        self._ncusps=None; self._genus=None 
+        self._signature=None; self._verbose=verbose
+        self._reps_from_farey = kwds.get('reps_from_farey',None)
+        self._is_Gamma0=kwds.get('is_Gamma0',None)
+        self._is_symmetric=kwds.get('is_symmetric')
+        self._symmetry_map = kwds.get('symmetry_map')        
+        self._vertices_as_cusps = []
         if self._verbose>1:
             print "o2=",o2
             print "o3=",o3
             print "str=",str
             print "is_Gamma0=",self._is_Gamma0
             print "kwds=",kwds
-        if o2<>None and o3<>None:
+        if data<>{}:
+            self.init_group_from_dict(data,**kwds)
+        elif o2<>None and o3<>None:
             self.init_group_from_permutations(o2,o3)
         else:
             raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)
-                
+        self._display_format = display_format                
         self._uid = self._get_uid()
         self.class_name='MySubgroup_class'            
 
@@ -406,7 +423,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if inplace==False:
             G = self.__class__(o2=self.permS,o3=self.permR)
-            return G.relabel(inplace=True,label_on=label_on)
+            G.relabel(inplace=True,label_on=label_on)
+            return G
         if label_on == 'R':
             super(MySubgroup_class,self).relabel(inplace=True)
             self.permS=MyPermutation([x+1 for x in self._S2])
@@ -447,6 +465,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         ## The simplest way to do this is simply to reset the lists.
         self._coset_reps_v0 = None
         self._coset_reps_v1 = None
+        self._coset_reps_v2 = None
         # if self._coset_reps_v0<>None or self._coset_reps_v1<>None:
         #     reps_values = [self.permutation_action(x)(1) for x in self.coset_reps()]
         #     reps_indices= [reps_values.index(x+1) for x in range(self.index())]
@@ -476,7 +495,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "in init_from_perm"
             print "o2=",o2
             print "o3=",o3
-
+            if self._verbose>1:
+                print "dict=",self.__dict__
         if isinstance(o2,MyPermutation):            
             self.permS=o2
         else:
@@ -496,7 +516,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         l  = [i-1 for i in self.permT.list()]
         r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
-        self._is_congruence = super(MySubgroup_class,self).is_congruence()
+        if self._is_congruence == None:
+            self._is_congruence = super(MySubgroup_class,self).is_congruence()
 #         if self._is_congruence==True:
 #             #print "Adding level!"
 # #            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
@@ -512,9 +533,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if self._verbose>0:
             print "in init_from_dict"
         for key in data:
-            self.__dict__[key] = data[key]
+            if data[key]<>None:
+                self.__dict__[key] = data[key]
         for key in kwds:
-            self.__dict__[key] = kwds[key]            
+            if kwds[key]<>None:
+                self.__dict__[key] = kwds[key]            
 
     def get_data_from_group(self):
         if self._verbose>0:
@@ -527,25 +550,20 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 self._level = self._generalised_level
             else:
                 self._level = None            
-        self._coset_reps_v0 = None
-        self._coset_reps_v1 = None
-                                                         
         #self._coset_reps_list=copy(self._coset_reps)
         self._test_consistency_perm(self.permS,self.permR)
         self._nu2=num_fixed(self.permS.list())
         self._nu3=num_fixed(self.permR.list())
-        self._ncusps=None
-        self._genus=None 
-        self._signature=None
-        
         
         ## Get information about cusps and vertices
         l=self._get_all_cusp_data(self.coset_reps())
+        if self._verbose>0:
+            print "coset_reps=",self.coset_reps()
         self._vertices,self._vertex_data,self._cusps,self._cusp_data=l        
         self._nvertices=len(self._vertices)
-        self._vertex_widths=list()
-        self._vertex_maps=list()
-        self._cusp_maps=list()
+        #self._vertex_widths=list()
+        #self._vertex_maps=list()
+        #self._cusp_maps=list()
         for i in range(len(self._vertices)):
             wi = self._cusp_data[self._vertex_data[i]['cusp']]['width']
             self._vertex_widths.append(wi)
@@ -558,7 +576,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         # We might also want to see which cusps are simultaneously
         # symmetrizable with respect to reflection in the imaginary axis 
-        self._symmetrizable_cusp=dict()
+        #self._symmetrizable_cusp=dict()
 
         ## Then we chek if the cusps are symmetrizable in the sense that the normalizing maps
         ## are normalizers of the group.
@@ -567,7 +585,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._cusp_normalizer_is_normalizer={0: (1,1) }# The first map is just the identity
         for j in range(1,self.ncusps()):
             d=self.cusp_normalizer_is_normalizer(j,1)
-
+        if self._verbose>1:
+            print "inited from group, dict=",self.__dict__
 
     def index(self):
         if self._index == None:
@@ -666,11 +685,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     self._is_Gamma0=False 
         return self._is_Gamma0
     
-    def is_symmetric(self,ret_map=0,verbose=0):
+    def is_symmetric(self,ret_map=0,recompute=False,force_check=False,verbose=0):
         r"""
-        Check if self has a reflectional symmetry, i.e. check that 
+        Check if self has a reflectional symmetry, i.e. check that G^* is conjugate to G
         """
-        if self._is_symmetric <>None:
+        if self._is_symmetric <>None and recompute==False:
             if ret_map==1:
                 return self._is_symmetric,self._symmetry_map
             else:
@@ -679,18 +698,52 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._is_symmetric = True
             self._sym_perm = MyPermutation(length=self.index())            
         else:
-            pS = self.permS
-            pR = self.permS*self.permR**2*self.permS
-            ## Now have to see if (pS,pR) is conjugate to (self.permS,self.permR)
-            ## by a permutation fixing 1
-            t,p = are_mod1_equivalent(self.permS,self.permR,pS,pR,verbose=verbose)
-            if t==1:
+            # Do a generic test. First simply check if G^*=G
+            t = [ SL2Z_elt(x.a(),-x.b(),-x.c(),x.d()) in self for x in self.gens()].count(False)
+            self._sym_perm = None
+            if t==0:
                 self._is_symmetric = True
-                self._sym_perm = p
-            else:
-                self._is_symmetric = False
                 self._sym_perm = MyPermutation(length=self.index())
-        self._symmetry_map = self.permutation_action(self._sym_perm)
+                self._symmetry_map = SL2Z_elt(1,0,0,1)            
+            if self._sym_perm == None:
+                # Then see if it conjugate via some map A which is not identity
+                # A = S:
+                t = [ SL2Z_elt(x.d(),x.c(),x.b(),x.a()) in self for x in self.gens()].count(False)
+                if t == 0:
+                    self._is_symmetric = True
+                    self._sym_perm = self.permS
+                    self._symmetry_map = SL2Z_elt(0,-1,1,0)
+            if self._sym_perm == None: 
+                # A = T^n
+                if verbose>0:
+                    print "Checking symmetry with conjugation of T^n!"
+                for n in range(1,self.generalised_level()+1):
+                    t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
+                    if t == 0:
+                        self._is_symmetric = True
+                        self._sym_perm = self.permT**n
+                        self._symmetry_map = SL2Z_elt(1,n,0,1)
+                        if verbose>0:
+                            print "is symmetric with T^{0}".format(n)
+                        break
+            if self._sym_perm == None and force_check==True:
+                if verbose>0:
+                    print "Checking symmetry with conjugation of general maps!"
+                # Check if we are symmetric with some other map
+                # Since this might take long time we only do this if explicitly told to... 
+                pS = self.permS
+                pR = self.permS*self.permR**2*self.permS
+                ## Now have to see if (pS,pR) is conjugate to (self.permS,self.permR)
+                ## by a permutation fixing 1
+                t,p = are_mod1_equivalent(self.permS,self.permR,pS,pR,verbose=verbose)
+                if t==1:
+                    self._is_symmetric = True
+                    self._sym_perm = p
+                else:
+                    self._is_symmetric = False
+                    self._sym_perm = MyPermutation(length=self.index())
+            if self._symmetry_map == None and isinstance(self._sym_perm,MyPermutation):
+                self._symmetry_map = self.permutation_action(self._sym_perm)
         if ret_map==1:
             return self._is_symmetric,self._symmetry_map
         else:
@@ -793,6 +846,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Note: If self is a G amma_0(l) then A[1,1]==1 mod l
 
         """
+        if j not in self._cusp_data:
+            raise ValueError,"{0} is not the index of a cusp! ".format(j)
         if not self._symmetrizable_cusp.has_key(j):
             a,b,c,d=self._cusp_data[j]['normalizer']
             self._symmetrizable_cusp[j]=0
@@ -956,6 +1011,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1 -2]]
     
         """
+        if self._verbose>0:
+            print "In get_coset_reps from G"
         if self.is_Gamma0():
             return self._get_coset_reps_from_Gamma0N()
         cl=list()
@@ -1044,6 +1101,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         return cl
 
     def _get_coset_reps_from_Gamma0N(self):
+        if self._verbose>0:
+            print "In get_coset_reps from Gamma0(N)"
         cl=list()
         S=SL2Z_elt(0,-1,1,0)
         T=SL2Z_elt(1,1,0,1)
@@ -1155,6 +1214,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1 -2]]
     
         """
+        if self._verbose>0:
+            print "In get_coset_reps from G_2"
         cl=list()
         lvl=G.generalised_level()
         # Start with identity rep.
@@ -1555,14 +1616,27 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1  0]]
 
         """
+        if self._verbose>0:
+            print "in coset_reps: farey = ",self._reps_from_farey
+        if self._reps_from_farey:
+            version = 2
         if version==0:
             if self._coset_reps_v0==None:
                 self._coset_reps_v0 = self._get_coset_reps_from_perms() #self.permS,self.permR)
             return self._coset_reps_v0
         elif version==1:
             if self._coset_reps_v1==None:
-                self._coset_reps_v1 = super(MySubgroup_class,self).coset_reps()
+                self._coset_reps_v1 = []
+                for A in super(MySubgroup_class,self).coset_reps():
+                    self._coset_reps_v1.append(SL2Z_elt(A.a(),A.b(),A.c(),A.d()))
+   
             return self._coset_reps_v1
+        elif version==2:
+            if self._coset_reps_v2==None:
+                self._coset_reps_v2 = []
+                for A in self.farey_symbol().coset_reps():
+                    self._coset_reps_v2.append(SL2Z_elt(A.d(),-A.b(),-A.c(),A.a()))
+            return self._coset_reps_v2
         else:
             raise NotImplementedError
 
@@ -1680,75 +1754,77 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in,ret_mat=1,prec=201):
-        r""" Find the pullback of a point in H to the fundamental domain of self
-        INPUT:
+    # def pullback(self,x_in,y_in,ret_mat=1,prec=201,**kwds):
+    #     r""" Find the pullback of a point in H to the fundamental domain of self
+    #     INPUT:
 
-         - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
-         - ''prec''      -- (default 201) precision in bits
-         - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
-        OUTPUT:
+    #      - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
+    #      - ''prec''      -- (default 201) precision in bits
+    #      - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
+    #     OUTPUT:
         
-         - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
-                           xpb and ypb are complex numbers with precision prec 
-        EXAMPLES::
+    #      - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
+    #                        xpb and ypb are complex numbers with precision prec 
+    #     EXAMPLES::
 
 
-            sage: S=SymmetricGroup(6)
-            sage: pS=S([2,1,4,3,6,5])
-            sage: pR=S([3,1,2,5,6,4])
-            sage: G=MySubgroup(o2=pS,o3=pR)
-            sage: [x,y,B]=G.pullback(0.2,0.5,53); x,y;B
-            (-0.237623762376238, 0.123762376237624)
-            [-1  0]
-            [ 4 -1]
-            sage: (B**-1).acton(x+I*y)
-            0.200000000000000 + 0.500000000000000*I
+    #         sage: S=SymmetricGroup(6)
+    #         sage: pS=S([2,1,4,3,6,5])
+    #         sage: pR=S([3,1,2,5,6,4])
+    #         sage: G=MySubgroup(o2=pS,o3=pR)
+    #         sage: [x,y,B]=G.pullback(0.2,0.5,53); x,y;B
+    #         (-0.237623762376238, 0.123762376237624)
+    #         [-1  0]
+    #         [ 4 -1]
+    #         sage: (B**-1).acton(x+I*y)
+    #         0.200000000000000 + 0.500000000000000*I
 
 
-        """
-        #x=deepcopy(x_in); y=deepcopy(y_in)
-        if self.is_Gamma0():
-            if isinstance(x_in,float):
-                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
-            elif isinstance(x_in,Expression):
-                prec=round(RR(len(str(x_in).split(".")[1])/log_b(2,10)))
-                RF=RealField(prec)
-                x=RF(x_in); y=RF(y_in)
-                if prec<=53:
-                    xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
-                else:
-                    xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
-            else:
-                xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x_in,y_in)
-            if ret_mat==1:
-                return xpb,ypb,SL2Z_elt(a,b,c,d)
-            else:
-                return xpb,ypb,int(a),int(b),int(c),int(d)
-        else:
-            A=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
-            A=SL2Z_elt(A) #.matrix()
-            try:
-                for V in self._coset_reps_v0:
-                    B=V*A
-                    if B in self:
-                        raise StopIteration
-            except StopIteration:            
-                pass
-            else:
-                raise ArithmeticError,"Did not find coset rep. for A=%s" % A
-            #if ret_int==1:
-            #    a,b,c,d=B[0,0],B[0,1],B[1,0],B[1,1]
-            if isinstance(x_in,float):
-                xpb,ypb=apply_sl2z_map_dp(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
-            else:
-                xpb,ypb=apply_sl2z_map_mpfr(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
+    #     """
+    #     #x=deepcopy(x_in); y=deepcopy(y_in)
+    #     version = kwds.get('version',0)
+    #     if self.is_Gamma0() and version == 0:
+    #         if isinstance(x_in,float):
+    #             xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x_in,y_in,self._verbose)
+    #         elif isinstance(x_in,Expression):
+    #             prec=round(RR(len(str(x_in).split(".")[1])/log_b(2,10)))
+    #             RF=RealField(prec)
+    #             x=RF(x_in); y=RF(y_in)
+    #             if prec<=53:
+    #                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
+    #             else:
+    #                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
+    #         else:
+    #             xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x_in,y_in)
+    #         if ret_mat==1:
+    #             return xpb,ypb,SL2Z_elt(a,b,c,d)
+    #         else:
+    #             return xpb,ypb,int(a),int(b),int(c),int(d)
+    #     else:
+    #         A=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
+    #         A=SL2Z_elt(A) #.matrix()
+    #         reps = self.coset_reps(version)
+    #         try:
+    #             for V in reps:
+    #                 B=V*A
+    #                 if B in self:
+    #                     raise StopIteration
+    #         except StopIteration:            
+    #             pass
+    #         else:
+    #             raise ArithmeticError,"Did not find coset rep. for A=%s" % A
+    #         #if ret_int==1:
+    #         #    a,b,c,d=B[0,0],B[0,1],B[1,0],B[1,1]
+    #         if isinstance(x_in,float):
+    #             xpb,ypb=apply_sl2z_map_dp(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
+    #         else:
+    #             xpb,ypb=apply_sl2z_map_mpfr(x_in,y_in,B[0,0],B[0,1],B[1,0],B[1,1])
 
 
-            if ret_mat==1:
-                return xpb,ypb,B.matrix()
-            else:
-                return xpb,ypb,B[0,0],B[0,1],B[1,0],B[1,1]
+    #         if ret_mat==1:
+    #             return xpb,ypb,B.matrix()
+    #         else:
+    #             return xpb,ypb,B[0,0],B[0,1],B[1,0],B[1,1]
     def is_congruence(self):
         r""" Is self a congruence subgroup or not?
 
@@ -2092,7 +2168,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if c[1]<>0:
                     self._cusps_as_cusps.append(Cusp(QQ(c[0])/QQ(c[1])))
                 else:
-                    self._cusps_as_cusps.append(Cusp(Infinity))
+                    self._cusps_as_cusps.append(Cusp(1,0))
         return self._cusps_as_cusps
 
     def vertices(self):
@@ -2104,7 +2180,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if c[1]<>0:
                     self._vertices_as_cusps.append(Cusp(QQ(c[0])/QQ(c[1])))
                 else:
-                    self._vertices_as_cusps.append(Cusp(Infinity))
+                    self._vertices_as_cusps.append(Cusp(1,0))
         return self._vertices_as_cusps
 
     def nvertices(self):
@@ -2128,6 +2204,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.cusp_width(Cusp(0))
             4
         """
+        if isinstance(cusp,(int,Integer)):
+            return self._cusp_data[j]['width']
         p=None; q=None
         if isinstance(cusp,Cusp):        
             p=cusp.numerator(); q=cusp.denominator()
@@ -2166,6 +2244,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1  0], 4, 1)
 
         """
+        if isinstance(cusp,(int,Integer)):
+            c = Cusp(self._cusps[c])
+            
         c,A=self.cusp_representative(c,transformation='matrix')
         p = c.numerator(); q = c.denominator()
         if (p,q) not in self._cusps:
@@ -2281,7 +2362,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.cusp_normalizer(Cusp(-1/2))
             [-1  0]
             [ 2 -1]
-            sage: G.cusp_normalizer(Cusp(Infinity))
+            sage: G.cusp_normalizer(Cusp(1,0))
             [1 0]
             [0 1]
 
@@ -2349,8 +2430,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
         """
-        if self.is_congruence():
-            l=self.level()
+        if self.is_Gamma0():
+            l=self.generalised_level()
             if self.is_Gamma0():
                 return RR(sqrt(3.0))/RR(2*l)
         # For all other groups we have have to locate the largest width
@@ -2393,27 +2474,42 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if options['show_pairing'] and not options['method']=='Farey':
             raise NotImplementedError,"Pairings are only implemented for Farey symbols."
         from sage.plot.colors import rainbow
+        from plot_dom import HyperbolicTriangle
+        
         L = 1000
-        if options['method']=='Farey':
-            coset_reps = map(lambda x: SL2Z_elt(x[0,0],x[0,1],x[1,0],x[1,1]), self.farey_symbol().coset_reps())
-        else:
-            coset_reps = self.coset_reps()
+        #if options['method']=='Farey':
+        #    version = 2
+        #else:
+        ret_domain = options.pop('domain',False)
+        countour_only= options.pop('contour',False)
+        version = options.pop('version',0)
+        #coset_reps = map(lambda x: SL2Z_elt(x[1,1],-x[0,1],-x[1,0],x[0,0]), self.farey_symbol().coset_reps())
+        #else:
+        coset_reps = self.coset_reps(version=version)
         model = options['model']
         verbose = options.get('verbose',0)
+        if verbose>0:
+            print "options=",options
         if model=="D2":
             g=draw_funddom_d(coset_reps,format,I)
         else:
             g = Graphics()
             A0 = CC(-0.5,sqrt(3.)/2)
             B0 = CC(0.5,sqrt(3.)/2)
-            C0 = CC(0,L)
+            if model == 'D':
+                C0 = CC(infinity)
+            else:
+                C0 = CC(0,L)
             for x in coset_reps:
                 #a, b, c, d = x[3], -x[1], -x[2], x[0]
                 A,B = [x.acton(z) for z in [A0,B0]]
-                if x[2]<>0:
-                    C = CC(x[0]/x[2],0)
+                if x.c()<>0:
+                    C = CC(RR(x.a())/RR(x.c()),0)
                 else:
-                    C = CC( (A.real()+B.real())*0.5,L)
+                    if model == 'D':
+                        C = CC(infinity)
+                    else:
+                        C = CC( (A.real()+B.real())*0.5,L)
                 if verbose>0:                    
                     print "coset rep=",x
                     print "Triangle: ({0},{1},{2})".format(A,B,C)
@@ -2423,51 +2519,94 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                              alpha=options['alpha'], \
                                              model=model)
                 
-                if options['show_tesselation']:
-                    g += my_hyperbolic_triangle(A, B, C, color="gray",
-                                               model=model)
+                if model=='H' and options['show_tesselation']:
+                    g += my_hyperbolic_triangle(A, B, C, color="gray",fill=True,
+                                                model=model)
+        if countour_only==True:
+            # Remove interior arcs from path...
+            print "Removing interior arcs:"
+            if model == 'H' or model == 'D':
+                n = len(g)
+                for j in range(n-1,-1,-1):
+                    if not hasattr(g[j],"path"):
+                        continue
+                    path0 = g[j].path
+                    path1 = []
+                    path_has_interior_pts = False
+                    #print "Checking path=",path0
+                    for p in path0:
+                        p0 = copy(p)
+                        for i in range(len(p)):
+                            x = CC(p[i])
+                            #print "x(orig)=",x,abs(x)==1.0
+                            if model == 'D':
+                                if abs(abs(x)-1.0)<1e-12:
+                                    continue
+                                x = CC(0,1)*(CC(x)+CC(1,0))/(CC(1,0)-CC(x))
+                            #print "x=",x
+                            if self.is_interior_point(x,version=version):
+                                path_has_interior_pts = True
+                                #print "point is interior!"
+                                break
+                                #del(p0[i])
+                        #path1.append(p0)
+                    if path_has_interior_pts:
+                        #new_prim = deepcopy(g[j])
+                        #new_prim.path = path1
+                        #print "removing path:",g[j]
+                        del(g[j])
+                        #print "adding path:",new_prim
+                        #g.add_primitive(new_prim)
+
         d = g.get_minmax_data()
         if model=='H':
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
         else:
-            g+=circle((0,0),1)
+            if not ret_domain:
+                g+=circle((0,0),1)
             g.set_axes_range(-1, 1, -1, 1)    
-
-            
-
-
-      # if axes<>None:
-        #     [x0,x1,y0,y1]=axes
-        # elif model=="D":
-        #     x0=-1 ; x1=1 ; y0=-1 ; y1=1 
-        # else:
-        #     # find the width of the fundamental domain
-        #     w=0  #self.cusp_width(Cusp(Infinity))
-        #     wmin=0 ; wmax=1 
-        #     for V in self.coset_reps():
-        #         if V[2]==0  and V[0]==1:
-        #             if V[1]>wmax:
-        #                 wmax=V[1]
-        #             if V[1]<wmin:
-        #                 wmin=V[1]
-        #     #print "wmin,wmax=",wmin,wmax
-        #     #x0=-1; x1=1; y0=-0.2; y1=1.5
-        #     x0=wmin-1 ; x1=wmax+1 ; y0=-0.2 ; y1=1.5 
-        # g.set_aspect_ratio(1 )
-        # g.set_axes_range(x0,x1,y0,y1)
-        # if(filename<>None):
-        #     fig = g.matplotlib()
-        #     fig.set_canvas(FigureCanvasAgg(fig))
-        #     axes = fig.get_axes()[0 ]
-        #     axes.minorticks_off()
-        #     axes.set_yticks([])
-        #     fig.savefig(filename,**kwds)
-        # else:
-
+            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        
         return g
-
-
+    def is_interior_point(self,x,version=1,verbose=0):
+        r"""
+        Test if x is an interior point of the desired fundamental domain of self.
+        """
+        ep = 1e-8
+        x0 = CC(x) + CC(0,ep)
+        x1 = CC(x) + CC(0,-ep)
+        x2 = CC(x) + CC(ep,0)
+        x3 = CC(x) + CC(-ep,0)
+        z0 = self.pullback(x0.real(),x0.imag(),version=version)
+        if isinstance(z0,tuple):
+            z0 = CC(z0[0],z0[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x0,z0)
+        if z0 <> x0:
+            return False           
+        z1 = self.pullback(x1.real(),x1.imag(),version=version)
+        if isinstance(z1,tuple):
+            z1 = CC(z1[0],z1[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x1,z1)
+        if z1 <> x1:
+            return False        
+        z2 = self.pullback(x2.real(),x2.imag(),version=version)
+        if isinstance(z2,tuple):
+            z2 = CC(z2[0],z2[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x2,z2)
+        if z2 <> x2:
+            return False
+        z3 = self.pullback(x3.real(),x3.imag(),version=version)
+        if isinstance(z3,tuple):
+            z3 = CC(z3[0],z3[1])
+        if verbose>0:
+            print "Pb of {0} is {1}".format(x3,z3)
+        if z3 <> x3:
+            return False
+        return True
+        
     def show_symmetry_props(self):
         r"""
         Display the symmetry properties of self.
@@ -2646,7 +2785,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     t,A=Cusp(pp,qq).is_gamma0_equiv(Cusp(v),1,transformation='matrix')
                     if self._verbose>0:
                         print "are eq:",Cusp(pp,qq),Cusp(v)
-                        print "A=",A
+                        print "A=",A,type(A)
+                        
                     if t==1 and A in self:
                         a,b,c,d=A
                         cii=cusps.index((pp,qq))
@@ -2800,6 +2940,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "vertex_data=",vertex_data
             print "cusps=",cusps
             print "cusp_data=",cusp_data
+            print "coset+reps=",coset_reps
             #continue
             # Small test:
         #if len(cusps)<>len(cusp_widths):
@@ -2846,13 +2987,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return V
         raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
 
-    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201):
+    def pullback(self,x_in,y_in=None,ret_mat=0,prec=201,version = 0,**kwds):
         r""" Find the pullback of a point in H to the fundamental domain of self
         INPUT:
 
          - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
          - ''prec''      -- (default 201) precision in bits
          - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
+         - 'version' -- Integer, 0, 1, or 2. Determine which verson of the fundamental domain to use.
         OUTPUT:
         
          - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self
@@ -2905,7 +3047,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             except TypeError as er:
                 raise TypeError,"Could not get point in upper half-plane from {0}! {1}!".format(x_in,er)
 
-        if self._is_Gamma0:
+        if self._is_Gamma0 and version == 0:
             if use_dp:
                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_dp(self,x,y,self._verbose)
             elif use_mpfr:
@@ -2915,8 +3057,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             a,b,c,d=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(a,b,c,d) #.matrix()
+            reps = self.coset_reps(version=version)
             try:
-                for V in self._coset_reps_v0:
+                for V in reps:
                     B=V*A
                     if B in self:
                         raise StopIteration
@@ -2966,7 +3109,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
     def is_Hecke_triangle_group(self):
-        if self.is_Gamma0() and self.level()==1:
+        if self.is_Gamma0() and self.generalised_level()==1:
             return True
         else:
             return False
@@ -3402,7 +3545,7 @@ class HeckeTriangleGroup(SageObject):
         self._coset_reps = [1]
         self._vertices   = [(1,0)]  # List of vertices corresponding to the coset reps.
         self._cusps      = [(1,0)] # Subset of representatives
-        self._cusps_as_cusps=[Cusp(Infinity)]
+        self._cusps_as_cusps=[Cusp(1,0)]
         self._S=None
         self._R=None
         self._T=None

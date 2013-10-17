@@ -36,9 +36,13 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl')] \
+             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
+              'src/ext', 'src/sage', 'src/sage/gsl', 'src'
+              )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
-             ('include/csage', 'include', 'include/python')]
+             ('include/csage', 'include', 'include/python',
+              'include/python2.7')]
+
 if '-ba' in sys.argv:
     print "Rebuilding all Cython extensions."
     sys.argv.remove('-ba')

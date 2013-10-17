@@ -129,7 +129,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         sage: R = matrix(2,2,[2,1,1,2])
         sage: G = 1/2 * R^(-1)
         sage: A.<a,b> = FiniteQuadraticModule_ambient( R, G); A
-
         Finite quadratic module in 2 generators:
          gens: a, b
          form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2
@@ -259,7 +258,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         EXAMPLES
             sage: A = FiniteQuadraticModule( '3^2.27^-3'); latex(A)
-
             \left(\left\langle \Z^{5}/\left(\begin{array}{rrrrr}
             3 & 0 & 0 & 0 & 0 \\
             0 & 3 & 0 & 0 & 0 \\
@@ -279,7 +277,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         EXAMPLES
             sage: A = FiniteQuadraticModule('2^2'); A
-
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/2*x0*x1
@@ -302,13 +299,11 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Return the number of generators of the underlying abelian group.
 
         EXAMPLES
-            sage: F = matrix( QQ, 3, 3, [ 2, 1, 5, 1, 34, 19, 5, 19, 6]); F            
-
+            sage: F = matrix( QQ, 3, 3, [ 2, 1, 5, 1, 34, 19, 5, 19, 6]); F
             [ 2  1  5]
             [ 1 34 19]
             [ 5 19  6]
             sage: A = FiniteQuadraticModule( F); A
-
             Finite quadratic module in 3 generators:
              gens: e0, e1, e2
              form: 157/1960*x0^2 + 891/980*x0*x1 + 13/1960*x1^2 + 151/980*x0*x2 + 33/980*x1*x2 + 1893/1960*x2^2
@@ -324,7 +319,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         EXAMPLES
             sage: A = FiniteQuadraticModule( [2, 4, 8]); A
-
             Finite quadratic module in 3 generators:
              gens: e0, e1, e2
              form: 1/8*x0^2 + 1/16*x1^2 + 1/32*x2^2
@@ -350,12 +344,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES
             sage: A = FiniteQuadraticModule('2^-2'); A
-
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2
             sage: A.relations()
-
             [2 0]
             [0 2]
         """
@@ -379,7 +371,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES
             sage: A = FiniteQuadraticModule([11,33]); A  
-
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/44*x0^2 + 1/132*x1^2
@@ -687,9 +678,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         This method is used for an expression like 3*A, where A is \emph{on the right}.
         It calls self.__mul__.
 
-        EXAMPLES NONE
-##             sage: A=FiniteQuadraticModule();
-##             sage: 3*A == A*3
+        EXAMPLES:
+            ::
+            sage: A=FiniteQuadraticModule();
+            sage: 3*A == A*3
             True
         """
         
@@ -733,27 +725,22 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         EXAMPLES
             sage: A = FiniteQuadraticModule( '11^-1'); A
-
             Finite quadratic module in 1 generators:
              gens: e
              form: 10/11*x^2
             sage: B = A^-1; B                           
-
             Finite quadratic module in 1 generators:
              gens: e
              form: 1/11*x^2
             sage: C = B^11; C                           
-
             Finite quadratic module in 1 generators:
              gens: e
              form: 0
             sage: D = FiniteQuadraticModule( '4^-2.5^2'); D
-
             Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
              form: 1/4*x0^2 + 1/4*x0*x1 + 1/4*x1^2 + 1/5*x2^2 + 1/5*x3^2
             sage: E = D^2; E
-
             Finite quadratic module in 4 generators:
              gens: e0, e1, e2, e3
              form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 2/5*x2^2 + 2/5*x3^2
@@ -791,7 +778,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
              gens: e0, e1, e2, e3, e4, e5, e6, e7, e8, e9
              form: 1/91*x0^2 + 997/1001*x0*x1 + 1000/1001*x1^2 + 999/1001*x0*x2 + 2/1001*x1*x2 + 998/1001*x2^2 + 2/1001*x0*x3 + 995/1001*x1*x3 + 999/1001*x3^2 + 995/1001*x0*x4 + 997/1001*x2*x4 + 10/1001*x3*x4 + 1000/1001*x4^2 + 997/1001*x1*x5 + 10/1001*x2*x5 + 999/1001*x3*x5 + 993/1001*x4*x5 + 997/1001*x5^2 + 997/1001*x0*x6 + 10/1001*x1*x6 + 999/1001*x2*x6 + 993/1001*x3*x6 + 993/1001*x4*x6 + 12/1001*x5*x6 + 993/1001*x6^2 + 10/1001*x0*x7 + 999/1001*x1*x7 + 993/1001*x2*x7 + 993/1001*x3*x7 + 12/1001*x4*x7 + 985/1001*x5*x7 + 8/1001*x6*x7 + 1/1001*x7^2 + 999/1001*x0*x8 + 993/1001*x1*x8 + 993/1001*x2*x8 + 12/1001*x3*x8 + 985/1001*x4*x8 + 8/1001*x5*x8 + 2/1001*x6*x8 + 981/1001*x7*x8 + 1/1001*x8^2 + 993/1001*x0*x9 + 993/1001*x1*x9 + 12/1001*x2*x9 + 985/1001*x3*x9 + 8/1001*x4*x9 + 2/1001*x5*x9 + 981/1001*x6*x9 + 2/1001*x7*x9 + 989/1001*x8*x9 + 4/1001*x9^2
             sage: og_b = L.orthogonal_basis(); og_b long time
-
             [77*e0,
              77*e0 + 462*e9,
              77*e0 + 77*e8 + 693*e9,
@@ -970,14 +956,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES
             sage: A.<a,b> = FiniteQuadraticModule( [3,3], [1/3,1/3,1/3]); A
-
             Finite quadratic module in 2 generators:
              gens: a, b
              form: 1/3*x0^2 + 1/3*x0*x1 + 1/3*x1^2
             sage: U = A.kernel(); U
             < a + b >
             sage: B = A.quotient(U); B
-
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/3*x0^2 + 1/3*x0*x1 + 1/3*x1^2
@@ -1310,12 +1294,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES
             sage: A = FiniteQuadraticModule([1,3]); A      
-
             Finite quadratic module in 2 generators:
              gens: e0, e1
              form: 1/4*x0^2 + 1/12*x1^2
             sage: list(A.subgroups())             
-
             [< e1, e0 >,
              < e1 >,
              < e0 + e1 >,
@@ -1327,7 +1309,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
              < e0 >,
              < 0 >]
              sage: B.<a> = FiniteQuadraticModule( '25^-1'); B        
-
              Finite quadratic module in 1 generators:
               gens: a
               form: 2/25*x^2
@@ -1442,12 +1423,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES
             sage: F = matrix(3,3,[1,1/2,3/2,1/2,2,1/9,3/2,1/9,1]); F
-
             [  1 1/2 3/2]
             [1/2   2 1/9]
             [3/2 1/9   1]
             sage: FiniteQuadraticModule_ambient._reduce_mat(F)      
-
             [  0   0   0]
             [  0   0 1/9]
             [  0 1/9   0]
@@ -1598,11 +1577,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES
             sage: A.<a,b> = FiniteQuadraticModule( matrix( QQ, 2, [2,1,1,6])); A
-
             Finite quadratic module in 2 generators:
              gens: 5*b, b
              form: 3/11*x0^2 + 10/11*x0*x1 + 1/11*x1^2
-            sage: D = A.cayley_graph (); D                                      
+            sage: D = A.cayley_graph (); D                                     
             Digraph on 11 vertices
             sage: g = D.plot(color_by_label=True, edge_labels=True)              
 
@@ -1656,7 +1634,6 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             sage: A = FiniteQuadraticModule( matrix( QQ, 2, [2,1,1,2]))
             sage: B = 2*A
             sage: S = A._Hom_(B)
-
             Set of Homomorphisms from Finite quadratic module in 2 generators:
             gens: e1, e1
             form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 to Finite quadratic module in 4 generators:
@@ -1736,14 +1713,13 @@ class FiniteQuadraticModuleHomomorphism_im_gens (Morphism):
     
     EXAMPLES
         sage: A = FiniteQuadraticModule( matrix( QQ, 2, [2,1,1,2])); B = 2*A; S=A._Hom_(B); u,v = A.gens(); a,b,c,d = B.gens();
-        sage: f = S([a,b]); f                                                                                                  
-
+        sage: f = S([a,b]); f                             
         Homomorphism : Finite quadratic module in 2 generators:
          gens: e1, e1
          form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 --> Finite quadratic module in 4 generators:
          gens: e1, e1, e3, e3
          form: 1/3*x0^2 + 2/3*x0*x1 + 1/3*x1^2 + 1/3*x2^2 + 2/3*x2*x3 + 1/3*x3^2
-        sage: f(u),f(v),f(2*v),f(0)                                                                                            
+        sage: f(u),f(v),f(2*v),f(0)                                                                               
         (e1, e1, 2*e1, 0)
     """
     
@@ -1832,17 +1808,14 @@ def _A( q, s = 1, **args):
     
     EXAMPLES
         sage: A = _A(3); A      
-
         Finite quadratic module in 1 generators:
          gens: e
          form: 1/3*x^2
         sage: B = _A(5,-2); B   
-
         Finite quadratic module in 1 generators:
          gens: e
          form: 3/5*x^2
         sage: C.<a> = _A(2^5); C
-
         Finite quadratic module in 1 generators:
          gens: a
          form: 1/64*x^2
@@ -1865,7 +1838,6 @@ def _B( q, **args):
     
     EXAMPLES
         sage: B.<a,b> = _B(2^3); B
-
         Finite quadratic module in 2 generators:
          gens: a, b
          form: 1/8*x0^2 + 1/8*x0*x1 + 1/8*x1^2
@@ -1884,7 +1856,6 @@ def _C( q, **args):
     
     EXAMPLES
         sage: C.<a,b> = _C(2); C
-
         Finite quadratic module in 2 generators:
          gens: a, b
          form: 1/2*x0*x1
@@ -1938,33 +1909,28 @@ def _FiniteQuadraticModule_from_string( S, **args ):
 
     EXAMPLES
         sage: A.<a,b,c,d> =_FiniteQuadraticModule_from_string ('3^-1.3.5^2'); A
-
         Finite quadratic module in 4 generators:
          gens: a, b, c, d
          form: 2/3*x0^2 + 1/3*x1^2 + 1/5*x2^2 + 1/5*x3^2
         sage: A =_FiniteQuadraticModule_from_string ('8^+6'); A
-
         Finite quadratic module in 6 generators:
          gens: e0, e1, e2, e3, e4, e5
          form: 1/8*x0*x1 + 1/8*x2*x3 + 1/8*x4*x5
         sage: A.elementary_divisors ()
         (8, 8, 8, 8, 8, 8)
         sage: A =_FiniteQuadraticModule_from_string ('8_1^+3'); A
-
         Finite quadratic module in 3 generators:
          gens: e0, e1, e2
          form: 1/16*x0^2 + 1/16*x1^2 + 15/16*x2^2
         sage: A.elementary_divisors ()                           
         (8, 8, 8)
         sage: D.<a,b,c,d,e> = _FiniteQuadraticModule_from_string ('8_1^3.4^-2'); D
-
         Finite quadratic module in 5 generators:
          gens: a, b, c, d, e
          form: 1/16*x0^2 + 1/16*x1^2 + 15/16*x2^2 + 1/4*x3^2 + 1/4*x3*x4 + 1/4*x4^2
         sage: D.level(), D.exponent(), D.order(), D.elementary_divisors ()
         (16, 8, 8192, (8, 8, 8, 4, 4))
         sage: E.<a,b,c,d,e,f,g> = _FiniteQuadraticModule_from_string ('8_1^3.4^-2.3^-1.11^-1'); E
-
         Finite quadratic module in 7 generators:
          gens: a, b, c, d, e, f, g
          form: 1/16*x0^2 + 1/16*x1^2 + 15/16*x2^2 + 1/4*x3^2 + 1/4*x3*x4 + 1/4*x4^2 + 1/3*x5^2 + 1/11*x6^2
@@ -2119,8 +2085,7 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
 
 
     EXAMPLES
-        sage: N.<n> = FiniteQuadraticModule(); N                                 
-
+        sage: N.<n> = FiniteQuadraticModule(); N                               
         Finite quadratic module in 1 generators:
          gens: 0
          form: 0
@@ -2128,19 +2093,16 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
         1
 
         sage: S.<x,y,z> = FiniteQuadraticModule( '7^-1.3.2_3^-1'); S
-
         Finite quadratic module in 3 generators:
          gens: x, y, z
          form: 6/7*x0^2 + 1/3*x1^2 + 3/4*x2^2
 
         sage: L.<w> = FiniteQuadraticModule( [13]); L          
-
         Finite quadratic module in 1 generators:
          gens: w
          form: 1/52*x^2
 
         sage: E8 = matrix( ZZ, 8, [4,-2,0,0,0,0,0,1,-2,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,-1,0,0,0,0,0,0,-1,2,0,1,0,0,0,0,0,0,2]); E8
-
         [ 4 -2  0  0  0  0  0  1]
         [-2  2 -1  0  0  0  0  0]
         [ 0 -1  2 -1  0  0  0  0]
@@ -2150,7 +2112,6 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
         [ 0  0  0  0  0 -1  2  0]
         [ 1  0  0  0  0  0  0  2]
         sage: M.<a,b,c,d,e,f,g,h> = FiniteQuadraticModule( 3*F); M
-
         Finite quadratic module in 8 generators:
          gens: a, b, c, d, e, f, g, h
          form: 1/3*x0^2 + 2/3*x0*x2 + 2/3*x1*x2 + 1/3*x0*x3 + 1/3*x1*x3 + 1/3*x3^2 + 2/3*x0*x5 + 2/3*x1*x5 + 1/3*x3*x5 + 2/3*x4*x5 + 1/3*x0*x6 + 1/3*x1*x6 + 2/3*x3*x6 + 1/3*x4*x6 + 1/3*x6^2 + 2/3*x0*x7 + 2/3*x2*x7 + 1/3*x3*x7 + 2/3*x5*x7 + 1/3*x6*x7 + 2/3*x7^2
@@ -2159,13 +2120,11 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
         sage: K.<x> = NumberField(X^4-8*X^3+1); K    
         Number Field in x with defining polynomial X^4 - 8*X^3 + 1
         sage: F.<a,b,c,d> = FiniteQuadraticModule((x^2-4)/7); F
-
         Finite quadratic module in 4 generators:
          gens: a, b, c, d
          form: 6/7*x0^2 + 1/7*x0*x1 + 5/7*x1*x2 + 5/7*x0*x3 + 6/7*x2*x3 + 3/7*x3^2
 
         sage: LL = FiniteQuadraticModule([3,4,30],[1/3,0,1/3,1/8,5/2,7/60]); LL
-
         Finite quadratic module in 3 generators:
          gens: e0, e1, e2
          form: 1/3*x0^2 + 1/8*x1^2 + 1/3*x0*x2 + 1/2*x1*x2 + 7/60*x2^2
@@ -2173,7 +2132,6 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
         (60, 6)
 
         sage:  LL2.<u,v> = FiniteQuadraticModule( [5,5], [3/5,1/5,4/5]); LL2
-
         Finite quadratic module in 2 generators:
          gens: u, v
          form: 3/5*x0^2 + 1/5*x0*x1 + 4/5*x1^2
@@ -2181,12 +2139,10 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
         True
 
         sage: G = matrix(3,3,[1,1/2,3/2,1/2,2,1/9,3/2,1/9,1]); G
-
         [  1 1/2 3/2]
         [1/2   2 1/9]
         [3/2 1/9   1]
         sage: LM = FiniteQuadraticModule([4,9,18],G); LM        
-
         Finite quadratic module in 3 generators:
          gens: e0, e1, e2
          form: 2/9*x1*x2
@@ -2194,21 +2150,17 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
         False
 
         sage: M = matrix( 2, [4,1,1,6]); M                               
-
         [4 1]
         [1 6]
         sage: ML.<s,t> = FiniteQuadraticModule( M, [3/23,-1/23,2/23]); ML
-
         Finite quadratic module in 2 generators:
          gens: 17*t, t
          form: 3/23*x0^2 + 22/23*x0*x1 + 2/23*x1^2
-
+         
         sage: E = matrix( 2, [8,3,3,10]); E                       
-
         [ 8  3]
         [ 3 10]
         sage: MM.<x,y> = FiniteQuadraticModule( E, 1/2 * E^-1); MM
-
         Finite quadratic module in 2 generators:
          gens: 44*y, y
          form: 5/71*x0^2 + 68/71*x0*x1 + 4/71*x1^2
@@ -2561,7 +2513,6 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
         
         EXAMPLES
             sage: F.<a,b,c> = FiniteQuadraticModule([2,12,34]); F
-
             Finite quadratic module in 3 generators:
              gens: a, b, c
              form: 1/8*x0^2 + 1/48*x1^2 + 1/136*x2^2
@@ -2766,7 +2717,6 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             sage: a,b,c,d = B.gens()                                   
             sage: U = B.subgroup( [b+d])
             sage: C,f = U.as_ambient(); f
-
             Homomorphism : Finite quadratic module in 1 generators:
              gens: e
              form: 2/3*x^2 --> Finite quadratic module in 4 generators:
@@ -2850,7 +2800,6 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             < a + b >
 
             sage: A.<a,b,c,d> = FiniteQuadraticModule( '2_2^-4'); A
-
             Finite quadratic module in 4 generators:
              gens: a, b, c, d
              form: 1/4*x0^2 + 3/4*x1^2 + 3/4*x2^2 + 3/4*x3^2
@@ -2894,7 +2843,6 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
 
         EXAMPLES
             sage: A.<a,b,c,d,e,f,g,h,j> = FiniteQuadraticModule( '23^4.2_2^4.3'); A
-
             Finite quadratic module in 9 generators:
              gens: a, b, c, d, e, f, g, h, j
              form: 1/23*x0^2 + 1/23*x1^2 + 1/23*x2^2 + 1/23*x3^2 + 1/4*x4^2 + 1/4*x5^2 + 1/4*x6^2 + 3/4*x7^2 + 1/3*x8^2
@@ -3001,12 +2949,12 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             the subgroups $\langle b_j,c_j \rangle$ are pairwise orthogonal and do no possess
             orthogonal generators.
             
-        EXAMPLES
+        EXAMPLES:
+            ::
             sage: A.<a,b,c,d,e,f,g> = FiniteQuadraticModule( '11^-7')
             sage: U = A.subgroup( [a+b,b+c,c+d,d+e,e+f,f+g]); U
             < a + 10*g, b + g, c + 10*g, d + g, e + 10*g, f + g >
             sage: matrix( len(U.gens()), [ x.dot(y) for x in U.gens() for y in U.gens()])
-
             [   0 9/11 2/11 9/11 2/11 9/11]
             [9/11 4/11 9/11 2/11 9/11 2/11]
             [2/11 9/11 4/11 9/11 2/11 9/11]
@@ -3014,15 +2962,13 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             [2/11 9/11 2/11 9/11 4/11 9/11]
             [9/11 2/11 9/11 2/11 9/11 4/11]
             sage: og_b = U.orthogonal_basis(); og_b
-
             [b + g,
              b + 9*f + 10*g,
              b + 3*e + f + 10*g,
              b + 7*d + 10*e + f + 10*g,
              b + 5*c + d + 10*e + f + 10*g,
              a + 2*b + 9*c + 2*d + 9*e + 2*f + 9*g]
-            sage: matrix( len(og_b), [ x.dot(y) for x in og_b for y in og_b])            
-
+            sage: matrix( len(og_b), [ x.dot(y) for x in og_b for y in og_b])
             [4/11    0    0    0    0    0]
             [   0 1/11    0    0    0    0]
             [   0    0 2/11    0    0    0]
@@ -3215,7 +3161,23 @@ class JordanDecomposition( SageObject):
         Return the concatenation of all local genus symbols
         if no argument is given.
         
-        EXAMPLES NONE
+        EXAMPLES:
+
+        We check that the calculation of the genus symbol is correct
+        for 2-adic symbols.
+            ::
+            sage: M = FiniteQuadraticModule('2^-2.2_1^1'); M
+            Finite quadratic module in 3 generators:
+             gens: e0, e1, e2
+             form: 1/2*x0^2 + 1/2*x0*x1 + 1/2*x1^2 + 1/4*x2^2
+            sage: M.jordan_decomposition().genus_symbol()
+            '2_1^-3'
+            sage: N = FiniteQuadraticModule('2_1^-3')
+            sage: N.is_isomorphic(M)
+            True
+            sage: N = FiniteQuadraticModule('2_5^-3')
+            sage: N.is_isomorphic(M)
+            False
         """
         n = self.__A.order()
         if not p:

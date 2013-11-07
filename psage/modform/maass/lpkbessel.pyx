@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #ö  Copyright (C) 2010  Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -17,6 +17,14 @@
 include "sage/ext/cdefs.pxi"
 include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
 include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
+include "sage/ext/gmp.pxi"
+include "sage/rings/mpc.pxi"
+
+from sage.libs.mpfr cimport *
+
+from sage.rings.real_mpfr cimport RealNumber,RealField_class
+cdef mpfr_rnd_t rnd
+rnd = GMP_RNDN
 
 import cython
 
@@ -112,6 +120,7 @@ cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):
 
                = 0 => computes K_iR(x)
 
+               = -1 => computes K_R(x)
     OUTPUT:
     
      - exp(Pi*R/2)*K_{i*R}(x)  -- double
@@ -132,6 +141,8 @@ cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):
         RR=R
     if x<=0:
         raise ValueError," Need x>0! Got x=%s" % x
+    if pref==-1:
+        return besselk_real_rec_dp(R,x,prec)
     cdef double xc,xcral,S
     xc = sqrt((x+R)*(x-R))
     S=R/x
@@ -454,6 +465,9 @@ Ber[ 48 ]= -5.1539291620653213901946552121717171770391159e69
 Ber[ 49 ]= 1.1906210230890226457684816176871380462750227e72
 Ber[ 50 ]= -2.8668938960296673696226420541900772462913819e74
 
+cpdef lngamma(double x,double R,double prec=1E-16):
+    return my_lngamma(x,R,prec)
+
 @cython.cdivision(True) 
 cdef  double complex my_lngamma(double x,double R,double prec=1E-16):
     r"""
@@ -518,9 +532,255 @@ cdef  double complex my_lngamma(double x,double R,double prec=1E-16):
     res=stirling+summa
     for j from 0 <=j<=N-1:
         cr=<double complex> j
-        tmp=iR+cr+d_one
+        tmp=iR+cr+x #d_one
         res=res-clog(tmp)
     return res
 
 
 
+## Bessel function for real parameter |r|<=0.5
+
+
+
+
+
+@cython.cdivision(True) 
+cpdef besselk_real_rec(RealNumber r,RealNumber x,double eps=0,int verbose=0):
+    r"""
+    K_r(x) with x real, positive and r real with |r|<=0.5
+    """
+    if r<0:
+        r = -r
+    if abs(r)>0.5:
+        raise ValueError,"Use only for r in [-0.5,0.5]"
+    if abs(x)>0.5:
+        raise ValueError,"Use only for x>0"
+    RF = r.parent()
+    if eps == 0:
+        eps = 2.0**(2-RF.prec())
+#    cdef dict rk,fk,ck
+    cdef int N=100
+    cdef RealNumber one,two,pi,four,rpi
+    cdef RealNumber t1,f11,f111,xtwo,xtwo_by_four
+    cdef RealNumber rk0,rk1,rk_new
+    cdef RealNumber fk0,fk1,fk_new
+    cdef RealNumber ck0,ck1,ck_new
+    cdef RealNumber R2,term,s
+    cdef RealNumber kk,k2,rtmpx
+    cdef RealNumber f1,f2
+    cdef mpfr_t tmpx,tmpx1
+    cdef int prec = RF.prec()
+    mpfr_init2(tmpx,prec)
+    mpfr_init2(tmpx1,prec)
+    #    rk = {}; fk={}; ck={}
+    rtmpx=RF(0)
+    one = RF(1); two = RF(2); pi = RF.pi(); four=RF(4)
+    k2=RF(1); kk=RF(1); R2=RF(0); xtwo_by_four=RF(0)
+    ck0=RF(0); ck1=RF(0); fk0=RF(0); fk1=RF(0)
+    rk0=RF(0); rk1=RF(0)
+    t1=RF(0); f1=RF(0); f11=RF(0); f2=RF(0)
+    xtwo=RF(0)
+    rk_new = RF(0)
+    term = RF(0); s=RF(0)
+    t1 = r.gamma()*(x/two)**(-r)
+    rpi=r*pi
+    f1 = rpi.sin()/pi    
+    f11= f1*t1
+    f111=r*f11
+    f2 = t1**-1
+    # rk0 = f111 + f2
+    mpfr_add(rk0.value,f111.value,f2.value,rnd)
+    fk0 = f11 - f2/r
+    mpfr_sub(tmpx,one.value,r.value,rnd)
+    mpfr_div(tmpx,f111.value,tmpx,rnd)
+    mpfr_add(tmpx1,one.value,r.value,rnd)
+    mpfr_div(tmpx1,f2.value,tmpx1,rnd)
+    mpfr_add(rk1.value,tmpx,tmpx1,rnd)
+    #rk1 = f111/(one-r) + f2/(one+r)
+    R2 = r*r
+    fk1 = (fk0 + rk0)/(one-R2)
+    s = RF(0)
+    xtwo = RF(x)**2
+    xtwo_by_four = xtwo/four
+    ck0 = one
+    mpfr_set(ck1.value,xtwo_by_four.value,rnd)
+    s = ck0*fk0+ck1*fk1
+    #print "eps=",eps
+    #print "test=",2.0**(2-RF.prec())
+    if eps < 2.0**(1-RF.prec()):
+        raise ValueError,"Need higher precision input"
+    ##
+    cdef double rmax = 0.5
+    if verbose>1:
+        print "s=",s
+        print "r[0]=",rk0
+        print "r[1]=",rk1
+        print "f[0]=",fk0
+        print "f[1]=",fk1    
+        print "c[0]=",ck0
+        print "c[1]=",ck1
+    cdef int kmin,k
+
+    cdef double ef1,ef2,ef3,err_est
+    if abs(x)<2:
+        ef1 = 2.0*(<double>x/2.0)**rmax
+    else:
+        ef1 = 2.0*RF(2.0/<double>x)**rmax
+    ef1=ef1/(1.0-<double>xtwo)
+    
+    kmin = int( max(r+1,xtwo_by_four))+1
+    # fk1 = fk[k-1]
+
+    for k in range(2,N+1):
+        mpfr_set_ui(kk.value,k,rnd)
+        mpfr_pow_ui(k2.value,kk.value,2,rnd)
+        mpfr_sub(tmpx,k2.value,R2.value,rnd)
+        mpfr_mul(tmpx1,kk.value,fk1.value,rnd)
+        mpfr_add(tmpx1,tmpx1,rk1.value,rnd)
+        mpfr_div(fk1.value,tmpx1,tmpx,rnd)
+        #fk1 = (kk*fk1 + rk1)/(k2-R2)
+        mpfr_div(tmpx,xtwo_by_four.value,kk.value,rnd)
+        mpfr_mul(ck1.value,ck1.value,tmpx,rnd)
+        #ck1 = ck1*xtwo_by_four/kk
+        mpfr_mul(term.value,ck1.value,fk1.value,rnd)
+        #term = ck1*fk1
+        if verbose>1:
+            print "f[{0}]={1}".format(k,fk1) 
+            print "c[{0}]={1}".format(k,ck1)
+        mpfr_add(s.value,s.value,term.value,rnd)
+        if k > kmin:
+            # Get a rigorous error term for truncation
+            ef2 = (2.0*k+2.0)**rmax
+            ef3 = (3.0/k)**(k+1)
+            err_est = ef1*ef2*ef3*mpfr_get_d(ck1.value,rnd)
+            # Also add numerical error
+#            err_est+=k*meps
+            if verbose>0:
+                print "term=",k,term,abs(term)/abs(s)
+                print "error est=",err_est
+            #print "s=",s
+            if abs(err_est)< eps: #abs(term)/abs(s)<eps:
+                break
+        mpfr_mul_si(tmpx,rk1.value,2*k-1,rnd)
+        mpfr_sub(tmpx,tmpx,rk0.value,rnd)
+        mpfr_set(rtmpx.value,tmpx,rnd)
+        #print "(2k-1)rk-r0=",rtmpx
+        #print "(2k-1)rk-r0=",((2*kk-1)*rk1 - rk0)        
+        mpfr_sub(tmpx1,k2.value,R2.value,rnd)
+        mpfr_set(rtmpx.value,tmpx1,rnd)
+        #print "k2-r2=",rtmpx
+        #print "k2-r2=",(k2-R2)
+        mpfr_div(rk_new.value,tmpx,tmpx1,rnd)
+        #print "rk_new 1=",rtmpx
+        #print "rk_new 2=",((2*kk-1)*rk1 - rk0)/(k2 - R2)
+        #rk_new = ((2*kk-1)*rk1 - rk0)/(k2 - R2)
+        #print "rk_new 3=",rk_new
+        mpfr_set(rk0.value,rk1.value,rnd)
+        mpfr_set(rk1.value,rk_new.value,rnd)
+        #rk0 = rk1
+        #rk1 = rk_new
+        if verbose>2:
+            print "r[{0}]={1}".format(k,rk1)
+    mpfr_clear(tmpx)
+    mpfr_clear(tmpx1)        
+    return s*RF.pi()/two
+    
+cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
+    r"""
+    K_r(x) with x real, positive and r real with |r|<=0.5
+    """
+    if r<0:
+        r = -r
+    if abs(r)>0.5:
+        raise ValueError,"Use only for r in [-0.5,0.5]"
+    if abs(x)>0.5:
+        raise ValueError,"Use only for x>0"
+    if eps == 0:
+        eps = 2.0**(2-53)
+#    cdef dict rk,fk,ck
+    cdef int N=100
+    cdef double one,two,pi,four,rpi
+    cdef double t1,f11,f111,xtwo,xtwo_by_four
+    cdef double rk0,rk1,rk_new
+    cdef double fk0,fk1,fk_new
+    cdef double ck0,ck1,ck_new
+    cdef double R2
+    cdef double kk,k2
+    #    rk = {}; fk={}; ck={}
+    one = 1.0; two = 2.0
+    pi = cppi
+    four=4.0
+    k2=1.0; kk=1.0
+    t1 = exp( creal(my_lngamma(r,0.0)))
+    #print "ln_gamma(r)=",my_lngamma(r,0.0)
+    #print "gamma(r)=",t1
+    t1*=(x/two)**(-r)
+    rpi=r*pi
+    f1 = sin(rpi)/pi    
+    f11= f1*t1
+    f111=r*f11
+    f2 = t1**-1
+    rk0 = f111+f2
+    fk0 = f11 - f2/r
+    rk1 = f111/(one-r) + f2/(one+r)
+    R2 = r*r
+    fk1 = (fk0 + rk0)/(one-R2)
+    s = 0.0
+    xtwo = x**2
+    xtwo_by_four = xtwo/four
+    ck0 = one
+    ck1 = xtwo_by_four
+    s = ck0*fk0+ck1*fk1
+    if eps < 2.0**(1-53):
+        raise ValueError,"Need higher precision input"
+    ##
+    cdef double rmax = 0.5
+    if verbose>1:
+        print "s=",s
+        print "r[0]=",rk0
+        print "r[1]=",rk1
+        print "f[0]=",fk0
+        print "f[1]=",fk1    
+        print "c[0]=",ck0
+        print "c[1]=",ck1
+    cdef int kmin,k
+
+    cdef double ef1,ef2,ef3,err_est
+    if abs(x)<2:
+        ef1 = 2.0*(<double>x/2.0)**rmax
+    else:
+        ef1 = 2.0*(2.0/x)**rmax
+    ef1=ef1/(1.0-xtwo)
+    
+    kmin = int( max(r+1,xtwo_by_four))+1
+    # fk1 = fk[k-1]
+    cdef mpfr_t tmpx,tmpx1
+    for k in range(2,N+1):
+        kk = <double>k
+        k2 = kk**2
+        fk1 = (kk*fk1 + rk1)/(k2-R2)
+        ck1 = ck1*xtwo_by_four/kk
+        term = ck1*fk1
+        if verbose>1:
+            print "f[{0}]={1}".format(k,fk1) 
+            print "c[{0}]={1}".format(k,ck1)
+        s+=term
+        if k > kmin:
+            # Get a rigorous error term for truncation
+            ef2 = (2.0*k+2.0)**rmax
+            ef3 = (3.0/kk)**(k+1)
+            err_est = ef1*ef2*ef3*ck1
+            # Also add numerical error
+#            err_est+=k*meps
+            if verbose>0:
+                print "term=",k,term,abs(term)/abs(s)
+                print "error est=",err_est
+                print "s=",s
+            if abs(err_est)< eps: #abs(term)/abs(s)<eps:
+                break
+        rk_new = ((2*kk-1)*rk1 - rk0)/(k2 - R2)
+        rk0 = rk1
+        rk1 = rk_new
+        if verbose>2:
+            print "r[{0}]={1}".format(k,rk1)
+    return s*cppi/two

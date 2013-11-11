@@ -24,7 +24,7 @@ from sage.rings.arith import divisors,gcd,inverse_mod
 from sage.modular.dirichlet import DirichletGroup
 from sage.rings.all import RR
 from sage.modular.arithgroup.all import Gamma0
-from sage.all import trivial_character,timeit,RealNumber,ComplexNumber,log,is_squarefree,prime_range,next_prime,deepcopy
+from sage.all import trivial_character,timeit,log,is_squarefree,prime_range,next_prime,deepcopy
 from maass_forms_alg import *
 from lpkbessel import *
 from automorphic_forms import *
@@ -84,6 +84,9 @@ class MaassWaveForms (AutomorphicFormSpace):
             Constructed from G=Modular Group SL(2,Z)
 
         """
+        if kwds.get('char_norm')=='Conrey' and ch>0:
+            raise NotImplementedError
+        #    for x in DirichletGroup_conrey():
         self._ch=ch
         self._hecke=hecke
         if dprec==None and prec==None:
@@ -372,10 +375,9 @@ class MaassWaveForms (AutomorphicFormSpace):
         return self._group.is_congruence()
     
     def level(self):
-        if self._group.is_congruence():
-            return self._group.level()
-        else:
-            return self._group.generalised_level()
+        if not self._group.is_congruence():
+            raise ValueError,"Can only call level for a congruence subgroup!"
+        return self._group.generalised_level()
 
     def get_element(self,R,Mset=None,Yset=None,dim=1,ndigs=12,set_c=[],**kwds):
         #if sym_type==None:
@@ -386,16 +388,22 @@ class MaassWaveForms (AutomorphicFormSpace):
         Y=param['Y']
         Q=param['Q']
         M=param['M']
+        oldf = kwds.get('oldforms')
+        norm = kwds.get('norm')
         try: 
             if RR(R).is_infinity() or RR(R).is_NaN() or R<0.0:
                 raise Exception
         except:
             raise ValueError,"R must be a (finite) non-negative real! Got R:{0}".format(R)
-        if dim>1 and self.weight()==0:
+        if dim>1 and self.weight()==0 and oldf==None and norm==None:
             return  self.get_Hecke_basis(R,None,M,Y,dim,ndigs,set_c)
             ## We assume we have a scalar-valued Maass form for the moment
         else:
-            NN = self.set_norm(dim,set_c=set_c); M0=0; Y0 = float(0.0)
+            if norm <> None:
+                NN = norm
+            else:
+                NN = self.set_norm(dim,set_c=set_c)
+            M0=0; Y0 = float(0.0)
             #if Mset<>None: M0 = int(Mset)
             #if Yset<>None: Y0 = float(Yset)
             if self._verbose>0:
@@ -440,7 +448,7 @@ class MaassWaveForms (AutomorphicFormSpace):
 #                    res.append(Maasswaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
 #                return res
 #            else:
-            return Maasswaveform(self,R,C=C,compute=False,Y=Y,norm=NN)
+            return Maasswaveform(self,R,C=C,compute=False,Y=Y,norm=NN,dim=dim)
 
             #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
             #F._coeffs[0]=X[0]
@@ -479,7 +487,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         for i in H.keys(): #range(dim):
             #print "H[",i,"][0][-1]=",H[i][0][-1]
             #C={0:H[i]}
-            F = Maasswaveform(self,R,C=H[i],sdim=1,compute=False,hecke_p=p)
+            F = Maasswaveform(self,R,C={0:H[i]},dim=1,compute=False,hecke_p=p)
             res.append(F)
         return res
 
@@ -1477,7 +1485,10 @@ def Maasswaveform(space,eigenvalue,**kwds):
     data['_atkin_lehner_evs'] = data['_space']._atkin_lehner_evs
     data['_set_c'] = kwds.pop('set_c',{})
     data['_dim'] = kwds.pop('dim',1)
-#    data['_nd'] = kwds.pop('',12)
+    if data['_dim'] <> data['_space']._rdim:
+        data['_space']._rdim = data['_dim']
+    
+    #    data['_nd'] = kwds.pop('',12)
     data['_compute'] = kwds.pop('compute',1)
 #        ,G,R,C=None,nd=12,sym_type=None,cusp_evs={},verbose=None,prec=53,set_c=None,dim=1,compute=False,test=0,data={},**kwds):
     data['_errest'] = kwds.get('errest',0)
@@ -1584,8 +1595,9 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         """
         #import mpmath
-        for key in data.keys():
-            self.__dict__[key]=data[key]
+        self.__dict__.update(data)
+        #print "data=",data
+        #print "coeffs",self._coeffs
         AutomorphicFormElement.__init__(self,self._space,self._coeffs,prec=self._prec,principal_part={},verbose=self._verbose)
         #if nd>15:
         #    mpmath.mp.dps=nd
@@ -1596,21 +1608,20 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #self._coeffs={}
         #
         #
-        if self._coeffs<>{}:
-            if self._test==1 and self._errest<>0:
-                self._errest = self.test()
-            self._M0 = max(self._coeffs[0][0].keys())
-        else:
-            dprec=2.**(-self._nd)
-            self._M0=get_M_for_maass(self._R,
-                                     self._space._group.minimal_height(),
-                                     dprec) 
-            if data.get('compute',False)==True:
-                self._coeffs=self.get_coeffs()
-            else:
-                self._coeffs = {0: {}}
-                for j in range(self._space._group.ncusps()):
-                    self._coeffs[0][j]={}
+        if self._test==1 and self._errest<>0:
+            self._errest = self.test()
+            
+        #self._M0 = max(self._coeffs.values().values().keys())
+        dprec=2.**(-self._nd)
+        self._M0=get_M_for_maass(self._R,
+                                 self._space._group.minimal_height(),
+                                 dprec) 
+        if data.get('compute',False)==True and self._coeffs=={}:
+            self._coeffs=self.get_coeffs()
+        elif self._coeffs == {}:
+            self._coeffs = {0: {}}
+            for j in range(self._space._group.ncusps()):
+                self._coeffs[0][j]={}
         
                     
     def _repr_(self):
@@ -1659,10 +1670,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         return self._space._group
 
     def level(self):
-        if self._space._group.is_congruence():
-            return self._space.__group.level()
-        else:
-            return self._space._group.generalised_level()
+        return self._space.level()
+
+    def generalised_level(self):
+        return self._space._group.generalised_level()
 
     def eigenvalue(self):
         return self._R  #eigenvalue

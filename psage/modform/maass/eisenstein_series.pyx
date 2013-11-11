@@ -737,7 +737,8 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
 
 
 from pullback_algorithms import pullback_pts_mp
-from sage.functions.special import Bessel
+#from sage.functions.special import Bessel
+from sage.all import Bessel
 
 cpdef Eisenstein_series_one_cusp(S,RealNumber sigma,RealNumber R,RealNumber Y,int M,int verbose=0,int gr=0,int tprec=0):
     cdef int Q,Qs,Qf,Ql,Ms,Mf,Ml,n,j,l,prec

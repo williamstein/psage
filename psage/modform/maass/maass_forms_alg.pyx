@@ -46,7 +46,7 @@ from sage.modular.cusps import Cusp
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer,is_Integer
 from sage.rings.complex_double import CDF
-from sage.all import log_b
+from sage.all import log_b,RR
 from numpy import array
 from sage.all import exp,I,CC
 from sage.all import find_root
@@ -132,49 +132,109 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 
 from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par
 
-cpdef eval_maass_lp(F,x,y):
+cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
     r"""
     Evaluate a Maass form
     """
     cdef float R = <float>F._R
-    cdef float Y = <float>F._group.minimal_height()
+    cdef float Y = <float>F.group().minimal_height()
     cdef float xx=<float>x
     cdef float yy=<float>y
-    RF=RealField(F._prec)
-    G=F._group
+    cdef int a,b,c,d
+    cdef int cj #G._cusps[cj]
+    cdef int ca,cb
+    RF=RealField(F.prec())
+    G=F.group()
     # pullback
-    x1,y1,Tw =  G.pullback(x,y)
-    print "pullback=",x1,y1
-    v = G.closest_vertex(x1,y1)
-    cj= G._vertex_data[v]['cusp'] #representative[v]
-    cdef int cjj= G._cusps.index(cj)
-    a,b,c,d=G._vertex_data[v]['map']
-    if a<>1 or b<>0 or c<>0 or d<>1:
-        print "apply map :",a,b,c,d
-        x2,y2 = apply_sl2z_map_mpfr(RF(x),RF(y),a,b,c,d)
+    if use_pb == 1:
+        x1,y1,a,b,c,d =  G.pullback(x,y)
+        #print "pullback=",x1,y1
+        #v = G.closest_vertex(x1,y1)
+        #cj= G._vertex_data[v]['cusp'] #representative[v]
+        #a,b,c,d=G._vertex_data[v]['cusp_map']
+        #if a<>1 or b<>0 or c<>0 or d<>1:
+        #    #print "apply map :",a,b,c,d
+        #    x2,y2 = apply_sl2z_map_mpfr(RF(x),RF(y),a,b,c,d)
+        #else:
+        #    x2=x1;y2=y1
+        #ca,cb = G._cusps[cj]
     else:
-        x2=x1;y2=y1
-    [x3,y3] = normalize_point_to_cusp_mpfr(G,cj,x2,y2,inv=1)
+        x1 = x; y1 = y
+        ca=1; cb=0; cj=0
+    #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     res=0
     twopi=RF(2)*RF.pi()
     if F._sym_type in [0,1]:
-        if F._sym_type==1:
+        if F._sym_type==0:
             fun=cos
-        elif F._sym_type==0:
+        elif F._sym_type==1:
             fun=sin
-        arx=twopi*x3
-        ary=twopi*y3
+        arx=twopi*x1
+        ary=twopi*y1
         for n in range(1,F._M0):
-            term=sqrt(y)*besselk_dp(R,ary*n)*fun(arx*n)
-            res=res+F.coeffs[cjj][n]
+            term=sqrt(y1)*besselk_dp(R,ary*n)*fun(arx*n)
+            res=res+F._coeffs[fi][cj][n]*term
     else:
-        arx=CC(twopi*x3*I)
-        ary=twopi*y3
+        arx=twopi*x1
+        ary=twopi*y1
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*exp(arx*n)
-            res=res+F.coeffs[cjj][n]*term
+            term=sqrt(y1)*besselk_dp(R,ary*n)*cexpi(arx*n)
+            res=res+F._coeffs[fi][cj][n]*term
+    ## we have trivial character here...
+    return res*exp(RR.pi()*R*0.5)
+
+
+cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):
+    r"""
+    Evaluate a Maass form on a set of nx equally distributed points z=x_i + iy
+    """
+    cdef double  xx
+    cdef double yy=<float>y
+    cdef double h
+    twopi=2.0*M_PI
+    h = float(x1-x0)/float(nx-1)
+    cdef double* kbvec, *coeffs
+    kbvec = <double*>sage_malloc(nx*sizeof(double))
+    kbvec[0] = 0
+    coeffs = <double*>sage_malloc(nx*sizeof(double))
+    ary=twopi*yy
+    arx=twopi*xx
+    for n in range(1,M0):
+        kbvec[n]=sqrt(y)*besselk_dp(R,ary*n)
+    cdef double tmp = 0
+    cdef list res
+    res = []
+    cdef double complex tmpc 
+    if sym_type  == 1:
+        for i in range(0,nx):
+            xx = x0+i*h
+            arx = twopi*xx
+            tmp = 0
+            for n in range(1,M0):
+                tmp  += C[n].real_part()*kbvec[n]*cos(arx*n)
+            res.append(tmp)
+    elif  sym_type  == -1:
+        for i in range(nx):
+            xx = x0+i*h
+            arx = twopi*xx
+            tmp = 0
+            for n in range(1,M0):
+                tmp  += C[n].real_part()*kbvec[n]*sin(arx*n)
+            res.append(tmp)
+    else:
+        for i in range(nx):
+            xx = x0+i*h
+            arx = CC(0,twopi*xx)
+            tmpc = 0
+            for n in range(1,M0):
+                tmpc  += C[n]*kbvec[n]*exp(arx*n)
+            res.append(tmp)
+
     ## we have trivial character here...
     return res
+
+
+
 
 cpdef whittaker_w_dp(double k,double R,double Y,int pref=0):
     rarg = mpmath.mp.mpc(0,R)
@@ -695,7 +755,10 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv
         sage_free(ef1)
     if ef2_r<>NULL:
         for n in range(Ml):
-            sage_free(ef2_r[n])
+            if ef2_r[n]<>NULL:
+                for icusp in range(nc):
+                    sage_free(ef2_r[n][icusp])
+                sage_free(ef2_r[n])    
         sage_free(ef2_r)
     if ef2_c<>NULL:
         for n in range(Ml):
@@ -1711,10 +1774,12 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         r"""
         Pick the correct method...
         """
+        if cusp_ev == {}:
+            cusp_ev = Norm.get('cusp_ev',{})
         if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0: 
-            return get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
-        return get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,eps=1e-12)
-        
+            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
+        res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12)
+        return res
             
 
 cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):

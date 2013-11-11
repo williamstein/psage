@@ -51,6 +51,7 @@ cdef class MyPermutation(SageObject):
     cpdef _inverse(self)
     cpdef _copy_c(self)
     cpdef str export_as_string(self,str sep=*)
+    cpdef list list_from_string(self,s)
     cdef void _conj_w_transp(self,int a, int b,int verbose=*)
     cpdef conjugate_with_transposition(self,int a, int b,int verbose=*)
     cpdef is_conjugate_to(self,MyPermutation other,int ret_perm=*)
@@ -74,9 +75,11 @@ cdef class MyPermutationIterator(SageObject):
     cdef int _N
     cdef long _num
     cdef Integer _max_num
-    cdef long _cur
+    cdef Integer _cur
     cdef int _verbose
     cdef int _current_piv
+    cdef int _map_from
+    cdef int _map_at_most_to
     cdef int * _current_state_c
     cdef int * _current_state_o
     cdef int * _current_perm 
@@ -115,6 +118,7 @@ cdef class CycleCombinationIterator(Parent):
     cpdef length(self)
     cpdef  MyPermutation permutation_nr(self,int M)
     cdef MyPermutation permutation_nr_c(self,int M)
+    cdef int permutation_nr_c_ptr(self,int M,int* res)    
 #    cdef int permutation_nr_c(self,int M,MyPermutation p)
 
 cdef void _mult_perm_unsafe(int N, int* res,int *left,int* right)

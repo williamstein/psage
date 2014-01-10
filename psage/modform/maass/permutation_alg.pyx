@@ -43,7 +43,6 @@ from sage.modules.vector_integer_dense cimport Vector_integer_dense
 from sage.rings.integer cimport Integer
 import sage.combinat.permutation_cython
 from sage.combinat.permutation_cython cimport reset_swap,next_swap
-from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
@@ -94,11 +93,24 @@ cdef class MyPermutation(SageObject):
         self._cycles_list_is_ordered = 0
         self._verbose=verbose
         ## If we have a list of lists we are trying to initialize from cycle structure.
+        #if self._cycles<>NULL:
+        #    sage_free(self._cycles)
         self._cycles = NULL
         self._cycles_list = []
+        if verbose > 0:
+            print "THERE"
         self._cycles_permutations = []
+        if verbose>0:
+            print "HERE0!"
         self._cycle_type=[]
+        if verbose>0:
+            print "HERE1!"
+        #if self._cycle_lens<>NULL:
+        #    sage_free(self._cycle_lens)
         self._cycle_lens = NULL
+        if verbose>0:
+            print "HERE2!"
+
         self._num_cycles = 0
         cdef list entries_list=[]
         if verbose>0:
@@ -109,14 +121,19 @@ cdef class MyPermutation(SageObject):
             else:
                 raise ValueError,"Invalid Input for permutation! entries: {0} and length:{1}".format(entries,length)           
         else:
-            if isinstance(entries,str):
+            if isinstance(entries,basestring):
                 # if the string represents a list
                 s = <str> entries
-#                if entries.count('[')==1 and entries.count(']')==1:
+#               if entries.count('[')==1 and entries.count(']')==1:
+                # The string can either be given as a string of cycles or a string giving a list
                 if s.count('[')==1 and s.count(']')==1:
                     entries_list=eval(s)
-                else: ## Assume it is a string representation of cycles
+                elif s.count('(')>=1 and s.count(')')>=1:
+                    ## Assume it is a string representation of cycles
                     entries_list=self._cycles_from_str(entries)
+                else:
+                    # It could be given by self.export_as_string()
+                    entries_list=self.list_from_string(s)
             elif hasattr(entries,list):
                 entries_list=entries.list()
             elif isinstance(entries,(list,tuple)):
@@ -245,7 +262,7 @@ cdef class MyPermutation(SageObject):
     #    res = MyPermutation(self._list)
     #    return res
 
-    cpdef str export_as_string(self,str sep=''):
+    cpdef str export_as_string(self,str sep='0'):
         r"""
         Export self as string.
         """
@@ -253,15 +270,41 @@ cdef class MyPermutation(SageObject):
         cdef int base
         base=self._N+1
         cdef int i
-        if base<=36 and sep=='':
+        # We don't want to use alphanumeric characters as separators except for 0
+        if sep.isalnum() and sep<>'0':
+            raise ValueError,"Need a non-alphanumeric separator! Got {0}".format(sep)
+        if base<=36 and (sep=='0' or sep==""):
             for i from 0<=i<self._N:
                 s+=Integer(self._entries[i]).str(base)
         else: # If we have more than one symbol per char we insert zeros instead
             for i from 0<=i<self._N-1:
                 s+=str(self._entries[i])+sep
             s+=str(self._entries[self._N-1])
+        if sep<>"0" and sep<>"":
+            s+=".{0}".format(sep)  ## If not "0" we give the separator explicitly
         return s
-            
+
+    cpdef list list_from_string(self,s):
+        r"""
+        Try to make a list out of a string  returned by the above function
+        """
+        base = 10
+        if s.count(".")==1:
+            s,sep = s.split(".")
+        elif s.count("0")>0:
+            sep = "0"
+        else:
+            sep=""  ##
+            base = len(s)+1 ### The base
+        if sep<>"":
+            slist = s.split(sep)
+        else:
+            slist = s
+        res = []
+        for x in slist:
+            res.append(Integer(x,base))
+        return res
+    
     cdef void c_new(self,int* entries):
         cdef int i
         if self._entries<>NULL:
@@ -298,6 +341,9 @@ cdef class MyPermutation(SageObject):
         """
         if self._verbose>0:
             print "in _unpickle_v0!"
+        print "data=",data
+        if not isinstance(data,basestring):
+            raise ValueError,"Can not unpickle object: {0} as MyPermutation!".format(data)
         smu,sentries=data.split()
         self._N = int(smu)
         cdef int i
@@ -357,12 +403,28 @@ cdef class MyPermutation(SageObject):
         Unsafe setting of entries via pointer.
         """
         cdef int i
+        if entries==NULL:
+            raise MemoryError
         for i in range(self._N):
             self._entries[i] = entries[i]
+            if self._verbose>0:
+                print "setting {0} to {1}".format(i,entries[i])
         # and reset the list and string of self too
         self._list = []
         self._str=''
         self._init=1
+        self._order = -1
+        self._cycles_ordered_as_list=[]
+        if self._cycles<>NULL:
+            sage_free(self._cycles)
+        self._cycles=NULL
+        self._cycles_list=[]
+        self._cycles_permutations = []
+        self._cycle_type = []
+        if self._cycle_lens<>NULL:
+            sage_free(self._cycle_lens)
+        self._cycle_lens = NULL
+        self._num_cycles = 0
         return 0
 
     def parent(self):
@@ -449,6 +511,9 @@ cdef class MyPermutation(SageObject):
         #return repr(self)
 
     def  __dealloc__(self):
+        self._dealloc_c()
+
+    def _dealloc_c(self):
         if self._entries <> NULL:
             sage_free(self._entries)
             self._entries = NULL
@@ -458,6 +523,8 @@ cdef class MyPermutation(SageObject):
         if self._cycle_lens<>NULL:
             sage_free(self._cycle_lens)
             self._cycle_lens = NULL
+
+    
             
     def set_rep(self,rep=0):
         if rep<>self._rep:
@@ -1095,7 +1162,7 @@ cdef class MyPermutation(SageObject):
                     for i in range(len(pl)-1):
                         p0._entries[pl[i]-1]=pl[i+1]
                     p0._entries[pl[-1]-1]=pl[0]
-                self._cycles_permutations.append(p0)
+                    self._cycles_permutations.append(p0)
         return self._cycles_permutations
 
     cpdef cycles_as_lists(self):
@@ -1107,7 +1174,7 @@ cdef class MyPermutation(SageObject):
         #print "in cycles_as_list!"
         if self._cycles_list == []:
             self._cycles_list_is_ordered=0
-            if self._num_cycles == 0 or self._cycles==NULL:
+            if self._num_cycles == 0 or self._cycles==NULL or self._cycle_lens==NULL:
                 self.set_cycle_info()
             tmp = []
             for j in range(self._cycle_lens[0]):
@@ -1206,6 +1273,8 @@ cdef class MyPermutation(SageObject):
             self._cycles[i]=0        
         self._num_cycles = 0
         self._cycle_lens = <int*>sage_malloc(sizeof(int)*(self._N))
+        if self._cycle_lens == NULL:
+            raise MemoryError
         for i in range(self._N):
             self._cycle_lens[i]=0
         cycle_bd=0
@@ -1307,7 +1376,6 @@ cdef class MyPermutation(SageObject):
         return res
 
 
-
 def EndOfList(Exception):
     def __init__(self, value):
         self.value = value
@@ -1328,12 +1396,15 @@ cdef class MyPermutationIterator(SageObject):
     """
     
     #    def __cinit__(self,N,verbose=0,order=0,num_fixed=-1,fixed_pts=None,**kwds):
-    def __cinit__(self,N,int order=0,int num_fixed=-1,list fixed_pts=[],int verbose=0,is_subiterator=0):
+    def __cinit__(self,N,int order=0,int num_fixed=-1,list fixed_pts=[],int verbose=0,is_subiterator=0,map_from=0,map_at_most_to=0):
         r"""
+
+        If a=map_from and b=map_at_least_to with a,b,>0 then we iterate over R s.t. R(a)>b
         
         """
         self._N=N
-        self._cur=0
+        self._cur = Integer(0)
+#        mpz_set_ui(self._cur.value,0)
         self._verbose=verbose
         self._current_piv=0
         self._order=order
@@ -1347,7 +1418,6 @@ cdef class MyPermutationIterator(SageObject):
         self._list_of_perms=NULL
         self._current_perm=NULL
         self._fixed_pts=NULL
-
         if fixed_pts<>[]:
             self._num_fixed=len(fixed_pts)
         if num_fixed>0:
@@ -1364,6 +1434,15 @@ cdef class MyPermutationIterator(SageObject):
         if self._verbose>0:
             print "in cinit! verbose=",self._verbose
             print "fixdpts=",fixed_pts
+        self._map_from = <int>map_from
+        self._map_at_most_to =<int> map_at_most_to
+        if self._verbose>0:
+            print "map_from=",map_from,self._map_from
+            print "map_at_most_to=",map_at_most_to,self._map_at_most_to   
+        if self._map_from>0 and self._map_at_most_to<=0:
+            raise ValueError,"Inconsistent condition on R's! {0}: {1}".format(map_from,map_at_most_to)
+
+
         self._c_new()
 
     def _c_new(self):
@@ -1377,7 +1456,7 @@ cdef class MyPermutationIterator(SageObject):
         self._current_state_o=   self._current_state_c + self._N # used for swap
         self._fixed_pt_free_iterator_labels = NULL
         self._fixed_pts=NULL
-        self._cur = 0 # The index of the current permutation.
+        mpz_set_ui(self._cur.value,0) # The index of the current permutation.
         for i in range(self._N):
             self._list_of_perms[0][i]=i+1
             self._current_state_c[i]=-1
@@ -1390,7 +1469,7 @@ cdef class MyPermutationIterator(SageObject):
             if self._fixed_pts==NULL: raise MemoryError
             
         
-    def __init__(self,N,order=0,num_fixed=-1,fixed_pts=None,verbose=0,is_subiterator=0):
+    def __init__(self,N,order=0,num_fixed=-1,fixed_pts=None,verbose=0,is_subiterator=0,map_from=0,map_at_most_to=0):
         r"""
 
         INPUT:
@@ -1403,11 +1482,11 @@ cdef class MyPermutationIterator(SageObject):
         cdef int i,n
         ## We adjust the verbosity to desired level
         if self._verbose>2:
-            print "in init!"
+            print "in init! N={0}".format(self._N)
             print "fixed_pts=",fixed_pts
         self._has_fixed_pt_free_iterator = 0
         self._fixed_pt_free_iterator = None
-#        self._fixed_pt_free_iterator_labels=list()
+        #        self._fixed_pt_free_iterator_labels=list()
         self._is_subiterator=is_subiterator
         if fixed_pts<>None and fixed_pts<>[]:
             if isinstance(fixed_pts,list) and self._num_fixed<>len(fixed_pts):
@@ -1457,7 +1536,7 @@ cdef class MyPermutationIterator(SageObject):
     def set_fixed_pt_free_iterator(self):
         if self._num_fixed<=0:
             return 
-        self._fixed_pt_free_iterator = MyPermutationIterator(self._N-self._num_fixed,num_fixed=0,order=self._order,verbose=self._verbose,is_subiterator=1)
+        self._fixed_pt_free_iterator = MyPermutationIterator(self._N-self._num_fixed,num_fixed=0,order=self._order,verbose=self._verbose,is_subiterator=1,map_from=self._map_from,map_at_most_to=self._map_at_most_to)
         #self._fpfree_labels=list()
         self._has_fixed_pt_free_iterator=1
         if self._fixed_pt_free_iterator_labels==NULL:
@@ -1498,11 +1577,12 @@ cdef class MyPermutationIterator(SageObject):
 
     def __getitem__(self,index):
         cdef MyPermutation p
+        cdef int i
         if self._list_of_perms<>NULL and self._num>=index:
             p=MyPermutation(length=self._N)
             p.set_entries(self._list_of_perms[index])
             return p
-        for i from 1<=i<=index:
+        for i in range(1,index+1): #from 1<=i<=index:
             self.next()
         return self.current_perm()
 
@@ -1713,39 +1793,54 @@ cdef class MyPermutationIterator(SageObject):
         """
         if self._verbose>0:
             print "in _goto_first! N=",self._N," cur=",self._cur
+            print "map_from0=",self._map_from,self._map_at_most_to
         cdef int done = 1
-        if self._cur<>0:
+        cdef int t=0
+        if mpz_cmp_ui(self._cur.value,0)<>0:
             self._rewind()
-        if self._current_perm:
+        if self._current_perm<>NULL:
             if self._order>0:
                 done = _is_of_order(self._N,self._current_perm,self._order)
             if done==1 and self._num_fixed>=0:
                 done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
             if done==1 and self._num_fixed>=0:
                 done = _set_fixed_eq(self._current_perm,self._N,self._fixed_pts,self._num_fixed)
+            if done==1 and self._map_from>0:
+                if self._current_perm[self._map_from-1]>self._map_at_most_to:
+                    done = 0
         if done==0: # If the current perm is not in the desired resulting list we go forward
             if self._fixed_pt_free_iterator:
                 self._fixed_pt_free_iterator._goto_first()
                 self.set_current_from_ffree()                
-                self._cur+=1
+                mpz_add_ui(self._cur.value,self._cur.value,1)
             else:
-                self._next()
+                t = self._next()
+                if t<>0:
+                    return t
         else:
-            self._cur=1
+            mpz_set_ui(self._cur.value,1)
         if self._verbose>1:
             print "done=",done
             print "First allowed one is: ",self.current_perm()
+        return 0
     ##                 
     def __next__(self):
         if self._verbose>0:
             print "__next__ N=",self._N," cur=",self._cur
-        if self._cur==0:
+        if mpz_cmp(self._max_num.value,self._cur.value)<0: #self._cur > self._max_num:
+            raise StopIteration
+        if mpz_cmp_ui(self._cur.value,0)==0: #self._cur > self._max_num:
             self._rewind()
             self._goto_first()
         res = self.current_perm()
         if self._verbose>0:
             print "cur =",res
-        self._next()
+        t = self._next()
+        if t<>0:
+            mpz_add_ui(self._cur.value,self._max_num.value,1)
+            #self._cur = self._max_num+1
+        if self._verbose>0:
+            print "t =",t    
         return  res #self.current_perm()
         
 
@@ -1756,26 +1851,30 @@ cdef class MyPermutationIterator(SageObject):
             print "in _next! N=",self._N," cur=",self._cur
             print "self._num_fixed=",self._num_fixed
             print "self._fixed=",self.fixed_pts()
-        if mpz_cmp_si(self._max_num.value,self._cur)==0:
-            self._cur+=1
-            return # If we are at the last element we simply return
-        elif mpz_cmp_si(self._max_num.value,self._cur)<0:
+        i = mpz_cmp(self._max_num.value,self._cur.value)
+        if i==0:
+            mpz_add_ui(self._cur.value,self._cur.value,1)   
+            return 1 # If we are at the last element we simply return 1
+        elif i < 0: 
             # if we are after the last element we raise StopIteration #if self._cur>self._max_num:
             if self._verbose>0:
                 print "raising stop iteration!"
             raise StopIteration #IndexError,"End of list!"
         if self._has_fixed_pt_free_iterator==0:
-            self._next_free()
+            return self._next_free()
         else:
             if self._verbose>0:
                 print "Have fixed point free iterator: ",self._fixed_pt_free_iterator," cur=",self._fixed_pt_free_iterator._cur
-            self._cur +=1 # self._fixed_pt_free_iterator._cur
-            self._fixed_pt_free_iterator._next() #_free()
+            mpz_add_ui(self._cur.value,self._cur.value,1) # self._fixed_pt_free_iterator._cur
+            i = self._fixed_pt_free_iterator._next() #_free()
+            if i<>0:
+                return i
             self.set_current_from_ffree()                
         if self._verbose>0:
-            for i from 0 <= i < self._N:
+            for i in range(self._N):
                 print "cur_p[",i,"]=",self._current_perm[i]
-            print "cur =",self._cur 
+            print "cur =",self._cur
+        return 0
 
 
     cdef set_current_from_ffree(self):
@@ -1810,19 +1909,19 @@ cdef class MyPermutationIterator(SageObject):
         cdef unsigned long ii
         #cdef unsigned long lmmax
         if mpz_cmp_si(self._max_num.value,0)==0:
-            return
+            return 1
         if self._verbose>0:
             print "in _next_free! N=",self._N," cur=",self._cur
         #if self._cur>=self._max_num:
-        if mpz_cmp_si(self._max_num.value,self._cur)<=0:
-            self._cur += 1
-            return
+        if mpz_cmp(self._max_num.value,self._cur.value)<=0:
+            mpz_add_ui(self._cur.value,self._cur.value,1)
+            return 1
             #raise StopIteration
         if self._list_of_perms<>NULL and self._num>1:
             # If we are iterating over a whole list
             if self._verbose>0:
                 print "fetching next  from list: num=",self.num()
-            self._cur += 1
+            mpz_add_ui(self._cur.value,self._cur.value,1) #            self._cur += 1
             self._current_perm=self._list_of_perms[self._cur]
         else:
             #if self._verbose>0:
@@ -1840,7 +1939,7 @@ cdef class MyPermutationIterator(SageObject):
                     print "after reset!"
                     self.show_current_state()
                     #reset_swap(self._N,self._current_state_c,self._current_state_o)
-            if self._order<=1 and self._num_fixed<0:
+            if self._order<=1 and self._num_fixed<0 and self._map_from<=0:
                 if debug>3:
                     print "before next swap"
                     self.show_current_state()
@@ -1850,17 +1949,18 @@ cdef class MyPermutationIterator(SageObject):
                     self.show_current_state()
                 if debug>0:
                     print "swap t=",t
-                self._cur = self._cur+1
+                mpz_add_ui(self._cur.value,self._cur.value,1) #self._cur = self._cur+1
                 if t<0:
                     if self._verbose>2:
-                        print "current_perm=",self.current_perm()
-                    mpz_clear(mpzmmax)
-                    return 
+                        print "current_perm0=",self.current_perm()
+                     #mpz_clear(mpzmmax)
+                    return -1 
                 #raise ArithmeticError,"Got index <0 from swap!"
                 tmp = self._current_perm[t]
                 self._current_perm[t] = self._current_perm[t+1]
                 self._current_perm[t+1] = tmp
             else:
+                
                 done=0
                 ii=1
                 mpz_init(mpzmmax)
@@ -1883,13 +1983,25 @@ cdef class MyPermutationIterator(SageObject):
                     self._current_perm[t+1] = tmp                    
                     if debug>0: 
                         if self._verbose>2 and self._current_perm[0]==1 and self._current_perm[1]==2:
-                            print "current_perm=",self.current_perm()
-                    if self._order>0:
+                            print "current_perm1=",self.current_perm()
+                    done = 1
+                    if self._verbose > 0:
+                        print "map_from1=",self._map_from
+                        print "map at most to =",self._map_at_most_to                     
+                    if self._map_from>0:
+                        if self._verbose > 1:
+                            print "map_from2=",self._map_from
+                            print "map at most to =",self._map_at_most_to
+                        if self._current_perm[self._map_from-1]>self._map_at_most_to:
+                            done = 0
+                            if self._verbose > 1:
+                                print "Continue since R({0})={1}>{2}".format(self._map_from,self._current_perm[self._map_from-1],self._map_at_most_to)
+                    if done==1 and self._order>0:
                         done = _is_of_order(self._N,self._current_perm,self._order)
-                    else:
-                        done=1
+                        #else:
+                        #    done=1
                     if self._verbose > 1:
-                        print "current_perm=",self.current_perm()
+                        print "current_perm2=",self.current_perm()
                     #    print "of correct order=",done
                     if self._num_fixed==0 and done==1:
                         done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
@@ -1900,14 +2012,16 @@ cdef class MyPermutationIterator(SageObject):
                         ii=ii+1
                 mpz_clear(mpzmmax)
                 if done==1:
-                    self._cur = self._cur+1
-                    
+                    #print "cur=",self._cur
+                    mpz_add_ui(self._cur.value,self._cur.value,1) #self._cur = self._cur+1
                 else: ## We have reached the end. Should start over from beginning.
                     #print "PI=",self
-                    raise StopIteration  #,"You are at the end of the list!"
+                    return 1
+                    #raise StopIteration  #,"You are at the end of the list!"
                     #raise ArithmeticError,"Could not find permutation with correct properties!"
                 #if self._verbose > 3:
                 #    print "perm is of order ",self._order
+        return 0
         #if self._verbose > 0:
         #    print "end of next!",self._order        
         
@@ -2027,13 +2141,13 @@ cdef class MyPermutationIterator(SageObject):
         """
         if self._verbose>0:
             print "rewind!"
-        self._cur=0
+        mpz_set_ui(self._cur.value,0)
         if self._fixed_pt_free_iterator:
             self._fixed_pt_free_iterator._rewind()
         reset_swap(self._N,self._current_state_c,self._current_state_o)
         self._c_alloc_list_of_perms(1) # self._num=1
         cdef int i
-        for i from 0 <= i <= self._N-1:
+        for i in range(self._N):
             self._list_of_perms[0][i]=i+1
         self._current_perm = self._list_of_perms[0]
         if self._order>0 or self._num_fixed>=0:
@@ -2106,17 +2220,17 @@ cdef class MyPermutationIterator(SageObject):
         if not lista: raise MemoryError
         for i in range(self._N): 
             lista[i]=i+1
-        self._cur = 0
+        mpz_set_ui(self._cur.value,0)
         num = factorial(self._N) #deepcopy(self.num())
         if self._verbose>1:
             print "will get next_perm recursive!"
         self._get_next_permutation_recursive(0,0,num,lista)        
         # make sure we got the correct number of permutations
-        if self._cur > self._num and self._order<=1:
+        if  mpz_cmp(self._max_num.value,self._cur.value) <0 and self._order<=1:
             if self._verbose > 1:
                 print "number of perms=",self.num()
             raise ArithmeticError,"Something wrong with generation of permutations!"
-        self._cur = 0
+        mpz_set_ui(self._cur.value,0)
         if self._verbose > 1:
             print "num in get list=",self.num()
         sage_free(lista)
@@ -2139,38 +2253,47 @@ cdef class MyPermutationIterator(SageObject):
             print "start=",start
             print "num=",num
             print "cur=",self._cur
+            print "map_from3=",self._map_from,self._map_at_most_to
         if self._order<=1 and self._num_fixed<0:
-            for i from 0 <= i <= self._N-1:
+            for i in range(self._N):
                 self._list_of_perms[self._cur][i]=lista[i]            
-            self._cur = self._cur+1
+            mpz_add_ui(self._cur.value,self._cur.value,1)
         else:
-            # First test if of correct order.
-            test_o =_is_of_order(self._N,lista,self._order)
-            if self._verbose>3:
-                print "test_o=",test_o
-                print "num_fixed=",self._num_fixed
-            if self._num_fixed>0 and test_o:
+            # First 
+            if self._map_from>0:
+                test_o  = 1
+                if self._current_perm[self._map_from-1]>self._map_at_most_to:
+                    test_o = 0
+                if self._verbose > 1:
+                    print "Continue since R({0})={1}>{2}".format(self._map_from,self._current_perm[self._map_from-1],self._map_at_most_to)
+            # Then test if of correct order.
+            if test_o==1:
+                test_o =_is_of_order(self._N,lista,self._order)
+                if self._verbose>3:
+                    print "test_o=",test_o
+                    print "num_fixed=",self._num_fixed
+            if self._num_fixed>0 and test_o==1:
                 if self._verbose>3:
                     print "compare fixed points of perm with ",self.fixed_pts()
                 test_f  = _set_fixed_eq(lista,self._N,self._fixed_pts,self._num_fixed)
                 if self._verbose>3:
                     print "fixed points agree :",test_f
-            elif self._num_fixed==0 and test_o:
+            elif self._num_fixed==0 and test_o==1:
                 test_f =_num_fixed_eq(lista,self._N,self._num_fixed)
                 if self._verbose>3:
                     print "test_f=",test_f
             if test_f==1 and test_o==1:
-                for i from 0 <= i <= self._N-1:
+                for i in range(self._N):
                     if self._verbose>3:
                         print "list_of_perm[",self._cur,"][",i,"]=",lista[i]
                     self._list_of_perms[self._cur][i]=lista[i]                            
-                self._cur = self._cur+1
+                mpz_add_ui(self._cur.value,self._cur.value,1)
                 if self._verbose>3:
                     print "self._cur=",self._cur
                     print "self._num=",self._num
                     print "self._max_num=",self._max_num
                 # If we have enough we stop
-                if self._cur >= self._num:
+                if mpz_cmp(self._max_num.value,self._cur.value) <= 0:
                     num=0
             elif test_o<>1:
                 ## If we have correct number of fixed points but the order does not match then we allocated
@@ -2240,19 +2363,19 @@ cdef class MyPermutationIterator(SageObject):
         if not self._current_state_o: raise MemoryError
         self._c_alloc_list_of_perms(factorial(self._N))
         reset_swap(self._N,self._current_state_c,self._current_state_o)
-        for i from 0<= i< self._N:
+        for i in range(self._N):
             self._list_of_perms[0][i]=i+1
         if self._verbose>1:
-            for i from 0<= i< self._N:                
+            for i in range(self._N):                
                 print "start_list[",0,"]=",self._list_of_perms[0][i]            
         if self._verbose>1:
             s=""; ss=""
-            for i from 0<= i< self._N:
+            for i in range(self._N):
                 s+=" ",self._current_state_o[i]
                 ss+=" ",self._current_state_c[i]
             print "o[0]="+s
             print "c[0]="+ss
-        for m from 1<= m < self._num:
+        for m in range(1,self._num):
             t=next_swap(self._N,self._current_state_c,self._current_state_o)
             if self._verbose>1:
                 s=""; ss=""
@@ -2262,7 +2385,7 @@ cdef class MyPermutationIterator(SageObject):
                 print "o[0]="+s
                 print "c[0]="+ss
 
-            for i from 0<= i< self._N:
+            for i in range(self._N):
                 if i==t:
                     self._list_of_perms[m][t]=self._list_of_perms[m-1][t+1]
                 elif i==t+1:
@@ -2356,10 +2479,12 @@ cdef class CycleCombinationIterator(Parent):
         r"""
         A list of elements of self.
         """
+        cdef int i
         for i in range(len(self._cache),self._length):
             self._cache.append(self.permutation_nr_c(i))
             self._got = self._length
         return self._cache
+
     
     def get_permutation_nr(self,M):
         r"""
@@ -2392,10 +2517,32 @@ cdef class CycleCombinationIterator(Parent):
             #res = res._mult_perm(<MyPermutation>(self._cycles[i]).pow(M1))
             j1 = M1 % self._cycle_types[i]
             if j1>0:
-                res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
+                #res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
+                _mult_perm_unsafe(self._N,res._entries,(<MyPermutation>(self._cycles[i][j1-1]))._entries,res._entries)                
             M = M / self._dbase # integer division, i.e. M = (M-M1)/self._dbase
         return res
 
+    @cython.cdivision(True)
+    cdef int permutation_nr_c_ptr(self,int M,int* res): #,MyPermutation p):
+        r"""
+        The M'th element of self.
+        """
+        #cdef MyPermutation res
+        #res = MyPermutation(length=self._N)        
+        cdef int i, M1,j1
+        for i in range(self._N):
+            res[i]=i+1
+#            print "res[i]=",res[i]
+        for i in range(self._num_cycles):
+            M1 = M % self._dbase            
+            #res = res._mult_perm(<MyPermutation>(self._cycles[i]).pow(M1))
+            j1 = M1 % self._cycle_types[i]
+            if j1>0:
+                #res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
+                _mult_perm_unsafe(self._N,res,(<MyPermutation>(self._cycles[i][j1-1]))._entries,res)                
+            M = M / self._dbase # integer division, i.e. M = (M-M1)/self._dbase
+        return 0
+        #return res
 
     
 ### Helper functions
@@ -2518,6 +2665,8 @@ cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl):
         cperm[Al[i]-1]=Bl[i]
     res = MyPermutation(length=mu,init=0,check=0)
     res.set_entries(cperm)
+    if cperm <> NULL:
+        sage_free(cperm)
     return res
 
 ##
@@ -2650,16 +2799,25 @@ cdef _to_cycles(int N, int *perm, int *cycle, int *cycle_lens):
         
 cdef void _mult_perm_unsafe(int N,int *left,int *right,int* res):
         r"""
-        This is the standard order of multiplication of permutation.
-        res = self*other : i-> other(self(i))
+        This is the standard order of multiplication of permutations.
+        res = left*right : i-> right(left(i))
         This is 'unsafe' since no check of validity of data or arrays is performed.
         """
         cdef int i
         for i in range(N):
             res[i]=right[left[i]-1]
-        ##print "a=",print_vec(N,left)
-        ##print "b=",print_vec(N,right)
-        ##print "a*b=",print_vec(N,res)
+
+cdef void _mult_perm_right_unsafe(int N,int *left,int *right):
+        r"""
+        This is the standard order of multiplication of permutations.
+        left = left*right : i-> right(left(i))
+        This is 'unsafe' since no check of validity of data or arrays is performed.
+        """
+        cdef int i
+        for i in range(N):
+            left[i]=right[left[i]-1]
+
+
 
 cpdef conjugate_perm(perma,permb):
     r"""
@@ -2896,7 +3054,7 @@ cpdef are_transitive_permutations(MyPermutation pS,MyPermutation pR,int ret_maps
 
     """
     cdef int *gotten=NULL
-    cdef int N=pS.N()
+    cdef int N = pS.N()
     cdef int *maps=NULL
     cdef int nmaps
     gotten = <int *>sage_malloc(sizeof(int)*N)
@@ -2910,6 +3068,8 @@ cpdef are_transitive_permutations(MyPermutation pS,MyPermutation pR,int ret_maps
     res = are_transitive_perm_c(pR._entries,pS._entries,gotten,N,verbose)
     #sage_free(Rl)
     #sage_free(Sl)
+    if gotten <> NULL:
+        sage_free(gotten)
     return res
 
 
@@ -3200,7 +3360,7 @@ def has_binkey(x,n):
     """
     if x==0:
         return 0
-    if not isinstance(x,str):
+    if not isinstance(x,basestring):
         s=bin(x)
     else:
         s=x

@@ -57,7 +57,6 @@ from sage.rings.rational cimport Rational
 from sage.rings.rational_field import QQ
 from sage.all import RR,ZZ,SL2Z,matrix
 from copy import deepcopy
-from sage.combinat.permutation import Permutation_class
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
 
@@ -1368,10 +1367,10 @@ cdef void _apply_gl2z_map_mpfr(mpfr_t x,mpfr_t y,int a,int b,int c,int d):
 
 cpdef normalize_point_to_cusp_mpfr(G ,int ca,int cb,RealNumber x,RealNumber y,int inv=0):    
     r"""
-    Compute the normalized point with respect to the cusp cu
+    Compute the normalized point with respect to the cusp (ca,cb)
     
-    """
-    cdef int wi=G._cusp_data[(ca,cb)]['width']
+    """  
+    cdef int wi=G.cusp_width((ca,cb))
     if cb==0 and wi==1: # Inf is the first cusp
         return [x,y]
     #
@@ -1432,7 +1431,7 @@ cpdef normalize_point_to_cusp_dp(G,cu,double x,double y,int inv=0): #,int verbos
     r"""
     Compute the normalized point with respect to the cusp cu
     """
-    if(cu==Cusp(infinity) and G.cusp_width(cu)==1): # Inf is the first cusp
+    if (cu == (1,0) or cu==Cusp(infinity)) and G.cusp_width(cu)==1: # Inf is the first cusp
         return [x,y]
     cdef int wi=G.cusp_width(cu)
     cdef double xx,yy
@@ -1815,3 +1814,160 @@ cpdef nearest_integer_dble(double x):
     """
     return floor(x+<double>0.5)
 
+
+
+cpdef get_coset_reps_from_perms(MyPermutation pS,MyPermutation pR,MyPermutation pT,int repnr=-1,int verbose=0):
+    r"""
+    Compute a better/nicer list of right coset representatives
+    i.e. SL2Z = \cup G V_j
+
+    INPUT:
+    - S -- Permutation of order 2
+    - R -- Permutation of order 3
+    `- repnr -- Integer, either 0 or between 1 and R.N()
+    OUTPUT:
+    - if repnr < 0 we return a list of all coset representatives, otherwise only a single
+    represnetative corresonding to repnr. 
+    - list of (right) coset-representatives of the group given by pS and pR
+      the rep V[j] has the property that self.permutation_action(V[j])=j
+
+
+    EXAMPLES::
+
+       
+
+    """
+    cdef ix = pR.N()
+    cdef SL2Z_elt T,S,Id,R
+    T=SL2Z_elt(1 ,1 ,0 ,1 )
+    S=SL2Z_elt(0 ,-1 ,1 ,0 )
+    Id=SL2Z_elt(1 ,0 ,0 ,1 )
+    R=S*T
+    if repnr < 0 or repnr >ix:
+        raise ValueError,"Can not compute rep. cooresponding to {0}!".format(repnr)
+    cdef dict coset_reps=dict()
+    if repnr == 1:
+        return Id
+    coset_reps[1]=Id
+    if verbose>0:
+        print "coset_reps=",coset_reps,len(coset_reps)
+        print "T=",T,pT.cycle_tuples()
+        print "S=",S,pS.cycle_tuples()
+        print "R=",R,pR.cycle_tuples()
+    cdef list cycT,got_cycles
+    cdef tuple next_cycle
+    cdef int new_index = 0    
+    cdef int i,r,j,k,cyi,cyii,kk
+    cycT=pT.cycle_tuples()
+    next_cycle = cycT[0]
+    got_cycles=[]
+    old_map = Id
+    ## We first check for an easy way out
+    if repnr > 0:
+        for i in range(len(next_cycle)):
+            if repnr==next_cycle[i]:
+                return T**i
+    for cyi in range(len(cycT)):
+        cy = next_cycle
+        r = len(cy)
+        i=pT(cy[new_index])
+        if verbose>0:
+            print "cy=",cy
+            print "new_index=",new_index
+            print "i=pT(cy[0])=",i
+            print "cy[new_index]=",cy[new_index]
+        # adding the rest of the cusp
+        if i<>cy[new_index]:
+            for j in range(r):
+                if verbose>0:
+                    print "i=",i
+                    print "j=",j
+                if j==new_index:
+                    continue
+                k = (j - new_index)
+                if k<=r/2:
+                    kk = k
+                else:
+                    kk = k-r
+                    #_add_unique(coset_reps,cy[j],old_map*T**k)
+                if repnr == cy[j]:
+                    return old_map*SL2Z_elt(1,kk,0,1) #T**k
+                coset_reps[cy[j]]=old_map*SL2Z_elt(1,kk,0,1) #T**k
+                #else:
+                #    #_add_unique(coset_reps,cy[j],old_map*T**(k-r))
+                #    coset_reps[cy[j]]=old_map*T**(k-r)                    
+                if verbose>0:
+                    print "k=",k
+                    print "coset_reps[",cy[j],"]=",coset_reps[cy[j]]
+
+                    return coset_reps[cy[j]]
+        got_cycles.append(cycT.index(cy))
+        # we have now added all translate inside the same cusp 
+        # and we should see if we can connect to anther cusp
+        # if there is any left
+        if verbose>0:
+            print "cyi=",cyi
+            print "len(cycT)-1=",len(cycT)-1
+        if cyi>= len(cycT)-1:
+            if verbose>0:
+                print "break!"
+            break
+        # otherwise we use the order two element to connect the next cycle to one of the previous ones
+        # since (S,T) are transitive this must be the case.
+        old_map = Id
+        if verbose>0:
+            print "got_cycles=",got_cycles
+        try:
+            for cyii in range(len(cycT)):
+                if cyii in got_cycles:
+                    ## If we already treated this cycle
+                    continue
+                next_cycle = cycT[cyii]
+                if verbose>0:
+                    print "next_cycle=",next_cycle
+                for cyj in range(len(cycT)):
+                    if verbose>0:
+                        print "cyj=",cyj
+                    if cyj not in got_cycles:
+                        # We can only use cycles which are in the list
+                        continue
+                    cy=cycT[cyj]
+                    if verbose>0:
+                        print "check with cy=",cy
+                    for i in cy:
+                        j = pS(i)
+                        if j in next_cycle:
+                            # we have connected the cycles
+                            old_map = coset_reps[i]*S # this is the connecting map and we may as well add it
+                            #_add_unique(coset_reps,j,old_map)
+                            coset_reps[j]=old_map
+                            if repnr == j:
+                                return old_map
+                            new_index = next_cycle.index(j)
+                            if verbose>0:
+                                print "connecting: S(",i,")=",j," in new cycle!"
+                                print "ix=",new_index
+                                print "old_map = ",old_map
+                                print "next_cycle=",next_cycle
+                            raise StopIteration()
+        except StopIteration:
+            pass
+        if old_map == Id:
+            raise ValueError,"Problem getting coset reps! Could not connect %s using  %s" %(cycT,pS)
+        if verbose>0:
+            print "in this step:"
+            for j in coset_reps.keys():
+                if(coset_reps[j]<>Id):
+                    print "V(",j,")=",coset_reps[j] 
+                else:
+                    print "V(",j,")=Id"
+    # By construction none of the coset-reps are in self and h(V_j)=j so they are all independent
+    # But to make sure we got all we count the keys
+    if coset_reps.keys() <> range(1,ix+1):
+        print "ix=",ix
+        print "cl=",coset_reps
+        raise ValueError,"Problem getting coset reps! Need %s and got %s" %(ix,len(coset_reps))
+    res  = list()
+    for i in range(ix):
+        res.append(coset_reps[i+1])
+    return res

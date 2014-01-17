@@ -1008,6 +1008,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Return the subgroup D_c={ x in D | cx=0}
         
         """
+        if not c in ZZ:
+            raise ValueError("c has to be an integer.")
+        if gcd(c,self.order())==1:
+            return self.subgroup([])
         l=[]
         for x in self:
             y = c*x

@@ -68,8 +68,8 @@ class VectorValuedModularForms(SageObject):
     def finite_quadratic_module(self):
         return self._M
 
-    def dimension(self,k):
-        if k < 2:
+    def dimension(self,k,ignore=False):
+        if k < 2 and not ignore:
             raise NotImplementedError("k has to >= 2")
         s=self._signature
         if not (2*k in ZZ):
@@ -99,7 +99,36 @@ class VectorValuedModularForms(SageObject):
         #print alpha1
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
         #print alpha2
-        dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3));
+        dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
+        print dim
+        if k==2:
+            dinv = 0
+            for q in self._level.prime_factors():
+                M=self._M.jordan_decomposition().constituent(q)[0]
+                for j in self._M.jordan_decomposition():
+                    if j[1][0]==q and j[1][1] != 1:
+                        M=M+self._M.jordan_decomposition().constituent(j[1][0]**j[1][1])[0]
+                print M
+                p = M.level()
+                print "Searching for prime congruent to 1 modulo ", p
+                calc = False
+                while not calc:
+                    found = False
+                    while not found:
+                        p = next_prime(p)
+                        if p % M.level() == 1:
+                            found = True
+                            print "p = ", p
+                    try:
+                        inv = cython_invariants(M,GF(p))
+                        print 'inv=', inv
+                        calc = True
+                    except:
+                        found = False
+                if isinstance(inv,tuple):
+                    dinv += inv[1].dimension()
+            print "dinv=",dinv
+            dim = dim + dinv
         return dim
 
     def dimension_cusp_forms(self,k):

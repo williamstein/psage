@@ -1008,6 +1008,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Return the subgroup D_c={ x in D | cx=0}
         
         """
+        if not c in ZZ:
+            raise ValueError("c has to be an integer.")
+        if gcd(c,self.order())==1:
+            return self.subgroup([])
         l=[]
         for x in self:
             y = c*x
@@ -3373,6 +3377,7 @@ def test_one_F(FQ='4_1'):
     for a in range(1,N):
         s0 = FQ.char_invariant(a)
         s1 = naive_Gauss_sum(FQ,a)
+        #print s0,s1
         if abs(CC(s0[0])*CC(s0[1])-CC(s1[0])/CC(s1[1]**2))>1e-10:
                 if verbose>0:
                     print 'a=', a

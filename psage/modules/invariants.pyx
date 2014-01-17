@@ -56,7 +56,7 @@ include "stdsage.pxi"
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField#, sage_malloc, sage_free
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ #, sage_malloc, sage_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 cdef long cython_el_index(list c, list gen_orders):
@@ -140,10 +140,11 @@ cpdef cython_invariants(FQM, K = QQbar):
             if K == QQbar:
                 print 'QQbar'
                 z = K.zeta(l)
-                z8 = s.parent().gen()
-                pw = z8.coordinates_in_terms_of_powers()(s)
-                z8 = K.zeta(8)
-                s = sum([pw[i]*z8**i for i in range(4)])
+                if s.parent() != ZZ:
+                    z8 = s.parent().gen()
+                    pw = z8.coordinates_in_terms_of_powers()(s)
+                    z8 = K.zeta(8)
+                    s = sum([pw[i]*z8**i for i in range(4)])
             else:
                 z = K( exp(2*pi*I/l))
             if 1 == s2: 

@@ -50,10 +50,10 @@ class VectorValuedModularForms(SageObject):
 
     def __init__(self, A):
         self._M = FiniteQuadraticModule(A)
-        self._W = WeilModule(self._M)
-        self._level = self._W.level()
+        #self._W = WeilModule(self._M)
+        self._level = self._M.level()
         n2 = self._M.kernel_subgroup(2).order()
-        self._signature = self._W.signature()
+        self._signature = self._M.signature()
         self._n2 = n2
         m=self._M.order()
         self._m=m
@@ -84,8 +84,8 @@ class VectorValuedModularForms(SageObject):
             self._alpha4 = 1/Integer(2)*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
         d=self._d
         m=self._m
-        alpha3=self._alpha3
-        alpha4=self._alpha4
+        alpha3 = self._alpha3
+        alpha4 = self._alpha4
         g1=self._M.char_invariant(1)
         g1=CC(g1[0]*g1[1])
         #print g1
@@ -100,17 +100,25 @@ class VectorValuedModularForms(SageObject):
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
         #print alpha2
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
-        print dim
+        #print dim
         if k==2:
             dinv = 0
             for q in self._level.prime_factors():
-                M=self._M.jordan_decomposition().constituent(q)[0]
+                #print q
+                M=None
                 for j in self._M.jordan_decomposition():
-                    if j[1][0]==q and j[1][1] != 1:
-                        M=M+self._M.jordan_decomposition().constituent(j[1][0]**j[1][1])[0]
-                print M
+                    #print j
+                    if j[1][0]==q:
+                        N=self._M.jordan_decomposition().constituent(j[1][0]**j[1][1])[0]
+                        if M==None:
+                            M=N
+                        else:
+                            M=M+N
+                #print M
+                if M==None:
+                    M=self._M
                 p = M.level()
-                print "Searching for prime congruent to 1 modulo ", p
+                #print "Searching for prime congruent to 1 modulo ", p
                 calc = False
                 while not calc:
                     found = False
@@ -118,16 +126,15 @@ class VectorValuedModularForms(SageObject):
                         p = next_prime(p)
                         if p % M.level() == 1:
                             found = True
-                            print "p = ", p
+                            #print "p = ", p
                     try:
-                        inv = cython_invariants(M,GF(p))
-                        print 'inv=', inv
+                        inv = cython_invariants_dim(M,GF(p))
+                        #print 'inv=', inv
                         calc = True
                     except:
                         found = False
-                if isinstance(inv,tuple):
-                    dinv += inv[1].dimension()
-            print "dinv=",dinv
+                    dinv += inv
+            #print "dinv=",dinv
             dim = dim + dinv
         return dim
 
@@ -135,7 +142,6 @@ class VectorValuedModularForms(SageObject):
         dim=self.dimension(k)-self._alpha4
         return dim
         
-
 def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
     for p in prime_range(minp,maxp):
         if p%4==1:

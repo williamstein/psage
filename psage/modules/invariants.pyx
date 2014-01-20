@@ -56,7 +56,7 @@ include "stdsage.pxi"
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ #, sage_malloc, sage_free, ZZ
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power #, sage_malloc, sage_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 
@@ -139,10 +139,33 @@ cdef int B(int i, int j, int **JJ, list ed):
     return res
 
 cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
-    Sp = cython_invariants(FQM, K, debug)[1]
-    return Sp.dimension()
+    dim = 0
+    if not is_prime_power(FQM.level()):
+        for p,n in FQM.level().factor():
+            N = None
+            for j in xrange(1,n+1):
+                J = FQM.jordan_decomposition()
+                C = J.constituent(p**j)[0]
+                if N == None and C.level() != 1:
+                    N = C
+                elif C.level() != 1:
+                    N = N + C
+            if dim == 0:
+                dim = cython_invariants_dim(N,K,debug)
+            else:
+                dim = dim*cython_invariants_dim(N,K,debug)
+            if dim == 0:
+                return 0
+    else:
+        Sp = cython_invariants(FQM, K, debug)[1]
+        dim = dim + Sp.dimension()
+    return dim
 
 cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
+    cdef int i, j = 0
+    cdef int l = int(FQM.level())
+    if debug > 1: print "l = ", l
+    
     try:
         s = FQM.sigma_invariant()
         s2 = Integer( s**2)
@@ -150,9 +173,6 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
         return span( [], K)
 
     q = K.characteristic()
-    cdef int l = int(FQM.level())
-    if debug > 1: print "l = ", l
-    cdef int i, j = 0
     w = K(FQM.order()).sqrt()
 
     t = cputime()
@@ -275,7 +295,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
         sage_free(JJ)
     return Ml, ni, U,V
 
-cpdef cython_invariants(FQM, K = QQbar, debug=0):
+cpdef cython_invariants(FQM, K = QQbar, debug=0):    
     Ml, ni, U,V = cython_invariants_matrices(FQM, K, debug)
     
     t = cputime()

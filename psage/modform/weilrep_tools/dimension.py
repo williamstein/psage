@@ -103,37 +103,23 @@ class VectorValuedModularForms(SageObject):
         #print dim
         if k==2:
             dinv = 0
-            for q in self._level.prime_factors():
-                #print q
-                M=None
-                for j in self._M.jordan_decomposition():
-                    #print j
-                    if j[1][0]==q:
-                        N=self._M.jordan_decomposition().constituent(j[1][0]**j[1][1])[0]
-                        if M==None:
-                            M=N
-                        else:
-                            M=M+N
-                #print M
-                if M==None:
-                    M=self._M
-                p = M.level()
-                #print "Searching for prime congruent to 1 modulo ", p
-                calc = False
-                while not calc:
+            p = self._M.level()
+            #print "Searching for prime congruent to 1 modulo ", p
+            calc = False
+            while not calc:
+                found = False
+                while not found:
+                    p = next_prime(p)
+                    if p % M.level() == 1:
+                        found = True
+                        #print "p = ", p
+                try:
+                    inv = cython_invariants_dim(self._M,GF(p))
+                    #print 'inv=', inv
+                    calc = True
+                except:
                     found = False
-                    while not found:
-                        p = next_prime(p)
-                        if p % M.level() == 1:
-                            found = True
-                            #print "p = ", p
-                    try:
-                        inv = cython_invariants_dim(M,GF(p))
-                        #print 'inv=', inv
-                        calc = True
-                    except:
-                        found = False
-                    dinv += inv
+                dinv += inv
             #print "dinv=",dinv
             dim = dim + dinv
         return dim

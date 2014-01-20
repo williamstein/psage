@@ -139,6 +139,8 @@ cdef int B(int i, int j, int **JJ, list ed):
     return res
 
 cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
+    if FQM.signature() != 0:
+        return 0
     dim = 0
     if not is_prime_power(FQM.level()):
         for p,n in FQM.level().factor():

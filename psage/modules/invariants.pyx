@@ -194,7 +194,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
             table[i] = K(zt + s2 * zt**-1)/K(w)
     if debug > 1: print len(table), table
 
-    if debug > 1: print '%f: table'%(cputime(t))
+    if debug > 0: print '%f: table'%(cputime(t))
 
     t = cputime()
     ed = list()
@@ -216,7 +216,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
             raise MemoryError('Cannot allocate memory.')
         for j in range(r):
             JJ[i][j] =  int(2*l*J[i,j])
-    if debug > 1: print 'Gram matrix conversion: {0}'.format(cputime(t))
+    if debug > 0: print 'Gram matrix conversion: {0}'.format(cputime(t))
 
     t = cputime()
     Ml = list()
@@ -243,15 +243,15 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
                 if j == 0:
                     ni = ni + 1
                     #print 'ni: ', ni
-    if debug > 1: print '%f: +- reps'%(cputime(t))
-    if debug > 1: print 'ni = %d'%(ni)
+    if debug > 0: print '%f: +- reps'%(cputime(t))
+    if debug > 0: print 'ni = %d'%(ni)
     cdef int n = len(Ml)
     
     t = cputime()
     Ml.sort(norm_cmp)
     n = len(Ml)
-    if debug > 1: print 'n = %d'%(n)
-    if debug > 1: print '%f: sorting'%(cputime(t))
+    if debug > 0: print 'n = %d'%(n)
+    if debug > 0: print '%f: sorting'%(cputime(t))
 
     t = cputime()
     cdef int ii,jj = 0
@@ -262,7 +262,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
         for i in range(n):
             p = -B(Ml[i][0],Ml[j][0], JJ, ed) % l
             H[i,j] += table[p]
-    if debug > 1: print '%f: init of H'%(cputime(t))
+    if debug > 0: print '%f: init of H'%(cputime(t))
     #print H.str()
 
     U = H.matrix_from_rows(range(ni,n))
@@ -280,10 +280,12 @@ cpdef cython_invariants(FQM, K = QQbar, debug=0):
     
     t = cputime()
     X = U.right_kernel()
-    if debug > 1: print '%f: kernel'%(cputime(t))
+    if debug > 0: print '%f: kernel'%(cputime(t))
 
     t = cputime()
     Sp = span([V*x for x in X.basis()], K)
     if debug > 0: print '%f: span'%(cputime(t))
 
+    if debug > 1:
+        return U,V,X
     return Ml[:ni], Sp

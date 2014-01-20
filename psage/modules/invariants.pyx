@@ -60,13 +60,13 @@ from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ #, sage_m
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 
-cdef long cython_el_index(list c, list gen_orders):
+cdef long cython_el_index(list c, list ed):
     r"""
     Returns the canonical index of the element specified by the list c
-    in a finite abelian group with generator orders specified by `gen_orders`.
+    in a finite abelian group with elementary divisors specified by `ed`.
 
     NOTES::
-        Note that the index does not only depend on the orders of the generators but also
+        Note that the index does not only depend on the divisors but also
         on the ordering of these. As long as an ordering is used that is guaranteed to be stable,
         everything will work.
     """
@@ -75,53 +75,43 @@ cdef long cython_el_index(list c, list gen_orders):
     cdef long m = 0
     ii=0
     md=1
-    cdef int r = len(gen_orders)
+    cdef int r = len(ed)
     for jj in range(0,r):
-        m=gen_orders[jj]
+        m=ed[jj]
         #print jj,n,c[jj]
         ii = ii + (c[jj]%m)*md
         md=md*m
     return ii
 
-cdef list cython_elt(long ii,gen_orders):
+cdef list cython_elt(long ii,ed):
     r"""
     Returns the element corresponding to the canonical index `ii`
-    in a finite abelian group with generator orders specified by `gen_orders`.
-
-    NOTES::
-        Note that the index does not only depend on the orders of the generators but also
-        on the ordering of these. As long as an ordering is used that is guaranteed to be stable,
-        everything will work.
+    in a finite abelian group with elementary divisors specified by `ed`.
     """
     elt = list()
     cdef long md = 1
     cdef long jj = 0
-    cdef int r = len(gen_orders)
+    cdef int r = len(ed)
     cdef int c = 0
     for jj in range(0,r):
-        md = gen_orders[jj]
+        md = ed[jj]
         c = ii%md
         elt.append(c)
         ii = ii - c
         ii = ii/md
     return elt
 
-cdef long cython_neg_index(long ii, gen_orders):
+cdef long cython_neg_index(long ii, ed):
     r"""
     Returns the negative of the element corresponding to the canonical index `ii`
-    in a finite abelian group with generator orders specified by `gen_orders`.
-
-    NOTES::
-        Note that the index does not only depend on the orders of the generators but also
-        on the ordering of these. As long as an ordering is used that is guaranteed to be stable,
-        everything will work.
+    in a finite abelian group with elementary divisors specified by `ed`.
     """
     cdef long jj=0
-    cdef list elt = cython_elt(ii,gen_orders)
-    cdef int r = len(gen_orders)
+    cdef list elt = cython_elt(ii,ed)
+    cdef int r = len(ed)
     for jj in range(0,r):
         elt[jj]=-elt[jj]
-    return cython_el_index(elt,gen_orders)
+    return cython_el_index(elt,ed)
 
 cpdef norm_cmp(x, y):
     if x[1] < y[1]:
@@ -129,14 +119,14 @@ cpdef norm_cmp(x, y):
     else:
         return int(1)
 
-cdef int B(int i, int j, int **JJ, list gen_orders):
+cdef int B(int i, int j, int **JJ, list ed):
     r"""
     Returns the bilinear form of the elements with canonical index `i` and `j`
-    with respect to the Gram matrix JJ and generators with orders `gen_orders`.
+    with respect to the Gram matrix JJ and elementary divisors `ed`.
     """
-    cdef int r = len(gen_orders)
-    cdef list ll = cython_elt(j, gen_orders)
-    cdef list kk = cython_elt(i, gen_orders)
+    cdef int r = len(ed)
+    cdef list ll = cython_elt(j, ed)
+    cdef list kk = cython_elt(i, ed)
     cdef int ii, jj = 0
     cdef int res = 0
     for ii in range(r):
@@ -207,12 +197,12 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
     if debug > 1: print '%f: table'%(cputime(t))
 
     t = cputime()
-    gen_orders = list()
-    for i,g in enumerate(FQM.gens()):
-        gen_orders.append(Integer(g.order()))
-    if debug > 1: print gen_orders
+    ed = list()
+    for i in FQM.elementary_divisors():
+        ed.append(Integer(i))
+    if debug > 1: print ed
 
-    cdef int r = len(gen_orders)
+    cdef int r = len(ed)
     J = FQM.__dict__['_FiniteQuadraticModule_ambient__J']
     t = cputime()
     cdef int** JJ = NULL
@@ -235,11 +225,11 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
     cdef int f = 0
     cdef list skip_list = list()
     for i in range(FQM.order()):
-        #x = cython_elt(i,gen_orders)
-        if debug > 1: print "B=", B(i,i,JJ,gen_orders)
-        j = int(B(i,i,JJ,gen_orders)/2) % l
+        #x = cython_elt(i,ed)
+        if debug > 1: print "B=", B(i,i,JJ,ed)
+        j = int(B(i,i,JJ,ed)/2) % l
         if debug > 1: print "j=",j
-        kk = cython_neg_index(i,gen_orders)
+        kk = cython_neg_index(i,ed)
         #print i, kk, j
         f = 1
         if s2 == 1 or kk != i:
@@ -270,7 +260,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
         H[j,j] = Ml[j][2]
         #print j, f
         for i in range(n):
-            p = -B(Ml[i][0],Ml[j][0], JJ, gen_orders) % l
+            p = -B(Ml[i][0],Ml[j][0], JJ, ed) % l
             H[i,j] += table[p]
     if debug > 1: print '%f: init of H'%(cputime(t))
     #print H.str()

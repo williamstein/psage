@@ -1021,7 +1021,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         
         """
         l=[]
-        for x in self.list():
+        for x in self:
             y = c*x
             if y not in l:
                 l.append(y)
@@ -1036,8 +1036,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Dc = self.power_subgroup(c)
         res=[]
         if xc==self._zero:
-            return Dc.list()
-        for x in Dc.list():
+            return list(Dc)
+        for x in Dc:
             res.append(x+xc)
         return res
         
@@ -2621,7 +2621,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         
         orders = [x.order() for x in self.gens()]
         res = [ sum( self.gens()[i]*x[i] for i in range(len(self.gens()))) for x in xmrange(orders)]
-        return list(uniq(res))
+        return (x for x in uniq(res))
 
 
     ###################################

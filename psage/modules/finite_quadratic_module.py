@@ -3360,7 +3360,7 @@ def test_fqm_random(fqbound=100,nbound=10,cbound=10,size_bd=50,verbose=0):
             FQ=FiniteQuadraticModuleRandom(fqbound,nbound,verbose-1)
             l=len(list(FQ))
             #info=get_factors2(FQ.jordan_decomposition())
-        t = _test_one_F(FQ)
+        t = test_one_F(FQ)
         if t<>True:
             return t
         ntest+=1
@@ -3385,6 +3385,50 @@ def test_one_F(FQ='4_1'):
                     print "s1=",s1,CC(s1[0]/s1[1]**2)
                 return False,a,FQ
     return True
+
+
+def test_fqm_from_signature(num_tests=10,num_comp=4,prime_bd=5,pow_bd=3,verbose=0):
+    r"""
+    Check that the genus symbol determines the finite quadratic module.
+    """
+    from sage.all import prime_range,random,random_prime
+    for n in range(num_tests):
+        s=""
+        for i in range(num_comp):
+            p = random_prime(prime_bd)
+            k = ZZ.random_element(1,pow_bd+1)
+            q = p**k
+            if p == 2:
+                if random()<0.5: ## Make a type 1 factor
+                    t = 2*ZZ.random_element(4)+1
+                    if kronecker(t,2) == 1:
+                        s+="{q}_{t}^1".format(t=t,q=q)
+                    else:
+                        s+="{q}_{t}^-1".format(t=t,q=q)
+                else:
+                    if random()<0.5:
+                        s+="{q}^2".format(q=q) # B
+                    else:
+                        s+="{q}^-2".format(q=q) # C
+            else:
+                if random()<0.5:
+                    s+="{q}^1".format(q=q)
+                else:
+                    s+="{q}^-1".format(q=q)                    
+            if i<num_comp-1:
+                s+="."
+        M = FiniteQuadraticModule(s)
+        s0 = M.jordan_decomposition().genus_symbol()
+        N = FiniteQuadraticModule(s0)
+        if verbose>0:
+            print "s=",s
+            print "s0=",s0
+        if verbose>1:
+            print "M=",M
+            print "N=",N            
+            
+        if not M.is_isomorphic(N):
+            raise ArithmeticError,"{0} and {1} with symbol {2} are not isomorphic!".format(M,N,s)
         # if(FQ.level() % 4 <> 0 or is_odd(info['sign'])):
         #     continue
         # if verbose>0:

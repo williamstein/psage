@@ -2476,13 +2476,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         from sage.plot.colors import rainbow
         from plot_dom import HyperbolicTriangle
         
-        L = 1000
+        L = 10000
         #if options['method']=='Farey':
         #    version = 2
         #else:
         ret_domain = options.pop('domain',False)
-        countour_only= options.pop('contour',False)
+        contour_only= options.pop('contour',False)
         version = options.pop('version',0)
+        circle_color = options.pop('circle_color','black')
         #coset_reps = map(lambda x: SL2Z_elt(x[1,1],-x[0,1],-x[1,0],x[0,0]), self.farey_symbol().coset_reps())
         #else:
         coset_reps = self.coset_reps(version=version)
@@ -2522,9 +2523,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if model=='H' and options['show_tesselation']:
                     g += my_hyperbolic_triangle(A, B, C, color="gray",fill=True,
                                                 model=model)
-        if countour_only==True:
+        if contour_only==True:
             # Remove interior arcs from path...
-            print "Removing interior arcs:"
+            #print "Removing interior arcs:"
             if model == 'H' or model == 'D':
                 n = len(g)
                 for j in range(n-1,-1,-1):
@@ -2533,7 +2534,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     path0 = g[j].path
                     path1 = []
                     path_has_interior_pts = False
-                    #print "Checking path=",path0
+                    if verbose>0:
+                        print "Checking path=",path0
                     for p in path0:
                         p0 = copy(p)
                         for i in range(len(p)):
@@ -2546,7 +2548,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                             #print "x=",x
                             if self.is_interior_point(x,version=version):
                                 path_has_interior_pts = True
-                                #print "point is interior!"
+                                if verbose>0:
+                                    print "point {0} is interior!".format(x)
                                 break
                                 #del(p0[i])
                         #path1.append(p0)
@@ -2564,7 +2567,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
         else:
             if not ret_domain:
-                g+=circle((0,0),1)
+                g+=circle((0,0),1,edgecolor=circle_color)
             g.set_axes_range(-1, 1, -1, 1)    
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        
         return g

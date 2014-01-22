@@ -132,7 +132,7 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 
 from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par
 
-cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
+cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
     r"""
     Evaluate a Maass form
     """
@@ -147,20 +147,29 @@ cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
     G=F.group()
     # pullback
     if use_pb == 1:
-        x1,y1,a,b,c,d =  G.pullback(x,y)
+        x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
         #print "pullback=",x1,y1
-        #v = G.closest_vertex(x1,y1)
-        #cj= G._vertex_data[v]['cusp'] #representative[v]
-        #a,b,c,d=G._vertex_data[v]['cusp_map']
-        #if a<>1 or b<>0 or c<>0 or d<>1:
-        #    #print "apply map :",a,b,c,d
-        #    x2,y2 = apply_sl2z_map_mpfr(RF(x),RF(y),a,b,c,d)
-        #else:
-        #    x2=x1;y2=y1
-        #ca,cb = G._cusps[cj]
     else:
         x1 = x; y1 = y
-        ca=1; cb=0; cj=0
+
+    v = G.closest_vertex(x1,y1)
+    cj= G._vertex_data[v]['cusp'] #representative[v]
+    a,b,c,d=G._vertex_data[v]['cusp_map']
+    if a<>1 or b<>0 or c<>0 or d<>1:
+        x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
+    else:
+        x2=x1;y2=y1
+        # And then normalize to the correct cusp
+    ca,cb = G._cusps[cj]
+    if cj<>0:
+        a,b,c,d=G._cusp_data[cj]['normalizer']
+        wi = RF(G._cusp_data[cj]['width'])
+        x2,y2 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
+        x3 = x2/wi.sqrt()
+        y3 = y2/wi.sqrt()        
+        #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+    else:
+        x3 = x2; y3=y2
     #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     res=0
     twopi=RF(2)*RF.pi()
@@ -169,17 +178,19 @@ cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
             fun=cos
         elif F._sym_type==1:
             fun=sin
-        arx=twopi*x1
-        ary=twopi*y1
+        arx=twopi*x3
+        ary=twopi*y3
         for n in range(1,F._M0):
-            term=sqrt(y1)*besselk_dp(R,ary*n)*fun(arx*n)
+            term=besselk_dp(R,ary*n)*fun(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
+        res = res*sqrt(y3)
     else:
-        arx=twopi*x1
-        ary=twopi*y1
+        arx=twopi*x3
+        ary=twopi*y3
         for n in range(1,F._M0):
-            term=sqrt(y1)*besselk_dp(R,ary*n)*cexpi(arx*n)
+            term=besselk_dp(R,ary*n)*cexpi(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
+        res = res*sqrt(y3)
     ## we have trivial character here...
     return res*exp(RR.pi()*R*0.5)
 
@@ -818,6 +829,14 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
+    if not cuspidal in [0,1]:
+        raise ValueError," parameter cuspidal must be 0 or 1"
+    if R < 0:
+        ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+        R = -R
+        set_pref = -1
+    else:
+        set_pref = 1
     pi=M_PI 
     sqrtY=sqrt(Y)
     two=<double>(2)
@@ -951,7 +970,7 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
                     Mf = Mv[icusp][1]
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                        besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1039,7 +1058,7 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
             else:
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
+                besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1138,6 +1157,12 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
+    if R < 0:
+        ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+        R = -R
+        set_pref = -1
+    else:
+        set_pref = 1
     pi=M_PI 
     sqrtY=sqrt(Y)
     two=<double>(2)
@@ -1271,7 +1296,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                     Mf = Mv[icusp][1]
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                        besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1360,7 +1385,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
             else:
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
+                besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1427,6 +1452,13 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,s
     cdef double sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,Qfak
     cdef double ckbes,ctmpV,iargm,twopii,ctmp,lr,nr,besarg,pi
+    cdef int set_pref
+    if R < 0:
+        ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+        R = -R
+        set_pref = -1
+    else:
+        set_pref = 1
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
 
@@ -1523,7 +1555,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     #ypb=Ypb[icusp][jcusp][j]
                     besarg=abs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        kbes=sqrt(Ypb[icusp][jcusp][j])*besselk_dp(R,besarg,pref=1)
+                        kbes=sqrt(Ypb[icusp][jcusp][j])*besselk_dp(R,besarg,pref=set_pref)
                     else:
                         kbes=<double>1.0
                     ckbes=kbes*ef1[l][icusp][jcusp][j]
@@ -1556,7 +1588,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     kbes=<double>1.0
             else:
                 nrY2pi=nr*Y2pi
-                kbes=sqrtY*besselk_dp(R,nrY2pi,pref=1)
+                kbes=sqrtY*besselk_dp(R,nrY2pi,pref=set_pref)
             ni=Ml*icusp+n
             V[ni][ni]=V[ni][ni] - kbes
     if ef2<>NULL:

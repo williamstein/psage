@@ -130,8 +130,13 @@ class VectorValuedModularForms(SageObject):
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
         #print alpha2
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
-        #print dim
+        return dim
+
+    def dimension_cusp_forms(self,k):
+        dim=self.dimension(k)-self._alpha4
         if k==2:
+            if self._M.level() == 1:
+                return dim + 1
             dinv = 0
             p = self._M.level()
             #print "Searching for prime congruent to 1 modulo ", p
@@ -140,7 +145,7 @@ class VectorValuedModularForms(SageObject):
                 found = False
                 while not found:
                     p = next_prime(p)
-                    if p % M.level() == 1:
+                    if p % self._M.level() == 1:
                         found = True
                         #print "p = ", p
                 try:
@@ -152,10 +157,6 @@ class VectorValuedModularForms(SageObject):
                 dinv += inv
             #print "dinv=",dinv
             dim = dim + dinv
-        return dim
-
-    def dimension_cusp_forms(self,k):
-        dim=self.dimension(k)-self._alpha4
         return dim
         
 def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):

@@ -18,7 +18,7 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from psage.modules import *
+#from psage.modules import *
 from sage.all import SageObject, Integer, RR
 import sys
 
@@ -48,14 +48,39 @@ class VectorValuedModularForms(SageObject):
         :class:`psage.modules.finite_quadratic_modules.FiniteQuadraticModule`
     """
 
-    def __init__(self, A):
-        self._M = FiniteQuadraticModule(A)
-        #self._W = WeilModule(self._M)
-        self._level = self._M.level()
-        n2 = self._M.kernel_subgroup(2).order()
-        self._signature = self._M.signature()
-        self._n2 = n2
-        m=self._M.order()
+    def __init__(self, A, use_genus_symbols = False):
+        
+        if use_genus_symbols:
+            if isinstance(A, str):
+                g = GenusSymbol(A)
+            else:
+                try:
+                    g = GenusSymbol(A.jordan_decomposition().genus_symbol())
+                except:
+                    raise ValueError
+            self._g = g
+            n2 = self._n2 = g.torsion(2)
+            self._v2 = g.two_torsion_values()
+            self._M = None
+        else:
+            self._M = FiniteQuadraticModule(A)
+            self._g = None
+            self._level = self._M.level()
+            if is_odd(self._M.order()):
+                self._n2 = n2 = 0
+                self._v2 = None
+            else:
+                self._M2 = M2 = self._M.kernel_subgroup(2).as_ambient()[0]
+                self._n2 = n2 = self._M2.order()
+                self._v2 = self._M2.values()
+
+        if use_genus_symbols:
+            self._signature = g.signature()
+            m = g.order()
+        else:
+            self._signature = self._M.signature()
+            m=self._M.order()
+            
         self._m=m
         d = Integer(1)/Integer(2)*(m+n2) # |discriminant group/{+/-1}|
         self._d = d
@@ -76,12 +101,17 @@ class VectorValuedModularForms(SageObject):
             raise ValueError("k has to be integral or half-integral")
         if (2*k+s)%4 != 0:
             raise NotImplementedError("2k has to be congruent to -signature mod 4")
+        if self._M == None and self._g != None:
+            self._M = self._g.finite_quadratic_module()
         if self._alpha3 == None:
-            M2=self._M.kernel_subgroup(2).as_ambient()[0]
-            self._alpha3  = sum([(1-a)*m for a,m in M2.values().iteritems() if a != 0])
-            self._alpha3 += sum([(1-a)*m for a,m in self._M.values().iteritems() if a != 0])
+            if self._v2 != None:
+                self._alpha3  = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
+            else:
+                self._alpha3 = 0
+            vals = self._M.values()
+            self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
             self._alpha3 = self._alpha3 / Integer(2)
-            self._alpha4 = 1/Integer(2)*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
+            self._alpha4 = 1/Integer(2)*(vals[0]+self._v2[0]) # the codimension of SkL in MkL
         d=self._d
         m=self._m
         alpha3 = self._alpha3

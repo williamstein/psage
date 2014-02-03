@@ -711,7 +711,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             if (self.__R == other.__R) and (self.gram() == other.gram()):
                 return 0
         return -1
-        
+        #Why is 0 returned? in the explanation ist says return 1
 
     def twist( self, s):
         r"""

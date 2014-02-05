@@ -403,7 +403,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                 NN = norm
             else:
                 NN = self.set_norm(dim,set_c=set_c)
-            M0=0; Y0 = float(0.0)
+            #M0=0; Y0 = float(0.0)
             #if Mset<>None: M0 = int(Mset)
             #if Yset<>None: Y0 = float(Yset)
             if self._verbose>0:
@@ -448,7 +448,7 @@ class MaassWaveForms (AutomorphicFormSpace):
 #                    res.append(Maasswaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
 #                return res
 #            else:
-            return Maasswaveform(self,R,C=C,compute=False,Y=Y,norm=NN,dim=dim)
+            return Maasswaveform(self,R,C=C,compute=False,Y=Y,M0=M,norm=NN,dim=dim)
 
             #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
             #F._coeffs[0]=X[0]
@@ -664,38 +664,33 @@ class MaassWaveForms (AutomorphicFormSpace):
         return RR(NpT)
 
 
-    def set_default_parameters(self,R,Mset=0,Yset=0,ndigs=12):
+    def set_default_parameters(self,R,M0=0,Y=0,ndigs=12):
         r"""
         Try to set default parameters for computing Maass forms.
         """
         res=dict()
-        #R=self._R
         eps=RR(10)**RR(-ndigs)
-        if Yset>0:
-            Y=float(Yset)
-            M0=get_M_for_maass_dp(float(R),float(Y),float(eps))
+        if isinstance(R,float) or not hasattr(R,'prec'):
+            RF = RR
+        else:
+            RF = RealField(R.prec())
+        if Y>0:
+            YY=float(Y)
+            if M0 > 0:
+                MM = M0
+            else:
+                M0=get_M_from_Y(float(R),float(Y),float(eps))
+        elif M0>0:
+            YY = get_Y_from_M(R,M0,eps,self.group().minimal_height(),self.group().ncusps()) #,verbose=self._verbose-1)
+            MM = M0
         else:
             M0 = self.smallest_M0()
-            i=0; YY = -1.0
-            while i<1000 and YY<0:                
-                M0+=1
-                YY = get_Y_for_M_dp(self,R,M0,eps)
-                i+=1
-            #YY = float(self._group.minimal_height()*0.95)
-            #M0 = get_M_for_maass_dp(R,YY,eps)
-            #[YY,M0]=find_Y_and_M(self._group,R,ndigs)
-            if ndigs>=15:
-                Y =  RealField(ndigs*3.4)(YY)
-            else:
-                Y=RR(YY)
-        if Mset > 0:
-            M=Mset
-        else:
-            M=M0
-        Q=M+10 
+            MM,YY = get_M_and_Y(R,self.group().minimal_height(),M0,eps)
+        
+        Q=MM+10 
         res['Q']=Q
-        res['M']=M
-        res['Y']=Y
+        res['M']=MM
+        res['Y']=RF(YY)
         return res  
 
 
@@ -1613,9 +1608,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             
         #self._M0 = max(self._coeffs.values().values().keys())
         dprec=2.**(-self._nd)
-        self._M0=get_M_for_maass(self._R,
-                                 self._space._group.minimal_height(),
-                                 dprec) 
+        if self._M0 == None or self._M0 <= 0:
+            if self._Y == None or self._Y <= 0:
+                self._M0,self._Y = get_M_and_Y(self._R,self.space().group().minimal_height(),
+                                     self.space().smallest_M0(),dprec)
+            else:
+                self._M0 = get_M_from_Y(self._R,self._Y,M0,dprec)
+        elif self._Y == None or self._Y <= 0:
+            self._Y = get_Y_from_M(self._R,self._Y,M0,dprec)
+
         if data.get('compute',False)==True and self._coeffs=={}:
             self._coeffs=self.get_coeffs()
         elif self._coeffs == {}:

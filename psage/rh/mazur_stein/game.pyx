@@ -79,7 +79,7 @@ cdef class J:
         if N > self.N_max:
             raise ValueError, "J not defined for N > %s"%self.N_max
         n = 1
-        _sig_on
+        sig_on()
         while 1:
             if self.pv._values[i] > N:
                 # time to return.  But first we have to add a few more
@@ -89,7 +89,7 @@ cdef class J:
                     #print (n, F, self.e(t,n))
                     n += 1
                 # Finally return after dividing by N.
-                _sig_off                
+                sig_off()                
                 return ans / N
             # At this point, F is equal to self.F(t, self.pv._values[i]),
             # and now we add to our running total a range of values of
@@ -127,7 +127,7 @@ cdef class J:
         if N > self.N_max:
             raise ValueError, "J not defined for N > %s"%self.N_max
         n = 1
-        _sig_on
+        sig_on()
         while 1:
             if self.pv._values[i] > N:
                 # time to return.  But first we have to add a few more
@@ -139,7 +139,7 @@ cdef class J:
                     #print (n, F, self.e(t,n))
                     n += 1
                 # Finally return after dividing by N.
-                _sig_off                
+                sig_off()                
                 return ans2 / N
             # At this point, F is equal to self.F(t, self.pv._values[i]),
             # and now we add to our running total a range of values of

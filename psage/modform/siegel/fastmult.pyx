@@ -90,7 +90,7 @@ cpdef  mult_coeff_int(int a, int b, int c, coeffs_dict1, coeffs_dict2):
     ## Reduce the form first so that our search space is smaller
     tmp_triple = _reduce_GL(a, b, c)
 
-    _sig_on
+    sig_on()
 
     mpz_set_si( mpz_zero, 0)
     a = tmp_triple.a
@@ -122,7 +122,7 @@ cpdef  mult_coeff_int(int a, int b, int c, coeffs_dict1, coeffs_dict2):
                 mpz_mul(tmp, left, right)
                 mpz_add(mult_coeff, mult_coeff, tmp)
                 
-    _sig_off
+    sig_off()
     
     mpz_set(result.value, mult_coeff)
     mpz_clear(tmp)
@@ -187,7 +187,7 @@ cpdef mult_coeff_generic(int a, int b, int c, coeffs_dict1, coeffs_dict2, Ring R
     ## Reduce the form first so that our search space is smaller
     tmp_triple = _reduce_GL(a, b, c)
 
-    _sig_on
+    sig_on()
     
     a = tmp_triple.a
     b = tmp_triple.b
@@ -217,7 +217,7 @@ cpdef mult_coeff_generic(int a, int b, int c, coeffs_dict1, coeffs_dict2, Ring R
                 
                 nmc += nl*nr
                 
-    _sig_off
+    sig_off()
 
     mpz_clear(tmp)
 
@@ -270,7 +270,7 @@ cpdef mult_coeff_generic_with_action(int a, int b, int c, coeffs_dict1, coeffs_d
     ## Reduce the form first so that our search space is smaller
     tmp_triple = _reduce_GL(a, b, c)
 
-    _sig_on
+    sig_on()
     
     a = tmp_triple.a
     b = tmp_triple.b
@@ -300,7 +300,7 @@ cpdef mult_coeff_generic_with_action(int a, int b, int c, coeffs_dict1, coeffs_d
                 
                 nmc += nl*nr
                 
-    _sig_off
+    sig_off()
 
     mpz_clear(tmp)
 
@@ -596,7 +596,7 @@ def chi35(disc, A,B,C,D) :
     mpz_init(mpz_zero)
 
 
-    _sig_on
+    sig_on()
     
     mpz_set_si( mpz_zero, 0)
     coeffs = PY_NEW( dict )
@@ -677,7 +677,7 @@ def chi35(disc, A,B,C,D) :
     for t in coeffs:
         coeffs[t] = Integer(coeffs[t]/41472)
 
-    _sig_off
+    sig_off()
     
     mpz_clear(coeff)
     mpz_clear(acc)

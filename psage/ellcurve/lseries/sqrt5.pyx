@@ -415,12 +415,12 @@ cdef class InertTraceCalculator:
         
         cdef long i
         cdef residue_element j, a4, a6
-        _sig_on
+        sig_on()
         for i in range(R.cardinality()):
             R.unsafe_ith_element(j, i)
             self.elliptic_curve_from_j(a4, a6, j, R)
             self.ap_via_enumeration(&ap._values[i], &c_quo._values[i], a4, a6, R, squares, cubes)
-        _sig_off
+        sig_off()
 
     cdef int cube_table(self, IntList cubes, ResidueRing_abstract R) except -1:
         cdef long i

@@ -9,7 +9,7 @@ from permutation_alg import MyPermutation,MyPermutationIterator,CycleCombination
 from mysubgroup import MySubgroup,HeckeTriangleGroup,nearest_integer_continued_fraction,list_valid_signatures
 from maass_forms import MaassWaveForms,EisensteinSeries,scattering_determinant_Hecke_triangle
 from maass_forms import Maasswaveform
-from maass_forms_alg import get_Y_for_M_dp,get_Y_and_M_dp
+from maass_forms_alg import get_Y_from_M,get_M_from_Y,get_M_and_Y
 from lpkbessel import besselk_dp
 
 from weil_rep_simple import WeilRepDiscriminantForm

@@ -249,7 +249,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._is_Gamma0=kwds.get('is_Gamma0',None)
         self._is_symmetric=kwds.get('is_symmetric')
         self._symmetry_map = kwds.get('symmetry_map')        
+        self._translational_symmetry = None
+        self._reflectional_symmetry = None        
         self._vertices_as_cusps = []
+        self._cusp_data_sage_format = {}
         if self._verbose>1:
             print "o2=",o2
             print "o3=",o3
@@ -397,7 +400,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return False
         if G.generalised_level() <> self.generalised_level():
             return False
-        return super(MySubgroup_class,self).__eq__(G)
+        return super(MySubgroup_class,self).__cmp__(G) == 0
         # if not isinstance(G,MySubgroup_class):
         #     S=G.as_permutation_group().S2()
         #     R=G.as_permutation_group().S3()
@@ -688,6 +691,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def is_symmetric(self,ret_map=0,recompute=False,force_check=False,verbose=0):
         r"""
         Check if self has a reflectional symmetry, i.e. check that G^* is conjugate to G
+
+        If it is then we set the internal variables A=self._symmetry_map s.t. AG^*A^-1=G
+        and a permutation p=self._sym_perm s.t. p^-1*(S,R)p ~ (S*,R*) mod 1
+        i.e. so that the pairs represent the same group.
+        
         """
         if self._is_symmetric <>None and recompute==False:
             if ret_map==1:
@@ -748,7 +756,59 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return self._is_symmetric,self._symmetry_map
         else:
             return self._is_symmetric
+
+
+    def has_translational_symmetry(self,verbose=0):
+        r"""
+        Check if self has a symmetry of the form  or T^k G T^-k = G with T^2k in G
+        and T^k not in G.
         
+        OUTPUT:
+
+        - 'k' -- integer, the smallest k>0 such that T^kGT^-k=G and T^2k in G.
+        
+        """
+        if self._translational_symmetry == None:
+            if self.is_Gamma0():
+                self._translational_symmetry = 0  # symmetry z -> -bar(z) given by T^0
+            else:
+                self._translational_symmetry = -1 
+                if self._verbose>0:
+                    print "Checking symmetry with conjugation of T^n!"
+                for n in range(1,self.cusp_width((1,0))-1):
+                    t = [ SL2Z_elt(x.a()+n*x.c(),x.b()+n*(x.d()-x.a())-n*n*x.c(),x.c(),x.d()-n*x.c()) in self for x in self.gens()].count(False)
+                    if t == 0 and SL2Z_elt(1,2*n,0,1) in self:
+                        self._translational_symmetry = n  # symmetry z -> n-bar(z) given by J*T^n
+                        break
+        return self._translational_symmetry
+
+    
+    def has_reflectional_symmetry(self,verbose=0):
+        r"""
+        Check if self has a symmetry of the form T^k G^* T^-k = G 
+
+
+        OUTPUT:
+
+        - k -- integer >=0 if we have T^kG^*T^-k=G and k=-1 if no such exist.
+        
+        """
+        if self._reflectional_symmetry == None:
+            if self.is_Gamma0():
+                self._reflectional_symmetry = (0,1)  # symmetry z -> -bar(z) given by T^0
+            else:
+                self._reflectional_symmetry = -1 
+                if self._verbose>0:
+                    print "Checking symmetry with conjugation of J*T^n!"
+                for n in range(1,self.generalised_level()+1):
+                    t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
+                    if t == 0:
+                        self._reflectional_symmetry = n  # symmetry z -> n-bar(z) given by J*T^n
+                        break
+        return self._reflectional_symmetry
+    
+
+    
     def cusp_normalizer_is_normalizer(self,j,brute_force=0):
         r"""
         The dictionary self._cusp_normalizer_is_normalizer
@@ -838,7 +898,53 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         warnings.warn("It appears that the normalizer does not have finite order! j={0}, N={1}. Group given by S={2} and R={3}".format(j,N0,self.permS,self.permR))
         return self._cusp_normalizer_is_normalizer[j]                        
 
-                
+    def has_modular_correspondence(self,ret_map=False):
+        r"""
+        Check if we can find a modular correspondence for self. 
+        Note that a 'False' answerif we do not set force_check=True  might just mean that we didn't look hard enough
+
+        Note: 
+
+        """
+        k = self.has_translational_symmetry()
+        A = None
+        if k > 0:
+            A = matrix(ZZ,2,2,[1,k,0,1])
+        else:
+            k = self.has_reflectional_symmetry()
+            if k >= 0:
+                A = matrix(ZZ,2,2,[-1,-k,0,1])                
+        if not self.is_modular_correspondence(A):
+            if ret_map:
+                return False,0
+            else:
+                return False
+        if ret_map:
+            return True,A
+        else:
+            return True
+        
+    def is_modular_correspondence(self,A):
+        r"""
+        Check if A is a modular correspondence for self. That is, if A is in PGL(2,Z) s.t. A^2 in self
+        and A preserves cusp classes.
+
+
+
+        """
+        if not hasattr(A,"determinant"):
+            return False
+        if A.determinant() not in [1,-1]:
+            return False
+        if A**2 not in self:
+            return False
+        for c in self.cusps():
+            a = c.numerator(); d = c.denominator()
+            Ac = Cusp(A[0,0]*a+A[0,1]*d,A[1,0]*a+A[1,1]*d)
+            if not self.are_equivalent_cusps(Ac,c):
+                return False
+        return True
+    
     def is_symmetrizable_even_odd(self,j):
         r"""
         Returns 1 if this cusp is symmetrizable in the sense that the normalizing map N=A*rho
@@ -2186,7 +2292,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def nvertices(self):
         return self._vertices
 
-    def cusp_width(self,cusp):
+    def cusp_width(self,c):
         r"""
         Returns the cusp width of cusp
 
@@ -2204,17 +2310,17 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.cusp_width(Cusp(0))
             4
         """
-        if isinstance(cusp,(int,Integer)):
-            return self._cusp_data[j]['width']
-        p=None; q=None
-        if isinstance(cusp,Cusp):        
+        if isinstance(c,tuple):
+            p=c[0];q=c[1]; cusp=None
+        else:
+            cusp = Cusp(c)
             p=cusp.numerator(); q=cusp.denominator()
-        elif isinstance(cusp,tuple):
-            p=cusp[0];q=cusp[1]
         if (p,q) in self._cusps:
             j = self._cusps.index((p,q))
             return self._cusp_data[j]['width']
         else:
+            if cusp == None:
+                cusp = Cusp(p,q)
             if self._verbose>1:
                 print "cusp=",cusp
             # if we are here we did not find the cusp in the list so we have to find an equivalent in the list
@@ -2229,6 +2335,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r""":
         Returns cuspdata in the same format as for the generic Arithmetic subgroup, i.e. a tuple (A,h,s) where A is a generator of the stabiliser of c, h is the width of c and s is the orientation. 
 
+        INPUT:
+
+        - 'c' -- Integer or cusp
+        
+        
         EXAMPLES::
 
 
@@ -2244,30 +2355,33 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             [ 1  0], 4, 1)
 
         """
-        if isinstance(cusp,(int,Integer)):
-            c = Cusp(self._cusps[c])
-            
-        c,A=self.cusp_representative(c,transformation='matrix')
-        p = c.numerator(); q = c.denominator()
-        if (p,q) not in self._cusps:
-            raise ArithmeticError,"Could not find cusp representative!"
-        i =self._cusps.index((p,q))
-        width = self._cusp_data[i]['width']
-        if A == SL2Z_elt(1,0,0,1):
-            n = self._cusp_data[i]['stabilizer']
-        else:
-            w = lift_to_sl2z(q,p,0)
-            g = SL2Z_elt(w[3], w[1], w[2],w[0])
-            for d in range(1,1+self.index()):
-                B = g * SL2Z_elt(1,d,0,1) * g.inverse() 
-                if B in self:
-                    return (B, d, 1)
-                else:
-                    B = g * SL2Z_elt(-1,-d,0,-1) * g.inverse()
-                    if B in self:
-                        return (B, d, -1)
-            raise ArithmeticError, "Can't find stabilizer!"
-
+        if self._cusp_data_sage_format.get(c)==None:        
+            cusp = Cusp(c)
+            p = cusp.numerator(); q = cusp.denominator()
+            if (p,q) not in self._cusps:
+                 ## Then we compute everything using the same method as in sage but with SL2Z_elt
+                ## to make it faster
+                w = lift_to_sl2z(c.denominator(), c.numerator(), 0)
+                g = SL2Z_elt([w[3], w[1], w[2],w[0]])
+                for d in range(1,1+self.index()):
+                    t = g * SL2Z_elt(1,d,0,1) * g.inverse()
+                    print t
+                    if t in self:
+                        self._cusp_data_sage_format[c] = t, d, 1
+                        break
+                    else:
+                        t = SL2Z_elt(-t.a(),-t.b(),-t.c(),-t.d())
+                        if t in self: # Note that in the current implementation this will never hold since we work exclusively with PSL
+                            self._cusp_data_sage_format[c] = t, d, -1
+                            break
+            else:
+                i = self._cusps.index((p,q))
+                t = self._cusp_data[i]['stabilizer']
+                d = self._cusp_data[i]['width']
+                self._cusp_data_sage_format[c] = t, d, 1
+            if self._cusp_data_sage_format.get(c)==None:
+                raise ArithmeticError,"Could not find stabiliser of {0}".format(c)
+        return self._cusp_data_sage_format.get(c)
 
 
         ## try:

@@ -178,7 +178,7 @@ def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
                 k = minwt+2*kk
                 if M.dimension_cusp_forms(k)-dimension_cusp_forms(kronecker_character(p),k)/2 != 0:
                     print "ERROR: ", k, M.dimension_cusp_forms(k), dimension_cusp_forms(kronecker_character(p),k)/2
-                    return false
+                    return False
     return true
 
 #sys.path.append('/home/stroemberg/Programming/Sage/sage-add-ons3/nils')
@@ -201,5 +201,5 @@ def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
             dimV=M.dimension_cusp_forms(k-1/2)
         if dimJ-dimV != 0:
             print "ERROR: ", k, dimJ, dimV
-            return false
+            return False
     return true

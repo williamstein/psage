@@ -67,8 +67,8 @@ class VectorValuedModularForms(SageObject):
             self._g = None
             self._level = self._M.level()
             if is_odd(self._M.order()):
-                self._n2 = n2 = 0
-                self._v2 = None
+                self._n2 = n2 = 1
+                self._v2 = {0: 1}
             else:
                 self._M2 = M2 = self._M.kernel_subgroup(2).as_ambient()[0]
                 self._n2 = n2 = self._M2.order()
@@ -99,41 +99,48 @@ class VectorValuedModularForms(SageObject):
         s=self._signature
         if not (2*k in ZZ):
             raise ValueError("k has to be integral or half-integral")
-        if (2*k+s)%4 != 0:
+        if (2*k+s)%4 != 0 and not ignore:
             raise NotImplementedError("2k has to be congruent to -signature mod 4")
-        if self._M == None and self._g != None:
-            self._M = self._g.finite_quadratic_module()
+        if self._v2.has_key(0):
+            v2 = self._v2[0]
+        else:
+            v2 = 1
         if self._alpha3 == None:
-            if self._v2 != None:
+            if self._g != None:
                 self._alpha3  = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
+                vals = self._g.values()
+                M = self._g
             else:
+                if self._M == None and self._g != None:
+                    self._M = self._g.finite_quadratic_module()
                 self._alpha3 = 0
-            vals = self._M.values()
+                vals = self._M.values()
+                M = self._M
             self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
             self._alpha3 = self._alpha3 / Integer(2)
-            self._alpha4 = 1/Integer(2)*(vals[0]+self._v2[0]) # the codimension of SkL in MkL
-        d=self._d
-        m=self._m
+            self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
+        d = self._d
+        m = self._m
         alpha3 = self._alpha3
         alpha4 = self._alpha4
-        g1=self._M.char_invariant(1)
+        g1=M.char_invariant(1)
         g1=CC(g1[0]*g1[1])
         #print g1
-        g2=self._M.char_invariant(2)
+        g2=M.char_invariant(2)
         g2=RR(real(g2[0]*g2[1]))
         #print g2
-        g3=self._M.char_invariant(-3)
+        g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
         #print g3
         alpha1 = RR((d / Integer(4))) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / Integer(8))) * g2)
         #print alpha1
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
-        #print alpha2
+        #print alpha2, g1, g3, d, k, s
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
         return dim
 
-    def dimension_cusp_forms(self,k):
-        dim=self.dimension(k)-self._alpha4
+    def dimension_cusp_forms(self,k,ignore=False):
+        dim=self.dimension(k,ignore)-self._alpha4
         if k==2:
             if self._M.level() == 1:
                 return dim + 1

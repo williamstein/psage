@@ -138,8 +138,10 @@ class VectorValuedModularForms(SageObject):
         return dim
 
     def dimension_cusp_forms(self,k,ignore=False):
-        dim=self.dimension(k,ignore)-self._alpha4
+        dim = self.dimension(k,ignore)-self._alpha4
         if k==2:
+            if self._M == None:
+                self._M = self._g.finite_quadratic_module()
             if self._M.level() == 1:
                 return dim + 1
             dinv = 0
@@ -154,12 +156,11 @@ class VectorValuedModularForms(SageObject):
                         found = True
                         #print "p = ", p
                 try:
-                    inv = cython_invariants_dim(self._M,GF(p))
+                    dinv += cython_invariants_dim(self._M,GF(p))
                     #print 'inv=', inv
                     calc = True
                 except:
                     found = False
-                dinv += inv
             #print "dinv=",dinv
             dim = dim + dinv
         return dim

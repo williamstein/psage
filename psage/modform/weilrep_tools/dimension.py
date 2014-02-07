@@ -105,17 +105,15 @@ class VectorValuedModularForms(SageObject):
             v2 = self._v2[0]
         else:
             v2 = 1
+
+        if self._g != None:
+            vals = self._g.values()
+            M = self._g
+        else:
+            vals = self._M.values()
+            M = self._M
         if self._alpha3 == None:
-            if self._g != None:
-                self._alpha3  = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
-                vals = self._g.values()
-                M = self._g
-            else:
-                if self._M == None and self._g != None:
-                    self._M = self._g.finite_quadratic_module()
-                self._alpha3 = 0
-                vals = self._M.values()
-                M = self._M
+            self._alpha3 = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
             self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
             self._alpha3 = self._alpha3 / Integer(2)
             self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL

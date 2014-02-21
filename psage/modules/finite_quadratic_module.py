@@ -3155,7 +3155,7 @@ class JordanDecomposition( SageObject):
 
         EXAMPLES NONE
         """
-        return ( self.__jd[p**n] for p,n in self.__ol )
+        return ( self.__jd[p**n] for p,n in sorted(self.__ol) )
 
         
     def genus_symbol( self, p = None):

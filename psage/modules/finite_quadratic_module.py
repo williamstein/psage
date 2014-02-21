@@ -3226,7 +3226,80 @@ class JordanDecomposition( SageObject):
                 s += '.'
         return s
 
+        
+    def orbit_list(self, p = None):
+        r"""
+        Return a dictionary of orbit lists
+        for the primes occuring in the jordan decomposition
+        
+        EXAMPLES NONE
+        """
+        n = self.__A.order()
+        if not p:
+            _P = n.prime_divisors()
+            if 2 in _P:
+                _P.remove(2)
+            _P.sort( reverse = True)
+        elif is_prime(p):
+            return _orbit_list(p)
+        else:
+            raise TypeError
+        orbit_dict = dict()
+        while [] != _P:
+            p = _P.pop()
+            orbit_dict[p] = _orbit_list(p)
+        return orbit_dict
 
+        
+    def _orbit_list(self, p):
+        r"""
+        Return the dictionary of orbits corresponding to the p-group
+        of the corresponding finite quadratic module and their lengths.
+
+        EXAMPLES NONE
+        """
+        if not is_prime(p):
+            raise TypeError
+        ppowers = [q for q in self.__jd.keys() if 0 == q%p)]
+        ppowers.sort()
+        if [] == ppowers:
+            return dict()
+        o_list = dict()
+
+        levelpower = ppowers[len(ppowers)-1]
+        
+
+        def _orbit_length( r, eps, t):
+            if is_even(r):
+                n = Integer(r/2)
+                if t.isintegral():
+                    return p**(r-1) + eps * kronecker(-1,p)**n * (p**n - p**(n-1)) -1
+                else:
+                    return p**(r-1) - eps * kronecker(-1,p)**n * p**(n-1)
+            else:
+                if t.isintegral():
+                    return p**(r-1)-1
+                else:
+                    n = Integer((r-1)/2)
+                    return p**(r-1) + eps * kronecker(-1,p)**n * kronecker(2,p) * kronecker(Integer(p*t),p) * p**n
+
+        multiplicitieslist = [] # Make this a list such that one can use multiplicitieslist.pop() 
+
+        while multiplicitieslist != []:
+
+            multiplicieties = multiplicitieslist.pop()
+            k = len(multiplicities)-1
+            maxdenominators = [] # This depends on th multiplicities
+            pk = p**k
+            m = p*pk
+
+            
+        
+
+
+
+
+        
     def constituent( self, q, names = None):
         r"""
         Return the Jordan constituent whose exponent is the

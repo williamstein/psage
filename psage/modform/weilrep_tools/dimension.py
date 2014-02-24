@@ -48,7 +48,7 @@ class VectorValuedModularForms(SageObject):
         :class:`psage.modules.finite_quadratic_modules.FiniteQuadraticModule`
     """
 
-    def __init__(self, A, use_genus_symbols = False):
+    def __init__(self, A, use_genus_symbols = False, aniso_formula = False):
         
         if use_genus_symbols:
             if isinstance(A, str):
@@ -62,10 +62,12 @@ class VectorValuedModularForms(SageObject):
             n2 = self._n2 = g.torsion(2)
             self._v2 = g.two_torsion_values()
             self._M = None
+            self._aniso_formula = aniso_formula
         else:
             self._M = FiniteQuadraticModule(A)
             self._g = None
             self._level = self._M.level()
+            self._aniso_formula = False
             if is_odd(self._M.order()):
                 self._n2 = n2 = 1
                 self._v2 = {0: 1}
@@ -112,13 +114,20 @@ class VectorValuedModularForms(SageObject):
         else:
             vals = self._M.values()
             M = self._M
-        if self._alpha3 == None:
-            self._alpha3 = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
-            self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
-            self._alpha3 = self._alpha3 / Integer(2)
-            self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
+
         d = self._d
         m = self._m
+            
+        if self._alpha3 == None:
+            if self._aniso_formula:
+                self._alpha4 = 1
+                self._alpha3 = sum([RR(1-a)*m for a,m in self._v2.iteritems() if a != 0])/2
+                self._alpha3 += RR(d)/2-RR(1)/2+self._g.a5prime_formula()
+            else:
+                self._alpha3 = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
+                self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
+                self._alpha3 = self._alpha3 / Integer(2)
+                self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
         alpha3 = self._alpha3
         alpha4 = self._alpha4
         g1=M.char_invariant(1)

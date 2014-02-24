@@ -22,6 +22,12 @@ AUTHORS:
 from sage.all import SageObject, Integer, RR
 import sys
 
+def BB(x):
+    RF=RealField(100)
+    x = RF(x)
+    onehalf = RF(1)/2
+    return x - onehalf*(floor(x)-floor(-x))
+
 class VectorValuedModularForms(SageObject):
     r"""
     Class representing a space of vector valued modular forms
@@ -81,13 +87,13 @@ class VectorValuedModularForms(SageObject):
             m = g.order()
         else:
             self._signature = self._M.signature()
-            m=self._M.order()
+            m = self._M.order()
             
-        self._m=m
+        self._m = m
         d = Integer(1)/Integer(2)*(m+n2) # |discriminant group/{+/-1}|
         self._d = d
-        self._alpha3=None
-        self._alpha4=None
+        self._alpha3 = None
+        self._alpha4 = None
 
     def __repr__(self):
         return "Vector valued modular forms for the Weil representation corresponding to: \n" + self._M.__repr__()
@@ -109,23 +115,34 @@ class VectorValuedModularForms(SageObject):
             v2 = 1
 
         if self._g != None:
-            vals = self._g.values()
+            if not self._aniso_formula:
+                vals = self._g.values()
+            #else:
+                #print "using aniso_formula"
             M = self._g
         else:
             vals = self._M.values()
             M = self._M
-
+            
+        prec = ceil(max(log(M.order(),2),52)+1)
+        RR = RealField(prec)
+        CC = ComplexField(prec)
         d = self._d
         m = self._m
             
         if self._alpha3 == None:
             if self._aniso_formula:
                 self._alpha4 = 1
-                self._alpha3 = sum([RR(1-a)*m for a,m in self._v2.iteritems() if a != 0])/2
-                self._alpha3 += RR(d)/2-RR(1)/2+self._g.a5prime_formula()
+                self._alpha3 = -sum([BB(a)*m for a,m in self._v2.iteritems() if a != 0])
+                #print self._alpha3
+                self._alpha3 += Integer(d) - Integer(1) - self._g.a5prime_formula()
+                #print self._alpha3, self._g.a5prime_formula()
+                self._alpha3 = self._alpha3/2
             else:
                 self._alpha3 = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
+                #print self._alpha3
                 self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
+                #print self._alpha3
                 self._alpha3 = self._alpha3 / Integer(2)
                 self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
         alpha3 = self._alpha3
@@ -135,7 +152,7 @@ class VectorValuedModularForms(SageObject):
         #print g1
         g2=M.char_invariant(2)
         g2=RR(real(g2[0]*g2[1]))
-        #print g2
+        #print g2, g2.parent()
         g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
         #print g3

@@ -146,9 +146,9 @@ class VectorValuedModularForms(SageObject):
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
         return dim
 
-    def dimension_cusp_forms(self,k,ignore=False):
+    def dimension_cusp_forms(self,k,ignore=False, no_inv = False):
         dim = self.dimension(k,ignore)-self._alpha4
-        if k==2:
+        if k==2 and not no_inv:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
             if self._M.level() == 1:
@@ -163,7 +163,7 @@ class VectorValuedModularForms(SageObject):
                     p = next_prime(p)
                     if p % self._M.level() == 1:
                         found = True
-                        #print "p = ", p
+                        print "p = ", p
                 try:
                     dinv += cython_invariants_dim(self._M,GF(p))
                     #print 'inv=', inv

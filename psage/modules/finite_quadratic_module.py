@@ -3251,7 +3251,7 @@ class JordanDecomposition( SageObject):
         return orbit_dict
 
         
-    def _orbit_list(self, p):
+    def _orbit_list(self, p, shortform = False):
         r"""
         Return the dictionary of orbits corresponding to the p-group
         of the corresponding finite quadratic module and their lengths.
@@ -3370,7 +3370,7 @@ class JordanDecomposition( SageObject):
             pk = p**k
             m = p*pk
             maxdenominators = [p for x in multiplicities]
-            for j in range(len(multiplicities)-2,-1,-1):
+            for j in range(k-1,-1,-1):
                 maxdenominators[j] = Integer(max(p*multiplicities[j]/multiplicities[j+1]*maxdenominators[j+1],p))
 
             #TODO implement the rest

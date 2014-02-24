@@ -3268,7 +3268,7 @@ class JordanDecomposition( SageObject):
 
         levelpower = ppowers[len(ppowers)-1]
 
-        print ppowers
+        # print ppowers
         
 
         def _orbit_length( r, eps, t):
@@ -3300,23 +3300,23 @@ class JordanDecomposition( SageObject):
                 completemultiplicitieslist[k] = []
                 usedrankslist = []
 
-                print "for k",k, completemultiplicitieslist, usedrankslist 
-                print "idash", idash
+                # print "for k",k, completemultiplicitieslist, usedrankslist 
+                # print "idash", idash
                 
                 for j in range(idash, len(ppowers)):
                     usedranks = [0 for x in ppowers]
 
-                    print "    ", usedranks, "j", j
+                    # print "    ", usedranks, "j", j
                     
                     usedranks[j] = 1
                     completemultiplicitieslist[k].append([Integer(ppowers[j]/m)])
                     usedrankslist.append(usedranks)
 
-                    print "    ", "for j (1st)", j, completemultiplicitieslist[k], usedrankslist
+                    # print "    ", "for j (1st)", j, completemultiplicitieslist[k], usedrankslist
 
                 for j in range(k-1,-1,-1):
 
-                    print "    ", "for j (2nd)" 
+                    # print "    ", "for j (2nd)" 
                     
                     for x in range(0,len(completemultiplicitieslist[k])):
 
@@ -3324,20 +3324,20 @@ class JordanDecomposition( SageObject):
                         usedranks = usedrankslist[x]
                         idash = len([xx for xx in ppowers if xx <= p**j])
 
-                        print "        ", multiplicities 
+                        # print "        ", multiplicities 
                         
                         completemultiplicitieslist[k][x] = [multiplicities[0]] + multiplicities
 
-                        print "        ", "for x", x, completemultiplicitieslist[k], usedranks
+                        # print "        ", "for x", x, completemultiplicitieslist[k], usedranks
 
-                        for xx in range(idash, len(ppowers)):
+                        # for xx in range(idash, len(ppowers)):
 
-                            print xx, usedranks
-                            print ppowers[xx]
-                            print self.__jd
-                            print usedranks[xx] < self.__jd[ppowers[xx]][1][2]
-                            print self.__jd[ppowers[xx]][1]
-                            print ppowers[xx] < p**(j+1)*multiplicities[0]
+                            # print xx, usedranks
+                            # print ppowers[xx]
+                            # print self.__jd
+                            # print usedranks[xx] < self.__jd[ppowers[xx]][1][2]
+                            # print self.__jd[ppowers[xx]][1]
+                            # print ppowers[xx] < p**(j+1)*multiplicities[0]
                         
                         for jj in [xx for xx in range(idash, len(ppowers)) if usedranks[xx] < self.__jd[ppowers[xx]][1][2] and ppowers[xx] < p**(j+1)*multiplicities[0]]:
 
@@ -3347,23 +3347,33 @@ class JordanDecomposition( SageObject):
                             completemultiplicitieslist[k].append(newmultiplicities)
                             usedrankslist.append(newusedranks)
 
-                            print "            ", "for jj", jj, completemultiplicitieslist[k], usedrankslist
+                            # print "            ", "for jj", jj, completemultiplicitieslist[k], usedrankslist
 
-            return completemultiplicitieslist
-                        
+            multiplicitieslist = []
+            for k in completemultiplicitieslist.keys():
+                multiplicitieslist += sorted(completemultiplicitieslist[k])
+        
+            return multiplicitieslist
 
-        multiplicitieslist =  _multiplicitieslist() # Make this a list such that one can use multiplicitieslist.pop()
-        print multiplicitieslist
-        r"""
+        multiplicitieslist =  _multiplicitieslist()
+
+        # print multiplicitieslist
+        
+        multiplicitieslist.reverse()
+
+        # print multiplicitieslist
+        
         while multiplicitieslist != []:
 
             multiplicities = multiplicitieslist.pop()
             k = len(multiplicities)-1
-            maxdenominators = [] # This depends on the multiplicitieslist
             pk = p**k
             m = p*pk
-        """
+            maxdenominators = [p for x in multiplicities]
+            for j in range(len(multiplicities)-2,-1,-1):
+                maxdenominators[j] = Integer(max(p*multiplicities[j]/multiplicities[j+1]*maxdenominators[j+1],p))
 
+            #TODO implement the rest
             
 
         

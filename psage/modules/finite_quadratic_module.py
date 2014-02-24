@@ -3155,7 +3155,7 @@ class JordanDecomposition( SageObject):
 
         EXAMPLES NONE
         """
-        return ( self.__jd[p**n] for p,n in sorted(self.__ol) )
+        return ( self.__jd[p**n] for p,n in self.__ol )
 
         
     def genus_symbol( self, p = None):
@@ -3264,7 +3264,7 @@ class JordanDecomposition( SageObject):
         ppowers.sort()
         if [] == ppowers:
             return dict()
-        o_list = dict()
+        o_dict = dict()
 
         levelpower = ppowers[len(ppowers)-1]
         
@@ -3283,21 +3283,58 @@ class JordanDecomposition( SageObject):
                     n = Integer((r-1)/2)
                     return p**(r-1) + eps * kronecker(-1,p)**n * kronecker(2,p) * kronecker(Integer(p*t),p) * p**n
 
+        def _multiplicitieslist():
+            r"""
+            Create a dictionary of possible combinations of
+            reduced multiplicities
+            """
+            
+            completemultiplicitieslist = dict()
+            
+            for k in range(0, valuation( levelpower, p)):
+
+                m = p**(k+1)
+                idash = len([j for j in ppowers if j < m])
+                completemultiplicitieslist[k] = []
+                usedrankslist = []
+
+                for j in range(idash, len(ppowers)-1):
+                    usedranks = [0 for j in ppowers]
+                    usedranks[j] = 1
+                    completemultiplicitieslist[k].append(Integer(ppowers[j]/m))
+                    usedrankslist.append(usedranks)
+
+                for j in range(k-1,-1,-1):
+                    for x in range(0,len(completemultiplicitieslist[k])):
+
+                        multiplicities = completemultiplicitieslist[k][x]
+                        usedranks = usedrankslist[x]
+                        idash = len([x for x in ppowers if x <= p**j])
+
+                        completemultiplicitieslist[k][x] = [multiplicities[0]] + multiplicities
+
+                        for jj in [jj for jj in range(idash, len(ppowers)) if usedranks[jj] < self.__jd[ppowers[jj]][2] and ppowers[jj] < p**(j+1)*multiplicities[1]]:
+
+                            newusedranks = usedranks
+                            newusedranks[i] += 1
+                            newmultiplicities = [Integer(ppowers[jj] / p**(j+1))] + multiplicities
+                            completemultiplicitieslist[k].append(newmultiplicities)
+                            usedrankslist.append(newusedranks)
+
+            return completemultiplicitieslist
+                        
+
         multiplicitieslist = [] # Make this a list such that one can use multiplicitieslist.pop() 
 
         while multiplicitieslist != []:
 
-            multiplicieties = multiplicitieslist.pop()
+            multiplicities = multiplicitieslist.pop()
             k = len(multiplicities)-1
-            maxdenominators = [] # This depends on th multiplicities
+            maxdenominators = [] # This depends on the multiplicitieslist
             pk = p**k
             m = p*pk
 
             
-        
-
-
-
 
         
     def constituent( self, q, names = None):

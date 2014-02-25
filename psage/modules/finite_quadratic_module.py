@@ -3264,7 +3264,7 @@ class JordanDecomposition( SageObject):
         ppowers.sort()
         if [] == ppowers:
             return dict()
-        o_dict = dict()
+        orbitdict = dict()
 
         levelpower = ppowers[len(ppowers)-1]
 
@@ -3362,6 +3362,13 @@ class JordanDecomposition( SageObject):
         multiplicitieslist.reverse()
 
         # print multiplicitieslist
+
+        tconstant = 2
+        while kronecker(tconstant, p) != -1 and tconstant < p:
+            tconstant += 1
+
+        ranks = [self.__jd[x][1][2] for x in ppowers]
+        epsilons = [self.__jd[x][1][3] for x in ppowers]
         
         while multiplicitieslist != []:
 
@@ -3369,11 +3376,48 @@ class JordanDecomposition( SageObject):
             k = len(multiplicities)-1
             pk = p**k
             m = p*pk
-            maxdenominators = [p for x in multiplicities]
-            for j in range(k-1,-1,-1):
-                maxdenominators[j] = Integer(max(p*multiplicities[j]/multiplicities[j+1]*maxdenominators[j+1],p))
 
-            #TODO implement the rest
+            if multiplicities[0] == multiplicities[k]:
+                
+                ordersDv1 = [Integer(x / multiplicities[0]) for x in ppowers if x > multiplicities[0]]
+                ranksDv1 = ranks[len(ppowers) - len(ordersDv1):]
+                ordersDv1pk = [Integer(x / pk) for x in ppowers if x > pk]
+                ranksDv1pk = ranksDv1[len(ranks)-len(ordersDv1pk):]
+
+                if len(ordersDv1pk) != 0 and ordersDv1pk[0] == p:
+
+                    constantfactor = Integer(prod([min(pk, ordersDv1[j])**ranksDv1[j] for j in range(0, len(ordersDv1))]) / pk)
+                    constantfactor *= prod(map(lambda x: p**x, ranksDv1pk[1:]))
+                    rank = ranksDv1pk[0]
+                    eps = epsilons[len(ranks)-len(ranksDv1pk)]
+                    values = [constantfactor * _orbitlength(rank, eps, tconstant / p)]
+                    values += [constantfactor * _orbitlength(rank, eps, 0)]
+                    values += [constantfactor * _orbitlength(rank, eps, 1 / p)]
+
+                    if shortform == True:
+
+                        orbitdict[tuple(multiplicities)] = tuple(values)
+
+                    else:
+
+                        nonzeros = [t for t in range(0,p) if values[kronecker(t,p) +1] != 0]
+
+                        for tdash in range(0,m,p):
+                            for tdashdash in nonzeros:
+
+                                tt = tdash + tdashdash
+                                orbitlength = values[kronecker(tdash,p)+1]
+                                orbit = tuple([m] + multiplicities + map(lambda x: x - floor(x), [tt * p**j / m for j in range(0, k+1)]))
+                                orbitdict[orbit] = orbitlength
+
+            else:
+                              
+                
+                maxdenominators = [p for x in multiplicities]
+                for j in range(k-1,-1,-1):
+                    maxdenominators[j] = Integer(max(p*multiplicities[j]/multiplicities[j+1]*maxdenominators[j+1],p))
+
+                #TODO implement the rest
             
 
         

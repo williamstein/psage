@@ -3468,7 +3468,7 @@ class JordanDecomposition( SageObject):
                     if ordersApj != [] and ordersApj[0] == p:
 
                         ranklist.append(ranksApj[0])
-                        epslist.append(epsilons[len(epsilons)-len(ranksApj)])
+                        epslist.append(epsilons[len(epsilons)-len(ranksD)])
                         constantfactor *= p**sum(ranksApj[1:])
                         ordersD = [Integer(x / quotient) for x in ordersB if x > quotient]
                         ranksD = ranksB[len(ranksB)-len(ordersD):]
@@ -3486,8 +3486,8 @@ class JordanDecomposition( SageObject):
                     ordersDpk = [Integer(x / pk) for x in ordersD if x > pk]
                     ranksDpk = ranksD[len(ranksD)-len(ordersDpk):]
 
-                    # print "ordersDpk", ordersDpk
-                    # print "ordersD", ordersD, pk
+                    print "ordersDpk", ordersDpk
+                    print "ordersD", ordersD, pk
 
                     if ordersDpk != [] and ordersDpk[0] == p:
 
@@ -3535,6 +3535,8 @@ class JordanDecomposition( SageObject):
                                     orbitlength2 = _orbit_length(ranklist[skipindex], epslist[skipindex], tpk)
                                     orbitlengths = orbitlength1 * orbitlength2
 
+                                    print ranklist, epslist, [t, tpk], [orbitlength1, orbitlength2]
+
                                     if orbitlengths != 0:
 
                                         reducednorms = [0 for j in range(0,k+1)]
@@ -3557,8 +3559,7 @@ class JordanDecomposition( SageObject):
                                     
                                     t = p**(skips[skipindex] - skips[skipindex - 1] - 1) * tvalues[skipindex - 1]
                                     t -= multiplicities[skips[skipindex]] / multiplicities[skips[skipindex] - 1] / p * tpjvalues[skipindex]
-
-                                    print "Position 2", type(t), t
+                                    # print "Position 2", type(t), t
                                     
                                     orbitlength = _orbit_length(ranklist[skipindex - 1], epslist[skipindex - 1], t)
 
@@ -3571,7 +3572,9 @@ class JordanDecomposition( SageObject):
                                         tcandidates = [t/maxdenominator for t in range(0,maxdenominator)]
                                         difference = skips[skipindex + 1] - skips[skipindex]
                                         quotient = multiplicities[skips[skipindex + 1]] / multiplicities[skips[skipindex]]
-                                        tpjs[skipindex + 1] = [t for t in tcandidates if (quotient / p * t - p**difference * tpjvalues[skipindex]).is_integral()]
+                                        tpjs[skipindex + 1] = [t for t in tcandidates if (quotient * t - p**difference * tpjvalues[skipindex]).is_integral()]
+                                        product[skipindex] = orbitlength * product[skipindex - 1]
+                                        print "product", product
                                         skipindex += 1
 
                                 else:
@@ -3580,13 +3583,15 @@ class JordanDecomposition( SageObject):
                                     tcandidates = [t/maxdenominator for t in range(0,maxdenominator)]
                                     difference = skips[skipindex + 1] - skips[skipindex]
                                     quotient = multiplicities[skips[skipindex + 1]] / multiplicities[skips[skipindex]]
-                                    tpjs[skipindex + 1] = [t for t in tcandidates if (quotient / p * t - p**difference * tpjvalues[skipindex]).is_integral()]
+                                    tpjs[skipindex + 1] = [t for t in tcandidates if (quotient * t - p**difference * tpjvalues[skipindex]).is_integral()]
+
+                                    # print ""
+                                    # print tcandidates
+                                    # print quotient, "*", "t", "-", p, "^", difference, "*", tpjvalues[skipindex]
+                                    # print "tpjs", tpjs
+
                                     skipindex += 1
                                     
-
-                                            
-                                            
-                    
         return orbitdict
             
 

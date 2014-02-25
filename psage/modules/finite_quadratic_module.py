@@ -3227,7 +3227,7 @@ class JordanDecomposition( SageObject):
         return s
 
         
-    def orbit_list(self, p = None):
+    def orbit_list(self, p = None, short = False):
         r"""
         Return a dictionary of orbit lists
         for the primes occuring in the jordan decomposition
@@ -3241,17 +3241,17 @@ class JordanDecomposition( SageObject):
                 _P.remove(2)
             _P.sort( reverse = True)
         elif is_prime(p):
-            return _orbit_list(p)
+            return _orbit_list(p, short = short)
         else:
             raise TypeError
         orbit_dict = dict()
         while [] != _P:
             p = _P.pop()
-            orbit_dict[p] = self._orbit_list(p)
+            orbit_dict[p] = self._orbit_list(p, short = short)
         return orbit_dict
 
         
-    def _orbit_list(self, p, shortform = False):
+    def _orbit_list(self, p, short = False):
         r"""
         Return the dictionary of orbits corresponding to the p-group
         of the corresponding finite quadratic module and their lengths.
@@ -3272,14 +3272,17 @@ class JordanDecomposition( SageObject):
         
 
         def _orbit_length( r, eps, t):
+
+            # print t, type(t)
+            
             if is_even(r):
                 n = Integer(r/2)
-                if t == floor(t):
+                if t.is_integral():
                     return p**(r-1) + eps * kronecker(-1,p)**n * (p**n - p**(n-1)) -1
                 else:
                     return p**(r-1) - eps * kronecker(-1,p)**n * p**(n-1)
             else:
-                if t == floor(t):
+                if t.is_integral():
                     return p**(r-1)-1
                 else:
                     n = Integer((r-1)/2)
@@ -3363,7 +3366,7 @@ class JordanDecomposition( SageObject):
 
         # print multiplicitieslist
 
-        tconstant = 2
+        tconstant = Integer(2)
         while kronecker(tconstant, p) != -1 and tconstant < p:
             tconstant += 1
 
@@ -3379,19 +3382,19 @@ class JordanDecomposition( SageObject):
 
             if multiplicities[0] == multiplicities[k]:
 
-                print "Hello 1", multiplicities
+                # print "Hello 1", multiplicities
                 
                 ordersDv1 = [Integer(x / multiplicities[0]) for x in ppowers if x > multiplicities[0]]
                 ranksDv1 = ranks[len(ppowers) - len(ordersDv1):]
                 ordersDv1pk = [Integer(x / pk) for x in ordersDv1 if x > pk]
                 ranksDv1pk = ranksDv1[len(ordersDv1)-len(ordersDv1pk):]
 
-                print ppowers, multiplicities[0]
-                print ordersDv1, len(ppowers)-len(ordersDv1)
-                print ranksDv1
-                print ordersDv1, pk
-                print ordersDv1pk, len(ordersDv1)-len(ordersDv1pk) 
-                print ranksDv1pk
+                # print ppowers, multiplicities[0]
+                # print ordersDv1, len(ppowers)-len(ordersDv1)
+                # print ranksDv1
+                # print ordersDv1, pk
+                # print ordersDv1pk, len(ordersDv1)-len(ordersDv1pk) 
+                # print ranksDv1pk
 
                 if len(ordersDv1pk) != 0 and ordersDv1pk[0] == p:
 
@@ -3400,20 +3403,20 @@ class JordanDecomposition( SageObject):
                     rank = ranksDv1pk[0]
                     eps = epsilons[len(ranks)-len(ranksDv1pk)]
                     values = [constantfactor * _orbit_length(rank, eps, tconstant / p)]
-                    values += [constantfactor * _orbit_length(rank, eps, 0)]
-                    values += [constantfactor * _orbit_length(rank, eps, 1 / p)]
+                    values += [constantfactor * _orbit_length(rank, eps, Integer(0))]
+                    values += [constantfactor * _orbit_length(rank, eps, Integer(1) / p)]
 
-                    print "values:", values
+                    # print "values:", values
 
-                    if shortform == True:
+                    if short == True:
 
-                        orbitdict[tuple(multiplicities)] = tuple(values)
+                        orbitdict[tuple([m] + multiplicities)] = tuple(values)
 
                     else:
 
                         nonzeros = [t for t in range(0,p) if values[kronecker(t,p) +1] != 0]
 
-                        print "nonzeros:", nonzeros
+                        # print "nonzeros:", nonzeros
 
                         for tdash in range(0,m,p):
                             for tdashdash in nonzeros:
@@ -3421,17 +3424,168 @@ class JordanDecomposition( SageObject):
                                 tt = tdash + tdashdash
                                 orbitlength = values[kronecker(tdashdash, p)+1]
                                 orbit = tuple([m] + multiplicities + map(lambda x: x - floor(x), [tt * p**j / m for j in range(0, k+1)]))
-                                print orbit, orbitlength
+                                # print orbit, orbitlength
                                 
                                 orbitdict[orbit] = orbitlength
 
             else:
+
+                print "Case 2:", multiplicities
                 
                 maxdenominators = [p for x in multiplicities]
                 for j in range(k-1,-1,-1):
                     maxdenominators[j] = Integer(max(p*multiplicities[j]/multiplicities[j+1]*maxdenominators[j+1],p))
 
-                #TODO implement the rest
+                skips = [0] + [j+1 for j in range(0,k) if multiplicities[j+1] > multiplicities[j]]
+                noskips = [j for j in range(1,k+1) if not j in skips]
+
+                # print multiplicities
+                # print skips
+                # print noskips
+
+                ranklist = []
+                epslist = []
+                constantfactor = p**(len(skips)-1-k)
+                ordersD = [Integer(x / multiplicities[0]) for x in ppowers if x > multiplicities[0]]
+                ranksD = ranks[len(ppowers)-len(ordersD):]
+
+                for skip in skips[1:]:
+
+                    quotient = Integer(multiplicities[skip] / multiplicities[skip - 1])
+                    ordersA = [x for x in ordersD if x <= quotient * p**skip]
+                    ranksA = ranksD[:len(ranksD)-len(ordersA)]
+                    ordersB = ordersD[len(ranksD)-len(ranksA):]
+                    ranksB = ranksD[len(ranksD)-len(ranksA):]
+                    pj = p**(skip - 1)
+                    constantfactor *= prod([min(pj, ordersA[j])**ranksA[j] for j in range(0,len(ranksA))])
+                    ordersApj = [Integer(x/pj) for x in ordersA if x > pj]
+                    ranksApj = ranksA[len(ranksA)-len(ordersApj):]
+
+                    print "ordersD", ordersD
+                    print "ordersA", ordersA
+                    print "ordersB", ordersB
+
+                    if ordersApj != [] and ordersApj[0] == p:
+
+                        ranklist.append(ranksApj[0])
+                        epslist.append(epsilons[len(epsilons)-len(ranksApj)])
+                        constantfactor *= p**sum(ranksApj[1:])
+                        ordersD = [Integer(x / quotient) for x in ordersB if x > quotient]
+                        ranksD = ranksB[len(ranksB)-len(ordersD):]
+
+                    else:
+
+                        constantfactor = 0
+                        break
+
+                print "Position 2", ranklist, epslist, constantfactor
+
+                if constantfactor:
+
+                    constantfactor *= prod([min(pk, ordersD[j])**ranksD[j] for j in range(0,len(ordersD))])
+                    ordersDpk = [Integer(x / pk) for x in ordersD if x > pk]
+                    ranksDpk = ranksD[len(ranksD)-len(ordersDpk):]
+
+                    # print "ordersDpk", ordersDpk
+                    # print "ordersD", ordersD, pk
+
+                    if ordersDpk != [] and ordersDpk[0] == p:
+
+                        ranklist.append(ranksDpk[0])
+                        epslist.append(epsilons[len(epsilons)-len(ranksDpk)])
+                        constantfactor *= p**sum(ranksDpk[1:])
+
+                    else:
+
+                        constantfactor = 0
+
+                print "Position 3", ranklist, epslist, constantfactor
+
+                if constantfactor:
+
+                    product = [constantfactor] + [0 for j in skips[2:]]
+                    skipindex = 0
+                    tpjvalues = [0 for j in skips]
+                    tpjs = [[x / maxdenominators[0] for x in range(0,maxdenominators[0])]] + [[] for j in skips[1:]]
+
+                    print "tpjs", tpjs
+                    
+                    while tpjs[0] != []:
+
+                        if tpjs[skipindex] == []:
+
+                            skipindex -= 1
+                            tpjs[skipindex].remove(tpjvalues[skipindex])
+
+                        else:
+
+                            if skipindex == len(skips)-1:
+
+                                for tpj in tpjs[skipindex]:
+
+                                    tpjvalues[skipindex] = tpj
+                                    tpk = p**(k - skips[skipindex]) * tpj
+                                    factor = product[len(product) - 1]
+                                    t = p**(skips[skipindex] - skips[skipindex - 1] - 1) * tpjvalues[skipindex - 1]
+                                    t -= multiplicities[skips[skipindex]] / multiplicities[skips[skipindex] - 1] / p * tpj
+
+                                    # print "Position 1", type(t), t, type(tpk), tpk
+                                    
+                                    orbitlength1 = _orbit_length(ranklist[skipindex - 1], epslist[skipindex - 1], t)
+                                    orbitlength2 = _orbit_length(ranklist[skipindex], epslist[skipindex], tpk)
+                                    orbitlengths = orbitlength1 * orbitlength2
+
+                                    if orbitlengths != 0:
+
+                                        reducednorms = [0 for j in range(0,k+1)]
+                                        for j in range(0,len(skips)):
+                                            reducednorms[skips[j]] = tpjvalues[j]
+                                        for j in noskips:
+                                            t = p*rednorms[j-1]
+                                            reducednorms[j] = t - floor(t)
+
+                                        orbitdict[tuple([m] + multiplicities + reducednorms)] = factor * orbitlengths
+
+                                skipindex -= 1
+                                tpjs[skipindex].remove(tpjvalues[skipindex])
+
+                            else:
+
+                                tpjvalues[skipindex] = tpjs[skipindex][0]
+
+                                if skipindex > 0:
+                                    
+                                    t = p**(skips[skipindex] - skips[skipindex - 1] - 1) * tvalues[skipindex - 1]
+                                    t -= multiplicities[skips[skipindex]] / multiplicities[skips[skipindex] - 1] / p * tpjvalues[skipindex]
+
+                                    print "Position 2", type(t), t
+                                    
+                                    orbitlength = _orbit_length(ranklist[skipindex - 1], epslist[skipindex - 1], t)
+
+                                    if orbitlength == 0:
+
+                                        tpjs[skipindex].remove(tpjvalues[skipindex])
+
+                                    else:
+                                        maxdenominator = maxdenominators[skips[skipindex + 1]]
+                                        tcandidates = [t/maxdenominator for t in range(0,maxdenominator)]
+                                        difference = skips[skipindex + 1] - skips[skipindex]
+                                        quotient = multiplicities[skips[skipindex + 1]] / multiplicities[skips[skipindex]]
+                                        tpjs[skipindex + 1] = [t for t in tcandidates if (quotient / p * t - p**difference * tpjvalues[skipindex]).is_integral()]
+                                        skipindex += 1
+
+                                else:
+
+                                    maxdenominator = maxdenominators[skips[skipindex + 1]]
+                                    tcandidates = [t/maxdenominator for t in range(0,maxdenominator)]
+                                    difference = skips[skipindex + 1] - skips[skipindex]
+                                    quotient = multiplicities[skips[skipindex + 1]] / multiplicities[skips[skipindex]]
+                                    tpjs[skipindex + 1] = [t for t in tcandidates if (quotient / p * t - p**difference * tpjvalues[skipindex]).is_integral()]
+                                    skipindex += 1
+                                    
+
+                                            
+                                            
                     
         return orbitdict
             

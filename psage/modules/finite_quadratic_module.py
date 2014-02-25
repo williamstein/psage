@@ -3247,7 +3247,7 @@ class JordanDecomposition( SageObject):
         orbit_dict = dict()
         while [] != _P:
             p = _P.pop()
-            orbit_dict[p] = _orbit_list(p)
+            orbit_dict[p] = self._orbit_list(p)
         return orbit_dict
 
         
@@ -3274,12 +3274,12 @@ class JordanDecomposition( SageObject):
         def _orbit_length( r, eps, t):
             if is_even(r):
                 n = Integer(r/2)
-                if t.isintegral():
+                if t == floor(t):
                     return p**(r-1) + eps * kronecker(-1,p)**n * (p**n - p**(n-1)) -1
                 else:
                     return p**(r-1) - eps * kronecker(-1,p)**n * p**(n-1)
             else:
-                if t.isintegral():
+                if t == floor(t):
                     return p**(r-1)-1
                 else:
                     n = Integer((r-1)/2)
@@ -3378,11 +3378,20 @@ class JordanDecomposition( SageObject):
             m = p*pk
 
             if multiplicities[0] == multiplicities[k]:
+
+                print "Hello 1", multiplicities
                 
                 ordersDv1 = [Integer(x / multiplicities[0]) for x in ppowers if x > multiplicities[0]]
                 ranksDv1 = ranks[len(ppowers) - len(ordersDv1):]
-                ordersDv1pk = [Integer(x / pk) for x in ppowers if x > pk]
-                ranksDv1pk = ranksDv1[len(ranks)-len(ordersDv1pk):]
+                ordersDv1pk = [Integer(x / pk) for x in ordersDv1 if x > pk]
+                ranksDv1pk = ranksDv1[len(ordersDv1)-len(ordersDv1pk):]
+
+                print ppowers, multiplicities[0]
+                print ordersDv1, len(ppowers)-len(ordersDv1)
+                print ranksDv1
+                print ordersDv1, pk
+                print ordersDv1pk, len(ordersDv1)-len(ordersDv1pk) 
+                print ranksDv1pk
 
                 if len(ordersDv1pk) != 0 and ordersDv1pk[0] == p:
 
@@ -3390,9 +3399,11 @@ class JordanDecomposition( SageObject):
                     constantfactor *= prod(map(lambda x: p**x, ranksDv1pk[1:]))
                     rank = ranksDv1pk[0]
                     eps = epsilons[len(ranks)-len(ranksDv1pk)]
-                    values = [constantfactor * _orbitlength(rank, eps, tconstant / p)]
-                    values += [constantfactor * _orbitlength(rank, eps, 0)]
-                    values += [constantfactor * _orbitlength(rank, eps, 1 / p)]
+                    values = [constantfactor * _orbit_length(rank, eps, tconstant / p)]
+                    values += [constantfactor * _orbit_length(rank, eps, 0)]
+                    values += [constantfactor * _orbit_length(rank, eps, 1 / p)]
+
+                    print "values:", values
 
                     if shortform == True:
 
@@ -3402,22 +3413,27 @@ class JordanDecomposition( SageObject):
 
                         nonzeros = [t for t in range(0,p) if values[kronecker(t,p) +1] != 0]
 
+                        print "nonzeros:", nonzeros
+
                         for tdash in range(0,m,p):
                             for tdashdash in nonzeros:
 
                                 tt = tdash + tdashdash
-                                orbitlength = values[kronecker(tdash,p)+1]
+                                orbitlength = values[kronecker(tdashdash, p)+1]
                                 orbit = tuple([m] + multiplicities + map(lambda x: x - floor(x), [tt * p**j / m for j in range(0, k+1)]))
+                                print orbit, orbitlength
+                                
                                 orbitdict[orbit] = orbitlength
 
             else:
-                              
                 
                 maxdenominators = [p for x in multiplicities]
                 for j in range(k-1,-1,-1):
                     maxdenominators[j] = Integer(max(p*multiplicities[j]/multiplicities[j+1]*maxdenominators[j+1],p))
 
                 #TODO implement the rest
+                    
+        return orbitdict
             
 
         

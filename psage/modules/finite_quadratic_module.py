@@ -3264,7 +3264,7 @@ class JordanDecomposition( SageObject):
         ppowers.sort()
         if [] == ppowers:
             return dict()
-        orbitdict = dict()
+        orbitdict = {(1,) : 1}
 
         levelpower = ppowers[len(ppowers)-1]
 
@@ -3430,7 +3430,7 @@ class JordanDecomposition( SageObject):
 
             else:
 
-                print "Case 2:", multiplicities
+                # print "Case 2:", multiplicities
                 
                 maxdenominators = [p for x in multiplicities]
                 for j in range(k-1,-1,-1):
@@ -3453,32 +3453,48 @@ class JordanDecomposition( SageObject):
 
                     quotient = Integer(multiplicities[skip] / multiplicities[skip - 1])
                     ordersA = [x for x in ordersD if x <= quotient * p**skip]
-                    ranksA = ranksD[:len(ranksD)-len(ordersA)]
-                    ordersB = ordersD[len(ranksD)-len(ranksA):]
-                    ranksB = ranksD[len(ranksD)-len(ranksA):]
+                    ranksA = ranksD[:len(ordersA)]
+                    ordersB = ordersD[len(ranksA):]
+                    ranksB = ranksD[len(ranksA):]
                     pj = p**(skip - 1)
                     constantfactor *= prod([min(pj, ordersA[j])**ranksA[j] for j in range(0,len(ranksA))])
+
+                    # print "A_pj", constantfactor
+                    
                     ordersApj = [Integer(x/pj) for x in ordersA if x > pj]
                     ranksApj = ranksA[len(ranksA)-len(ordersApj):]
 
-                    print "ordersD", ordersD
-                    print "ordersA", ordersA
-                    print "ordersB", ordersB
+                    # print "ordersD", ordersD
+                    # print "ranksD", ranksD
+                    # print "ordersA", ordersA
+                    # print "ranksA", ranksA
+                    # print "ordersB", ordersB
+                    # print "ranksB", ranksB
+                    # print "ordersApj", ordersApj
+                    # print "ranksApj", ranksApj
+                    
+                    # print "Position 1", ranklist, epslist, constantfactor
 
                     if ordersApj != [] and ordersApj[0] == p:
 
                         ranklist.append(ranksApj[0])
                         epslist.append(epsilons[len(epsilons)-len(ranksD)])
                         constantfactor *= p**sum(ranksApj[1:])
+
+                        # print "ranks Atilde", ranksApj[1:]
+                        # print "Atilde_p", constantfactor
+                        
                         ordersD = [Integer(x / quotient) for x in ordersB if x > quotient]
                         ranksD = ranksB[len(ranksB)-len(ordersD):]
+
+                        # print ordersD, ordersB, quotient
 
                     else:
 
                         constantfactor = 0
                         break
 
-                print "Position 2", ranklist, epslist, constantfactor
+                # print "Position 2", ranklist, epslist, constantfactor
 
                 if constantfactor:
 
@@ -3486,8 +3502,11 @@ class JordanDecomposition( SageObject):
                     ordersDpk = [Integer(x / pk) for x in ordersD if x > pk]
                     ranksDpk = ranksD[len(ranksD)-len(ordersDpk):]
 
-                    print "ordersDpk", ordersDpk
-                    print "ordersD", ordersD, pk
+                    # print "D_pk", constantfactor
+                    
+                    # print "ordersDpk", ordersDpk
+                    # print "ranksDpk", ranksDpk
+                    # print "ordersD", ordersD, pk
 
                     if ordersDpk != [] and ordersDpk[0] == p:
 
@@ -3499,7 +3518,7 @@ class JordanDecomposition( SageObject):
 
                         constantfactor = 0
 
-                print "Position 3", ranklist, epslist, constantfactor
+                # print "Position 3", ranklist, epslist, constantfactor
 
                 if constantfactor:
 
@@ -3508,7 +3527,7 @@ class JordanDecomposition( SageObject):
                     tpjvalues = [0 for j in skips]
                     tpjs = [[x / maxdenominators[0] for x in range(0,maxdenominators[0])]] + [[] for j in skips[1:]]
 
-                    print "tpjs", tpjs
+                    # print "tpjs", tpjs
                     
                     while tpjs[0] != []:
 
@@ -3535,7 +3554,7 @@ class JordanDecomposition( SageObject):
                                     orbitlength2 = _orbit_length(ranklist[skipindex], epslist[skipindex], tpk)
                                     orbitlengths = orbitlength1 * orbitlength2
 
-                                    print ranklist, epslist, [t, tpk], [orbitlength1, orbitlength2]
+                                    # print ranklist, epslist, [t, tpk], [orbitlength1, orbitlength2]
 
                                     if orbitlengths != 0:
 
@@ -3543,7 +3562,7 @@ class JordanDecomposition( SageObject):
                                         for j in range(0,len(skips)):
                                             reducednorms[skips[j]] = tpjvalues[j]
                                         for j in noskips:
-                                            t = p*rednorms[j-1]
+                                            t = p*reducednorms[j-1]
                                             reducednorms[j] = t - floor(t)
 
                                         orbitdict[tuple([m] + multiplicities + reducednorms)] = factor * orbitlengths
@@ -3825,5 +3844,23 @@ def naive_Gauss_sum(FQ,a):
         res += z**(a*(FQ.Q(x)*N))
     return res,ZZ(len(list(FQ))).sqrt()
 
+
+def orbitlist_test(str):
+    r"""
+    testing if all orbits sum up to the size of the
+    finite quadratic module
+    """
+    A = FiniteQuadraticModule(str)
+    J = JordanDecomposition(A)
+    olist = J.orbit_list()
+    for p in olist.keys():
+        print J.genus_symbol(p)
+        order = A.order()
+        orbitsum = sum(olist[p][key] for key in olist[p].keys())
+        print "   order of A:", order
+        print "sum of orbits:", orbitsum
+        print order == orbitsum
+        print ""
+    return J.orbit_list(short = True)
     
 

@@ -24,6 +24,8 @@ cdef class SL2Z_elt(object):
     cpdef inverse(self)
     cpdef _eq(self,SL2Z_elt other)
     cpdef _pow(self,int k)
+    cpdef conjugate(self,SL2Z_elt other)
+    
 from sage.structure.sage_object cimport *
 
 cdef void _apply_sl2z_map_mpfr(mpfr_t x,mpfr_t y,int a,int b,int c,int d)

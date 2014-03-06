@@ -244,6 +244,9 @@ cdef class SL2Z_elt(object):
         return SL2Z_elt(self.ent[3],-self.ent[1],-self.ent[2],self.ent[0])
                     
     def __mul__(self,other):
+        r"""
+        Multiply self by other where other is also an element of SL(2,Z)
+        """
         if isinstance(other,SL2Z_elt):
             return self._mul(other)
         #elif hasattr(other,'BKZ') and other.nrows()==2 and other.ncols()==0:
@@ -254,6 +257,13 @@ cdef class SL2Z_elt(object):
             return self._mul_mat_i_2x2(<Matrix_integer_2x2?>other)
         raise ValueError,"Can not multiply {0} with {1}".format(type(self),type(other))
         
+
+    cpdef conjugate(self,SL2Z_elt other):
+        r"""
+        Conjugate self by other and return other*self*other**-1
+        """
+        cdef int a,b,c,d,ao,bo,co,do
+        return other._mul(self._mul(inv=2))
     
     cpdef _mul(self,SL2Z_elt other,int inv=0):
         r"""

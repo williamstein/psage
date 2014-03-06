@@ -395,13 +395,15 @@ class MaassWaveForms (AutomorphicFormSpace):
                 raise Exception
         except:
             raise ValueError,"R must be a (finite) non-negative real! Got R:{0}".format(R)
-        if dim>1 and self.weight()==0 and oldf==None and norm==None:
+        if dim>1 and self.weight()==0 and oldf==None and norm==None and self.group().is_congruence():
             return  self.get_Hecke_basis(R,None,M,Y,dim,ndigs,set_c)
             ## We assume we have a scalar-valued Maass form for the moment
         else:
             if norm <> None:
                 NN = norm
             else:
+                if self._verbose>0:
+                    print "setc=",set_c
                 NN = self.set_norm(dim,set_c=set_c)
             #M0=0; Y0 = float(0.0)
             #if Mset<>None: M0 = int(Mset)
@@ -410,6 +412,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                 print "Y=",Y
                 print "M=",M
                 print "NN=",NN
+                print "gr=",gr
             #if Y0==0.0 and M0==0:
             #    Y0,M0=get_Y_and_M_dp(self,R,eps)
             #if Y0==0.0 and M0<>0:
@@ -674,19 +677,20 @@ class MaassWaveForms (AutomorphicFormSpace):
             RF = RR
         else:
             RF = RealField(R.prec())
+        if M0<=0 or M0==None:
+            M0 =  self.smallest_M0(); MM = 0
+        else:
+            MM = M0 
         if Y>0:
             YY=float(Y)
-            if M0 > 0:
-                MM = M0
-            else:
-                M0=get_M_from_Y(float(R),float(Y),float(eps))
-        elif M0>0:
-            YY = get_Y_from_M(R,M0,eps,self.group().minimal_height(),self.group().ncusps()) #,verbose=self._verbose-1)
-            MM = M0
         else:
-            M0 = self.smallest_M0()
+            YY = 0
+        if MM==0 and YY==0:
             MM,YY = get_M_and_Y(R,self.group().minimal_height(),M0,eps)
-        
+        elif MM>0 and YY==0:
+            YY = get_Y_from_M(R,0.0,MM,eps,self.group().minimal_height(),self.group().ncusps())
+        if YY > 0 and MM==0:
+            MM=get_M_from_Y(float(R),float(YY),M0,float(eps))
         Q=MM+10 
         res['Q']=Q
         res['M']=MM
@@ -1755,7 +1759,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         """
         # If we have a Gamma_0(N) we can use Hecke operators
         verbose = max(verbose,self._space._verbose)
-        if self.level()==1:
+        if self.generalised_level()==1:
             method='Hecke'
         if method=='Hecke' and self._space._group.is_congruence():
             #a = self._space.get_primitive_p()

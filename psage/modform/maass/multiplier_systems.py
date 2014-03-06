@@ -717,7 +717,7 @@ class WeilRepMultiplier(MultiplierSystem):
 
         if group <>SL2Z:
             raise NotImplementedError,"Only Weil representations of SL2Z implemented!"
-        self._group = MySubgroup(1)
+        self._group = MySubgroup(Gamma0(1))
         self._dual = int(dual)
         self._sgn = (-1)**self._dual
         self.Qv=[]
@@ -751,7 +751,7 @@ class WeilRepMultiplier(MultiplierSystem):
         else:
             dim = len(self._weil_module.D)
         if hasattr(self._weil_module,"finite_quadratic_module"):
-            for x in self._weil_module.finite_quadratic_module().list():
+            for x in self._weil_module.finite_quadratic_module():
                 self.Qv.append(self._weil_module.finite_quadratic_module().Q(x))
         else:
             self.Qv=self._weil_module.Qv

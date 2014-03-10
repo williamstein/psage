@@ -4,6 +4,10 @@ r"""
 A general class for subgroups of the (projective) modular group, PSL(2,Z).
 Extends the standard classes with methods needed for Maass waveforms.
 
+NOTE: The fact that we deal with subgroups of PSL(2,Z) and not SL(2,Z) is EXTREMELY important.
+  More general algorithms may come later. 
+
+
 AUTHORS:
 
  - Fredrik Strömberg
@@ -108,11 +112,13 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     if isinstance(A,MySubgroup_class):
         return MySubgroup_class(data=A.__dict__,**kwds)
     if isinstance(A,ArithmeticSubgroup):
-        s2 = MyPermutation(A.as_permutation_group().S2().domain())
-        s3 = MyPermutation(A.as_permutation_group().S3().domain())
+        ## If A is not a subgroup of PSL(2,Z) so we have projectivize with .to_even_subgroup
+        s2 = MyPermutation(A.as_permutation_group().to_even_subgroup().S2().domain())
+        s3 = MyPermutation(A.as_permutation_group().to_even_subgroup().S3().domain())
+        if A.is_congruence():
+            level = A.level()
         if isinstance(A,Gamma0_class):
             is_Gamma0=True
-            level = A.level()
         else:
             is_Gamma0=False            
     elif A<>None and B<>None:
@@ -274,7 +280,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._display_format = display_format                
         self._uid = self._get_uid()
         self.class_name='MySubgroup_class'            
-
+        self._name = ''
 
     def _repr_(self):
         r"""
@@ -3462,70 +3468,88 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if not self.is_congruence():
             return None
         conj=1
-        N = self.level()
+        N = self.generalised_level()
         # do a preliminary test to see if ST^NS or T^N is in the group
-        if self.permT(1)==1:
-            # could be Gamma_0(N)
-            if self._verbose>0:
-                print "try Gamma0N!"
-            G = Gamma0(N)
-            if G.index() <> self.index():
-                return None
-            Gtmp=G.as_permutation_group()
-            tmpS=MyPermutation( (Gtmp.L()*(~Gtmp.R())*Gtmp.L()).list())
-            tmpT=MyPermutation( Gtmp.L().list())
-            if tmpS==self.permS and tmpT==self.permT:
-                return G
-        elif (self.permT**N)(1)==1:
-            # could be Gamma^0, Gamma1 or Gamma
-            # try first Gamma1 and Gamma
-            G = Gamma1(N)
-            if G.index() == self.index():
+        name,g = self.find_name(get_named_group=True)
+        if name<>'':
+            self._name = name
+        if g<>None:
+            return g
+        
+    def  find_name(self,get_named_group=False):
+        r"""
+        Try to find the name of self. So far only some easy types are implemented.
+    
+        """
+        name = ''; G=None
+        if self.is_congruence():
+            N = self.generalised_level()
+            mu = self.index()
+            if mu == self._gamma0N_index(N):
+                G = Gamma0(N)
+                if self.is_subgroup(G):
+                    name = 'Gamma_0({0})'.format(N)
+                else: ## We could have Gamma^0(N) = S Gamma_0(N) S 
+                    S = SL2Z_elt(0,-1,1,0)
+                    t = [S*x*S in G for x in self.generators_as_slz_elts()].count(False)
+                    if t==0:
+                        name = 'Gamma^0({0})'.format(N); G=None ## We can't get Gamma^0 in sage
+            if name=='' and mu == self._gammaN_index(N):
+                G = Gamma(N).as_permutation_group().to_even_subgroup()
+                name = 'Gamma({0})'.format(N)
+            if name== '' and mu == self._gamma1N_index(N):
+                G = Gamma1(N).as_permutation_group().to_even_subgroup()
+                t = [x.c() % N == 0 and (x.d()% N == 1 or -x.d() % N ==1) for x in self.generators_as_slz_elts()].count(False)
+                if t == 0:
+                    name = 'Gamma_1({0})'.format(N)
+            if name == '': # Try some other alternatives
+                # Try to find if we have a Gamma_0(N,M)
+                bs = map( lambda x:x.b(), self.generators_as_slz_elts())
                 if self._verbose>0:
-                    print "try Gamma1N!"
-                Gtmp=G.as_permutation_group()
-                tmpS=MyPermutation( (Gtmp.L()*(~Gtmp.R())*Gtmp.L()).list())
-                tmpT=MyPermutation( Gtmp.L().list())
-                if tmpS==self.permS and tmpT==self.permT:
-                    return G
-            G = Gamma(N)
-            if G.index() == self.index():
-                if self._verbose>0:
-                    print "try GammaN!"
-                Gtmp=G.as_permutation_group()
-                tmpS=MyPermutation((Gtmp.L()*(~Gtmp.R())*Gtmp.L()).list())
-                tmpT=MyPermutation( Gtmp.L().list())
-                if tmpS==self.permS and tmpT==self.permT:
-                    return G
-            # else try to conjugate to see if we have Gamma^0
-            # Recall that Gamma^0(N)=S*Gamma_0(N)*S
-            #cyc = self.permT.cycle_tuples() #perm_cycles(self.permT)
-            #j = cyc[1][0]
-            #pl=range(1,self._index+1)
-            #pl[0]=j
-            #pl[j-1]=1
-            #ptmp = MyPermutation(pl) # self._S((1,j))
-            #ptmp=self.permS
-            tmpL=self.permS*self.permT*self.permS.inverse()
-            tmpS=self.permS
-            if self._verbose>0:
-                print "tmpL=",tmpL
-                print "tmpP=",tmpP
-            G = Gamma0(N)
-            if G.index() <> self.index():
-                return None
-            Gtmp=G.as_permutation_group()
-            tmpS1=MyPermutation( (Gtmp.L()*(~Gtmp.R())*Gtmp.L()).list())
-            tmpT1=MyPermutation( Gtmp.L().list())
-            print "tmpS=",tmpS
-            print "tmpT=",tmpT
-            print "tmpS1=",tmpS1
-            print "tmpT1=",tmpT1
-            if tmpS1==tmpS and tmpT1==tmpT:
-                return "Gamma^0(N)"
-
+                    print "bs=",bs
+                M = gcd(bs)
+                # We know that Gamma_0^0(N,M) ~= B_n Gamma_0(NM) B_n^-1
+                for m in M.divisors():
+                    if mu == self._gamma0N_index(N*m): ## possible
+                        #check if x in self satisfy 
+                        t = [x.c() % N == 0 and x.b()% m == 0 for x in self.generators_as_slz_elts()].count(False)
+                        if t== 0:
+                            name = "Gamma_0^0({0},{1})".format(N,m)
+                            break
+                
+                if name=='' and mu==N and self.ncusps()==1:
+                    name='Gamma^{0}'.format(N)
+        if name=='':
+            G = None
+        else:
+            self._name = name
+        if get_named_group:
+            return name,G
+        return name
   
-
+    def _gammaN_index(self,N):
+        if N==2:
+            return 6
+        i = QQ(N)**3/QQ(2)
+        for p in ZZ(N).prime_divisors():
+            i*=(1-p**-2)
+        return i
+        
+    def _gamma1N_index(self,N):
+        if N==2:
+            return 3
+        i = QQ(N)**2/QQ(2)
+        for p in ZZ(N).prime_divisors():
+            i*=(1-p**-2)
+        return i
+    
+    def _gamma0N_index(self,N):
+        if N==2:
+            return 3
+        i = QQ(N)
+        for p in ZZ(N).prime_divisors():
+            i*=(1+p**-1)
+        return i
  
     def get_equivalent_cusp(self,p,q):
         r"""

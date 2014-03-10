@@ -3748,22 +3748,85 @@ def naive_Gauss_sum(FQ,a):
     return res,ZZ(len(list(FQ))).sqrt()
 
 
-def orbitlist_test(str):
+def orbitlist_test(str = None):
     r"""
     testing if all orbits sum up to the size of the
     finite quadratic module
     """
-    A = FiniteQuadraticModule(str)
+    if str:
+        A = FiniteQuadraticModule(str)
+    else:
+        A = FiniteQuadraticModuleRandom(discbound=10000,normbound=10000,verbose=0)
     J = JordanDecomposition(A)
+    str = J.genus_symbol()
+    print str
     olist = J.orbit_list()
+    testpassed = True
     for p in olist.keys():
-        print J.genus_symbol(p)
-        order = A.order()
+        st = J.genus_symbol(p)
+        order = p**valuation(A.order(),p)
         orbitsum = sum(olist[p][key] for key in olist[p].keys())
-        print "   order of A:", order
-        print "sum of orbits:", orbitsum
-        print order == orbitsum
-        print ""
-    return J.orbit_list(short = True)
+        # print "   order of A:", order
+        # print "sum of orbits:", orbitsum
+        testpassed = testpassed and (order == orbitsum)
+        print p.str() + ": # of elements in the computed orbits sum up to the order of " + st + ":", order == orbitsum, order, orbitsum
+    return testpassed
     
 
+def testing_routine(p):
+    r"""
+    testing discriminant only with p components
+    """
+    k = Integer(5)
+    p = Integer(p)
+    p1 = p.str()
+    p2 = (p**2).str()
+    p3 = (p**3).str()
+    p4 = (p**4).str()
+    p5 = (p**5).str()
+    str = ''
+    for a in range(-k,k+1):
+        if a != 0:
+            astr = Integer(a).str()
+            str1 = str +  p1+'^'+astr+'.'
+        else:
+            str1 = str
+        print "str1:", str1
+        for b in range(-k+1,k):
+            if b != 0:
+                bstr = Integer(b).str()
+                str2 = str1 + p2+'^'+bstr+'.'
+            else:
+                str2 = str1
+            print "    str2:", str2
+            for c in range(-k+3,k-2):
+                if c != 0:
+                    cstr = Integer(c).str()
+                    str3 = str2 + p3+'^'+cstr+'.'
+                else:
+                    str3 = str2
+                print "        str3:", str3
+                for d in range(-k+4,k-3):
+                    if d != 0:
+                        dstr = Integer(d).str()
+                        str4 = str3 + p4+'^'+dstr+'.'
+                    else:
+                        str4 = str3
+                    print "            str4:", str4
+                    for e in range(-k+4,k-3):
+                        if e != 0:
+                            estr = Integer(e).str()
+                            str5 = str4 + p5+'^'+estr+'.'
+                        else:
+                            str5 = str4
+                        print "                str5:", str5
+                        str5 = str5[:-1]
+                        if str5 != '':
+                            # A = FiniteQuadraticModule(str5)
+                            # J = JordanDecomposition(A)
+                            if orbitlist_test(str5):
+                                print str, True
+                            else:
+                                return str, False
+                                
+                        

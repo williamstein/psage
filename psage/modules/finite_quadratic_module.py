@@ -3241,7 +3241,7 @@ class JordanDecomposition( SageObject):
                 _P.remove(2)
             _P.sort( reverse = True)
         elif is_prime(p):
-            return _orbit_list(p, short = short)
+            return self._orbit_list(p, short = short)
         else:
             raise TypeError
         orbit_dict = dict()
@@ -3533,7 +3533,8 @@ class JordanDecomposition( SageObject):
                     for j2 in range(0,N2):
                         n2 = list2[j2]
                         if n2 != 0:
-                            newlist[(j1 * Integer(N1 / newlength) + j2 * Integer(N2 / newlength)) % newlength] += (n1 * n2)
+                            newlist[(j1 * Integer(newlength / N1) + j2 * Integer(newlength / N2)) % newlength] += (n1 * n2)
+            return newlist
 
         def values_even2adic(gs):
             return [1]
@@ -3560,10 +3561,42 @@ class JordanDecomposition( SageObject):
         while [] != _P:
 
             p = _P.pop()
-            shortorbitdict = orbit_list(p, short = True)
-
+            shortorbitdict = self.orbit_list(p, short = True)
+            level = max(q for q in self.__jd.keys() if 0 == q%p)
+            newvalues = [0 for j in range(0,level)]
+            newvalues[0] = 1
             
+            for orbit in shortorbitdict.keys():
 
+                if orbit != (1,):
+                    
+                    k = Integer(valuation(orbit[0],p)-1)
+                    # print orbit
+                    v1 = orbit[1]
+                    if v1 == orbit[k+1]:
+                    
+                        orbitlengthsbykronecker = shortorbitdict[orbit]
+                        for t1 in range(0,p**(k+1)):
+                            newvalues[Integer(v1 * t1 * level / p**(k+1)) % level] += orbitlengthsbykronecker[kronecker(t1,p) + 1]
+
+                    else:
+
+                        newvalues[Integer(v1 * orbit[k+2] * level) % level] += shortorbitdict[orbit]
+
+                    # print "Position1:", sum(newvalues)
+            # print "1:", values
+            # print "2:", newvalues
+            values = combine_lists(values, newvalues)
+            # print "3:", values
+            # print "Position2:", values, _P, p
+
+        # print "Position3:", values
+            
+        valuesdict = {Integer(j)/len(values) : values[j] for j in range(0,len(values)) if values[j] != 0}
+
+        # print "Position4:", values, valuesdict, "END"
+            
+        return valuesdict, values
 
         
     def constituent( self, q, names = None):
@@ -3820,12 +3853,43 @@ def orbitlist_test(str = None):
         print p.str() + ": # of elements in the computed orbits sum up to the order of " + st + ":", order == orbitsum, order, orbitsum
     return testpassed
     
+def values_test(str):
+    r"""
+    testing if the computed dictionary of values sums up
+    to the size of the finite quadratic module
+    """
+    A = FiniteQuadraticModule(str)
+    J = JordanDecomposition(A)
 
+    print str
+
+    valuesdict, values = J.values()
+    
+    print "Position1"
+
+    Avalues = A.values()
+    b1 = valuesdict == Avalues
+
+    print "Position2"
+    
+    b2 = sum(values) == A.order()
+
+    print "Position3"
+    
+    print "Test A.values() == J.values():", b1
+    # print Avalues
+    # print valuesdict
+        
+    print "Test sum(values) == A.order():", b2
+
+    return b1 and b2
+
+    
 def testing_routine(p):
     r"""
     testing discriminant only with p components
     """
-    k = Integer(5)
+    k = Integer(3)
     p = Integer(p)
     p1 = p.str()
     p2 = (p**2).str()
@@ -3854,14 +3918,14 @@ def testing_routine(p):
                 else:
                     str3 = str2
                 print "        str3:", str3
-                for d in range(-k+4,k-3):
+                for d in range(0,1): # range(-k+4,k-3)
                     if d != 0:
                         dstr = Integer(d).str()
                         str4 = str3 + p4+'^'+dstr+'.'
                     else:
                         str4 = str3
                     print "            str4:", str4
-                    for e in range(-k+4,k-3):
+                    for e in range(0,1): # range(-k+4,k-3)
                         if e != 0:
                             estr = Integer(e).str()
                             str5 = str4 + p5+'^'+estr+'.'
@@ -3872,7 +3936,7 @@ def testing_routine(p):
                         if str5 != '':
                             # A = FiniteQuadraticModule(str5)
                             # J = JordanDecomposition(A)
-                            if orbitlist_test(str5):
+                            if values_test(str5):
                                 print str, True
                             else:
                                 return str, False

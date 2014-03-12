@@ -85,7 +85,7 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
-from sage.rings.arith                     import divisors, is_prime, kronecker,lcm,gcd, prime_divisors,primitive_root,is_square,is_prime_power
+from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup 
 from sage.modules.free_module_element     import vector
@@ -1271,7 +1271,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         TODO
             Replace the code by theoretical formulas
-            using the Jordan decomposition.
+            using the Jordan decomposition. (Work in progress)
         """
         valueDict = {}
         
@@ -3515,7 +3515,55 @@ class JordanDecomposition( SageObject):
                                     skipindex += 1
                                     
         return orbitdict
+
+    def values( self, p = None):
+
+        n = self.__A.order()
+
+        values = [1]
+        
+        def combine_lists( list1, list2):
+            N1 = len(list1)
+            N2 = len(list2)
+            newlength = lcm(N1,N2)
+            newlist = [0 for j1 in range(0,newlength)]
+            for j1 in range(0,N1):
+                n1 = list1[j1]
+                if n1 != 0:
+                    for j2 in range(0,N2):
+                        n2 = list2[j2]
+                        if n2 != 0:
+                            newlist[(j1 * Integer(N1 / newlength) + j2 * Integer(N2 / newlength)) % newlength] += (n1 * n2)
+
+        def values_even2adic(gs):
+            return [1]
             
+        def values_odd2adic(gs):
+            return [1]
+
+        _P = n.prime_divisors()
+        if 2 in _P:
+
+            _P.remove(2)
+            
+            l = sorted([q for q in self.__jd.keys() if 0 == q%2])
+            while l != []:
+                q = l.pop()
+                gs = self.__jd[q][1]
+                if len(gs) > 4:
+                    values = combine_lists(values, values_odd2adic(gs))
+                else:
+                    values = combine_lists(values, values_even2adic(gs))
+
+        _P.sort( reverse = True)
+
+        while [] != _P:
+
+            p = _P.pop()
+            shortorbitdict = orbit_list(p, short = True)
+
+            
+
 
         
     def constituent( self, q, names = None):

@@ -3595,11 +3595,13 @@ class JordanDecomposition( SageObject):
             else:
                 squarerepresentationlist[0] = squarerepresentationlist[2**l] = 2**(l/2)
             for k in range(0,l-1,2):
-                for a in range(1, 2**(l-k-2),8):
+                # print "k:", k
+                for a in range(1, 2**(l+1-k),8):
+                    # print "a:", a
                     squarerepresentationlist[2**k * a] = 2**(k/2 + 2)
-            print "Test the squarelist:", sum(squarerepresentationlist) == level, squarerepresentationlist
+            # print "Test the squarelist:", sum(squarerepresentationlist) == level, squarerepresentationlist, level
 
-            print "tvalues", tvalues
+            # print "tvalues", tvalues
             
             t1inverse = inverse_mod(tvalues[0], level)
             values = [squarerepresentationlist[(j * t1inverse)%level]/2 for j in range(0,level)]
@@ -3943,16 +3945,16 @@ def values_test(str):
     # valuesdict, values = J.values()
     valuesdict = J.values()
     
-    print "Position1"
+    # print "Position1"
 
     Avalues = A.values()
     b1 = valuesdict == Avalues
 
-    print "Position2"
+    # print "Position2"
     
     b2 = sum([valuesdict[key] for key in valuesdict.keys()]) == A.order()
 
-    print "Position3"
+    # print "Position3"
     
     print "Test A.values() == J.values():", b1
     # print Avalues
@@ -4020,4 +4022,23 @@ def testing_routine(p):
                                 return str, False
                                 
 def testing_routine_odd2adic():
-    
+
+    q = Integer(2)
+    while q < 32:
+        values_test(q.str() + '_0^2')
+        values_test(q.str() + '_0^-4')
+        values_test(q.str() + '_1^1')
+        values_test(q.str() + '_1^-3')
+        values_test(q.str() + '_2^2')
+        values_test(q.str() + '_2^-2')
+        values_test(q.str() + '_3^3')
+        values_test(q.str() + '_3^-1')
+        values_test(q.str() + '_4^4')
+        values_test(q.str() + '_4^-2')
+        values_test(q.str() + '_5^3')
+        values_test(q.str() + '_5^-1')
+        values_test(q.str() + '_6^2')
+        values_test(q.str() + '_6^-2')
+        values_test(q.str() + '_7^1')
+        values_test(q.str() + '_7^-3')
+        q *= 2

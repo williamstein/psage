@@ -3516,7 +3516,7 @@ class JordanDecomposition( SageObject):
                                     
         return orbitdict
 
-    def values( self, p = None):
+    def values( self):
 
         n = self.__A.order()
 
@@ -3537,11 +3537,69 @@ class JordanDecomposition( SageObject):
             return newlist
 
         def values_even2adic(gs):
-            return [1]
+            p, l, n, eps = gs
+            n /= 2
+            factor = 2**((l-1)*n)
+            if n == 1 and eps == 1:
+                return [factor * (l+2)] + [factor * (valuation(j,2)+1) for j in range(1,2**l)]
+            else:
+                quotient = Integer(2**n-eps)/Integer(2**(n-1)-eps)
+                return [factor * (quotient * (2**((n-1)*(l+1))-eps**(l+1)) + eps**(l+1))] + [factor * quotient * (2**((n-1)*(l+1)) - eps**(valuation(j,2)+1) * 2**((n-1)*(l-valuation(j,2)))) for j in range(1,2**l)] 
             
         def values_odd2adic(gs):
-            return [1]
+            p, l, n, eps, t = gs
+            # t = t%8
+            if eps == +1:
+                if t == 0:
+                    tvalues = (1,7)
+                elif t == 1:
+                    tvalues = (1)
+                elif t == 2:
+                    tvalues = (1,1)
+                elif t == 3:
+                    tvalues = (1,1,1)
+                elif t == 4:
+                    tvalues = (1,1,1,1)
+                elif t == 5:
+                    tvalues = (7,7,7)
+                elif t == 6:
+                    tvalues = (7,7)
+                elif t == 7:
+                    tvalues = (7)
+                else:
+                    raise TypeError
+            elif eps == -1:
+                if t == 0:
+                    tvalues = (5,1,1,1)
+                elif t == 1:
+                    tvalues = (3,7,7)
+                elif t == 2:
+                    tvalues = (3,7)
+                elif t == 3:
+                    tvalues = (3)
+                elif t == 4:
+                    tvalues = (3,1)
+                elif t == 5:
+                    tvalues = (5)
+                elif t == 6:
+                    tvalues = (5,1)
+                elif t == 7:
+                    tvalues = (5,1,1)
+            else:
+                raise TypeError
 
+            level = 2**(l+1)
+            squarerepresentationlist = [0 for j in range(0,level)]
+            if is_even(l+1):
+                squarerepresentationlist[0] = squarerepresentationlist[2**(l-1)] = 2**((l+1)/2)
+            else:
+                squarerepresentationlist[0] = squarerepresentationlist[2**l] = 2**(l/2)
+            for k in range(0,l-1,2):
+                for a in range(1, 2**(l-k-2),8):
+                    squarerepresentationlist[2**k * a] = 2**(k/2 + 2)
+            print "Test the squarelist:" sum(squarerepresentationlist) == level, squarerepresentationlist
+            
+                
         _P = n.prime_divisors()
         if 2 in _P:
 
@@ -3596,7 +3654,7 @@ class JordanDecomposition( SageObject):
 
         # print "Position4:", values, valuesdict, "END"
             
-        return valuesdict, values
+        return valuesdict #, values
 
         
     def constituent( self, q, names = None):
@@ -3863,7 +3921,8 @@ def values_test(str):
 
     print str
 
-    valuesdict, values = J.values()
+    # valuesdict, values = J.values()
+    valuesdict = J.values()
     
     print "Position1"
 
@@ -3872,7 +3931,7 @@ def values_test(str):
 
     print "Position2"
     
-    b2 = sum(values) == A.order()
+    b2 = sum([valuesdict[key] for key in valuesdict.keys()]) == A.order()
 
     print "Position3"
     

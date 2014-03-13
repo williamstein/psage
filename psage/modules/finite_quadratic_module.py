@@ -4024,7 +4024,8 @@ def testing_routine(p):
 def testing_routine_odd2adic():
 
     q = Integer(2)
-    while q < 32:
+    while q < 16:
+        #Just odd components
         values_test(q.str() + '_0^2')
         values_test(q.str() + '_0^-4')
         values_test(q.str() + '_1^1')
@@ -4041,4 +4042,23 @@ def testing_routine_odd2adic():
         values_test(q.str() + '_6^-2')
         values_test(q.str() + '_7^1')
         values_test(q.str() + '_7^-3')
+        
+        #odd components with even parts
+        values_test(q.str() + '_0^4')
+        values_test(q.str() + '_0^-6')
+        values_test(q.str() + '_1^3')
+        values_test(q.str() + '_1^-5')
+        values_test(q.str() + '_2^4')
+        values_test(q.str() + '_2^-4')
+        values_test(q.str() + '_3^5')
+        values_test(q.str() + '_3^-3')
+        values_test(q.str() + '_4^6')
+        values_test(q.str() + '_4^-4')
+        values_test(q.str() + '_5^5')
+        values_test(q.str() + '_5^-3')
+        values_test(q.str() + '_6^4')
+        values_test(q.str() + '_6^-4')
+        values_test(q.str() + '_7^3')
+        values_test(q.str() + '_7^-5')
+        
         q *= 2

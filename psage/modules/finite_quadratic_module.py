@@ -85,7 +85,7 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
-from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power
+from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup 
 from sage.modules.free_module_element     import vector
@@ -3553,7 +3553,7 @@ class JordanDecomposition( SageObject):
                 if t == 0:
                     tvalues = (1,7)
                 elif t == 1:
-                    tvalues = (1)
+                    tvalues = (1,)
                 elif t == 2:
                     tvalues = (1,1)
                 elif t == 3:
@@ -3565,7 +3565,7 @@ class JordanDecomposition( SageObject):
                 elif t == 6:
                     tvalues = (7,7)
                 elif t == 7:
-                    tvalues = (7)
+                    tvalues = (7,)
                 else:
                     raise TypeError
             elif eps == -1:
@@ -3576,11 +3576,11 @@ class JordanDecomposition( SageObject):
                 elif t == 2:
                     tvalues = (3,7)
                 elif t == 3:
-                    tvalues = (3)
+                    tvalues = (3,)
                 elif t == 4:
                     tvalues = (3,1)
                 elif t == 5:
-                    tvalues = (5)
+                    tvalues = (5,)
                 elif t == 6:
                     tvalues = (5,1)
                 elif t == 7:
@@ -3597,8 +3597,27 @@ class JordanDecomposition( SageObject):
             for k in range(0,l-1,2):
                 for a in range(1, 2**(l-k-2),8):
                     squarerepresentationlist[2**k * a] = 2**(k/2 + 2)
-            print "Test the squarelist:" sum(squarerepresentationlist) == level, squarerepresentationlist
+            print "Test the squarelist:", sum(squarerepresentationlist) == level, squarerepresentationlist
+
+            print "tvalues", tvalues
             
+            t1inverse = inverse_mod(tvalues[0], level)
+            values = [squarerepresentationlist[(j * t1inverse)%level]/2 for j in range(0,level)]
+
+            if len(tvalues) > 1: #The following works only for tvalues where the last elements coincide
+
+                t2inverse = inverse_mod(tvalues[1], level)
+                newvalues = [squarerepresentationlist[(j * t2inverse)%level]/2 for j in range(0,level)]
+
+                for j in range(1,len(tvalues)):
+                    values = combine_lists(values, newvalues)
+
+            neven = n - len(tvalues)
+            if neven > 0:
+                values = combine_lists(values, values_even2adic((p, l, neven, +1)))
+            
+            return values
+
                 
         _P = n.prime_divisors()
         if 2 in _P:
@@ -4000,4 +4019,5 @@ def testing_routine(p):
                             else:
                                 return str, False
                                 
-                        
+def testing_routine_odd2adic():
+    

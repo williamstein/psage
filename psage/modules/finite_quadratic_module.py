@@ -114,7 +114,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
     more precisely, the $(i,j)$-th entry $g_{i,j}$ is a rational number
     such that $Q(e_i+e_j)-Q(r_i)-Q(e_j) = g_{i,j} + \ZZ$..
 
-    NOTES
+    NOTES ::
         The abelian group may also be thought of as $\ZZ^n/R\ZZ^n$,
         and the generators as $e_i = c_i + R\ZZ^n$, where $c_i$ is
         the canonical basis for $\ZZ^n$.
@@ -125,7 +125,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Use FiniteQuadraticModule() for more flexibility when creating
         FiniteQuadraticModule_ambient objects.
 
-    EXAMPLES
+    EXAMPLES ::
         sage: R = matrix(2,2,[2,1,1,2])
         sage: G = 1/2 * R^(-1)
         sage: A.<a,b> = FiniteQuadraticModule_ambient( R, G); A

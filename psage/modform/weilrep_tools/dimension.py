@@ -55,7 +55,6 @@ class VectorValuedModularForms(SageObject):
     """
 
     def __init__(self, A, use_genus_symbols = False, aniso_formula = False):
-        
         if use_genus_symbols:
             if isinstance(A, str):
                 g = GenusSymbol(A)
@@ -104,7 +103,7 @@ class VectorValuedModularForms(SageObject):
     def dimension(self,k,ignore=False):
         if k < 2 and not ignore:
             raise NotImplementedError("k has to >= 2")
-        s=self._signature
+        s = self._signature
         if not (2*k in ZZ):
             raise ValueError("k has to be integral or half-integral")
         if (2*k+s)%4 != 0 and not ignore:
@@ -125,10 +124,12 @@ class VectorValuedModularForms(SageObject):
             M = self._M
             
         prec = ceil(max(log(M.order(),2),52)+1)
+        #print prec
         RR = RealField(prec)
         CC = ComplexField(prec)
         d = self._d
         m = self._m
+        #print d,m
             
         if self._alpha3 == None:
             if self._aniso_formula:
@@ -139,14 +140,15 @@ class VectorValuedModularForms(SageObject):
                 #print self._alpha3, self._g.a5prime_formula()
                 self._alpha3 = self._alpha3/2
             else:
-                self._alpha3 = sum([(1-a)*m for a,m in self._v2.iteritems() if a != 0])
+                self._alpha3 = sum([(1-a)*mm for a,mm in self._v2.iteritems() if a != 0])
                 #print self._alpha3
-                self._alpha3 += sum([(1-a)*m for a,m in vals.iteritems() if a != 0])
+                self._alpha3 += sum([(1-a)*mm for a,mm in vals.iteritems() if a != 0])
                 #print self._alpha3
                 self._alpha3 = self._alpha3 / Integer(2)
                 self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
         alpha3 = self._alpha3
         alpha4 = self._alpha4
+        #print alpha3, alpha4
         g1=M.char_invariant(1)
         g1=CC(g1[0]*g1[1])
         #print g1
@@ -155,11 +157,11 @@ class VectorValuedModularForms(SageObject):
         #print g2, g2.parent()
         g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
-        #print g3
-        alpha1 = RR((d / Integer(4))) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / Integer(8))) * g2)
+        #print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * pi * i * (2 * k + s) / Integer(8)))
+        alpha1 = RR(d) / RR(4) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / Integer(8))) * g2)
         #print alpha1
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
-        #print alpha2, g1, g3, d, k, s
+        #print alpha1, alpha2, g1, g2, g3, d, k, s
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
         return dim
 

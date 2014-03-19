@@ -85,7 +85,7 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
-from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod
+from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup 
 from sage.modules.free_module_element     import vector
@@ -3534,7 +3534,7 @@ class JordanDecomposition( SageObject):
                         n2 = list2[j2]
                         if n2 != 0:
                             newlist[(j1 * Integer(newlength / N1) + j2 * Integer(newlength / N2)) % newlength] += (n1 * n2)
-            return newlist
+            return newlist        
 
         def values_even2adic(gs):
             p, l, n, eps = gs
@@ -3675,6 +3675,72 @@ class JordanDecomposition( SageObject):
 
         # print "Position4:", values, valuesdict, "END"
             
+        return valuesdict #, values
+
+    def two_torsion_values( self):
+
+        n = self.__A.order()
+
+        values = [1]
+        
+        def combine_lists( list1, list2):
+            N1 = len(list1)
+            N2 = len(list2)
+            newlength = lcm(N1,N2)
+            newlist = [0 for j1 in range(0,newlength)]
+            for j1 in range(0,N1):
+                n1 = list1[j1]
+                if n1 != 0:
+                    for j2 in range(0,N2):
+                        n2 = list2[j2]
+                        if n2 != 0:
+                            newlist[(j1 * Integer(newlength / N1) + j2 * Integer(newlength / N2)) % newlength] += (n1 * n2)
+            return newlist        
+
+        def two_torsion_values_even2adic(gs):
+            p, l, n, eps = gs
+            n /= 2
+            fourn = 4**n
+            if l == 1:
+                epstwon = eps * 2**n
+                return [(fourn + epstwon)/2, (fourn - epstwon)/2]
+            else:
+                return [fourn]
+                
+        def two_torsion_values_odd2adic(gs):
+            p, l, n, eps, t = gs
+            if l == 1:
+                # print "n:", n, "eps:", eps, "t:", t, "n-t:", n-t, (n-t)/2
+                if eps == -1:
+                    t = (t + 4) % 8
+                n2 = ((n - t)/2) % 4
+                n1 = n - n2
+                # print "n1:", n1, "n2:", n2, "t:", t
+                list1 = [sum([binomial(n1,k) for k in range(j,n1+1,4)]) for j in range(0,4)]
+                # print list1
+                if n2 == 0:
+                    return list1
+                else:
+                    list2 = [[1,0,0,1],[1,0,1,2],[1,1,3,3]][n2 - 1]
+                    # print list2
+                    return combine_lists(list1, list2)
+            elif l == 2:
+                twonminusone = 2**(n-1)
+                return [twonminusone, twonminusone]
+            else:
+                return [2**n]
+            
+        l = sorted([q for q in self.__jd.keys() if 0 == q%2])
+        while l != []:
+            q = l.pop()
+            gs = self.__jd[q][1]
+            if len(gs) > 4:
+                values = combine_lists(values, two_torsion_values_odd2adic(gs))
+            else:
+                values = combine_lists(values, two_torsion_values_even2adic(gs))
+            
+        valuesdict = {Integer(j)/len(values) : values[j] for j in range(0,len(values)) if values[j] != 0}
+
         return valuesdict #, values
 
         
@@ -3949,20 +4015,29 @@ def values_test(str):
 
     Avalues = A.values()
     b1 = valuesdict == Avalues
-
+    print "Test A.values() == J.values():", b1
+    
     # print "Position2"
     
     b2 = sum([valuesdict[key] for key in valuesdict.keys()]) == A.order()
-
-    # print "Position3"
-    
-    print "Test A.values() == J.values():", b1
-    # print Avalues
-    # print valuesdict
-        
     print "Test sum(values) == A.order():", b2
+    
+    # print "Position3"
 
-    return b1 and b2
+    Atwotorsionvalues = A.kernel_subgroup(2).as_ambient()[0].values()
+    Jtwotorsionvalues = J.two_torsion_values()
+
+    b3 = Atwotorsionvalues == Jtwotorsionvalues
+    print "Test two_torsion_values():    ", b3
+
+    # print Avalues
+    # print valuesdict    
+
+    if not b3:
+        print "A:", Atwotorsionvalues
+        print "J:", Jtwotorsionvalues
+
+    return b1 and b2 and b3
 
     
 def testing_routine(p):
@@ -4020,45 +4095,21 @@ def testing_routine(p):
                                 print str, True
                             else:
                                 return str, False
+    return True, "All tests successfull"
                                 
 def testing_routine_odd2adic():
 
-    q = Integer(2)
-    while q < 16:
-        #Just odd components
-        values_test(q.str() + '_0^2')
-        values_test(q.str() + '_0^-4')
-        values_test(q.str() + '_1^1')
-        values_test(q.str() + '_1^-3')
-        values_test(q.str() + '_2^2')
-        values_test(q.str() + '_2^-2')
-        values_test(q.str() + '_3^3')
-        values_test(q.str() + '_3^-1')
-        values_test(q.str() + '_4^4')
-        values_test(q.str() + '_4^-2')
-        values_test(q.str() + '_5^3')
-        values_test(q.str() + '_5^-1')
-        values_test(q.str() + '_6^2')
-        values_test(q.str() + '_6^-2')
-        values_test(q.str() + '_7^1')
-        values_test(q.str() + '_7^-3')
+    for p in [3,5,7,9,11,13,17,19,25]:
+
+        q = Integer(2)
         
-        #odd components with even parts
-        values_test(q.str() + '_0^4')
-        values_test(q.str() + '_0^-6')
-        values_test(q.str() + '_1^3')
-        values_test(q.str() + '_1^-5')
-        values_test(q.str() + '_2^4')
-        values_test(q.str() + '_2^-4')
-        values_test(q.str() + '_3^5')
-        values_test(q.str() + '_3^-3')
-        values_test(q.str() + '_4^6')
-        values_test(q.str() + '_4^-4')
-        values_test(q.str() + '_5^5')
-        values_test(q.str() + '_5^-3')
-        values_test(q.str() + '_6^4')
-        values_test(q.str() + '_6^-4')
-        values_test(q.str() + '_7^3')
-        values_test(q.str() + '_7^-5')
-        
-        q *= 2
+        while q < 2**4:
+            
+            for oddstr in ['_0^2', '_0^-4', '_1^1', '_1^-3', '_2^2', '_2^-2', '_3^3', '_3^-1', '_4^4', '_4^-2', '_5^3', '_5^-1', '_6^2', '_6^-2', '_7^1', '_7^-3', '_0^4', '_0^-6', '_1^3', '_1^-5', '_2^4', '_2^-4', '_3^5', '_3^-3', '_4^6', '_4^-4', '_5^5', '_5^-3', '_6^4', '_6^-4', '_7^3', '_7^-5']:
+
+                oddprimestr = '.' + Integer(p).str() + '^' + (-1 + 2 * floor(2 * random())).str() + '.27^-1'
+                if not values_test(q.str() + oddstr + oddprimestr):
+
+                    return "Test not passed:", q.str() + oddstr + oddprimestr
+            
+            q *= 2

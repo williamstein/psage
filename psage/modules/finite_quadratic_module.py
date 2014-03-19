@@ -59,7 +59,7 @@ to a degenerate module will raise an exeption (TODO: what exception?).
 REFERENCES
 
     [Sko] Nils-Peter Skoruppa, Finite quadratic modules and Weil representations,
-    	  in preparation 2008
+          in preparation 2008
 
     TODO: find other references
 
@@ -74,6 +74,7 @@ AUTHORS:
 
     -- Fredrik Stroemberg <fredrik314@gmail.com>
     -- Stephan Ehlen <ehlen@mathematik.tu-darmstadt.de>
+    -- Sebastian Opitz <opitz@mathematik.tu-darmstadt.de>
     
     The CN-Group started the development of this package as a seminar
     project at the university of Siegen. Its initial members have been:
@@ -1271,7 +1272,8 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         TODO
             Replace the code by theoretical formulas
-            using the Jordan decomposition. (Work in progress)
+            using the Jordan decomposition.
+            DONE: See the values function in the class JordanDecomposition  
         """
         valueDict = {}
         
@@ -3253,10 +3255,53 @@ class JordanDecomposition( SageObject):
         
     def _orbit_list(self, p, short = False):
         r"""
-        Return the dictionary of orbits corresponding to the p-group
-        of the corresponding finite quadratic module and their lengths.
+        If this is the Jordan decomposition for $(M,Q)$, return the dictionary of
+        orbits corresponding to the p-group of $M$.
 
-        EXAMPLES NONE
+        OUTPUT:
+            dictionary -- the mapping orbit --> the number of elements in this orbit
+
+        EXAMPLES:
+            sage: A = FiniteQuadraticModule('3^-3.27^2')
+            sage: J = JordanDecomposition(A)
+            sage: J._orbit_list(3) == \
+                  {(1,): 1, \
+                  (3, 1, 0): 72, \
+                  (3, 1, 1/3): 54, \
+                  (3, 1, 2/3): 108, \
+                  (3, 9, 1/3): 4, \
+                  (3, 9, 2/3): 4, \
+                  (9, 1, 3, 0, 1/3): 432, \
+                  (9, 1, 3, 0, 2/3): 216, \
+                  (9, 1, 3, 1/3, 1/3): 288, \
+                  (9, 1, 3, 1/3, 2/3): 432, \
+                  (9, 1, 3, 2/3, 1/3): 216, \
+                  (9, 1, 3, 2/3, 2/3): 288, \
+                  (9, 3, 3, 1/9, 1/3): 12, \
+                  (9, 3, 3, 2/9, 2/3): 12, \
+                  (9, 3, 3, 4/9, 1/3): 12, \
+                  (9, 3, 3, 5/9, 2/3): 12, \
+                  (9, 3, 3, 7/9, 1/3): 12, \
+                  (9, 3, 3, 8/9, 2/3): 12, \
+                  (27, 1, 1, 1, 1/27, 1/9, 1/3): 972, \
+                  (27, 1, 1, 1, 2/27, 2/9, 2/3): 972, \
+                  (27, 1, 1, 1, 4/27, 4/9, 1/3): 972, \
+                  (27, 1, 1, 1, 5/27, 5/9, 2/3): 972, \
+                  (27, 1, 1, 1, 7/27, 7/9, 1/3): 972, \
+                  (27, 1, 1, 1, 8/27, 8/9, 2/3): 972, \
+                  (27, 1, 1, 1, 10/27, 1/9, 1/3): 972, \
+                  (27, 1, 1, 1, 11/27, 2/9, 2/3): 972, \
+                  (27, 1, 1, 1, 13/27, 4/9, 1/3): 972, \
+                  (27, 1, 1, 1, 14/27, 5/9, 2/3): 972, \
+                  (27, 1, 1, 1, 16/27, 7/9, 1/3): 972, \
+                  (27, 1, 1, 1, 17/27, 8/9, 2/3): 972, \
+                  (27, 1, 1, 1, 19/27, 1/9, 1/3): 972, \
+                  (27, 1, 1, 1, 20/27, 2/9, 2/3): 972, \
+                  (27, 1, 1, 1, 22/27, 4/9, 1/3): 972, \
+                  (27, 1, 1, 1, 23/27, 5/9, 2/3): 972, \
+                  (27, 1, 1, 1, 25/27, 7/9, 1/3): 972, \
+                  (27, 1, 1, 1, 26/27, 8/9, 2/3): 972} 
+            True
         """
         if not is_prime(p):
             raise TypeError
@@ -3517,7 +3562,39 @@ class JordanDecomposition( SageObject):
         return orbitdict
 
     def values( self):
+        r"""
+        If this is the Jordan decomposition for $(M,Q)$, return the values of $Q(x)$ ($x \in M$) as a dictionary d.
 
+        OUTPUT:
+            dictionary -- the mapping Q(x) --> the number of elements x with the same value Q(x)
+
+        EXAMPLES:
+            sage: A = FiniteQuadraticModule('3^-3.27^2')
+            sage: J = JordanDecomposition(A)
+            sage: J.values() == \
+                  {0: 729, \
+                  1/27: 972, \
+                  2/27: 972, \
+                  4/27: 972, \
+                  5/27: 972, \
+                  7/27: 972, \
+                  8/27: 972, \
+                  1/3: 810, \
+                  10/27: 972, \
+                  11/27: 972, \
+                  13/27: 972, \
+                  14/27: 972, \
+                  16/27: 972, \
+                  17/27: 972, \
+                  2/3: 648, \
+                  19/27: 972, \
+                  20/27: 972, \
+                  22/27: 972, \
+                  23/27: 972, \
+                  25/27: 972, \
+                  26/27: 972}
+            True
+        """
         n = self.__A.order()
 
         values = [1]
@@ -4105,7 +4182,11 @@ def testing_routine_odd2adic():
         
         while q < 2**4:
             
-            for oddstr in ['_0^2', '_0^-4', '_1^1', '_1^-3', '_2^2', '_2^-2', '_3^3', '_3^-1', '_4^4', '_4^-2', '_5^3', '_5^-1', '_6^2', '_6^-2', '_7^1', '_7^-3', '_0^4', '_0^-6', '_1^3', '_1^-5', '_2^4', '_2^-4', '_3^5', '_3^-3', '_4^6', '_4^-4', '_5^5', '_5^-3', '_6^4', '_6^-4', '_7^3', '_7^-5']:
+            for oddstr in ['_0^2', '_0^-4', '_1^1', '_1^-3', '_2^2', '_2^-2', '_3^3',
+                           '_3^-1', '_4^4', '_4^-2', '_5^3', '_5^-1', '_6^2', '_6^-2',
+                           '_7^1', '_7^-3', '_0^4', '_0^-6', '_1^3', '_1^-5', '_2^4',
+                           '_2^-4', '_3^5', '_3^-3', '_4^6', '_4^-4', '_5^5', '_5^-3',
+                           '_6^4', '_6^-4', '_7^3', '_7^-5']:
 
                 oddprimestr = '.' + Integer(p).str() + '^' + (-1 + 2 * floor(2 * random())).str() + '.27^-1'
                 if not values_test(q.str() + oddstr + oddprimestr):

@@ -71,7 +71,7 @@ Also algorithms for incomplete gamma function.
 cdef extern from "complex.h":
     double complex _Complex_I
     
-cdef extern from "math.h":
+cdef extern from "math.h" nogil:
     double log(double)
     double exp(double)
     double cos(double)
@@ -147,18 +147,25 @@ cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):
     xc = sqrt((x+R)*(x-R))
     S=R/x
     xcral=xc+R*2.0*atan(S/(1.0+(xc/x)))
+    cdef double kbes
     if (R*pihalf-xcral < -125.0):
         return 0.0
     if x<R*0.7:
-        try:
-            res=besselk_dp_pow(RR,x,prec,pref)
-        except ValueError:
-            res=besselk_dp_rec(RR,x,prec,pref)
+        res=besselk_dp_pow(RR,x,&kbes,prec,pref)
+        if res <> 0:
+            res=besselk_dp_rec(RR,x,&kbes,prec,pref)
     else:
-        res=besselk_dp_rec(RR,x,prec,pref)
-    return res
+        res=besselk_dp_rec(RR,x,&kbes,prec,pref)
+    if res == 1:
+        raise ValueError,'The K-bessel routine failed (k large) for x,R={0},{1}, value={2}'.format(x,RR,kbes)
+    elif res==2:
+        raise ValueError,'The K-bessel routine failed (too many iterations)  for x,R={0},{1}, value={2}'.format(x,RR,kbes)
+    elif res==0:
+        return kbes
+    else:
+        raise ValueError,'The K-bessel routine failed (unknown error)   for x,R={0},{1}, value={2}'.format(x,RR,kbes)
 
-cdef void besselk_dp_c(double *kbes,double R,double x,double prec,int pref): #double prec=1e-14,int pref=0):  
+cdef int besselk_dp_c(double *kbes,double R,double x,double prec,int pref) nogil: #double prec=1e-14,int pref=0):  
     r"""
     Modified K-Bessel function in double precision. Chooses the most appropriate algorithm.
 
@@ -195,19 +202,26 @@ cdef void besselk_dp_c(double *kbes,double R,double x,double prec,int pref): #do
     else:
         RR=R
     if x<0:
-        raise ValueError," Need x>0! Got x=%s" % x
-
+        printf(" Need x>0! Got x=%d",x)
+        return -1
+    cdef int res
     if x<R*0.7:
-        try:
-            kbes[0]=besselk_dp_pow(RR,x,prec,pref)
-        except ValueError:
-            kbes[0]=besselk_dp_rec(RR,x,prec,pref)
+        res=besselk_dp_pow(RR,x,kbes,prec,pref)
+        if res <> 0:
+            res=besselk_dp_rec(RR,x,kbes,prec,pref)
     else:
-        kbes[0]=besselk_dp_rec(RR,x,prec,pref)
+        res = besselk_dp_rec(RR,x,kbes,prec,pref)
 
+    if res == 1:
+        printf('The K-bessel routine failed (k large) for x,R=%d,%d, value=%d',x,RR,kbes[0])
+    elif res==2:
+        printf('the K-bessel routine failed (too many iterations) for x,R=%d,%d, value=%d',x,RR,kbes[0])
+    return res
+        
+        
 
 @cython.cdivision(True) 
-cdef double besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # |r| <<1000, x >> 0 !
+cdef int besselk_dp_rec(double R,double x,double *val,double prec=1e-14,int pref=0) nogil:   # |r| <<1000, x >> 0 !
     r"""
     Modified K-Bessel function in double precision using the backwards Miller-recursion algorithm. 
 
@@ -252,8 +266,8 @@ cdef double besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # 
 
 
     """
-    if(x<0):
-        raise ValueError,"X<0"
+    if x<0:
+        return -1 #raise ValueError,"X<0"
     #! To make a specific test is time-consuming
     cdef double p=0.25+R*R
     cdef double q=2.0*(x-1.0)
@@ -268,7 +282,7 @@ cdef double besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # 
     cdef double tmp,tmp2,ef,nr,mr_p1,mr_m1,efarg
     cdef int nn
     cdef double den
-    for nn from 1 <= nn <= NMAX:
+    for nn in range(1,NMAX+1): #from 1 <= nn <= NMAX:
         err=fabs(t-k)
         if(err < prec):
             if(n>n_start+40):
@@ -280,8 +294,9 @@ cdef double besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # 
         d=d_one
         tmp=d_two*x-R*cppi
         nr=<double> n
-        if(tmp>1300.0):
-            return 0.0
+        if tmp>1300.0:
+            val[0] = 0.0
+            return 1
         ef = exp((ef1 + tmp)/((<double>2.0) *nr))
         mr_p1=<double> n+1   # m+1
         mr=<double> n        # m 
@@ -294,23 +309,27 @@ cdef double besselk_dp_rec(double R,double x,double prec=1e-14,int pref=0):   # 
             mr_p1=mr
             mr=mr_m1
         if(k==0.0):
-            s='the K-bessel routine failed (k large) for x,R=%s,%s, value=%s' 
-            raise ValueError,s%(x,R,k)
+            val[0] = k
+            return 1 #s='the K-bessel routine failed (k large) for x,R=%s,%s, value=%s' 
+        #raise ValueError,s%(x,R,k)
         k=d_one/k;
-    if( k > 1E30 ): #something big... 
-        s='the K-bessel routine failed (k large) for x,R=%s,%s, value=%s' 
-        raise ValueError,s%(x,R,k)
-    if(nn>=NMAX):
-        s='the K-bessel routine failed (too many iterations) for x,R=%s,%s, value=%s' 
-        raise ValueError,s%(x,R,k)
+    if k > 1E30: #something big...
+        val[0] = k
+        return 1 #s='the K-bessel routine failed (k large) for x,R=%s,%s, value=%s' 
+    #raise ValueError,s%(x,R,k)
+    if nn>=NMAX:
+        #s='the K-bessel routine failed (too many iterations) for x,R=%s,%s, value=%s' 
+        #raise ValueError,s%(x,R,k)
+        return 2
     #!k= exp( pi*r/2) * K_ir( x) !
-    if(pref==1):
-        return k
+    if pref==1:
+        val[0] = k
     else:
-        return k*exp(-cppi*R/d_two)
+        val[0] =  k*exp(-cppi*R/d_two)
+    return 0
 
 @cython.cdivision(True) 
-cdef double besselk_dp_pow(double R,double x,double prec=1E-12,int pref=0):
+cdef int besselk_dp_pow(double R,double x,double *val,double prec=1E-12,int pref=0) nogil:
     r"""
     Computes the modified K-Bessel function: K_iR(x) using power series.
 
@@ -329,9 +348,9 @@ cdef double besselk_dp_pow(double R,double x,double prec=1E-12,int pref=0):
                = 0 => computes K_iR(x)
 
     OUTPUT:
-
-        - `res` -- double
-    
+        - `val`  value of the function
+        - `res` -- int = 0 on success otherwise non-zero
+        
     EXAMPLES::
 
 
@@ -383,7 +402,7 @@ cdef double besselk_dp_pow(double R,double x,double prec=1E-12,int pref=0):
     cdef double test
     cdef int N_max=1000
     cdef int k
-    for k from  2<=k<=N_max:
+    for k in range(2,N_max+1): #from  2<=k<=N_max:
         kk=<double> k
         den=(kk*kk+Rsq)
         fk=(kk*fk1+rk1)/den
@@ -398,15 +417,16 @@ cdef double besselk_dp_pow(double R,double x,double prec=1E-12,int pref=0):
         rk2=rk1
         rk1=rk
         ck1=ck
-    if(k>=N_max):
-        s="Maximum number of iterations reached x,R=%s,%s val=%s"
-        raise ValueError,s%(x,R,summa)
+    if k>=N_max:
+        #s="Maximum number of iterations reached x,R=%s,%s val=%s"
+        #raise ValueError,s%(x,R,summa)
         stat=1  #! We reached end of loop
-    if(pref==1):
-        res=summa*exp_Pih_R
+        return 2
+    if pref==1:
+        val[0]=summa*exp_Pih_R
     else:
-        res=summa
-    return res
+        val[0]=summa
+    return 0
 
 
 
@@ -469,7 +489,7 @@ cpdef lngamma(double x,double R,double prec=1E-16):
     return my_lngamma(x,R,prec)
 
 @cython.cdivision(True) 
-cdef  double complex my_lngamma(double x,double R,double prec=1E-16):
+cdef  double complex my_lngamma(double x,double R,double prec=1E-16) nogil:
     r"""
     Logarithm of Gamma function for the argument x+i*R
     (using principal branch of the logarithm)
@@ -732,17 +752,17 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
     ck1 = xtwo_by_four
     s = ck0*fk0+ck1*fk1
     if eps < 2.0**(1-53):
-        raise ValueError,"Need higher precision input"
+        return 1 #raise ValueError,"Need higher precision input"
     ##
     cdef double rmax = 0.5
     if verbose>1:
-        print "s=",s
-        print "r[0]=",rk0
-        print "r[1]=",rk1
-        print "f[0]=",fk0
-        print "f[1]=",fk1    
-        print "c[0]=",ck0
-        print "c[1]=",ck1
+        printf("s=%d",s)
+        printf("r[0]=%d",rk0)
+        printf("r[1]=%d",rk1)
+        printf("f[0]=%d",fk0)
+        printf("f[1]=%d",fk1)   
+        printf("c[0]=%d",ck0)
+        printf("c[1]=%d",ck1)
     cdef int kmin,k
 
     cdef double ef1,ef2,ef3,err_est
@@ -762,8 +782,8 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
         ck1 = ck1*xtwo_by_four/kk
         term = ck1*fk1
         if verbose>1:
-            print "f[{0}]={1}".format(k,fk1) 
-            print "c[{0}]={1}".format(k,ck1)
+            printf("f[%d]=%d",k,fk1) 
+            printf("c[%d]=%d",k,ck1)
         s+=term
         if k > kmin:
             # Get a rigorous error term for truncation
@@ -773,14 +793,14 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
             # Also add numerical error
 #            err_est+=k*meps
             if verbose>0:
-                print "term=",k,term,abs(term)/abs(s)
-                print "error est=",err_est
-                print "s=",s
+                printf("term=%d, %d, %d",k,term,abs(term)/abs(s))
+                printf("error est= %d",err_est)
+                printf("s=%d",s)
             if abs(err_est)< eps: #abs(term)/abs(s)<eps:
                 break
         rk_new = ((2*kk-1)*rk1 - rk0)/(k2 - R2)
         rk0 = rk1
         rk1 = rk_new
         if verbose>2:
-            print "r[{0}]={1}".format(k,rk1)
+            printf("r[%d]=%d",k,rk1)
     return s*cppi/two

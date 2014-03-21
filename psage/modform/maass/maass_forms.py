@@ -390,6 +390,9 @@ class MaassWaveForms (AutomorphicFormSpace):
         M=param['M']
         oldf = kwds.get('oldforms')
         norm = kwds.get('norm')
+
+        do_par = kwds.get('do_par',0)
+        ncpus= kwds.get('ncpus',1)
         try: 
             if RR(R).is_infinity() or RR(R).is_NaN() or R<0.0:
                 raise Exception
@@ -425,7 +428,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             #    if self._verbose>0:
             #        print "Using routine without symmetry!"
             #        print "R,Y0,M=",R,Y0,M
-            C = get_coeff_fast_cplx_dp(self,R,Y,M,0,NN,gr=gr)
+            C = get_coeff_fast_cplx_dp(self,R,Y,M,0,NN,gr=gr,do_par=do_par,ncpus=ncpus)
             if gr<>0:
                 return C
             if self._verbose>0:

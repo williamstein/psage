@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -68,8 +68,8 @@ cdef double complex cexpi(double x):
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cdef int compute_V_cplx_dp_sym_par(double complex **V,
-                           int N1,
-                           double *Xm,
+                                   int N1,
+                                   double *Xm,
                            double ***Xpb,
                            double ***Ypb,
                            double complex ***Cvec,
@@ -124,6 +124,286 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
     Ml=0; Ql=0
     if verbose>0:
         printf("in compute_V_cplx_dp_sym_par \n")
+    for i in range(nc):
+        if Mv[i][2]>Ml:
+            Ml=Mv[i][2]
+        if Qv[i][2]>Ql:
+            Ql=Qv[i][2]
+        if verbose>0:
+            printf("symmetric cusp[%d]=%d\n",i,symmetric_cusps[i])
+            printf("Qv[%d](%d,%d,%d)\n",i,Qv[i][0],Qv[i][1],Qv[i][2])
+            printf("Mv[%d](%d,%d,%d)\n",i,Mv[i][0],Mv[i][1],Mv[i][2])
+    if verbose>0:
+        printf("Ql=%d \n",Ql)
+    ## Allocate arrays 
+    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    if cusp_offsets==NULL: raise MemoryError
+    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    if not nvec: raise MemoryError
+    for icusp in range(nc):
+        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+    ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+    if not ef2_c: raise MemoryError
+    for icusp in range(nc):
+        ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+        for n in range(Mv[icusp][2]):
+            ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+    if ef1==NULL: raise MemoryError
+    for icusp in range(nc):
+        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        if ef1[icusp]==NULL: raise MemoryError
+        for jcusp in range(nc):
+            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            if ef1[icusp][jcusp]==NULL: raise MemoryError
+            for n in range(Mv[jcusp][2]):
+                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                if ef1[icusp][jcusp][n]==NULL: raise MemoryError
+    endpts = <int**>sage_malloc(ncpus*sizeof(int*))
+    if endpts==NULL:
+        raise MemoryError
+    for i in range(ncpus):
+        endpts[i]=<int*>sage_malloc(2*sizeof(int))
+
+    ## Assigning values to arrays
+    for jcusp  in range(nc):
+        cusp_offsets[jcusp]=0
+        for icusp in range(jcusp):
+            if icusp==0 or cusp_evs[icusp]==0:
+                cusp_offsets[jcusp]+=Mv[icusp][2]
+        if verbose>0:
+            printf("cusp_offsets[%d]=%d \n",jcusp,cusp_offsets[jcusp])
+    cdef int nc_sym=0
+    for jcusp  in range(nc):
+        if verbose>0:
+            printf("cusp_evs[%d]=%d \n",jcusp,cusp_evs[jcusp])
+        if jcusp==0 or cusp_evs[jcusp]<>0:
+            nc_sym+=1
+    for jcusp in range(nc):
+        for n in range(Ml):
+            nvec[jcusp][n]=<double>(n+Mv[jcusp][0])+alphas[jcusp]
+    cdef int twoQm1
+    twoQm1= 2*Qv[0][1]-1
+    for jcusp in range(nc):
+        #printf("symmetric cusps[%d]=%d \n",jcusp,symmetric_cusps[jcusp])        
+        for n in range(Mv[jcusp][2]):
+            for j in range(Qv[jcusp][2]):
+                argm=nvec[jcusp][n]*Xm[j]
+                if symmetric_cusps[jcusp]==0:
+                    ef2_c[jcusp][n][j]=cos(argm)
+                elif symmetric_cusps[jcusp]==1:
+                    ef2_c[jcusp][n][j]=_Complex_I*sin(-argm)
+                else:
+                    ef2_c[jcusp][n][j]=cexpi(-argm)
+    cdef double argpb1
+    for jcusp in range(nc):
+        for icusp in range(nc):
+            for n in range(Mv[jcusp][2]):
+                for j in range(Qv[jcusp][2]): #in range(Qs,Qf+1):
+                    if Ypb[icusp][jcusp][j]==0: #not Xpb.has_key((icusp,jcusp,j):
+                        continue
+                    argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
+                    if symmetric_cusps[jcusp]==0:
+                        ef1[icusp][jcusp][n][j]=cos(argpb)
+                    elif symmetric_cusps[jcusp]==1:
+                        ef1[icusp][jcusp][n][j]=_Complex_I*sin(argpb)
+                    else:
+                        ef1[icusp][jcusp][n][j]=cexpi(argpb)
+                    ctmp = Cvec[icusp][jcusp][j]
+                    ef1[icusp][jcusp][n][j]=ef1[icusp][jcusp][n][j]*ctmp
+
+    if verbose>1:
+        printf("here1121")
+    cdef double besarg_old=0.0
+    cdef double y,kbes_old=1.0
+    kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+    if kbesvec==NULL:
+        raise MemoryError
+    for jcusp  in range(nc):
+        kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+        if kbesvec[jcusp]==NULL:
+            raise MemoryError
+        for l in range(Ml):
+            kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+            if kbesvec[jcusp][l]==NULL:
+                raise MemoryError
+    if verbose>0:
+        printf("here0 \n")
+        printf("Ml=%d \n",Ml)
+        printf("Ql=%d \n",Ql)
+    cdef double tmpr
+    cdef double besprec
+    besprec=1.0E-14
+    ## Can we somehow use that "most" of Xpb[icusp][jcusp][2Q-j-1]=-Xpb[icusp][jcusp][j] ?
+    ## uncomment the below lines to see this.
+    # for jcusp from 0<=jcusp<nc:
+    #     for icusp from 0<=icusp<nc:
+    #         for j from 0<=j<Qv[1][1]:
+    #             print "diff[",jcusp,icusp,j,"]=",Xpb[icusp][jcusp][j]+Xpb[icusp][jcusp][2*Qv[jcusp][1]-j-1]
+
+    # for jcusp  in range(nc):
+    #     for icusp  in range(nc):
+    #         if icusp>0 and cusp_evs[icusp]<>0:
+    #             continue
+    #         for j in range(Qv[jcusp][2]):
+    #             if Ypb[icusp][jcusp][j]==0:
+    #                 continue
+    #             for l in range(Mv[jcusp][2]):
+    #                 lr=nvec[jcusp][l]*twopi
+    #                 Mf = Mv[icusp][1]
+    #                 besarg=fabs(lr)*Ypb[icusp][jcusp][j]
+    #                 if lr<>0.0:
+    #                     besselk_dp_c(&tmpr,R,besarg,besprec,1)
+    #                     kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
+    #                 else:
+    #                     kbesvec[icusp][l][j]=<double>1.0
+    ## compute the number of chunks:
+    cdef int chunksize = (Ml+1)/ncpus
+    endpts[0][0]=0
+    endpts[0][1]=chunksize
+    for i in range(1,ncpus):
+        endpts[i][0]=endpts[i-1][1]
+        if i==ncpus-1:
+            endpts[i][1]=Ml
+        else:
+            endpts[i][1]=endpts[i][0]+chunksize
+        if endpts[i][1]>Ml:
+            endpts[i][1]=Ml
+    cdef double **kbesvec2
+    kbesvec2 = <double**> sage_malloc(Ml*sizeof(double*))
+    for icusp in range(nc):
+        kbesvec2[icusp] = <double*> sage_malloc(Ml*sizeof(double*))
+        for l in range(Ml):
+            #printf("nvec(%d,%d)=%e \n",icusp,l,nvec[icusp][l])              
+            if nvec[icusp][l]==0:
+                if cuspidal==1:
+                    kbesvec2[icusp][l]=0.0
+                else:
+                    kbesvec2[icusp][l]=1.0
+            else:
+                nrY2pi=fabs(nvec[icusp][l])*Y2pi
+                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
+                #printf("K(%d,%d)=%e \n",icusp,l,kbes)  
+                kbes=sqrtY*kbes 
+                kbesvec2[icusp][l]=kbes
+                #printf("R=%e, arg=%e \n",R,nrY2pi)                  
+    if verbose>0:
+        for i in range(ncpus):
+            printf("ranges[%d]=[%d:%d] \n",i,endpts[i][0],endpts[i][1])
+    cdef int maxthreads = openmp.omp_get_max_threads()
+    #printf("max threads: %d, ncpus: %d \n",maxthreads,ncpus)
+#    openmp.omp_set_num_threads(ncpus)
+    for i in prange(ncpus, nogil=True,num_threads=ncpus):
+        #printf("i=%d \n",i)
+        setV(V,ef1,ef2_c,kbesvec,kbesvec2,nvec,Mv,Qv,cusp_offsets,cusp_evs,
+             Ypb,Xpb,Qfak,R,Y,sqrtY,nc,cuspidal,endpts[i][0],endpts[i][1],verbose)
+    ###    
+    ### Deallocate arrays
+    ###
+    if endpts<>NULL:
+        for i in range(ncpus):
+            sage_free(endpts[i])
+        sage_free(endpts)
+    if kbesvec<>NULL:
+        for icusp in range(nc):
+            if kbesvec[icusp]<>NULL:
+                for l in range(Ml):
+                    if kbesvec[icusp][l]<>NULL:
+                        sage_free(kbesvec[icusp][l])
+                sage_free(kbesvec[icusp])
+        sage_free(kbesvec)
+    if kbesvec2<>NULL:
+        for icusp in range(nc):
+            if kbesvec2[icusp]<>NULL:
+                sage_free(kbesvec2[icusp])
+        sage_free(kbesvec2)
+    #print "deal kbbes1"
+    if ef1<>NULL:
+        for jcusp in range(nc):
+            if ef1[jcusp]<>NULL:
+                for icusp in range(nc):
+                    if ef1[jcusp][icusp]<>NULL:
+                        for n in range(Mv[icusp][2]):
+                            if ef1[jcusp][icusp][n]<>NULL:
+                                sage_free(ef1[jcusp][icusp][n])
+                        sage_free(ef1[jcusp][icusp])
+                sage_free(ef1[jcusp])
+        sage_free(ef1)
+    if ef2_c<>NULL:
+        for icusp in range(nc):
+            if ef2_c[icusp]<>NULL:
+                for n in range(Mv[icusp][2]):
+                    if ef2_c[icusp][n]<>NULL:
+                        sage_free(ef2_c[icusp][n])
+                sage_free(ef2_c[icusp])
+        sage_free(ef2_c)
+    if nvec<>NULL:
+        for icusp in range(nc):
+            if nvec[icusp]<>NULL:
+                sage_free(nvec[icusp])
+        sage_free(nvec)
+    if cusp_offsets<>NULL:
+        sage_free(cusp_offsets)
+
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef int compute_V_cplx_dp_par(double complex **V,
+                           int N1,
+                           double *Xm,
+                           double ***Xpb,
+                           double ***Ypb,
+                           double complex ***Cvec,
+                           double complex *cusp_evs,
+                           double *alphas,
+                           int **Mv,int **Qv,double *Qfak,
+                           int *symmetric_cusps,
+                           double R,double Y,
+                           int nc, int ncols,
+                           int cuspidal,
+                           int verbose,
+                           int ncpus=1,
+                           int is_trivial=0):
+
+
+    r"""
+    Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms (assume no symmetry).
+    INPUT:
+
+    - ``R``   -- double (eigenvalue)
+    - ``Y``   -- double (the height of the sampling horocycle)
+    - ``Ms,Mf``  -- int (The coefficients we want to compute are C(n), Ms<=n<=Mf )
+    - ``Qs,Qf``  -- int (The sampling points are X_m, Qs<=m<=Qf)
+    - ``alphas`` -- [nc] double array (the shifts of the Fourier expansion at each cusp)
+    - ``V``   -- [(Mf-Ms)*nc]^2 double complex matrix (allocated)
+    - ``Xm``  -- [Qf-Qs] double array (allocated)
+    - ``Xpb`` -- nc*nc*[Qf-Qs] double array (allocated)
+    - ``Ypb`` -- nc*nc*[Qf-Qs] double array (allocated)
+    - ``Cvec`` -- nc*nc*[Qf-Qs] double complex array (allocated)
+    - `` cuspidal`` -- int (set to 1 if we compute cuspidal functions, otherwise zero)
+    - `` sym_type`` -- int (set to 0/1 if we compute even/odd functions, otherwise -1)
+    - ``verbose`` -- int (verbosity of output)
+    - ``ncpus`` -- the number of cpus (cores)
+    """
+    cdef int l,i,j,icusp,jcusp,n,ni,lj,Ml,Ql,s,Qs,Qf,Mf,Ms
+    cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,besarg,lr,nr
+    cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
+    if not cuspidal in [0,1]:
+        raise ValueError," parameter cuspidal must be 0 or 1"
+    cdef int **endpts
+    cdef int* cusp_offsets=NULL
+    cdef double **nvec=NULL
+    cdef double complex ****ef1=NULL
+    cdef double complex ***ef2_c=NULL
+    cdef double ***kbesvec=NULL
+    ## Set constants
+    pi=M_PI 
+    sqrtY=sqrt(Y)
+    two=<double>(2)
+    Y2pi=Y*pi*two
+    twopi=two*pi
+    Ml=0; Ql=0
+    if verbose>0:
+        printf("in compute_V_cplx_dp_par \n")
     for i in range(nc):
         if Mv[i][2]>Ml:
             Ml=Mv[i][2]
@@ -271,22 +551,6 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
             endpts[i][1]=Ml
     cdef double **kbesvec2
     kbesvec2 = <double**> sage_malloc(Ml*sizeof(double*))
-    for icusp in range(nc):
-        kbesvec2[icusp] = <double*> sage_malloc(Ml*sizeof(double*))
-        for l in range(Ml):
-            #printf("nvec(%d,%d)=%e \n",icusp,l,nvec[icusp][l])              
-            if nvec[icusp][l]==0:
-                if cuspidal==1:
-                    kbesvec2[icusp][l]=0.0
-                else:
-                    kbesvec2[icusp][l]=1.0
-            else:
-                nrY2pi=fabs(nvec[icusp][l])*Y2pi
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
-                #printf("K(%d,%d)=%e \n",icusp,l,kbes)  
-                kbes=sqrtY*kbes 
-                kbesvec2[icusp][l]=kbes
-                #printf("R=%e, arg=%e \n",R,nrY2pi)                  
     if verbose>0:
         for i in range(ncpus):
             printf("ranges[%d]=[%d:%d] \n",i,endpts[i][0],endpts[i][1])
@@ -296,7 +560,7 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
     for i in prange(ncpus, nogil=True,num_threads=ncpus):
         #printf("i=%d \n",i)
         setV(V,ef1,ef2_c,kbesvec,kbesvec2,nvec,Mv,Qv,cusp_offsets,cusp_evs,
-             Ypb,Xpb,Qfak,R,sqrtY,nc,cuspidal,endpts[i][0],endpts[i][1],verbose)
+             Ypb,Xpb,Qfak,R,Y,sqrtY,nc,cuspidal,endpts[i][0],endpts[i][1],verbose)
     ###    
     ### Deallocate arrays
     ###
@@ -344,7 +608,7 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
         sage_free(nvec)
     if cusp_offsets<>NULL:
         sage_free(cusp_offsets)
-
+        
 @cython.cdivision(True)
 @cython.boundscheck(False)
 cdef int setV(double complex **V,
@@ -361,6 +625,7 @@ cdef int setV(double complex **V,
               double ***Xpb,
               double *Qfak,
               double R,
+              double Y,
               double sqrtY,
               int nc,
               int cuspidal,
@@ -368,19 +633,50 @@ cdef int setV(double complex **V,
               int verbose=0
               ) nogil:
 
-#               int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec) nogil:
+#               int ***CSvec, mpfr_t **** besv, mpfr_t *** Ypb, mpfr_t ****ef1cosv, mpfr_t ****ef1sinv, mpfr_t ***ef2cosv, mpfr_t ***ef2sinv, int nc, int Ql, int Ml, int l, mpfr_prec_t prec)n ogil:
     r"""
     Set a chunk of rows of the matrix
     """
     cdef int icusp,jcusp,lj,l,lj0,j,n,ni,N1
-    cdef double lr,kbes,nr,twopi
+    cdef double lr,kbes,nr,twopi,besarg,tmpr,Y2pi
+    cdef double besprec=1.0E-14
     cdef double complex ctmpV,cuspev,ckbes
     twopi=<double>6.2831853071795864769252867666
     cdef int id=cython.parallel.threadid()
     if verbose>0:
         printf("%d : setV in ranges:%d -- %d \n",id,la,lb)
-    for jcusp in range(nc):
+    ## We also set the K-Bessel function here.
+    Y2pi=Y*twopi
+    for jcusp  in range(nc):
+        for icusp  in range(nc):
+            if icusp>0 and cusp_evs[icusp]<>0:
+                continue
+            for j in range(Qv[jcusp][2]):
+                if Ypb[icusp][jcusp][j]==0:
+                    continue
+                for l in range(la,lb):
+                    lr=nvec[jcusp][l]*twopi
+                    Mf = Mv[icusp][1]
+                    besarg=fabs(lr)*Ypb[icusp][jcusp][j]
+                    if lr<>0.0:
+                        besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                        kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
+                    else:
+                        kbesvec[icusp][l][j]=<double>1.0
         for l in range(la,lb):
+            if nvec[jcusp][l]==0:
+                if cuspidal==1:
+                    kbesvec2[jcusp][l]=0.0
+                else:
+                    kbesvec2[jcusp][l]=1.0
+            else:
+                nrY2pi=fabs(nvec[jcusp][l])*Y2pi
+                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
+                #printf("K(%d,%d)=%e \n",icusp,l,kbes)  
+                #kbes=sqrtY*kbes 
+                kbesvec2[icusp][l]=sqrtY*kbes
+    for l in range(la,lb):
+        for jcusp in range(nc):
             lr=nvec[jcusp][l]*twopi
             lj=cusp_offsets[jcusp]+l
             if jcusp>0 and cusp_evs[jcusp]<>0:
@@ -425,7 +721,7 @@ cdef int setV(double complex **V,
             if nvec[icusp][n]==0.0 and cuspidal==1:
                 continue
             ni=cusp_offsets[icusp]+n
-            if verbose>0:
+            if verbose>2:
                 printf("%d : K(%d,%d)=%e \n",id,icusp,n,kbesvec2[icusp][n])
             V[ni][ni]=V[ni][ni] - kbesvec2[icusp][n]            
     if verbose>0:
@@ -447,7 +743,8 @@ cdef int setV_nosym(double complex **V,
               double ***Xpb,
               double *Qfak,
               double R,
-              double sqrtY,
+              double Y,
+               double sqrtY,                    
               int nc,
               int cuspidal,
               int la, int lb,

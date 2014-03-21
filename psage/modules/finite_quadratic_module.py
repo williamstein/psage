@@ -3231,10 +3231,93 @@ class JordanDecomposition( SageObject):
         
     def orbit_list(self, p = None, short = False):
         r"""
-        Return a dictionary of orbit lists
-        for the primes occuring in the jordan decomposition
-        
-        EXAMPLES NONE
+        If this is the Jordan decomposition for $(M,Q)$, return the dictionary of
+        dictionaries of orbits corresponding to the p-groups of $M$.
+        If a prime p is given only the dictionary of orbits for the p-group is returned. 
+        OUTPUT:
+            dictionary -- the mapping p --> (dictionary -- the mapping orbit --> the number of elements in this orbit)
+
+        EXAMPLES:
+            sage: A = FiniteQuadraticModule('3^-3.25^2')
+            sage: J = JordanDecomposition(A)
+            sage: J.orbit_list() == \
+                  {3: \
+                      {(1,): 1, \
+                       (3, 1, 0): 8, \
+                       (3, 1, 1/3): 6, \
+                       (3, 1, 2/3): 12}, \
+                   5: {(1,): 1, \
+                       (5, 5, 0): 8, \
+                       (5, 5, 1/5): 4, \
+                       (5, 5, 2/5): 4, \
+                       (5, 5, 3/5): 4, \
+                       (5, 5, 4/5): 4, \
+                       (25, 1, 1, 0, 0): 40, \
+                       (25, 1, 1, 1/25, 1/5): 20, \
+                       (25, 1, 1, 2/25, 2/5): 20, \
+                       (25, 1, 1, 3/25, 3/5): 20, \
+                       (25, 1, 1, 4/25, 4/5): 20, \
+                       (25, 1, 1, 1/5, 0): 40, \
+                       (25, 1, 1, 6/25, 1/5): 20, \
+                       (25, 1, 1, 7/25, 2/5): 20, \
+                       (25, 1, 1, 8/25, 3/5): 20, \
+                       (25, 1, 1, 9/25, 4/5): 20, \
+                       (25, 1, 1, 2/5, 0): 40, \
+                       (25, 1, 1, 11/25, 1/5): 20, \
+                       (25, 1, 1, 12/25, 2/5): 20, \
+                       (25, 1, 1, 13/25, 3/5): 20, \
+                       (25, 1, 1, 14/25, 4/5): 20, \
+                       (25, 1, 1, 3/5, 0): 40, \
+                       (25, 1, 1, 16/25, 1/5): 20, \
+                       (25, 1, 1, 17/25, 2/5): 20, \
+                       (25, 1, 1, 18/25, 3/5): 20, \
+                       (25, 1, 1, 19/25, 4/5): 20, \
+                       (25, 1, 1, 4/5, 0): 40, \
+                       (25, 1, 1, 21/25, 1/5): 20, \
+                       (25, 1, 1, 22/25, 2/5): 20, \
+                       (25, 1, 1, 23/25, 3/5): 20, \
+                       (25, 1, 1, 24/25, 4/5): 20}}
+            True
+            sage: A = FiniteQuadraticModule('3^-3.27^2')
+            sage: J = JordanDecomposition(A)
+            sage: J.orbit_list(3) == \
+                  {(1,): 1, \
+                  (3, 1, 0): 72, \
+                  (3, 1, 1/3): 54, \
+                  (3, 1, 2/3): 108, \
+                  (3, 9, 1/3): 4, \
+                  (3, 9, 2/3): 4, \
+                  (9, 1, 3, 0, 1/3): 432, \
+                  (9, 1, 3, 0, 2/3): 216, \
+                  (9, 1, 3, 1/3, 1/3): 288, \
+                  (9, 1, 3, 1/3, 2/3): 432, \
+                  (9, 1, 3, 2/3, 1/3): 216, \
+                  (9, 1, 3, 2/3, 2/3): 288, \
+                  (9, 3, 3, 1/9, 1/3): 12, \
+                  (9, 3, 3, 2/9, 2/3): 12, \
+                  (9, 3, 3, 4/9, 1/3): 12, \
+                  (9, 3, 3, 5/9, 2/3): 12, \
+                  (9, 3, 3, 7/9, 1/3): 12, \
+                  (9, 3, 3, 8/9, 2/3): 12, \
+                  (27, 1, 1, 1, 1/27, 1/9, 1/3): 972, \
+                  (27, 1, 1, 1, 2/27, 2/9, 2/3): 972, \
+                  (27, 1, 1, 1, 4/27, 4/9, 1/3): 972, \
+                  (27, 1, 1, 1, 5/27, 5/9, 2/3): 972, \
+                  (27, 1, 1, 1, 7/27, 7/9, 1/3): 972, \
+                  (27, 1, 1, 1, 8/27, 8/9, 2/3): 972, \
+                  (27, 1, 1, 1, 10/27, 1/9, 1/3): 972, \
+                  (27, 1, 1, 1, 11/27, 2/9, 2/3): 972, \
+                  (27, 1, 1, 1, 13/27, 4/9, 1/3): 972, \
+                  (27, 1, 1, 1, 14/27, 5/9, 2/3): 972, \
+                  (27, 1, 1, 1, 16/27, 7/9, 1/3): 972, \
+                  (27, 1, 1, 1, 17/27, 8/9, 2/3): 972, \
+                  (27, 1, 1, 1, 19/27, 1/9, 1/3): 972, \
+                  (27, 1, 1, 1, 20/27, 2/9, 2/3): 972, \
+                  (27, 1, 1, 1, 22/27, 4/9, 1/3): 972, \
+                  (27, 1, 1, 1, 23/27, 5/9, 2/3): 972, \
+                  (27, 1, 1, 1, 25/27, 7/9, 1/3): 972, \
+                  (27, 1, 1, 1, 26/27, 8/9, 2/3): 972} 
+            True
         """
         n = self.__A.order()
         if not p:
@@ -3594,6 +3677,22 @@ class JordanDecomposition( SageObject):
                   25/27: 972, \
                   26/27: 972}
             True
+            sage: A = FiniteQuadraticModule('2_3^-3.4^2.8_2^-2')
+            sage: J = JordanDecomposition(A)
+            sage: J.values() == \
+                  {0: 480, \
+                  1/8: 512, \
+                  3/16: 1024, \
+                  1/4: 480, \
+                  3/8: 512, \
+                  7/16: 1024, \
+                  1/2: 544, \
+                  5/8: 512, \
+                  11/16: 1024, \
+                  3/4: 544, \
+                  7/8: 512, \
+                  15/16: 1024}
+            True
         """
         n = self.__A.order()
 
@@ -3755,7 +3854,19 @@ class JordanDecomposition( SageObject):
         return valuesdict #, values
 
     def two_torsion_values( self):
+        r"""
+        If this is the Jordan decomposition for $(M,Q)$, return the values of $Q(x)$
+        for $x \in M_2=\{x \in M | 2*x = 0\}$, the subgroup of two-torsion elements as a dictionary.
 
+        OUTPUT:
+            dictionary -- the mapping Q(x) --> the number two-torsion elements x with the same value Q(x)
+
+        EXAMPLES:
+            sage: A = FiniteQuadraticModule('2_3^-3.4^2.8_2^-2')
+            sage: J = JordanDecomposition(A)
+            sage: J.two_torsion_values() == {0: 48, 1/4: 16, 1/2: 16, 3/4: 48}
+            True
+        """
         n = self.__A.order()
 
         values = [1]

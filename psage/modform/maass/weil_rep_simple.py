@@ -136,12 +136,12 @@ class WeilRepDiscriminantForm(Parent):
     def rank(self):
         return self._rank
 
-    def even_submodule(self):
+    def even_submodule(self,indices=0):        
         if self._even_submodule==[]:
             self._even_submodule = range(0,self._N+1)
         return self._even_submodule
 
-    def odd_submodule(self):
+    def odd_submodule(self,indices=0):
         if self._odd_submodule==[]:
             self._odd_submodule = range(1,self._N)
         return self._odd_submodule

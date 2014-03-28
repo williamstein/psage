@@ -166,7 +166,22 @@ class VectorValuedModularForms(SageObject):
         return dim
 
     def dimension_cusp_forms(self,k,ignore=False, no_inv = False):
-        dim = self.dimension(k,ignore)-self._alpha4
+        if k == Integer(3)/2:
+            if self._M == None:
+                self._M = self._g.finite_quadratic_module()
+            dim = self.dimension(k, True) - self._alpha4
+            found = False
+            p = self._M.level()
+            while not found:
+                p = next_prime(p)
+                if p % self._M.level() == 1:
+                    found = True
+                    #print "p = ", p
+            corr = weight_one_half_dim(self._M, GF(p))
+            print "weight one half: {0}".format(corr)
+            dim += corr
+        else:
+            dim = self.dimension(k,ignore)-self._alpha4
         if k==2 and not no_inv:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
@@ -182,7 +197,7 @@ class VectorValuedModularForms(SageObject):
                     p = next_prime(p)
                     if p % self._M.level() == 1:
                         found = True
-                        print "p = ", p
+                        #print "p = ", p
                 try:
                     dinv += cython_invariants_dim(self._M,GF(p))
                     #print 'inv=', inv

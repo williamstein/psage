@@ -298,7 +298,11 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
     return Ml, ni, U,V
 
 cpdef cython_invariants(FQM, K = QQbar, debug=0):    
-    Ml, ni, U,V = cython_invariants_matrices(FQM, K, debug)
+    I = cython_invariants_matrices(FQM, K, debug)
+    if type(I)==list or type(I) == tuple:
+        Ml, ni, U,V = I
+    else:
+        return I
     
     t = cputime()
     X = U.right_kernel()
@@ -311,3 +315,22 @@ cpdef cython_invariants(FQM, K = QQbar, debug=0):
     if debug > 1:
         return U,V,X
     return Ml[:ni], Sp
+
+cpdef invariants(FQM, K = QQbar, debug =0):
+    I = cython_invariants(FQM, K, debug)
+    if type(I) == list or type(I) == tuple:
+        Ml, Sp = I
+    else:
+        return I
+    Mll = list()
+    ed = list()
+    for i in FQM.elementary_divisors():
+        ed.append(Integer(i))
+    for v in Ml:
+        vv = cython_elt(v[0],ed)
+        Mll.append(FQM(vv))
+    return Mll, Sp
+            
+            
+            
+        

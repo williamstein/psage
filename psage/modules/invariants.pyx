@@ -131,11 +131,7 @@ cdef int B(int i, int j, int **JJ, list ed):
     cdef int res = 0
     for ii in range(r):
         for jj in range(r):
-            if ii <= jj:
-                if ii == jj:
-                    res = res + ll[ii]*kk[jj]*JJ[ii][jj]
-                else:
-                    res = res + 2*ll[ii]*kk[jj]*JJ[ii][jj]
+            res = res + ll[ii]*kk[jj]*JJ[ii][jj]
     return res
 
 cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
@@ -285,6 +281,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
             p = -B(Ml[i][0],Ml[j][0], JJ, ed) % l
             H[i,j] += table[p]
     if debug > 0: print '%f: init of H'%(cputime(t))
+    if debug > 1: print H.str()
     #print H.str()
 
     U = H.matrix_from_rows(range(ni,n))
@@ -316,7 +313,7 @@ cpdef cython_invariants(FQM, K = QQbar, debug=0):
         return U,V,X
     return Ml[:ni], Sp
 
-cpdef invariants(FQM, K = QQbar, debug =0):
+cpdef invariants(FQM, K = QQbar, debug = 0):
     I = cython_invariants(FQM, K, debug)
     if type(I) == list or type(I) == tuple:
         Ml, Sp = I

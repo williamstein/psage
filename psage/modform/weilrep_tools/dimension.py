@@ -182,13 +182,13 @@ class VectorValuedModularForms(SageObject):
             dim += corr
         else:
             dim = self.dimension(k,ignore)-self._alpha4
-        if k==2 and not no_inv:
+        if k==Integer(2) and not no_inv:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
             if self._M.level() == 1:
                 return dim + 1
             dinv = 0
-            p = self._M.level()
+            p = self._M.order()
             #print "Searching for prime congruent to 1 modulo ", p
             calc = False
             while not calc:
@@ -200,7 +200,7 @@ class VectorValuedModularForms(SageObject):
                         #print "p = ", p
                 try:
                     dinv += cython_invariants_dim(self._M,GF(p))
-                    #print 'inv=', inv
+                    #print 'inv={0}, p={1}'.format(dinv, p)
                     calc = True
                 except:
                     found = False

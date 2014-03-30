@@ -172,6 +172,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
 
     q = K.characteristic()
     w = K(FQM.order()).sqrt()
+    if debug > 0: print q,w
 
     t = cputime()
 

@@ -56,7 +56,7 @@ include "stdsage.pxi"
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power #, sage_malloc, sage_free, ZZ
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector #, sage_malloc, sage_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 
@@ -135,7 +135,7 @@ cdef int B(int i, int j, int **JJ, list ed):
     return res
 
 cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
-    if FQM.signature() != 0:
+    if FQM.signature() % 2 != 0:
         return 0
     dim = 0
     if not is_prime_power(FQM.level()):
@@ -159,7 +159,7 @@ cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
         dim = dim + Sp.dimension()
     return dim
 
-cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
+cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H = False, ):
     cdef int i, j = 0
     cdef int l = int(FQM.level())
     if debug > 1: print "l = ", l
@@ -170,21 +170,93 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
     except:
         return span( [], K)
 
+    if debug > 0: t = cputime()
+    cdef list table = list()
+    cdef list table0 = list()
+
     q = K.characteristic()
-    w = K(FQM.order()).sqrt()
+    if q > 0:
+        if debug > 0: print 'positive characteristic: ', q
+        if 1 != q % l:
+            raise ValueError( '%d must be = 1 modulo %d' %(q, l))
+        if not q % 4 == 1:
+                raise ValueError( '%d must be = 1 modulo 4.' %(q))
+        if not is_prime_power(l):
+            raise NotImplementedError('This function can only be called with p-modules.')
+
+        pr = K.primitive_element()
+        # now we choose I, sqrt(|FQM|) compatible with the choice of a primitive element
+        I = pr**((q-1)/4)
+        if not s2 == 1:
+            if FQM.signature() == 2:
+                s = -I
+            else:
+                s = I
+        z = pr**((q-1)/l)
+        A = Integer(FQM.order())
+        print A
+        if A.is_square():
+            w = K(sqrt(A))
+        else:
+            AA = FQM.order()/FQM.order().squarefree_part()
+            AA = sqrt(AA)
+            AA = K(Integer(AA))
+            P = A.prime_factors()[0]
+            if P > 2:
+                PP = kronecker(-1,P)*P
+                zz = z**(l/P)
+                w = sum([kronecker(PP,n)*zz**n for n in range(P)])
+                eps = 1 if PP > 0 else -I
+                w = eps*w
+                w = w*AA
+            else:
+                zz = pr**((q-1)/8)
+                w = (zz+zz**(-1))
+                w = w*AA
+        table = [z**p for p in range(l)]
+        for i in range(l):
+            zt = table[i]
+            table[i] = K(s)*K(zt + s2 * zt**-1)/K(w)
+        if proof:
+            print "proof"
+            L = QQbar
+            zl = L.zeta(l)
+            if s.parent() != ZZ:
+                z8 = s.parent().gen()
+                pw = z8.coordinates_in_terms_of_powers()(s)
+                z8 = L.zeta(8)
+                sl = sum([pw[i]*z8**i for i in range(4)])
+            wl = L(FQM.order()).sqrt()
+            table0 = [sl*(zl**p)/wl for p in range(l)]
+            print table0
+    else:
+        try:
+            w = K(FQM.order()).sqrt()
+        except:
+            raise RuntimeError("K = {0} does not contain a square-root of |FQM| = {1}".format(K,FQM.order()))
     if debug > 0: print q,w
 
-    t = cputime()
-
-    cdef list table = list()
     if 0 == q:
         if isinstance(K,NumberField_cyclotomic):
             if debug > 0: print 'cyclotomic'
             z = K.gen()
+            o = z.multiplicative_order()
+            if not Integer(l).divides(o):
+                raise ValueError("K has to contain {0}th root of unity.".format(l))
+            z = z**(Integer(o)/Integer(l))
+            # ensure we have the correct sqrt of FQM.order()
+            CF = z.complex_embeddings()[0].parent()
+            for i, a in enumerate(z.complex_embeddings()):
+                if a.argument() > 0 and (a.argument() - CF(2)*CF.pi()/CF(l)).real() < (CF(2)*CF.pi()/CF(l)).real():
+                    print "found", a
+                    print "w = ",  w.complex_embeddings()[i]
+                    if not w.complex_embeddings()[i].real().sign() > 0:
+                        print w, w.complex_embeddings()[i]
+                        w = -w
             if 1 == s2: 
-                table = [2*s*((z**p) + (z**p).conjugate())/w for p in range(l)]
+                table = [s*((z**p) + (z**p).conjugate())/w for p in range(l)]
             else:
-                table = [2*s*((z**p) - (z**p).conjugate())/w for p in range(l)]
+                table = [s*((z**p) - (z**p).conjugate())/w for p in range(l)]
         else:
             if K == QQbar:
                 if debug > 0: print 'QQbar'
@@ -195,27 +267,17 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
                     pw = z8.coordinates_in_terms_of_powers()(s)
                     z8 = K.zeta(8)
                     s = sum([pw[i]*z8**i for i in range(4)])
+                    if debug > 0: print "s={0}".format(s)
             else:
-                z = K( exp(2*pi*I/l))
+                z = K(exp(2*pi*I/l))
             if 1 == s2: 
                 table = [2*s*(z**p).real()/w for p in range(l)]
             else:
                 table = [2*s*(z**p).imag()/w for p in range(l)]
-    if q > 0:
-        if debug > 0: print 'positive characteristic: ', q
-        if 1 != q % l:
-            raise ValueError( '%d: must be = 1 modulo %d' %(q, l))
-        pr = K.primitive_element()
-        z = pr**((q-1)/l)
-        table = [z**p for p in range(l)]
-        for i in range(l):
-            zt = table[i]
-            table[i] = K(zt + s2 * zt**-1)/K(w)
-    if debug > 1: print len(table), table
+    if debug > 0: print len(table), table
+    if debug > 0: print '%f: init, table'%(cputime(t))
 
-    if debug > 0: print '%f: table'%(cputime(t))
-
-    t = cputime()
+    if debug > 0: t = cputime()
     ed = list()
     for i in FQM.elementary_divisors():
         ed.append(Integer(i))
@@ -255,7 +317,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
             if not i in skip_list:
                 skip_list.append(i)
                 skip_list.append(kk)
-                if i == kk:
+                if i != kk:
                     f = 2
                 #print skip_list
                 Ml.append((i,j,f))
@@ -266,39 +328,59 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, debug=0):
     if debug > 0: print 'ni = %d'%(ni)
     cdef int n = len(Ml)
     
-    t = cputime()
+    if debug > 0: t = cputime()
     Ml.sort(norm_cmp)
     n = len(Ml)
     if debug > 0: print 'n = %d'%(n)
     if debug > 0: print '%f: sorting'%(cputime(t))
 
-    t = cputime()
+    if debug > 0: t = cputime()
     cdef int ii,jj = 0
     H = Matrix(K, n, ni)
     for j in range(ni):
-        H[j,j] = Ml[j][2]
+        H[j,j] = 2
         #print j, f
         for i in range(n):
             p = -B(Ml[i][0],Ml[j][0], JJ, ed) % l
-            H[i,j] += table[p]
+            H[i,j] += table[p]*Ml[j][2]
+            if debug > 1: print "i={0}, j={1}, H[i,j] = {2}, p = {3}".format(i,j,H[i,j],p)
     if debug > 0: print '%f: init of H'%(cputime(t))
     if debug > 1: print H.str()
     #print H.str()
 
+    if return_H: return Ml, ni, H
+
     U = H.matrix_from_rows(range(ni,n))
     V = H.matrix_from_rows(range(ni))
+
+    if proof:
+        print "proof"
+        M = Matrix(L,ni,ni)
+        for i in range(ni):
+            for j in range(ni):
+                M[i,j] = table0[-B(Ml[i][0],Ml[j][0], JJ, ed) % l]
+                if Ml[j][2] == 2:
+                    M[i,j] += table0[B(Ml[i][0],Ml[j][0], JJ, ed) % l]
+        print table0, M
+        R = (Ml, ni, U, V, M)
+    else:
+        R = (Ml, ni, U,V)
 
     if not JJ is NULL:
         for i in range(r):
             if not JJ[i] is NULL:
                 sage_free(JJ[i])
         sage_free(JJ)
-    return Ml, ni, U,V
 
-cpdef cython_invariants(FQM, K = QQbar, debug=0):    
-    I = cython_invariants_matrices(FQM, K, debug)
+    return R
+
+cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):    
+    I = cython_invariants_matrices(FQM, K, proof, debug)
     if type(I)==list or type(I) == tuple:
-        Ml, ni, U,V = I
+        if not proof:
+            Ml, ni, U,V = I
+        else:
+            Ml, ni, U, V, M = I
     else:
         return I
     
@@ -312,6 +394,16 @@ cpdef cython_invariants(FQM, K = QQbar, debug=0):
 
     if debug > 1:
         return U,V,X
+    if proof:
+        l = FQM.level()
+        for v in Sp.basis():
+            for i in xrange(len(v)):
+                print v
+                vv = vector([ZZ(-1) if _ == -1 else _.lift() for _ in list(v)])
+                a = M*vv-vv
+                print vv, a
+                if not a == 0:
+                    raise RuntimeError("Invariant does not lift.")
     return Ml[:ni], Sp
 
 cpdef invariants(FQM, K = QQbar, debug = 0):

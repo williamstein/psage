@@ -217,18 +217,19 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         for i in range(l):
             zt = table[i]
             table[i] = K(s)*K(zt + s2 * zt**-1)/K(w)
-        if proof:
-            print "proof"
+        if proof and q > 0:
+            if debug > 0: tt = cputime()
+            if debug > 0: print "proof"
             L = QQbar
             zl = L.zeta(l)
             if s.parent() != ZZ:
-                z8 = s.parent().gen()
-                pw = z8.coordinates_in_terms_of_powers()(s)
                 z8 = L.zeta(8)
-                sl = sum([pw[i]*z8**i for i in range(4)])
+                sl = z8**(-FQM.signature())
+            print sl
             wl = L(FQM.order()).sqrt()
             table0 = [sl*(zl**p)/wl for p in range(l)]
-            print table0
+            if debug > 0: print table0
+            if debug > 0: print "table0: {0}".format(cputime(tt))
     else:
         try:
             w = K(FQM.order()).sqrt()
@@ -247,7 +248,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             # ensure we have the correct sqrt of FQM.order()
             CF = z.complex_embeddings()[0].parent()
             for i, a in enumerate(z.complex_embeddings()):
-                if a.argument() > 0 and (a.argument() - CF(2)*CF.pi()/CF(l)).real() < (CF(2)*CF.pi()/CF(l)).real():
+                if a.argument() > 0 and abs((a.argument() - CF(2)*CF.pi()/CF(l)).real()) < (CF(2)*CF.pi()/CF(2*l)).real():
                     print "found", a
                     print "w = ",  w.complex_embeddings()[i]
                     if not w.complex_embeddings()[i].real().sign() > 0:
@@ -263,10 +264,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 z = K.zeta(l)
                 if debug > 1: print "z=",z
                 if s.parent() != ZZ:
-                    z8 = s.parent().gen()
-                    pw = z8.coordinates_in_terms_of_powers()(s)
                     z8 = K.zeta(8)
-                    s = sum([pw[i]*z8**i for i in range(4)])
+                    s = z8**(-FQM.signature())
                     if debug > 0: print "s={0}".format(s)
             else:
                 z = K(exp(2*pi*I/l))
@@ -299,7 +298,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             JJ[i][j] =  int(2*l*J[i,j])
     if debug > 0: print 'Gram matrix conversion: {0}'.format(cputime(t))
 
-    t = cputime()
+    if debug > 0: t = cputime()
     Ml = list()
     cdef int ni = 0
     cdef long kk = 0
@@ -329,7 +328,9 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     cdef int n = len(Ml)
     
     if debug > 0: t = cputime()
+    
     Ml.sort(norm_cmp)
+    
     n = len(Ml)
     if debug > 0: print 'n = %d'%(n)
     if debug > 0: print '%f: sorting'%(cputime(t))
@@ -353,16 +354,17 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     U = H.matrix_from_rows(range(ni,n))
     V = H.matrix_from_rows(range(ni))
 
-    if proof:
-        print "proof"
-        M = Matrix(L,ni,ni)
-        for i in range(ni):
-            for j in range(ni):
+    if proof and q > 0:
+        tt = cputime()
+        M = Matrix(L,n,ni)
+        for j in range(ni):
+            for i in range(n):
                 M[i,j] = table0[-B(Ml[i][0],Ml[j][0], JJ, ed) % l]
                 if Ml[j][2] == 2:
                     M[i,j] += table0[B(Ml[i][0],Ml[j][0], JJ, ed) % l]
-        print table0, M
+        if debug > 1: print table0, M
         R = (Ml, ni, U, V, M)
+        if debug > 0: print "Matrix M: {0}".format(cputime(tt))
     else:
         R = (Ml, ni, U,V)
 
@@ -374,10 +376,10 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
 
     return R
 
-cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):    
+cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):
     I = cython_invariants_matrices(FQM, K, proof, debug)
     if type(I)==list or type(I) == tuple:
-        if not proof:
+        if not proof or K.characteristic() == 0:
             Ml, ni, U,V = I
         else:
             Ml, ni, U, V, M = I
@@ -386,27 +388,39 @@ cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):
     
     t = cputime()
     X = U.right_kernel()
-    if debug > 0: print '%f: kernel'%(cputime(t))
+    if debug > 0:
+        print '%f: kernel'%(cputime(t))
+        print "dimension kernel: {0}".format(X.dimension())
 
     t = cputime()
     Sp = span([V*x for x in X.basis()], K)
     if debug > 0: print '%f: span'%(cputime(t))
 
-    if debug > 1:
+    if debug > 2:
         return U,V,X
-    if proof:
+    if proof and K.characteristic() > 0:
+        if debug > 0: tt = cputime()
         l = FQM.level()
+        N = M.matrix_from_rows(range(ni))
+        NN = M.matrix_from_rows(range(ni,N.dimensions()[0]))
+        V1 = []
         for v in Sp.basis():
-            for i in xrange(len(v)):
-                print v
-                vv = vector([ZZ(-1) if _ == -1 else _.lift() for _ in list(v)])
-                a = M*vv-vv
-                print vv, a
-                if not a == 0:
-                    raise RuntimeError("Invariant does not lift.")
-    return Ml[:ni], Sp
+            print v
+            vv = vector([x.rational_reconstruction() for x in v])
+            a = N*vv-vv
+            b = NN*vv
+            if debug >1: print vv, a, b
+            if not a == 0 or not b == 0:
+                raise RuntimeError("Could not show that mod {0} invariant {1} lifts.".format(K.characteristic(),vv))
+            else:
+                V1.append(vv)
+        V1 = span(V1)
+        if debug > 0: print "proof: {0}".format(cputime(tt))
+        return Ml[:ni], V1
+    else:
+        return Ml[:ni], Sp
 
-cpdef invariants(FQM, K = QQbar, debug = 0):
+cpdef invariants(FQM, K = QQbar, proof = True, debug = 0):
     I = cython_invariants(FQM, K, debug)
     if type(I) == list or type(I) == tuple:
         Ml, Sp = I

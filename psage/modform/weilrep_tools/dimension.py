@@ -54,7 +54,8 @@ class VectorValuedModularForms(SageObject):
         :class:`psage.modules.finite_quadratic_modules.FiniteQuadraticModule`
     """
 
-    def __init__(self, A, use_genus_symbols = False, aniso_formula = False):
+    def __init__(self, A, use_genus_symbols = False, aniso_formula = False, use_reduction = False):
+        self._use_reduction = use_reduction
         if use_genus_symbols:
             if isinstance(A, str):
                 g = GenusSymbol(A)
@@ -170,14 +171,7 @@ class VectorValuedModularForms(SageObject):
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
             dim = self.dimension(k, True) - self._alpha4
-            found = False
-            p = self._M.level()
-            while not found:
-                p = next_prime(p)
-                if p % self._M.level() == 1:
-                    found = True
-                    #print "p = ", p
-            corr = weight_one_half_dim(self._M, GF(p))
+            corr = weight_one_half_dim(self._M, self._use_reduction)
             print "weight one half: {0}".format(corr)
             dim += corr
         else:
@@ -187,24 +181,7 @@ class VectorValuedModularForms(SageObject):
                 self._M = self._g.finite_quadratic_module()
             if self._M.level() == 1:
                 return dim + 1
-            dinv = 0
-            p = self._M.order()
-            #print "Searching for prime congruent to 1 modulo ", p
-            calc = False
-            while not calc:
-                found = False
-                while not found:
-                    p = next_prime(p)
-                    if p % self._M.level() == 1:
-                        found = True
-                        #print "p = ", p
-                try:
-                    dinv += cython_invariants_dim(self._M,GF(p))
-                    #print 'inv={0}, p={1}'.format(dinv, p)
-                    calc = True
-                except:
-                    found = False
-            #print "dinv=",dinv
+            dinv = cython_invariants_dim(self._M,self._use_reduction)
             dim = dim + dinv
         return dim
         

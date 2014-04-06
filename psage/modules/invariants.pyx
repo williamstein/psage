@@ -56,7 +56,7 @@ include "stdsage.pxi"
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector, CC #, sage_malloc, sage_free, ZZ
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector, CC, GF, next_prime, lcm #, sage_malloc, sage_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 
@@ -134,7 +134,7 @@ cdef int B(int i, int j, int **JJ, list ed):
             res = res + ll[ii]*kk[jj]*JJ[ii][jj]
     return res
 
-cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
+cpdef cython_invariants_dim(FQM, use_reduction = True, debug=0):
     if FQM.signature() % 2 != 0:
         return 0
     dim = 0
@@ -149,13 +149,13 @@ cpdef cython_invariants_dim(FQM, K = QQbar, debug=0):
                 elif C.level() != 1:
                     N = N + C
             if dim == 0:
-                dim = cython_invariants_dim(N,K,debug)
+                dim = cython_invariants_dim(N,use_reduction,debug)
             else:
-                dim = dim*cython_invariants_dim(N,K,debug)
+                dim = dim*cython_invariants_dim(N,use_reduction,debug)
             if dim == 0:
                 return 0
     else:
-        Sp = cython_invariants(FQM, K, debug)[1]
+        Sp = cython_invariants(FQM, use_reduction, debug)[1]
         dim = dim + Sp.dimension()
     return dim
 
@@ -268,7 +268,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             if 1 == s2: 
                 table = [2*s*(z**p).real()/w for p in range(l)]
             else:
-                table = [2*s*(z**p).imag()/w for p in range(l)]
+                table = [s*(z**p-z**(-p))/w for p in range(l)]
     if debug > 0: print len(table), table
     if debug > 0: print '%f: init, table'%(cputime(t))
 
@@ -373,11 +373,25 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
 
     return R
 
-cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):
+cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
+    if use_reduction and K == None:
+        found = False
+        p = FQM.level()
+        while not found:
+            if p % lcm(4,FQM.level()) == 1:
+                found = True
+            else:
+                p = next_prime(p)
+        print p
+        K = GF(p)
+    else:
+        if K == None:
+            K = CyclotomicField(lcm(4,FQM.level()))
+    print K
     I = cython_invariants_matrices(FQM, K, proof, debug)
     if type(I)==list or type(I) == tuple:
         if not proof or K.characteristic() == 0:
-            Ml, ni, U,V = I
+            Ml, ni, U, V = I
         else:
             Ml, ni, U, V, M = I
     else:
@@ -395,7 +409,7 @@ cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):
 
     if debug > 2:
         return U,V,X
-    if proof and K.characteristic() > 0:
+    if proof and K.characteristic() > 0 and Sp.dimension() > 0:
         if debug > 0: tt = cputime()
         l = FQM.level()
         N = M.matrix_from_rows(range(ni))
@@ -417,8 +431,9 @@ cpdef cython_invariants(FQM, K = QQbar, proof = True, debug=0):
     else:
         return Ml[:ni], Sp
 
-cpdef invariants(FQM, K = QQbar, proof = True, debug = 0):
-    I = cython_invariants(FQM, K, debug)
+cpdef invariants(FQM, use_reduction, proof = True, debug = 0):
+    print 'use_reduction = ', use_reduction
+    I = cython_invariants(FQM, use_reduction, proof, debug)
     if type(I) == list or type(I) == tuple:
         Ml, Sp = I
     else:

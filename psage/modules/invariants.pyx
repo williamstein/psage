@@ -382,12 +382,12 @@ cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
                 found = True
             else:
                 p = next_prime(p)
-        print p
+        #print p
         K = GF(p)
     else:
         if K == None:
             K = CyclotomicField(lcm(4,FQM.level()))
-    print K
+    #print K
     I = cython_invariants_matrices(FQM, K, proof, debug)
     if type(I)==list or type(I) == tuple:
         if not proof or K.characteristic() == 0:
@@ -432,7 +432,7 @@ cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
         return Ml[:ni], Sp
 
 cpdef invariants(FQM, use_reduction, proof = True, debug = 0):
-    print 'use_reduction = ', use_reduction
+    #print 'use_reduction = ', use_reduction
     I = cython_invariants(FQM, use_reduction, proof, debug)
     if type(I) == list or type(I) == tuple:
         Ml, Sp = I

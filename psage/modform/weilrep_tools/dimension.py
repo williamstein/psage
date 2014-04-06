@@ -172,7 +172,7 @@ class VectorValuedModularForms(SageObject):
                 self._M = self._g.finite_quadratic_module()
             dim = self.dimension(k, True) - self._alpha4
             corr = weight_one_half_dim(self._M, self._use_reduction)
-            print "weight one half: {0}".format(corr)
+            #print "weight one half: {0}".format(corr)
             dim += corr
         else:
             dim = self.dimension(k,ignore)-self._alpha4

@@ -21,7 +21,7 @@ def invariants_eps(FQM, TM, use_reduction = False, debug = 0):
     d = [0,0]
     if V.dimension() != 0:
         el = list()
-        M = Matrix(K, V.ambient_module().dimension())
+        M = Matrix(V.base_ring(), V.ambient_module().dimension())
         if eps:
             for v in inv[0]:
                 vv = v.c_list()

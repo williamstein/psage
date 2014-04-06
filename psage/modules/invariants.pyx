@@ -386,7 +386,7 @@ cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
         K = GF(p)
     else:
         if K == None:
-            K = CyclotomicField(lcm(4,FQM.level()))
+            K = CyclotomicField(lcm(8,FQM.level()))
     #print K
     I = cython_invariants_matrices(FQM, K, proof, debug)
     if type(I)==list or type(I) == tuple:

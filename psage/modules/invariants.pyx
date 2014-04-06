@@ -194,7 +194,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 s = I
         z = pr**((q-1)/l)
         A = Integer(FQM.order())
-        print A
+        #print A
         if A.is_square():
             w = K(sqrt(A))
         else:
@@ -225,7 +225,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             if s.parent() != ZZ:
                 z8 = L.zeta(8)
                 sl = z8**(-FQM.signature())
-            print sl
+            # print sl
             wl = L(FQM.order()).sqrt()
             table0 = [sl*(zl**p)/wl for p in range(l)]
             if debug > 0: print table0
@@ -416,7 +416,7 @@ cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
         NN = M.matrix_from_rows(range(ni,N.dimensions()[0]))
         V1 = []
         for v in Sp.basis():
-            print v
+            if debug > 0: print v
             vv = vector([x.rational_reconstruction() for x in v])
             a = N*vv-vv
             b = NN*vv

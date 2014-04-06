@@ -166,7 +166,7 @@ class VectorValuedModularForms(SageObject):
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
         return dim
 
-    def dimension_cusp_forms(self,k,ignore=False, no_inv = False):
+    def dimension_cusp_forms(self, k, ignore=False, no_inv = False):
         if k == Integer(3)/2:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
@@ -176,7 +176,7 @@ class VectorValuedModularForms(SageObject):
             dim += corr
         else:
             dim = self.dimension(k,ignore)-self._alpha4
-        if k==Integer(2) and not no_inv:
+        if k == Integer(2) and not no_inv:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
             if self._M.level() == 1:

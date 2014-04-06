@@ -56,7 +56,7 @@ include "stdsage.pxi"
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector #, sage_malloc, sage_free, ZZ
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector, CC #, sage_malloc, sage_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 
@@ -240,20 +240,16 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     if 0 == q:
         if isinstance(K,NumberField_cyclotomic):
             if debug > 0: print 'cyclotomic'
+            o = K.gen().multiplicative_order()
+            K = CyclotomicField(o, embedding=CC(QQbar.zeta(o)))
             z = K.gen()
-            o = z.multiplicative_order()
             if not Integer(l).divides(o):
                 raise ValueError("K has to contain {0}th root of unity.".format(l))
             z = z**(Integer(o)/Integer(l))
             # ensure we have the correct sqrt of FQM.order()
-            CF = z.complex_embeddings()[0].parent()
-            for i, a in enumerate(z.complex_embeddings()):
-                if a.argument() > 0 and abs((a.argument() - CF(2)*CF.pi()/CF(l)).real()) < (CF(2)*CF.pi()/CF(2*l)).real():
-                    print "found", a
-                    print "w = ",  w.complex_embeddings()[i]
-                    if not w.complex_embeddings()[i].real().sign() > 0:
-                        print w, w.complex_embeddings()[i]
-                        w = -w
+            w = K(FQM.order()).sqrt()
+            if w.complex_embedding().real().sign() < 0:
+                w = -w
             if 1 == s2: 
                 table = [s*((z**p) + (z**p).conjugate())/w for p in range(l)]
             else:
@@ -361,7 +357,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             for i in range(n):
                 M[i,j] = table0[-B(Ml[i][0],Ml[j][0], JJ, ed) % l]
                 if Ml[j][2] == 2:
-                    M[i,j] += table0[B(Ml[i][0],Ml[j][0], JJ, ed) % l]
+                    eps = 1 if s2 == 1 else -1
+                    M[i,j] += eps*table0[B(Ml[i][0],Ml[j][0], JJ, ed) % l]
         if debug > 1: print table0, M
         R = (Ml, ni, U, V, M)
         if debug > 0: print "Matrix M: {0}".format(cputime(tt))

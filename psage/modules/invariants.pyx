@@ -134,7 +134,7 @@ cdef int B(int i, int j, int **JJ, list ed):
             res = res + ll[ii]*kk[jj]*JJ[ii][jj]
     return res
 
-cpdef cython_invariants_dim(FQM, use_reduction = True, debug=0):
+cpdef cython_invariants_dim(FQM, use_reduction = True, proof = False, debug=0):
     if FQM.signature() % 2 != 0:
         return 0
     dim = 0
@@ -149,17 +149,17 @@ cpdef cython_invariants_dim(FQM, use_reduction = True, debug=0):
                 elif C.level() != 1:
                     N = N + C
             if dim == 0:
-                dim = cython_invariants_dim(N,use_reduction,debug)
+                dim = cython_invariants_dim(N, use_reduction, proof, debug)
             else:
-                dim = dim*cython_invariants_dim(N,use_reduction,debug)
+                dim = dim*cython_invariants_dim(N, use_reduction ,proof, debug)
             if dim == 0:
                 return 0
     else:
-        Sp = cython_invariants(FQM, use_reduction, debug)[1]
+        Sp = cython_invariants(FQM, use_reduction, proof, debug)[1]
         dim = dim + Sp.dimension()
     return dim
 
-cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H = False, ):
+cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H = False):
     cdef int i, j = 0
     cdef int l = int(FQM.level())
     if debug > 1: print "l = ", l
@@ -373,7 +373,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
 
     return R
 
-cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
+cpdef cython_invariants(FQM, use_reduction = True, proof = True, debug=0, K = None):
     if use_reduction and K == None:
         found = False
         p = FQM.level()
@@ -431,7 +431,7 @@ cpdef cython_invariants(FQM, use_reduction, proof = True, debug=0, K = None):
     else:
         return Ml[:ni], Sp
 
-cpdef invariants(FQM, use_reduction, proof = True, debug = 0):
+cpdef invariants(FQM, use_reduction = True, proof = True, debug = 0):
     #print 'use_reduction = ', use_reduction
     I = cython_invariants(FQM, use_reduction, proof, debug)
     if type(I) == list or type(I) == tuple:

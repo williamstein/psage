@@ -44,7 +44,7 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
             except:
                 print "Error occured for ", FQM.jordan_decomposition().genus_symbol()
         else:
-            d = V.dimension()
+            d = [V.dimension(), 0]
     if debug > 1: print d
     return d
 

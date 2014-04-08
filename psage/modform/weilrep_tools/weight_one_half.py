@@ -1,4 +1,4 @@
-def invariants_eps(FQM, TM, use_reduction = False, debug = 0):
+def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
     eps = True
     if TM != None and FQM != None:
         TMM = TM+FQM
@@ -12,7 +12,7 @@ def invariants_eps(FQM, TM, use_reduction = False, debug = 0):
         debug2=debug
     else:
         debug2=0
-    inv = invariants(TMM, use_reduction, debug2)
+    inv = invariants(TMM, use_reduction, proof, debug2)
     if debug > 1: print inv
     if type(inv) in [list,tuple]:
         V = inv[1]
@@ -48,7 +48,7 @@ def invariants_eps(FQM, TM, use_reduction = False, debug = 0):
     if debug > 1: print d
     return d
 
-def weight_one_half_dim(FQM, use_reduction, debug = 0, local=True):
+def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, local=True):
     N = Integer(FQM.level())
     if not N % 4 == 0:
         return 0
@@ -77,7 +77,7 @@ def weight_one_half_dim(FQM, use_reduction, debug = 0, local=True):
                             TN = D
                         elif D.level() != 1:
                             TN = TN + D
-                    dd1 = invariants_eps(N, TN, use_reduction, debug)
+                    dd1 = invariants_eps(N, TN, use_reduction, proof, debug)
                     if debug > 1: print "dd1 = {}".format(dd1)
                     if dd1 == [0,0]:
                         dd = [0,0]
@@ -95,5 +95,5 @@ def weight_one_half_dim(FQM, use_reduction, debug = 0, local=True):
                     if debug > 1: print "dd = {0}".format(dd)
                 d += dd[0]
             else:
-                d += invariants_eps(FQM, TM, use_reduction, debug)[0]
+                d += invariants_eps(FQM, TM, use_reduction, proof, debug)[0]
     return d

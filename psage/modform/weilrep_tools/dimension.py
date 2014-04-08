@@ -158,7 +158,7 @@ class VectorValuedModularForms(SageObject):
         if debug > 0: print g2, g2.parent()
         g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
-        if debug > 0: print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * pi * i * (2 * k + s) / Integer(8)))
+        if debug > 0: print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8)))
         alpha1 = RR(d) / RR(4) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8))) * g2)
         if debug > 0: print alpha1
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * CC.pi() * CC(0,1) * (4 * k + 3 * s - 10) / 24)) * (g1+g3))

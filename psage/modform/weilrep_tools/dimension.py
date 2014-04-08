@@ -101,7 +101,7 @@ class VectorValuedModularForms(SageObject):
     def finite_quadratic_module(self):
         return self._M
 
-    def dimension(self,k,ignore=False):
+    def dimension(self,k,ignore=False, debug = 0):
         if k < 2 and not ignore:
             raise NotImplementedError("k has to >= 2")
         s = self._signature
@@ -130,16 +130,16 @@ class VectorValuedModularForms(SageObject):
         CC = ComplexField(prec)
         d = self._d
         m = self._m
-        #print d,m
+        if debug > 0: print d,m
             
         if self._alpha3 == None:
             if self._aniso_formula:
                 self._alpha4 = 1
-                self._alpha3 = -sum([BB(a)*m for a,m in self._v2.iteritems() if a != 0])
+                self._alpha3 = -sum([BB(a)*mm for a,mm in self._v2.iteritems() if a != 0])
                 #print self._alpha3
                 self._alpha3 += Integer(d) - Integer(1) - self._g.a5prime_formula()
                 #print self._alpha3, self._g.a5prime_formula()
-                self._alpha3 = self._alpha3/2
+                self._alpha3 = self._alpha3/RR(2)
             else:
                 self._alpha3 = sum([(1-a)*mm for a,mm in self._v2.iteritems() if a != 0])
                 #print self._alpha3
@@ -149,29 +149,31 @@ class VectorValuedModularForms(SageObject):
                 self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
         alpha3 = self._alpha3
         alpha4 = self._alpha4
-        #print alpha3, alpha4
+        if debug > 0: print alpha3, alpha4
         g1=M.char_invariant(1)
         g1=CC(g1[0]*g1[1])
         #print g1
         g2=M.char_invariant(2)
         g2=RR(real(g2[0]*g2[1]))
-        #print g2, g2.parent()
+        if debug > 0: print g2, g2.parent()
         g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
-        #print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * pi * i * (2 * k + s) / Integer(8)))
-        alpha1 = RR(d) / RR(4) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / Integer(8))) * g2)
-        #print alpha1
-        alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
-        #print alpha1, alpha2, g1, g2, g3, d, k, s
-        dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
-        return dim
+        if debug > 0: print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * pi * i * (2 * k + s) / Integer(8)))
+        alpha1 = RR(d) / RR(4) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8))) * g2)
+        if debug > 0: print alpha1
+        alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * CC.pi() * CC(0,1) * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
+        if debug > 0: print alpha1, alpha2, g1, g2, g3, d, k, s
+        dim = real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3)
+        if debug > 0:
+            print dim
+        return round(dim)
 
     def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):
         if k == Integer(3)/2:
-            if self._M == None:
-                self._M = self._g.finite_quadratic_module()
             dim = self.dimension(k, True) - self._alpha4
             if not test_positive or dim <= 0:
+                if self._M == None:
+                    self._M = self._g.finite_quadratic_module()
                 corr = weight_one_half_dim(self._M, self._use_reduction, proof = proof)
                 #print "weight one half: {0}".format(corr)
                 dim += corr

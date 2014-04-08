@@ -166,13 +166,13 @@ class VectorValuedModularForms(SageObject):
         dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3))
         return dim
 
-    def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False):
+    def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):
         if k == Integer(3)/2:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
             dim = self.dimension(k, True) - self._alpha4
             if not test_positive or dim <= 0:
-                corr = weight_one_half_dim(self._M, self._use_reduction)
+                corr = weight_one_half_dim(self._M, self._use_reduction, proof = proof)
                 #print "weight one half: {0}".format(corr)
                 dim += corr
         else:

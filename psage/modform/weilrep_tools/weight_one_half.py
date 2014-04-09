@@ -23,26 +23,27 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
         el = list()
         M = Matrix(V.base_ring(), V.ambient_module().dimension())
         if eps:
+            f = 1 if TMM.signature() % 4 == 0 else -1
             for v in inv[0]:
                 vv = v.c_list()
                 vv[0] = -vv[0]
                 vv = TMM(vv,can_coords=True)
                 if inv[0].count(vv) > 0:
-                    el.append(inv[0].index(vv))
+                    el.append((inv[0].index(vv),1))
                 else:
-                    el.append(inv[0].index(-vv))
-            for a in el:
-                M[el[a],a]=1
-            if debug > 1: print M
+                    el.append((inv[0].index(-vv),f))
+            for i in range(len(el)):
+                M[el[i][0],i] = el[i][1]
+            if debug > 1: print "M={0}, V={1}".format(M, V)
             try:
                 KM = (M-M.parent().one()).kernel_on(V)
-                if debug > 1: print KM
+                if debug > 1: print "KM for ev 1 = {0}".format(KM)
                 d[0] = KM.dimension()
                 KM = (M+M.parent().one()).kernel_on(V)
-                if debug > 1: print KM
+                if debug > 1: print "KM for ev -1 = {0}".format(KM)
                 d[1] = KM.dimension()
             except:
-                print "Error occured for ", FQM.jordan_decomposition().genus_symbol()
+                raise RuntimeError("Error occured for {0}".format(FQM.jordan_decomposition().genus_symbol()), M, V)
         else:
             d = [V.dimension(), 0]
     if debug > 1: print d

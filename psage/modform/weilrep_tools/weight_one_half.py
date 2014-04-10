@@ -83,16 +83,13 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
                     if dd1 == [0,0]:
                         dd = [0,0]
                         break
-                    ddtmp = copy(dd)
-                    if dd[0] == 0:
-                        ddtmp[0] = dd1[0]
+                    if dd == [0,0]:
+                        dd = dd1
                     else:
+                        ddtmp = copy(dd)
                         ddtmp[0] = dd[0]*dd1[0] + dd[1]*dd1[1]
-                    if dd[1] == 0:
-                        ddtmp[1] = dd1[1]
-                    else:
                         ddtmp[1] = dd[0]*dd1[1] + dd[1]*dd1[0]
-                    dd = ddtmp
+                        dd = ddtmp
                     if debug > 1: print "dd = {0}".format(dd)
                 d += dd[0]
             else:

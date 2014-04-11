@@ -134,7 +134,7 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 
 from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par,SMAT_cplx_par_dp
 
-cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
+cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1,int verbose=0):
     r"""
     Evaluate a Maass form
     """
@@ -172,6 +172,8 @@ cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
         #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     else:
         x3 = x2; y3=y2
+    if verbose>0:
+        print "x3,y3=",x3,y3
     #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     res=0
     twopi=RF(2)*RF.pi()
@@ -183,18 +185,22 @@ cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
         arx=twopi*x3
         ary=twopi*y3
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*fun(arx*n)
+            term=besselk_dp(R,ary*n,pref=1)*fun(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
         res = res*sqrt(y3)
     else:
         arx=twopi*x3
         ary=twopi*y3
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*cexpi(arx*n)
-            res=res+F._coeffs[fi][cj][n]*term
+            term=besselk_dp(R,ary*n,pref=1)
+            if verbose>0:
+                print "term0 =",term
+                print "term2 =",(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
+            res = res + term*(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
         res = res*sqrt(y3)
     ## we have trivial character here...
-    return res*exp(RR.pi()*R*0.5)
+    # Recall that we sum larger numbers (with the prefactor in there to avoid cancellation)
+    return res*exp(-RR.pi()*R*0.5)
 
 
 cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):

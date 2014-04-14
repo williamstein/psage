@@ -3517,7 +3517,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                             name = "Gamma_0^0({0},{1})".format(N,m)
                             break
                 
-                if name=='' and mu==N and self.ncusps()==1 and mu<=4: # for larger mu there is more than one conjugate group of this type.
+                if name=='' and mu==N and self.ncusps()==1 and mu<=3: # for larger mu there is more than one conjugate group of this type.
                     name='Gamma^{0}'.format(N)
         if name=='':
             G = None

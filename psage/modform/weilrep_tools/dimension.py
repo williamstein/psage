@@ -168,7 +168,10 @@ class VectorValuedModularForms(SageObject):
             print dim
         if abs(dim-round(dim)) > 0.001:
             raise RuntimeError("Error too large in dimension formula")
-        return round(dim)
+        dim = round(dim)
+        if dim < 0:
+            raise RuntimeError("Negative dimension!")
+        return 
 
     def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):
         if k == Integer(3)/2:
@@ -188,6 +191,8 @@ class VectorValuedModularForms(SageObject):
                 return dim + 1
             dinv = cython_invariants_dim(self._M,self._use_reduction)
             dim = dim + dinv
+        if dim < 0:
+            raise RuntimeError("Negative dimension!")
         return dim
         
 def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):

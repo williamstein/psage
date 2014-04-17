@@ -166,6 +166,8 @@ class VectorValuedModularForms(SageObject):
         dim = real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3)
         if debug > 0:
             print dim
+        if abs(dim-round(dim)) > 0.001:
+            raise RuntimeError("Error too large in dimension formula")
         return round(dim)
 
     def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):

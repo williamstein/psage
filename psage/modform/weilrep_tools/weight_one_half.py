@@ -81,18 +81,23 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
                     dd1 = invariants_eps(N, TN, use_reduction, proof, debug)
                     if debug > 1: print "dd1 = {}".format(dd1)
                     if dd1 == [0,0]:
+                        # the result is multiplicative
+                        # a single [0,0] as a local result
+                        # yields [0,0] in the end
+                        # and we're done here
                         dd = [0,0]
                         break
-                    ddtmp = copy(dd)
-                    if dd[0] == 0:
-                        ddtmp[0] = dd1[0]
+                    if dd == [0,0]:
+                        # this is the first prime
+                        dd = dd1
                     else:
+                        # some basic arithmetic ;-)
+                        # 1 = 1*1 = (-1)(-1)
+                        # -1 = 1*(-1) = (-1)*1
+                        ddtmp = copy(dd)
                         ddtmp[0] = dd[0]*dd1[0] + dd[1]*dd1[1]
-                    if dd[1] == 0:
-                        ddtmp[1] = dd1[1]
-                    else:
                         ddtmp[1] = dd[0]*dd1[1] + dd[1]*dd1[0]
-                    dd = ddtmp
+                        dd = ddtmp
                     if debug > 1: print "dd = {0}".format(dd)
                 d += dd[0]
             else:

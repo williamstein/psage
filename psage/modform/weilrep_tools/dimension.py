@@ -171,7 +171,7 @@ class VectorValuedModularForms(SageObject):
         dim = round(dim)
         if dim < 0:
             raise RuntimeError("Negative dimension!")
-        return 
+        return dim
 
     def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):
         if k == Integer(3)/2:

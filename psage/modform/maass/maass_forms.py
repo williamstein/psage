@@ -743,7 +743,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             
         if set_c<>[]:
             if len(set_c)<>k:
-                raise ValueError,"Need to give a complete set of set coefficients!"
+                raise ValueError,"Need to give a complete set of set coefficients! Got dim={0} and set_c={1}".format(k,set_c)
             for j in range(k):
                 if cuspidal:
                     for c in range(self.group().ncusps()):

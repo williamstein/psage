@@ -281,6 +281,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._uid = self._get_uid()
         self.class_name='MySubgroup_class'            
         self._name = ''
+        self._latex_name = ''        
 
     def _repr_(self):
         r"""
@@ -725,35 +726,22 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._sym_perm = MyPermutation(length=self.index())            
         else:
             self._is_symmetric = False
-            # Do a generic test. First simply check if G^*=G
-            t = [ SL2Z_elt(x.a(),-x.b(),-x.c(),x.d()) in self for x in self.gens()].count(False)
             self._sym_perm = None
-            if t==0:
-                self._is_symmetric = True
+            ## We first check for symmetries of type IIa
+            self._is_symmetric = self._has_symmetry_type_IIa(verbose)
+            if self._is_symmetric:
                 self._sym_perm = MyPermutation(length=self.index())
-                self._symmetry_map = SL2Z_elt(1,0,0,1)            
-            if self._sym_perm == None:
-                # Then see if it conjugate via some map A which is not identity
-                # A = S:
-                t = [ SL2Z_elt(x.d(),x.c(),x.b(),x.a()) in self for x in self.gens()].count(False)
-                if t == 0:
-                    self._is_symmetric = True
-                    self._sym_perm = self.permS
-                    self._symmetry_map = SL2Z_elt(0,-1,1,0)
-            if self._sym_perm == None: 
-                # A = T^n
-                if verbose>0:
-                    print "Checking symmetry with conjugation of T^n!"
-                for n in range(1,self.generalised_level()+1):
-                    t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
-                    if t == 0:
-                        self._is_symmetric = True
-                        self._sym_perm = self.permT**n
-                        self._symmetry_map = SL2Z_elt(1,n,0,1)
-                        if verbose>0:
-                            print "is symmetric with T^{0}".format(n)
-                        break
-            if self._sym_perm == None and force_check==True:
+                A = self._symmetry_type_IIa[0] # = AA*J
+                self._symmetry_map =  SL2Z_elt(-A.a(),A.b(),-A.c(),A.d())
+            else:
+                ## Check more complicated symmetry of type IIb:
+                self._is_symmetric = self._has_symmetry_type_IIa(verbose)
+                if self._is_symmetric:
+                    self._sym_perm = MyPermutation(length=self.index())
+                    A = self._symmetry_type_IIa[0][2] 
+                    ## A^-1 T^n G* T^-n A = G
+                    self._symmetry_map =  SL2Z_elt(-A.a(),A.b(),-A.c(),A.d())                
+            if not self._sym_perm and force_check==True:
                 if verbose>0:
                     print "Checking symmetry with conjugation of general maps!"
                 # Check if we are symmetric with some other map
@@ -769,8 +757,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 else:
                     self._is_symmetric = False
                     self._sym_perm = MyPermutation(length=self.index())
-            if self._symmetry_map == None and isinstance(self._sym_perm,MyPermutation):
-                self._symmetry_map = self.permutation_action(self._sym_perm)
+            if self._sym_perm == None and self._symmetry_map<>None:
+                self._sym_perm = self.permutation_action(self._symmetry_map)
+            
         if ret_map==1:
             return self._is_symmetric,self._symmetry_map
         else:
@@ -794,7 +783,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 self._translational_symmetry = -1 
                 if self._verbose>0:
                     print "Checking symmetry with conjugation of T^n!"
-                for n in range(1,self.cusp_width((1,0))-1):
+                for n in range(1,self._cusp_data[0]['width']):
                     t = [ SL2Z_elt(x.a()+n*x.c(),x.b()+n*(x.d()-x.a())-n*n*x.c(),x.c(),x.d()-n*x.c()) in self for x in self.gens()].count(False)
                     if t == 0 and SL2Z_elt(1,2*n,0,1) in self:
                         self._translational_symmetry = n  # symmetry z -> n-bar(z) given by J*T^n
@@ -814,12 +803,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self._checked_symmetry_type_Ia == 1:
             return self._symmetry_type_Ia <> []
-        for n in range(1,self.cusp_width(0)+1):
+        for n in range(1,self._cusp_data[0]['width']+1):
             Tn = SL2Z_elt(1,n,0,1)
             Tni = SL2Z_elt(1,-n,0,1)
             t = [ Tn*x*Tni in self for x in self.generators_as_slz_elts()].count(False)
             if t==0 and Tn not in self:
-                self._symmetry_type_Ia.append(Matrix(ZZ,2,2,[1,n,0,1]))
+                self._symmetry_type_Ia.append(SL2Z_elt(1,n,0,1))
         self._checked_symmetry_type_Ia = 1
         return self._symmetry_type_Ia <> []
 
@@ -835,7 +824,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if self._checked_symmetry_type_Ib == 1:
             return self._symmetry_type_Ib <> []
         Gs = self.generators_as_slz_elts()
-        for n in range(0,self.cusp_width(0)+1):
+        for n in range(0,self._cusp_data[0]['width']):
             Tn = SL2Z_elt(1,n,0,1)
             for j in range(1,self.ncusps()):
                 A = self.cusp_normalizer(j); Ai = A.inverse()
@@ -846,17 +835,19 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     if verbose>0:
                         print "Check B=T^{0}A_{1} \t\t=\t {2}".format(n,j,B)
                     t = [ B*x*Bi in self for x in Gs].count(False)
+                    if verbose>0:
+                        print [ B*x*Bi in self for x in Gs]
                     if t==0 and B not in self:
-                        self._symmetry_type_IIb.append((j,n,Matrix(ZZ,2,2,[B.a(),B.b(),B.c(),B.d()])))
+                        self._symmetry_type_IIb.append((j,n,SL2Z_elt(B.a(),B.b(),B.c(),B.d())))
                     # Checking after conjugation by J:
                     B = SL2Z_elt(-B.a(),B.b(),B.c(),-B.d())
                     Bi = B.inverse()
                     t = [ B*x*Bi in self for x in Gs].count(False)
                     if verbose>0:
-                        print "Check JBJ=JT^{0}A_{1}J \t=\t {2}".format(n,j,B)
+                        print "Check B=T^{0}A^-1_{1}\t\t =\t {2}".format(n,j,B)
                         print "tests:",t
                     if t==0 and B not in self:
-                        s = (j,-n,Matrix(ZZ,2,2,[B.a(),B.b(),B.c(),B.d()]))
+                        s = (j,-n,SL2Z_elt(B.a(),B.b(),B.c(),B.d()))
                         if s not in self._symmetry_type_IIb:
                             self._symmetry_type_IIb.append(s)
         self._checked_symmetry_type_Ib = 1
@@ -868,18 +859,18 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         OUTPUT:
 
-        - k -- integer >=0 if we have T^k G T^-k=G and k=-1 if no such exist.
+        - k -- integer >=0 if we have T^k JGJ T^-k=G and k=-1 if no such exist.
         
         """
         if self._checked_symmetry_type_IIa == 1:
             return self._symmetry_type_IIa <> []
         Gs = self.reflected_group().generators_as_slz_elts()
-        for n in range(1,self.cusp_width(0)+1):
+        for n in range(0,self._cusp_data[0]['width']):
             Tn = SL2Z_elt(1,n,0,1)
             Tni = SL2Z_elt(1,-n,0,1)
             t = [ Tn*x*Tni in self for x in Gs].count(False)
             if t==0:
-                A = Matrix(ZZ,2,2,[-1,n,0,1])
+                A = GL2Z_elt(-1,n,0,1)
                 self._symmetry_type_IIa.append(A)
         self._checked_symmetry_type_IIa = 1
         return self._symmetry_type_IIa <> []
@@ -896,97 +887,36 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if self._checked_symmetry_type_IIb == 1:
             return self._symmetry_type_IIb <> []
         Gs = self.reflected_group().generators_as_slz_elts()
-        for n in range(0,self.cusp_width(0)):
-            Tn = SL2Z_elt(1,n,0,1)
-            for j in range(self.ncusps()):
-                A = self.cusp_normalizer(j)
+        for j in range(1,self.ncusps()):
+            A = self.cusp_normalizer(j)
+            for n in range(0,self._cusp_data[0]['width']):
+                Tn = SL2Z_elt(1,n,0,1)
                 B = Tn*A
                 Bi = B.inverse()
-            if verbose>0:
-                print "Tn=",Tn
-                print "Check n={0} and j={1} map ={2}".format(n,j,B)
-            t = [ B*x*Bi in self for x in Gs].count(False)
-            #print "t0=",t
-            if t==0:
-                s = (j,n,Matrix(ZZ,2,2,[-B.a(),B.b(),-B.c(),B.d()]))
-                if s not in self._symmetry_type_IIb:
-                    self._symmetry_type_IIb.append(s)
-            t = [ Bi*x*B in self for x in Gs].count(False)
-            #print "t1=",t
-            if t==0:
-                s = (-j,n,Matrix(ZZ,2,2,[-Bi.a(),Bi.b(),-Bi.c(),Bi.d()]))
-                if s not in self._symmetry_type_IIb:
-                    self._symmetry_type_IIb.append(s)
+                if verbose>0:
+                    print "Tn=",Tn
+                    print "Check n={0} and j={1} map ={2}".format(n,j,B)
+                t = [ B*x*Bi in self for x in Gs].count(False)
+                #  print "t0=",t
+                if t==0:
+                    s = (j,n,GL2Z_elt(-B.a(),B.b(),-B.c(),B.d()))
+                    if s not in self._symmetry_type_IIb:
+                        self._symmetry_type_IIb.append(s)
+                t = [ Bi*x*B in self for x in Gs].count(False)
+                # print "t1=",t
+                if t==0:
+                    s = (-j,n,GL2Z_elt(-Bi.a(),Bi.b(),-Bi.c(),Bi.d()))
+                    if s not in self._symmetry_type_IIb:
+                        self._symmetry_type_IIb.append(s)
 #t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
         self._checked_symmetry_type_IIb = 1
         return self._symmetry_type_IIb <> []
 
 
-     
-            
-    # def has_reflectional_symmetry(self,verbose=0):
-    #     r"""
-    #     Check if self has a symmetry of the form A**-1 G^* A = G 
-
-
-    #     OUTPUT:
-
-    #     - k -- integer >=0 if we have T^kG^*T^-k=G and k=-1 if no such exist.
-        
-    #     """
-    #     if self._reflectional_symmetry == None:
-    #         self._reflectional_symmetry = [] 
-    #         if self.is_Gamma0():
-    #             self._reflectional_symmetry = [SL2Z_elt(1,0,0,1)]  # symmetry z -> -bar(z) given by T^0
-    #         else:
-    #             if verbose>0:
-    #                 print "Checking symmetry with conjugation of J*T^n!"
-    #             for n in range(0,self.generalised_level()+1):
-    #                 #print "Check n={0}".format(n)
-    #                 t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
-    #                 if verbose>0:
-    #                     print "J*T^n G T^-n*J = G with n={0} is True:{1}".format(n,t==0)
-    #                 if t == 0:
-    #                     self._reflectional_symmetry = [SL2Z_elt(1,n,0,1)]  # symmetry z -> n-bar(z) given by J*T^n
-    #                     break
-    #             # We now check if there are any reflections with respect to the cusps.
-    #             Gp = self.reflected_group()
-    #             for c in range(self.ncusps()):
-    #                 A = self.cusp_normalizer(c)
-    #                 if verbose>0:
-    #                     print "Check normalizer: {0}".format(A)
-    #                 t = [ A*x*A**-1 in self for x in Gp.generators_as_slz_elts()].count(False)
-    #                 if t==0:
-    #                     self._reflectional_symmetry.append(A)
-    #                 else:
-    #                     t = [ A**-1*x*A in self for x in Gp.generators_as_slz_elts()].count(False)
-    #                 if t==0:
-    #                     self._reflectional_symmetry.append(A**-1)
-    #                 # Check combinations...
-    #                 for j in range(1,self.cusp_width(0)):
-    #                     Tn = SL2Z_elt(1,j,0,1)
-    #                     B = Tn*A
-    #                     t0 = [ B**-1*x*B in self for x in Gp.generators_as_slz_elts()].count(False)
-    #                     t1 = [ B*x*B**-1 in self for x in Gp.generators_as_slz_elts()].count(False)
-                        
-    #     return (self._reflectional_symmetry <> None) and (self._reflectional_symmetry<>[])
-
-    # def reflectional_symmetry(self):
-    #     A = SL2Z_elt(1,0,0,1)
-    #     if self.has_reflectional_symmetry():
-    #         k = self._reflectional_symmetry
-    #         if isinstance(k,SL2Z_elt):
-    #             A = SL2Z_elt(k.a(),k.b(),k.c(),k.d())
-    #         elif isinstance(k,(int,Integer)) and k>= 0:
-    #             A = SL2Z_elt(1,k,0,1)
-    #     return A
-
-    
-
     def has_modular_correspondence(self,ret_map=False,as_2by2=False):
         r"""
         Check if we can find a modular correspondence for self. 
-        Note that a 'False' answerif we do not set force_check=True  might just mean that we didn't look hard enough
+
 
         Note: 
 
@@ -1004,17 +934,31 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self._modular_correspondences = {'tIa':l1a,'tIb':l1b,'tIIa':l2a,'tIIb':l2b}
         return sum(map(len,self._modular_correspondences.values()))
 
-    def modular_correspondence(self,t=None):
+    def modular_correspondence(self,t):
+        r"""
+        
+        """
+        if t not in ['tIa','tIIa','tIb','tIIb']:
+            raise ValueError,"Need t in 'tIa','tIIa','tIb','tIIb']"
         self.has_modular_correspondence()
-        return self._modular_correspondences.get(t,None)
+        return self._modular_correspondences.get(t)
 
     def modular_correspondence_matrix(self,t=None):
         self.has_modular_correspondence()
-        if t in ['t1a','t2a']:
+        if t in ['tIa','tIIa']:
             return self._modular_correspondences.get(t,None)
-        if t in ['t1a','t2b']:
+        if t in ['tIb','tIIb']:
             return self._modular_correspondences.get(t,None)[0][2]
-
+        ## Otherwise we take as simple as possible:
+        if t == 'all':
+            res = []
+            for t in ['tIa','tIIa','tIb','tIIb']:            
+                m = self.modular_correspondence_matrix(t)            
+        for t in ['tIa','tIIa','tIb','tIIb']:            
+            m = self.modular_correspondence_matrix(t)
+            if m<>[]:
+                return m[0]
+        
     def modular_correspondence_string(self,t=None):
         self.has_modular_correspondence()
         A = self._modular_correspondences.get('tIa',[])
@@ -1022,10 +966,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         s = ""
         if len(A)>0:
             A = A[0]
-            s = "Conjugaction by T^{0}".format(QQ(A[0,1]))
+            s = "Conjugaction by T^{0}".format(QQ(A.b()))
         elif len(B)>0:
             B = B[0]
-            s = "Reflection in Re(z)={0}".format(QQ(B[0,1])/QQ(2))
+            s = "Reflection in Re(z)={0}".format(QQ(B.b())/QQ(2))
         else:
             l = self._modular_correspondences.get('tIb',[])
             if len(l)>0:
@@ -1039,7 +983,23 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     s = "Reflection with respect to cusp {0} / shifted by T^{1}".format(ib,nb)
         return s
     
-        
+
+    def _modular_correspondence_desc(self,A,ia=None,na=None):
+        r"""
+        Get description
+        """
+        if A.determinant() == 1:
+            if A.c()==0 and ia==None:
+                return "Conjugaction by T^{0}".format(QQ(A.b()))
+            elif ia<>0:
+                return "Conjugation by T^{0}\sigma_{1}".format(na,ia)
+        else:
+            if A.c()==0 and ia==None:
+                return "Reflection in Re(z)={0}".format(QQ(A.b())/QQ(2))
+            elif ia<>0:
+                return "Reflection with respect to cusp {0} / shifted by T^{1}".format(ia,na)
+        return ""
+    
     def is_modular_correspondence(self,A,verbose=0):
         r"""
         Check if A is a modular correspondence for self. That is, if A is in PGL(2,Z) s.t. A^2 in self
@@ -1047,11 +1007,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
         """
-        if hasattr(A,"determinant"):
-            a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
-        elif hasattr(A,"a"):
-            a=A.a(); b=A.b(); c=A.c(); d=A.d()
-        else:
+        try:
+            if not hasattr(A,"a"):                
+                a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
+            else:
+                a=A.a(); b=A.b(); c=A.c(); d=A.d()
+        except TypeError:
             return False
         #if A**2 not in self: ### This is for an involution not a correspondence
         #    return False
@@ -3489,19 +3450,23 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 G = Gamma0(N)
                 if self.is_subgroup(G):
                     name = 'Gamma_0({0})'.format(N)
+                    latex_name = '\Gamma_0({0})'.format(N)                    
                 else: ## We could have Gamma^0(N) = S Gamma_0(N) S 
                     S = SL2Z_elt(0,-1,1,0)
                     t = [S*x*S in G for x in self.generators_as_slz_elts()].count(False)
                     if t==0:
                         name = 'Gamma^0({0})'.format(N); G=None ## We can't get Gamma^0 in sage
+                        latex_name = '\Gamma^0({0})'.format(N)
             if name=='' and mu == self._gammaN_index(N):
                 G = Gamma(N).as_permutation_group().to_even_subgroup()
                 name = 'Gamma({0})'.format(N)
+                latex_name = '\Gamma({0})'.format(N)                
             if name== '' and mu == self._gamma1N_index(N):
                 G = Gamma1(N).as_permutation_group().to_even_subgroup()
                 t = [x.c() % N == 0 and (x.d()% N == 1 or -x.d() % N ==1) for x in self.generators_as_slz_elts()].count(False)
                 if t == 0:
                     name = 'Gamma_1({0})'.format(N)
+                    latex_name = '\Gamma_1({0})'.format(N)
             if name == '': # Try some other alternatives
                 # Try to find if we have a Gamma_0(N,M)
                 bs = map( lambda x:x.b(), self.generators_as_slz_elts())
@@ -3515,18 +3480,27 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         t = [x.c() % N == 0 and x.b()% m == 0 for x in self.generators_as_slz_elts()].count(False)
                         if t== 0:
                             name = "Gamma_0^0({0},{1})".format(N,m)
+                            latex_name = "\Gamma_0^0({0},{1})".format(N,m)
                             break
                 
-                if name=='' and mu==N and self.ncusps()==1:
+                if name=='' and mu==N and self.ncusps()==1 and mu<=3: # for larger mu there is more than one conjugate group of this type.
                     name='Gamma^{0}'.format(N)
+                    latex_name = '\Gamma^{0}'.format(N)
         if name=='':
             G = None
         else:
             self._name = name
+            self._latex_name = latex_name            
         if get_named_group:
             return name,G
         return name
-  
+
+    def latex_name(self):
+        s = self.find_name()
+        return self._latex_name
+
+    
+    
     def _gammaN_index(self,N):
         if N==2:
             return 6

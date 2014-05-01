@@ -807,9 +807,9 @@ cdef int setV_nosym(double complex **V,
             if nvec[icusp][n]==0.0 and cuspidal==1:
                 continue
             ni=cusp_offsets[icusp]+n
+            V[ni][ni]=V[ni][ni] - kbesvec2[icusp][n]            
             if verbose>0:
                 printf("%d : K(%d,%d)=%e \n",id,icusp,n,kbesvec2[icusp][n])
-            V[ni][ni]=V[ni][ni] - kbesvec2[icusp][n]            
     if verbose>0:
         printf("%d : here2 in ranges:%d -- %d nthreads=%d\n",id,la,lb,nthreads)
         

@@ -201,10 +201,13 @@ cdef int besselk_dp_c(double *kbes,double R,double x,double prec,int pref) nogil
         RR=-R
     else:
         RR=R
-    if x<0:
-        printf(" Need x>0! Got x=%d",x)
+    if x<=0:
+        printf(" Need x>0! Got x=%g",x)
         return -1
     cdef int res
+    if x > 0.5*cppi*RR-2.0*log(prec):
+        kbes[0] = 0.0
+        return 0
     if x<R*0.7:
         res=besselk_dp_pow(RR,x,kbes,prec,pref)
         if res <> 0:
@@ -213,9 +216,9 @@ cdef int besselk_dp_c(double *kbes,double R,double x,double prec,int pref) nogil
         res = besselk_dp_rec(RR,x,kbes,prec,pref)
 
     if res == 1:
-        printf('The K-bessel routine failed (k large) for x,R=%d,%d, value=%d',x,RR,kbes[0])
+        printf('The K-bessel routine failed (k large) for x,R=%g,%g, value=%g \n',x,RR,kbes[0])
     elif res==2:
-        printf('the K-bessel routine failed (too many iterations) for x,R=%d,%d, value=%d',x,RR,kbes[0])
+        printf('the K-bessel routine failed (too many iterations) for x,R=%g,%g, value=%g',x,RR,kbes[0])
     return res
         
         

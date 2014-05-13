@@ -390,7 +390,6 @@ class MaassWaveForms (AutomorphicFormSpace):
         M=param['M']
         oldf = kwds.get('oldforms')
         norm = kwds.get('norm')
-
         do_par = kwds.get('do_par',0)
         ncpus= kwds.get('ncpus',1)
         try: 
@@ -1820,7 +1819,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 self.get_coeffs(Mset=M0,Yset=Y0,ndigs=nd,overwrite=1,norm=self._norm)
                 C1 = deepcopy(self._coeffs[0][0])
             else:
-                Y0 = self._Y
+                Y0 = self._Y*0.95
                 M0 = get_M_for_maass_dp(self._R,Y0,10**-nd)
                 C1 = deepcopy(self._coeffs[0][0])
             Y1=Y0*0.95
@@ -1830,19 +1829,22 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             er=RR(0)
             #print "C1.keys()=",C1.keys()
             #print "C2.keys()=",C2.keys()
+            if verbose>1:
+                print "Y0,Y1=",Y0,Y1
+                print "Check up to max from :",[M0/2,up_to_M0,5]
             for j in range(2,floor(max([M0/2,up_to_M0,5]))):
                 if self._coeffs[0][0].has_key(j):
                     t1=abs(C1[j]-self.C(j))
                     t2=abs(C2[j]-self.C(j))
                     t = max(t1,t2)
-                    if self._verbose>0:
+                    if verbose>0:
                         if t==t1:
-                            print "|C1-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],self._coeffs[0][j],t)
+                            print "|C1-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],self._coeffs[0][0][j],t)
                         else:
-                            print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C2[j],self._coeffs[0][j],t)
+                            print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C2[j],self._coeffs[0][0][j],t)
                 elif C1.has_key(j) and C2.has_key(j):
                     t=abs(C1[j]-C2[j])
-                    if self._verbose>0:
+                    if verbose>0:
                         print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],C2[j],t)
                         
                 if t>er:

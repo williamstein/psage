@@ -181,6 +181,76 @@ def draw_transformed_triangle_H(A,xmax=20):
     return tri
     
 
+class MyHyperbolicTriangle(HyperbolicTriangle):
+    """
+    Primitive class for hyberbolic triangle type. See ``hyperbolic_triangle?``
+    for information about plotting a hyperbolic triangle in the complex plane.
+
+      INPUT:
+
+    - ``a,b,c`` - coordinates of the hyperbolic triangle in the upper
+      complex plane
+
+    - ``options`` - dict of valid plot options to pass to constructor
+
+    EXAMPLES:
+
+    Note that constructions should use ``hyperbolic_triangle``::
+
+         sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
+         sage: print HyperbolicTriangle(0, 1/2, I, {})
+         Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
+    """
+    def __init__(self, A, B, C, options):
+        """
+        Initialize HyperbolicTriangle:
+
+        Examples::
+
+            sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
+            sage: print HyperbolicTriangle(0, 1/2, I, {})
+            Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
+        """
+        A, B, C = (CC(A), CC(B), CC(C))
+        self.path = []
+        sides = options.pop('sides',[1,2,3])
+        verbose=options.pop('verbose',0)
+        sides.sort()
+        if sides == [1]:
+            if verbose>0:
+                print "Drawing A - B!"
+            self._hyperbolic_arc(A, B, True);
+        elif sides == [2]:
+            if verbose>0:
+                print "Drawing B - C!"                
+            self._hyperbolic_arc(B, C, True);
+        elif sides == [3]:
+            if verbose>0:
+                print "Drawing C - A!"                
+            self._hyperbolic_arc(C, A, True);
+        elif sides == [1,2]:
+            if verbose>0:
+                print "Drawing A - B! & B - C!"
+            self._hyperbolic_arc(A, B, True);
+            self._hyperbolic_arc(B, C, False);
+        elif sides == [1,3]:
+            if verbose>0:
+                print "Drawing C - A! & A - B"
+            self._hyperbolic_arc(C, A,True)
+            self._hyperbolic_arc(A, B, False)
+        elif sides == [2,3]:
+            if verbose>0:
+                print "Drawing B - C! & C - A"
+            self._hyperbolic_arc(B, C,True)
+            self._hyperbolic_arc(C, A, False)            
+        else:
+            self._hyperbolic_arc(A, B,True)            
+            self._hyperbolic_arc(B, C,False)
+            self._hyperbolic_arc(C, A, False)            
+            
+        BezierPath.__init__(self, self.path, options)
+        self.A, self.B, self.C = (A, B, C)
+
 class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
     r"""
     Hyperbolic triangles in the disc model of the hyperbolic plane.
@@ -205,12 +275,47 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         self._verbose = options.pop('verbose',None)
         Z0 = options['center'] #.get('center',C(0,1))
         options.pop('center',None)
+        self._npts = options.pop('npts',10)
+        sides = options.pop('sides',[1,2,3])
         #options.pop('fill',None)
         self._options.update(options)
         self._z0=CC(Z0); self._z0bar=CC(Z0).conjugate()        
-        self._hyperbolic_arc_d(A, B, True);
-        self._hyperbolic_arc_d(B, C);
-        self._hyperbolic_arc_d(C, A);
+        verbose=self._verbose
+        sides.sort()
+        if sides == [1]:
+            if verbose>0:
+                print "Drawing A - B!"
+            self._hyperbolic_arc_d(A, B, True);
+        elif sides == [2]:
+            if verbose>0:
+                print "Drawing B - C!"                
+            self._hyperbolic_arc_d(B, C, True);
+        elif sides == [3]:
+            if verbose>0:
+                print "Drawing C - A!"                
+            self._hyperbolic_arc_d(C, A, True);
+        elif sides == [1,2]:
+            if verbose>0:
+                print "Drawing A - B! & B - C!"
+            self._hyperbolic_arc_d(A, B, True);
+            self._hyperbolic_arc_d(B, C,False);
+        elif sides == [1,3]:
+            if verbose>0:
+                print "Drawing C - A! & A - B"
+            self._hyperbolic_arc_d(C, A,True)
+            self._hyperbolic_arc_d(A, B, False)
+        elif sides == [2,3]:
+            if verbose>0:
+                print "Drawing B - C! & C - A"
+            self._hyperbolic_arc_d(B, C,True)
+            self._hyperbolic_arc_d(C, A, False)            
+        else:
+            self._hyperbolic_arc_d(A, B,True)            
+            self._hyperbolic_arc_d(B, C,False)
+            self._hyperbolic_arc_d(C, A, False)
+        #self._hyperbolic_arc_d(A, B, True);
+        #self._hyperbolic_arc_d(B, C);
+        #self._hyperbolic_arc_d(C, A);
         #BezierPath.__init__(self, self.path, options)
 
 
@@ -235,9 +340,9 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         if self._verbose>0:
             print "in plane z0,z3=",z0,z3
             print "in disc: ",w0,w3
-        npts = 10
+        npts = self._npts
         if z0 == infinity or z0==CC(infinity):
-            zm = [z3 + I*(j+0.5) for j in range(npts)]
+            zm = [z3 + CC(0,j+0.5) for j in range(npts-2)]
             wm = [self._cayley_transform(x) for x in zm]
             pts = [w3]
             pts.extend(wm)
@@ -247,7 +352,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             self._graphics.add_primitive(BezierPath([[(x.real(),x.imag()) for x in pts ]],opt))
             return 
         if z3 == infinity  or z3==CC(infinity):
-            zm = [z0 + I*(j+0.5) for j in range(npts)]
+            zm = [z0 + CC(0,j+0.5) for j in range(npts-2)]
             wm = [self._cayley_transform(x) for x in zm]
             pts = [w0]
             pts.extend(wm)
@@ -266,27 +371,37 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             zm = CC(p, r)
             self._hyperbolic_arc_d(z0, zm, first)
             self._hyperbolic_arc_d(zm, z3)
-            return
+            return                   
         else:
-            p = ((x0+x3)*(x3-x0)+(y0+y3)*(y3-y0))/(2*(x3-x0)) 
-            r = sqrt((p - x0)**2 + y0**2)  # radius of the circle in H
-            zm = ((z0+z3)/2-p)/abs((z0+z3)/2-p)*r+p  # midpoint (at least approximately) of geodesic between z0 and z3
-            t0 = CC(z0 - p).argument()
-            t3 = CC(z3 - p).argument()
-            if x0 <= x3:
-                zm = [p + r*exp(I*(t0+t*(t3-t0)/npts)) for t in range(npts+1)]
-                #print "zm=",zm
+            if abs(x0-x3)<1e-10:  ## on the same vertical line
+                xmid = (x0+x3)*0.5; h = y3-y0
+                zm = [ CC(xmid,y0+t*h/(npts-1)) for t in range(npts) ]
             else:
-                zm = [p + r*exp(I*(t0+t*(t3-t0)/npts)) for t in range(npts+1)]            
+                p = RR((x0+x3)*(x3-x0)+(y0+y3)*(y3-y0))/(2*(x3-x0)) 
+                r = RR((p - x0)**2 + y0**2).sqrt()  # radius of the circle in H
+                zm = ((z0+z3)/2-p)/abs((z0+z3)/2-p)*r+p  # midpoint (at least approximately) of geodesic between z0 and z3
+                t0 = CC(z0 - p).argument()
+                t3 = CC(z3 - p).argument()
+                if self._verbose>1:
+                    print "x0,x3=",x0,x3
+                    print "t0,t3=",t0,t3
+                    print "r=",r
+                    print "opt=",self._options
+                if x0 <= x3:
+                    zm = [p + r*CC(0,(t0+t*(t3-t0)/(npts-1))).exp() for t in range(npts)]
+                else:
+                    zm = [p + r*CC(0,(t0+t*(t3-t0)/(npts-1))).exp() for t in range(npts)]            
                 #print "zm=",zm
-            wm = [self._cayley_transform(x) for x in zm]
+                #zm.insert(0,z0)
+                #zm.append(z3)
+            pts = [self._cayley_transform(x) for x in zm]
             opt = self._options
             opt['fill']=False
-            w0 = self._cayley_transform(z0)
-            w3 = self._cayley_transform(z3)
-            pts = [w0]
-            pts.extend(wm)
-            pts.append(w3)
+            #w0 = self._cayley_transform(z0)
+            #w3 = self._cayley_transform(z3)
+
+            if self._verbose>2:
+                print "pts=",pts
             self._graphics.add_primitive(BezierPath([[(x.real(),x.imag()) for x in pts ]],opt))
             return 
             #print "z0_test=",(p+r*exp(t0*I))
@@ -300,7 +415,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             w1 = self._cayley_transform(z0)
             w2 = self._cayley_transform(z3)
             c = self._cayley_transform(CC(p,0)) # center of circle on the unit disk.
-            if self._verbose>0:
+            if self._verbose>2:
                 print "p,r=",p,r     
                 print "zm=",zm
                 #print "t=",t
@@ -345,7 +460,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
 
 @rename_keyword(color='rgbcolor')
 #@options(alpha=1,fill=False,  thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
-@options(alpha=1,  thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
+@options(alpha=1,  thickness=1, rgbcolor="black", zorder=2, linestyle='solid', model='H',fill=False)
 def my_hyperbolic_triangle(a, b, c, **options):
     """
     Return a hyperbolic triangle in the complex hyperbolic plane with points
@@ -382,13 +497,27 @@ def my_hyperbolic_triangle(a, b, c, **options):
     g = Graphics()
     g._set_extra_kwds(g._extract_kwds_for_show(options))
     model = options['model']
+    npts = options.get('npts',10)
+    sides = options.pop('sides',[1,2,3]) ## Which of the sides we will draw.
+    verbose = options.get('verbose',0)
     options.pop('model',None); options.pop('method',None)
     if model=="D":
         #g.add_primitive(HyperbolicTriangleDisc(a, b, c, **options))
+        #print "options=",options
+        options['sides']=sides
         H = HyperbolicTriangleDisc(a, b, c, **options)
         g += H()
     else:
-        g.add_primitive(HyperbolicTriangle(a, b, c, options))
+        options.pop('npts',None)
+        if sides == [1,2,3]:
+            if verbose>0:
+                print "adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
+            options.pop('verbose',0)
+            g.add_primitive(HyperbolicTriangle(a, b, c, options))
+        else:
+            options['sides']=sides
+            print "adding MyHyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
+            g.add_primitive(MyHyperbolicTriangle(a, b, c, options))                           
     g.set_aspect_ratio(1)
     return g
 

@@ -2574,13 +2574,23 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
     def cusp_representative(self,cusp,trans=False):
         r"""
-        Returm a cusp in self.cusps() which is equivalent to the given cusp.
+        Return a cusp in self.cusps() which is equivalent to the given cusp.
+
+        OUTPUT:
+
+         # If trans ==  True
+         - 'c,A' -- tuple with c a cusp and A an element of SL2Z_elt
+         # If trans =  False
+         - 'c' -- a cusp 
         
         """
         cc = Cusp(cusp)
         for x in self.cusps():
-            if self.are_equivalent(x,cc):
+            t = self.are_equivalent(x,cc)
+            if not trans and t:
                 return x
+            if trans and t:
+                return x,t
         raise ArithmeticError,"Cusp {0} is not equivalent to any representative!".format(cusp)
     
     # def cusp_equivalent_to(self,cusp):
@@ -2656,7 +2666,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             j = self._cusps.index((p,q))
             return self._cusp_data[j]['normalizer']
         else:
-            c,A=self.self.cusp_representative(cusp,trans='matrix')
+            c,A=self.cusp_representative(cusp,trans='matrix')
             p = c.numerator(); q = c.denominator()
             if A==1:
                 j = self._cusps.index((p,q))
@@ -2719,7 +2729,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         return RR(sqrt(3.0))/RR(2*maxw)
 
     @rename_keyword(color='rgbcolor')
-    @options(alpha=1, fill=True, thickness=1, rgbcolor="lightgray", \
+    @options(alpha=1, fill=True, thickness=1, rgbcolor="black", \
              zorder=2, linestyle='solid', show_pairing=False, \
              show_tesselation=True,
              method='Farey',
@@ -2751,26 +2761,36 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             raise NotImplementedError,"Pairings are only implemented for Farey symbols."
         from sage.plot.colors import rainbow
         from plot_dom import HyperbolicTriangle
-        
+        npts = options.pop('npts',10)
         L = 10000
         #if options['method']=='Farey':
         #    version = 2
         #else:
+        model = options['model']
+        verbose = options.get('verbose',0)
         ret_domain = options.pop('domain',False)
         contour_only= options.pop('contour',False)
         version = options.pop('version',0)
         circle_color = options.pop('circle_color','black')
-        #coset_reps = map(lambda x: SL2Z_elt(x[1,1],-x[0,1],-x[1,0],x[0,0]), self.farey_symbol().coset_reps())
-        #else:
-        coset_reps = self.coset_reps(version=version)
-        model = options['model']
-        verbose = options.get('verbose',0)
+        conjugate_A = options.pop('conjugate_by',SL2Z_elt(1,0,0,1)) ## We draw a conjugated fundamental domain
+        T = SL2Z_elt(1,1,0,1)
+        S = SL2Z_elt(0,-1,1,0)
+        Z = SL2Z_elt(-1,0,0,-1)        
+        if conjugate_A == None:
+            coset_reps = self.coset_reps(version=version)
+        else:
+            if verbose>0:
+                print "Conjugating by A=",conjugate_A
+            coset_reps = []
+            for x in self.coset_reps(version=version):
+                coset_reps.append(conjugate_A*x)
         if verbose>0:
             print "options=",options
         if model=="D2":
             g=draw_funddom_d(coset_reps,format,I)
         else:
             g = Graphics()
+            cntr = Graphics()
             A0 = CC(-0.5,sqrt(3.)/2)
             B0 = CC(0.5,sqrt(3.)/2)
             if model == 'D':
@@ -2790,19 +2810,54 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if verbose>0:                    
                     print "coset rep=",x
                     print "Triangle: ({0},{1},{2})".format(A,B,C)
-                g += my_hyperbolic_triangle(A, B, C, \
-                                             color=options['rgbcolor'], \
-                                             fill=options['fill'], \
-                                             alpha=options['alpha'], \
-                                             model=model)
-                
-                if model=='H' and options['show_tesselation']:
-                    g += my_hyperbolic_triangle(A, B, C, color="gray",fill=True,
+                sides = [1,2,3]                    
+                if contour_only: # and model=='H':
+                    ## See which sides we keep...
+                    # if x.c()==0: ## Have vertical side
+                    #     sides = []                    
+                    #     if x*T**-1 not in coset_reps:  
+                    #         sides.append(3)
+                    #     if x*T not in coset_reps:
+                    #         sides.append(2)
+                    #     if x*S not in coset_reps:
+                    #         sides.append(1)
+                    sides = []                    
+                    if x.c()==0:
+                        Nj = SL2Z_elt(1,0,0,1)
+                    else:
+                        p = Cusp(x.a()/x.c())
+                        Nj = self.cusp_normalizer(p)
+                    V = Nj.inverse()*x
+                    if verbose>0:
+                        print "x=",x
+                        print "V=",V
+                    if Nj*V*T**-1 not in coset_reps:  
+                        sides.append(3)
+                    if Nj*V*T not in coset_reps:
+                        sides.append(2)
+                    if Nj*V*S not in coset_reps and Z*Nj*V*S not in coset_reps:
+                        if verbose>1:
+                            print "NjVS=",Nj*V*S
+                        sides.append(1)
+                    if verbose>0:
+                            print "sides = ",sides
+
+                if sides<>[]:
+                    t = my_hyperbolic_triangle(A, B, C, \
+                                               color=options['rgbcolor'], \
+                                               fill=False, \
+                                               alpha=options['alpha'], \
+                                               thickness=options['thickness'], \
+                                               model=model, verbose=verbose,npts=npts,sides=sides)
+                    cntr += t
+                if model=='H' and options['show_tesselation'] and options.get('fill',True)==True:
+                    g += my_hyperbolic_triangle(A, B, C, color="lightgray",fill=True,
                                                 model=model)
-        if contour_only==True:
+            g+=cntr
+        if False and contour_only==True:
             # Remove interior arcs from path...
             #print "Removing interior arcs:"
-            if model == 'H' or model == 'D':
+            if model == 'D':
                 n = len(g)
                 for j in range(n-1,-1,-1):
                     if not hasattr(g[j],"path"):
@@ -2822,7 +2877,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                     continue
                                 x = CC(0,1)*(CC(x)+CC(1,0))/(CC(1,0)-CC(x))
                             #print "x=",x
-                            if self.is_interior_point(x,version=version):
+                            if self.is_interior_point(x,version=version,verbose=verbose-1):
                                 path_has_interior_pts = True
                                 if verbose>0:
                                     print "point {0} is interior!".format(x)
@@ -2836,7 +2891,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         del(g[j])
                         #print "adding path:",new_prim
                         #g.add_primitive(new_prim)
-
+                
         d = g.get_minmax_data()
         if model=='H':
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
@@ -2851,7 +2906,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r"""
         Test if x is an interior point of the desired fundamental domain of self.
         """
-        ep = 1e-8
+        ep = 1e-2
         x0 = CC(x) + CC(0,ep)
         x1 = CC(x) + CC(0,-ep)
         x2 = CC(x) + CC(ep,0)
@@ -2860,28 +2915,32 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if isinstance(z0,tuple):
             z0 = CC(z0[0],z0[1])
         if verbose>0:
-            print "Pb of {0} is {1}".format(x0,z0)
+            print "Pb of {0} is {1}; diff={2}".format(x0,z0,abs(x0-z0))
         if z0 <> x0:
             return False           
         z1 = self.pullback(x1.real(),x1.imag(),version=version)
         if isinstance(z1,tuple):
             z1 = CC(z1[0],z1[1])
         if verbose>0:
-            print "Pb of {0} is {1}".format(x1,z1)
+            print "Pb of {0} is {1}; diff={2}".format(x1,z1,abs(x1-z1))
         if z1 <> x1:
-            return False        
-        z2 = self.pullback(x2.real(),x2.imag(),version=version)
+            return False
+        try:
+            z2 = self.pullback(x2.real(),x2.imag(),version=version)
+        except OverflowError as e:
+            print "Could not pull back {0}".format(x2)
+            return False
         if isinstance(z2,tuple):
             z2 = CC(z2[0],z2[1])
         if verbose>0:
-            print "Pb of {0} is {1}".format(x2,z2)
+            print "Pb of {0} is {1}; diff={2}".format(x2,z2,abs(x2-z2))
         if z2 <> x2:
             return False
         z3 = self.pullback(x3.real(),x3.imag(),version=version)
         if isinstance(z3,tuple):
             z3 = CC(z3[0],z3[1])
         if verbose>0:
-            print "Pb of {0} is {1}".format(x3,z3)
+            print "Pb of {0} is {1}; diff={2}".format(x3,z3,abs(x3-z3))
         if z3 <> x3:
             return False
         return True

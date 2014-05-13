@@ -74,7 +74,7 @@ cdef extern from "math.h":
     int floor(double)
     double M_LN10
     double log(double)
-
+    float INFINITY
 
 cdef extern from "stdio.h":
     int snprintf (char *s, size_t maxlen, char* format, int value)
@@ -1352,8 +1352,12 @@ cdef void _apply_sl2z_map_dp(double *x,double *y,int a, int b, int c,int d):
     dr=<double>d
     den=(cr*x[0]+dr)**2+(cr*y[0])**2
     tmp1 = ar*cr*(x[0]*x[0]+y[0]*y[0])+(a*d+b*c)*x[0]+br*dr
-    x[0] = tmp1/den
-    y[0] = y[0]/den
+    if den==0:
+        y[0]=INFINITY
+        x[0]=0
+    else:
+        x[0] = tmp1/den
+        y[0] = y[0]/den
 
 
 cpdef apply_sl2r_map_dp(double xin,double yin, double a,double b,double c,double d):
@@ -1368,8 +1372,12 @@ cdef void _apply_sl2r_map_dp(double *x,double *y,double a,double b,double c,doub
     cdef double den,tmp1,tmp2
     den=(c*x[0]+d)**2+(c*y[0])**2
     tmp1 = a*c*(x[0]*x[0]+y[0]*y[0])+(a*d+b*c)*x[0]+b*d
-    x[0] = tmp1/den
-    y[0] = y[0]/den    
+    if den == 0:
+        y[0]=INFINITY
+        x[0]=0
+    else:
+        x[0] = tmp1/den
+        y[0] = y[0]/den    
     #print "x,y=",x[0],y[0]
     #return x,y
 

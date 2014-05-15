@@ -2759,6 +2759,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return self.farey_symbol().fundamental_domain(**options)
         if options['show_pairing'] and not options['method']=='Farey':
             raise NotImplementedError,"Pairings are only implemented for Farey symbols."
+        draw_circle = options.pop('draw_circle',True)
         from sage.plot.colors import rainbow
         from plot_dom import HyperbolicTriangle
         npts = options.pop('npts',10)
@@ -2897,7 +2898,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
         else:
-            if not ret_domain:
+            if not ret_domain and draw_circle:
                 g+=circle((0,0),1,edgecolor=circle_color)
             g.set_axes_range(-1, 1, -1, 1)    
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        

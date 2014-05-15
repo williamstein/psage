@@ -516,7 +516,8 @@ def my_hyperbolic_triangle(a, b, c, **options):
             g.add_primitive(HyperbolicTriangle(a, b, c, options))
         else:
             options['sides']=sides
-            print "adding MyHyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
+            if verbose>0:
+                print "adding MyHyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
             g.add_primitive(MyHyperbolicTriangle(a, b, c, options))                           
     g.set_aspect_ratio(1)
     return g

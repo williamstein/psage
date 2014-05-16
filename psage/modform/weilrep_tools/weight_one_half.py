@@ -1,4 +1,6 @@
-from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree,lcm
+from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+from psage.modules.invariants import invariants
 
 def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
     eps = True

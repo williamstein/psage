@@ -23,8 +23,8 @@ from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealFie
 import sys
 
 try:
-    from ...modules.finite_quadratic_module import FiniteQuadraticModule
-    from ...modules.invariants import cython_invariants_dim
+    from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+    from psage.modules.invariants import cython_invariants_dim
 except ImportError:
     raise
 

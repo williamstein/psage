@@ -1,4 +1,4 @@
-from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree,lcm
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree, lcm, Matrix
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from psage.modules.invariants import invariants
 

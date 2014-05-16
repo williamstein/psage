@@ -1,3 +1,5 @@
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp
+
 def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
     eps = True
     if TM != None and FQM != None:

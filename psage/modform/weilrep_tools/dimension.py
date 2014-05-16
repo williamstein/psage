@@ -20,7 +20,7 @@ AUTHORS:
 
 #from psage.modules import *
 from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp
-import sys
+#import sys
 from .weight_one_half import *
 
 try:

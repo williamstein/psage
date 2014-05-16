@@ -19,8 +19,19 @@ AUTHORS:
 #*****************************************************************************
 
 #from psage.modules import *
-from sage.all import SageObject, Integer, RR
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp
 import sys
+
+try:
+    from ...modules.finite_quadratic_module import FiniteQuadraticModule
+#    from ...modules.invariants import cython_invariants_dim
+except ImportError:
+    raise
+
+try:
+    from sage_code.fqm.genus_symbol import GenusSymbol
+except ImportError:
+    GENUS_SYMBOLS = False
 
 def BB(x):
     RF=RealField(100)
@@ -56,6 +67,8 @@ class VectorValuedModularForms(SageObject):
 
     def __init__(self, A, use_genus_symbols = False, aniso_formula = False, use_reduction = False):
         self._use_reduction = use_reduction
+        if not GENUS_SYMBOLS:
+            use_genus_symbols = False
         if use_genus_symbols:
             if isinstance(A, str):
                 g = GenusSymbol(A)
@@ -166,7 +179,7 @@ class VectorValuedModularForms(SageObject):
         dim = real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3)
         if debug > 0:
             print dim
-        if abs(dim-round(dim)) > 0.001:
+        if abs(dim-round(dim)) > 1e-6:
             raise RuntimeError("Error ({0}) too large in dimension formula".format(abs(dim-round(dim))))
         dim = round(dim)
         if k >=2 and dim < 0:

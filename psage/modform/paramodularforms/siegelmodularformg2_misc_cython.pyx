@@ -85,7 +85,7 @@ cpdef negative_fundamental_discriminants(int precision) :
             
     mpz_init(mpz_tmp)
     
-    _sig_on
+    sig_on()
     ## consider congruences mod 4
     for k from 1 <= k < precision :
         tmp = k % 16
@@ -111,7 +111,7 @@ cpdef negative_fundamental_discriminants(int precision) :
     for k from 2 <= k < precision :
         if markers[k] :
             fund_discs.append(-k)
-    _sig_off
+    sig_off()
     
     mpz_clear(mpz_tmp)
                 

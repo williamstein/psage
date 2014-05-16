@@ -352,7 +352,7 @@ cpdef mult_coeff_int_without_character(result_key,
 
     (a, b, c) = result_key
 
-    _sig_on
+    sig_on()
     for a1 from 0 <= a1 < a+1 :
         a2 = a - a1
         for c1 from 0 <= c1 < c+1 :
@@ -378,7 +378,7 @@ cpdef mult_coeff_int_without_character(result_key,
                 
                 mpz_mul(tmp, left, right)
                 mpz_add(acc, acc, tmp)
-    _sig_off
+    sig_off()
     
     mpz_set((<Integer>result).value, acc)
     
@@ -413,7 +413,7 @@ cpdef mult_coeff_generic_without_character(result_key,
 
     (a, b, c) = result_key
 
-    _sig_on
+    sig_on()
     for a1 from 0 <= a1 < a+1:
         a2 = a - a1
         for c1 from 0 <= c1 < c+1:
@@ -438,7 +438,7 @@ cpdef mult_coeff_generic_without_character(result_key,
                 if right is None : continue
                 
                 result += left*right
-    _sig_off
+    sig_off()
 
     mpz_clear(tmp)
 

@@ -56,7 +56,7 @@ include "stdsage.pxi"
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
-from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector, CC, GF, next_prime, lcm #, sage_malloc, sage_free, ZZ
+from sage.all import exp, Integer, pi, I, cputime, CyclotomicField, ZZ, is_prime_power, kronecker, vector, CC, GF, next_prime, lcm, sqrt#, sage_malloc, sage_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 
 
@@ -283,7 +283,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     t = cputime()
     cdef int** JJ = NULL
     JJ = <int**> sage_malloc(sizeof(int*) * r)
-    if JJ == NULL:
+    if JJ is NULL:
         raise MemoryError('Cannot allocate memory.')
     for i in range(r):
         JJ[i] = NULL

@@ -7,23 +7,30 @@ include "sage/rings/mpc.pxi"
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 
-cdef class SL2Z_elt(object):
+cdef class GL2Z_elt(object):
     cdef int* ent
+    cdef int det
     cdef str _str
     cpdef a(self)
     cpdef b(self)
     cpdef c(self)
     cpdef d(self)
+    cpdef determinant(self)
     cpdef is_in_Gamma0N(self,int N)
     cpdef acton(self,z)
-    cpdef _mul(self,SL2Z_elt other,int inv=?)
+    cpdef _mul(self,GL2Z_elt other,int inv=?)
     cpdef _mul_mat_id(self,Matrix_integer_dense other,int inv=?)
     cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=?)
     cdef _mul_c(self,int* other,int *res,int inv=?)
     cdef _mul_c_mpz(self,mpz_t* other,int *res,int inv=?)
     cpdef inverse(self)
-    cpdef _eq(self,SL2Z_elt other)
+    cpdef _eq(self,GL2Z_elt other)
     cpdef _pow(self,int k)
+    cpdef _conjugate(self,GL2Z_elt other)
+
+cdef class SL2Z_elt(GL2Z_elt):
+    pass
+    
 from sage.structure.sage_object cimport *
 
 cdef void _apply_sl2z_map_mpfr(mpfr_t x,mpfr_t y,int a,int b,int c,int d)

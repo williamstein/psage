@@ -24,7 +24,7 @@ import sys
 
 try:
     from ...modules.finite_quadratic_module import FiniteQuadraticModule
-#    from ...modules.invariants import cython_invariants_dim
+    from ...modules.invariants import cython_invariants_dim
 except ImportError:
     raise
 

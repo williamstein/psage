@@ -85,7 +85,7 @@ from pullback_algorithms cimport pullback_pts_cplx_dp
 from lpkbessel cimport besselk_dp_c
 from maass_forms_alg import get_coeff_fast_cplx_dp_sym #,get_M_for_maass
 from maass_forms_alg cimport set_Mv_Qv_symm,get_M_for_maass_dp_c
-from maass_forms_alg cimport get_Y_for_M_dp,get_Y_and_M_dp
+from maass_forms_alg import get_Y_from_M,get_M_and_Y
 #from maass_forms import get_primitive_p,Hecke_eigenfunction_from_coeffs
 from maass_forms import dict_depth
 
@@ -197,7 +197,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0=0,int ndig=10,int dim=
         else:
             dim=1
     NN=S.set_norm(dim)
-    Y,M0 = get_Y_and_M_dp(S,R,eps,verbose-2)
+    M0,Y = get_M_and_Y(S,R,eps,verbose-2)
     cdef int old_v=S._verbose
     if verbose>0:
         print "Y,M0=",Y,M0

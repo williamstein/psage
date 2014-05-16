@@ -55,9 +55,9 @@ cdef class anlist:
         R = ZZ['x']
         f = R([a6,a4,0,1])
         C = SmallJac(f)
-        _sig_on
+        sig_on()
         ap_dict = C.ap(0,B)
-        _sig_off
+        sig_off()
         cdef Py_ssize_t p, q, n
         cdef object v
         for p, v in ap_dict.iteritems():

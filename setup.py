@@ -36,8 +36,8 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
-              'src/ext', 'src/sage', 'src/sage/gsl', 'src'
+#             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
+            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
              ('include/csage', 'include', 'include/python',

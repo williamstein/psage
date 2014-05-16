@@ -114,7 +114,7 @@ cpdef mult_coeff_int(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, result, i
     
     (n,r) = result_key
     
-    _sig_on
+    sig_on()
     fm = 4 * m
     for n1 in range(n + 1) :
         n2 = n - n1
@@ -137,7 +137,7 @@ cpdef mult_coeff_int(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, result, i
             
             mpz_mul(tmp, left, right)
             mpz_add(acc, acc, tmp)
-    _sig_off
+    sig_off()
     
     mpz_set((<Integer>result).value, acc)
     
@@ -179,7 +179,7 @@ cpdef mult_coeff_int_weak(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, resu
     
     (n,r) = result_key
     
-    _sig_on
+    sig_on()
     fm = 4 * m
     msq = m**2
     for n1 in range(n + 1) :
@@ -203,7 +203,7 @@ cpdef mult_coeff_int_weak(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, resu
             
             mpz_mul(tmp, left, right)
             mpz_add(acc, acc, tmp)
-    _sig_off
+    sig_off()
     
     mpz_set((<Integer>result).value, acc)
     
@@ -238,7 +238,7 @@ cpdef mult_coeff_generic(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, resul
     
     (n,r) = result_key
     
-    _sig_on
+    sig_on()
     fm = 4 * m
     for n1 in range(n + 1) :
         n2 = n - n1
@@ -260,7 +260,7 @@ cpdef mult_coeff_generic(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, resul
             if right is None : continue
             
             result += left*right
-    _sig_off
+    sig_off()
 
     mpz_clear(sqrt1)
     mpz_clear(sqrt2)
@@ -288,7 +288,7 @@ cpdef mult_coeff_generic_weak(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, 
     
     (n,r) = result_key
     
-    _sig_on
+    sig_on()
     fm = 4 * m
     msq = m**2
     for n1 in range(n + 1) :
@@ -311,7 +311,7 @@ cpdef mult_coeff_generic_weak(result_key, coeffs_dict1, coeffs_dict2, ch1, ch2, 
             if right is None : continue
             
             result += left*right
-    _sig_off
+    sig_off()
     
     mpz_clear(sqrt1)
     mpz_clear(sqrt2)

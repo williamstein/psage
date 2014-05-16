@@ -69,7 +69,7 @@ def mult_parities(int bound, bint verbose=False):
         cur_parity = (last_parity+1)%2
         if verbose:
             print "loop %s (of %s);  last = %s"%(k,loops, last_len)
-        _sig_on
+        sig_on()
         for n in range(last_len):
             for j in range(len_P):
                 m = (<long long> last[n]) * (<long long> primes[j])
@@ -79,13 +79,13 @@ def mult_parities(int bound, bint verbose=False):
                     v[m] = cur_parity
                     cur[cur_ptr] = m
                     cur_ptr+=1
-        _sig_off
+        sig_off()
         last_parity = cur_parity
         last_len = cur_ptr
-        _sig_on
+        sig_on()
         for n in range(last_len):
             last[n] = cur[n]
-        _sig_off
+        sig_off()
 
     ans = [v[i] for i in range(bound)]
     sage_free(v)

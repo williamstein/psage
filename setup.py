@@ -36,8 +36,8 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
-              'src/ext', 'src/sage', 'src/sage/gsl', 'src'
+#             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
+            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
              ('include/csage', 'include', 'include/python',
@@ -118,7 +118,9 @@ ext_modules = [
               include_dirs = numpy_include_dirs),
 
     Extension('psage.modform.maass.lpkbessel',
-              ['psage/modform/maass/lpkbessel.pyx']),
+              ['psage/modform/maass/lpkbessel.pyx'],
+              libraries = ['m', 'gmp','mpfr','mpc'],
+              include_dirs = numpy_include_dirs),
 
     Extension("psage.modform.rational.modular_symbol_map",
               ["psage/modform/rational/modular_symbol_map.pyx"]),

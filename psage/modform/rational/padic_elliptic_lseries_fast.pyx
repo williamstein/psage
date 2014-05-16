@@ -312,12 +312,12 @@ cdef class pAdicLseries:
         if not force_mulmod and prec <= self.prec // 2:
             # no concerns about overflow when multiplying together two longs, then reducing modulo pp
             for j in range(start, stop):
-                _sig_on
+                sig_on()
                 s = 0
                 for a in range(1, self.p):
                     b = self.teich[a] * gamma_pow
                     s += self.measure(b, n)
-                _sig_off
+                sig_off()
                 L += (s * one_plus_T_factor).truncate(ser_prec)
                 one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
                 gamma_pow = (gamma_pow * gamma)%pp
@@ -333,13 +333,13 @@ cdef class pAdicLseries:
 
             assert prec <= self.prec, "requested precision (%s) too large (max: %s)"%(prec, self.prec)
             for j in range(start, stop):
-                _sig_on
+                sig_on()
                 s = 0
                 for a in range(1, self.p):
                     b = mulmod(self.teich_mulmod[a], gamma_pow, pp)
                     s += self.measure_mulmod(b, n, pp)
                     if s >= pp: s -= pp  # normalize
-                _sig_off
+                sig_off()
                 L += (s * one_plus_T_factor).truncate(ser_prec)
                 one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
                 gamma_pow = mulmod(gamma_pow, gamma, pp)

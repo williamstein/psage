@@ -168,7 +168,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef int max_fixed_by_R = 0
     if rfx_list<>[]:
         max_fixed_by_R = max(rfx_list)+2
-    else:
+    elif e2>0:
         max_fixed_by_R = e2 + 1
     cdef int first_non_fixed_elt = 1
     if 1 in rfx_list:
@@ -243,8 +243,9 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         ## then we can always assume R(a)<=x+2
         if verbose>1:
             print "Checking first cycle! "            
-        if pR._entries[first_non_fixed_elt-1]>max_fixed_by_R:
+        if max_fixed_by_R>0 and pR._entries[first_non_fixed_elt-1]>max_fixed_by_R:
             #raise ArithmeticError," Should not have gotten this far! p = {0}".format(pR)
+            #are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
             continue
         if verbose>1:
             print "S=",S_canonical.cycles() #print_vec(mu,Sptr)

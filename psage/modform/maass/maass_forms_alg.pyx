@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -58,6 +58,8 @@ from sage.all import find_root
 cimport numpy as cnp
 import numpy as np
 #cimport cython
+
+
 
 
 import cython
@@ -130,9 +132,9 @@ from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpf
 
 from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mpc_new
 
-from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par
+from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par,SMAT_cplx_par_dp
 
-cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
+cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1,int verbose=0):
     r"""
     Evaluate a Maass form
     """
@@ -147,20 +149,31 @@ cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
     G=F.group()
     # pullback
     if use_pb == 1:
-        x1,y1,a,b,c,d =  G.pullback(x,y)
+        x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
         #print "pullback=",x1,y1
-        #v = G.closest_vertex(x1,y1)
-        #cj= G._vertex_data[v]['cusp'] #representative[v]
-        #a,b,c,d=G._vertex_data[v]['cusp_map']
-        #if a<>1 or b<>0 or c<>0 or d<>1:
-        #    #print "apply map :",a,b,c,d
-        #    x2,y2 = apply_sl2z_map_mpfr(RF(x),RF(y),a,b,c,d)
-        #else:
-        #    x2=x1;y2=y1
-        #ca,cb = G._cusps[cj]
     else:
         x1 = x; y1 = y
-        ca=1; cb=0; cj=0
+
+    v = G.closest_vertex(x1,y1)
+    cj= G._vertex_data[v]['cusp'] #representative[v]
+    a,b,c,d=G._vertex_data[v]['cusp_map']
+    if a<>1 or b<>0 or c<>0 or d<>1:
+        x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
+    else:
+        x2=x1;y2=y1
+        # And then normalize to the correct cusp
+    ca,cb = G._cusps[cj]
+    if cj<>0:
+        a,b,c,d=G._cusp_data[cj]['normalizer']
+        wi = RF(G._cusp_data[cj]['width'])
+        x2,y2 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
+        x3 = x2/wi.sqrt()
+        y3 = y2/wi.sqrt()        
+        #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+    else:
+        x3 = x2; y3=y2
+    if verbose>0:
+        print "x3,y3=",x3,y3
     #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     res=0
     twopi=RF(2)*RF.pi()
@@ -169,19 +182,25 @@ cpdef eval_maass_lp(F,double x,double y,int fi=0,int use_pb=1):
             fun=cos
         elif F._sym_type==1:
             fun=sin
-        arx=twopi*x1
-        ary=twopi*y1
+        arx=twopi*x3
+        ary=twopi*y3
         for n in range(1,F._M0):
-            term=sqrt(y1)*besselk_dp(R,ary*n)*fun(arx*n)
+            term=besselk_dp(R,ary*n,pref=1)*fun(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
+        res = res*sqrt(y3)
     else:
-        arx=twopi*x1
-        ary=twopi*y1
+        arx=twopi*x3
+        ary=twopi*y3
         for n in range(1,F._M0):
-            term=sqrt(y1)*besselk_dp(R,ary*n)*cexpi(arx*n)
-            res=res+F._coeffs[fi][cj][n]*term
+            term=besselk_dp(R,ary*n,pref=1)
+            if verbose>0:
+                print "term0 =",term
+                print "term2 =",(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
+            res = res + term*(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
+        res = res*sqrt(y3)
     ## we have trivial character here...
-    return res*exp(RR.pi()*R*0.5)
+    # Recall that we sum larger numbers (with the prefactor in there to avoid cancellation)
+    return res*exp(-RR.pi()*R*0.5)
 
 
 cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):
@@ -244,7 +263,7 @@ cpdef whittaker_w_dp(double k,double R,double Y,int pref=0):
     return <double>rres
 
 @cython.boundscheck(False)
-cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight,int Mv[2],int Qv[2],int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
+cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
     r"""
     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
     INPUT:
@@ -271,8 +290,8 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
         raise ValueError," parameter cuspidal must be 0 or 1"
     if weight==0.0:
         raise ValueError," Use this routine only for non-zero weight!"
-    Ms=Mv[0]; Mf=Mv[1]
-    Qs=Qv[0]; Qf=Qv[1]
+    Ms=Mv[0][0]; Mf=Mv[0][1]
+    Qs=Qv[0][0]; Qf=Qv[0][1]
     pi=M_PI #<double>RealField(53).pi() #3.141592653589793238
     two=<double>(2)
     Y2pi=Y*pi*two
@@ -287,7 +306,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
     else:
         Qfak=<double>(Ql)
     if verbose>0:
-        print "Q=",Qv[0],Qv[1]
+        print "Q=",Qv[0][0],Qv[0][1]
         print "Ql=",Ql
         print "Qfak=",Qfak
     cdef double **nvec=NULL
@@ -515,7 +534,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
 
 
 @cython.boundscheck(False)
-cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
+cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
     r"""
     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
     INPUT:
@@ -540,8 +559,8 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
-    Ms=Mv[0]; Mf=Mv[1]
-    Qs=Qv[0]; Qf=Qv[1]
+    Ms=Mv[0][0]; Mf=Mv[0][1]
+    Qs=Qv[0][0]; Qf=Qv[0][1]
     pi=M_PI #<double>RealField(53).pi() #3.141592653589793238
     two=<double>(2)
     Y2pi=Y*pi*two
@@ -818,6 +837,14 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
+    if not cuspidal in [0,1]:
+        raise ValueError," parameter cuspidal must be 0 or 1"
+    if R < 0:
+        ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+        R = -R
+        set_pref = -1
+    else:
+        set_pref = 1
     pi=M_PI 
     sqrtY=sqrt(Y)
     two=<double>(2)
@@ -951,7 +978,7 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
                     Mf = Mv[icusp][1]
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                        besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1039,7 +1066,7 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
             else:
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
+                besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1138,6 +1165,12 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
+    if R < 0:
+        ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+        R = -R
+        set_pref = -1
+    else:
+        set_pref = 1
     pi=M_PI 
     sqrtY=sqrt(Y)
     two=<double>(2)
@@ -1271,7 +1304,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                     Mf = Mv[icusp][1]
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                        besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1360,7 +1393,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
             else:
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,1)
+                besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1427,6 +1460,13 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,s
     cdef double sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,Qfak
     cdef double ckbes,ctmpV,iargm,twopii,ctmp,lr,nr,besarg,pi
+    cdef int set_pref
+    if R < 0:
+        ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+        R = -R
+        set_pref = -1
+    else:
+        set_pref = 1
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
 
@@ -1523,7 +1563,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     #ypb=Ypb[icusp][jcusp][j]
                     besarg=abs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        kbes=sqrt(Ypb[icusp][jcusp][j])*besselk_dp(R,besarg,pref=1)
+                        kbes=sqrt(Ypb[icusp][jcusp][j])*besselk_dp(R,besarg,pref=set_pref)
                     else:
                         kbes=<double>1.0
                     ckbes=kbes*ef1[l][icusp][jcusp][j]
@@ -1556,7 +1596,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     kbes=<double>1.0
             else:
                 nrY2pi=nr*Y2pi
-                kbes=sqrtY*besselk_dp(R,nrY2pi,pref=1)
+                kbes=sqrtY*besselk_dp(R,nrY2pi,pref=set_pref)
             ni=Ml*icusp+n
             V[ni][ni]=V[ni][ni] - kbes
     if ef2<>NULL:
@@ -1770,19 +1810,20 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
         sage_free(tmp)
 
 
-cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):
+cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12,int do_par=0,int ncpus=1):
         r"""
         Pick the correct method...
         """
         if cusp_ev == {}:
             cusp_ev = Norm.get('cusp_ev',{})
         if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0: 
-            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
-        res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12)
+            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c,do_par=do_par,ncpus=ncpus)
+        else:
+            res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12,do_par=do_par,ncpus=ncpus)
         return res
             
 
-cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):
+cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12,int do_par=0,int ncpus=1):
     r"""
 
     An efficient method to get coefficients in the double complex case.
@@ -1965,12 +2006,18 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         alphas[j]=<double>tmpr
         if verbose>0:
             print "alphas[",j,"]=",alphas[j],type(alphas[j])
-    sig_on()
-    compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
-                          cusp_evs,alphas,Mv,Qv,Qfak,
-                          symmetric_cusps,
-                          R,Y,nc,ncols,cuspidal,verbose,0)
-    sig_off()
+#    sig_on()
+    if do_par==1 and ncpus>=1:
+        compute_V_cplx_dp_sym_par(V1,N1,Xm,Xpb,Ypb,Cvec,
+                              cusp_evs,alphas,Mv,Qv,Qfak,
+                              symmetric_cusps,
+                              R,Y,nc,ncols,cuspidal,verbose,ncpus,0)
+    else:
+        compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
+                              cusp_evs,alphas,Mv,Qv,Qfak,
+                              symmetric_cusps,
+                              R,Y,nc,ncols,cuspidal,verbose,0)
+#    sig_off()
     cdef Matrix_complex_dense VV
     #Vtmp = load("A.sobj")
     #for l from 0<=l<N1:
@@ -2058,7 +2105,12 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     sig_on()
     if verbose>0:
         print "comp_dim=",comp_dim
-    SMAT_cplx_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list)
+    if do_par<=1:
+        SMAT_cplx_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list)
+    else:
+        if verbose>0:
+            print "smat parallel!"
+        SMAT_cplx_par_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list,ncpus)
     sig_off()
     if verbose>1:
         for k in range(ncols1-num_set):
@@ -2111,7 +2163,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     #    return res[0]
     return res
 
-cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,norm_c=1):
+cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,int do_par=0,int ncpus=1):
     r"""
     An efficient method to get coefficients in the double complex case.
     """
@@ -2127,21 +2179,26 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     cdef double complex **vals_list=NULL
     cdef int nc,Ql,Qs,Qf,Ml,Ms,Mf,j,k,l,N,sym_type,i,n,r
     cdef int num_rhs=0
-    cdef double Qfak,weight
+    cdef double weight
+    cdef double *Qfak
     cdef int verbose=S._verbose
     weight = <double>RealField(53)(S.weight())
     if Q<M:
         Q=M+20
     sym_type = S._sym_type
-    if sym_type in [0,1]:
+    if sym_type == 1 or sym_type == 0:
         Ms=0;  Mf=M; Qs=1; Qf=Q
-        Qfak=<double>(Q)/<double>(2)
     else:
         Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
-        Qfak=<double>(2*Q)
     Ml=Mf-Ms+1
     Ql=Qf-Qs+1
     nc = S._group._ncusps
+    Qfak = <double*>sage_malloc(sizeof(double)*nc)
+    for i in range(nc):
+        if sym_type == 0 or sym_type==1:
+            Qfak[i] =<double>(Q)/<double>(2)
+        else:
+            Qfak[i] =<double>(2*Q)
     N = nc*Ml
     if Norm=={}:
         Norm = S.set_norm(1)
@@ -2160,7 +2217,7 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     else:
         ncols=N
     if verbose>1:
-        print "In get_coef_cplx_dp R=",R, "M=",M," Q=",Q
+        print "In get_coef_cplx_dp R=",R, "M=",M," Q=",Q,'do_par=',do_par,'ncpus=',ncpus
     if verbose>2:
         print "N=",N
         print "Vals=",Vals
@@ -2214,13 +2271,36 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     for j in range(nc):
         alphas[j]=<double>S.alpha(j)[0]
     cdef int cuspidal=1
-    cdef int Mv[2],Qv[2]
-    Mv[0]=Ms; Mv[1]=Mf
-    Qv[0]=Qs; Qv[1]=Qf
-    if weight==0.0:
-        compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+    cdef int** Mv, **Qv
+    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qv=<int**>sage_malloc(sizeof(int*)*nc)
+    for i in range(nc):
+        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
+        Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
+        Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
+    cdef int* symmetric_cusps
+    symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
+    cdef double complex* cusp_evs
+    cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+    for i in range(nc):
+        cusp_evs[i]=0
+        symmetric_cusps[i]=-1
+    if do_par==0:
+        if weight==0.0:
+            compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+        else:
+            compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     else:
-        compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+        if weight==0.0:
+            compute_V_cplx_dp_sym_par(V,N,Xm,Xpb,Ypb,Cvec,
+                              cusp_evs,alphas,Mv,Qv,Qfak,
+                              symmetric_cusps,
+                              R,Y,nc,ncols,cuspidal,verbose,ncpus,0)
+#compute_V_cplx_dp_sym_par(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+        else:
+            compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+            
     ## Try to make coefficients real if possible.
     cdef int q
     cdef double complex *sqch=NULL
@@ -3584,6 +3664,172 @@ def smallest_inf_norm(V):
     return minc
 
 
+cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
+    r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
+    using both a check that the diagonal term in the V-matrix is not too small
+    and that the truncation gives the correct accuracy.
+
+    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holds for 2piYM > R+12R^(1/3)
+    which is not proven rigorously. Furthermore, the implied constant in this estimate is assumed to be 1 (which is of course only true asymptotically).
+
+    INPUT:
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
+
+    OUTPUT:
+
+        - ``M`` -- point for truncation
+
+    EXAMPLES::
+
+
+        sage: 
+        sage: 
+
+
+    """
+    # initial value of M
+    MM=max(M0,ceil((12.0*R**0.3333+R)/RR.pi()/Y0/2.0))
+    ## initial value of Y
+    Y = min(Y0, (log(2.0)-log(eps)-0.5*log(MM)+M_PI*R*0.5)/(2*M_PI*MM))
+    if verbose>0:
+        print "MM=",MM
+        print "Y=",Y
+    #if Y<0 or Y>Y0:
+    #    raise ArithmeticError,"Could not get a good point"
+    ## Now change M if necessary
+    minm = ceil((12.0*R**0.3333+R)/RR.pi()/Y/2.0)
+    if verbose>0:
+        print "minm=",minm
+    ## Use low precision
+    try:
+        for m in range(minm+1,10000,3):
+            erest=err_est_Maasswf(Y,m,R,1)            
+            #print "erest=",erest
+            if erest<eps:
+                raise StopIteration()
+    except StopIteration:
+        Y = (log(2.0)-log(eps)-0.5*log(RR(m))+M_PI*R*0.5)/(2*M_PI*RR(m))                   
+        Y = min(Y,Y0)
+        return m,Y
+    raise Exception," No good value for truncation was found!"
+
+cpdef get_M_from_Y(double R,double Y0,int M0,double eps,int verbose=0,maxm=1000):
+    r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
+    using both a check that the diagonal term in the V-matrix is not too small
+    and that the truncation gives the correct accuracy.
+
+    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holds for 2piYM > R+12R^(1/3)
+    which is not proven rigorously. Furthermore, the implied constant in this estimate is assumed to be 1 (which is of course only true asymptotically).
+
+    INPUT:
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
+
+    OUTPUT:
+
+        - ``M`` -- point for truncation
+
+    EXAMPLES::
+
+
+        sage:
+
+    """
+    #maxm = 2000
+    ## initial value of M
+    if M0<=0:
+        M0 = 1
+    minm = ceil( (log(2.0)-log(eps)-0.5*log(M0)+RR.pi()*R*0.5)/(2*RR.pi()*Y0))
+    minm = max(M0,minm)
+    minm= max(minm,ceil((12.0*R**0.3333+R)/RR.pi()/Y0/2.0))
+    ## Use low precision
+    twopiY0=Y0*RR.pi()*2
+    if verbose>0:
+        print "M0=",M0
+        print "Y0=",Y0
+        print "minm=",minm
+    try:
+        for M in range(minm,minm+maxm):
+            ## Want to find largest Y which satisfies both estimates for the given M0
+            erest = err_est_Maasswf(Y0,M,R,1)
+            #t =besselk_dp(R,twopiY0*M,pref=1)
+            t = (log(2.0)-log(eps)-0.5*log(M0)+M_PI*R*0.5)/(2*M_PI*Y0*M0)
+            if verbose>0:
+                print "erest=",erest
+                print "t=",t
+            #print "erest=",erest
+            if erest<eps and t>1:
+                raise StopIteration()
+    except StopIteration:
+        return M
+    raise Exception," No good value for truncation was found!"
+
+cpdef  get_Y_from_M(double R,double Y0,int M0,double eps,int verbose=0,int maxny=2000):
+    r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
+    using both a check that the diagonal term in the V-matrix is not too small
+    and that the truncation gives the correct accuracy.
+
+    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holds for 2piYM > R+12R^(1/3)
+    which is not proven rigorously. Furthermore, the implied constant in this estimate is assumed to be 1 (which is of course only true asymptotically).
+
+    INPUT:
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
+
+    OUTPUT:
+
+        - ``M`` -- point for truncation
+
+    EXAMPLES::
+
+
+        sage:
+
+    """
+    #maxny = 2000
+    ## initial value of Y
+    if Y0<=0:
+        Y0 = (log(2.0)-log(eps)-0.5*log(M0)+M_PI*R*0.5)/(2*M_PI*M0)
+    #if Y<0 or Y>Y0:
+    #    raise ArithmeticError,"Could not get a good point"
+    ## Now change M 
+    #minm=ceil((12.0*R**0.3333+R)/RR.pi()/Y/2.0)
+    ## Use low precision
+    Y = Y0
+    twopim0=M0*RR.pi()*2
+    if verbose>0:
+        print "M0=",M0
+    try:
+        for yi in range(maxny):
+            Y = Y*0.995
+            ## Want to find largest Y which satisfies both estimates for the given M0
+            erest = err_est_Maasswf(Y,M0,R,1)
+            Y0 = (log(2.0)-log(eps)-0.5*log(M0)+M_PI*R*0.5)/(2*M_PI*M0)
+            #t =besselk_dp(R,twopim0*Y,pref=1)
+            #t = (log(2.0)-log(eps)-0.5*log(M0)+RR.pi()*R*0.5)/(2*RR.pi()*M0)
+            #print "erest=",erest
+            if verbose>0:
+                print "Y=",Y
+                print "errest=",erest
+                print "Y0=",Y0
+            if erest<eps and Y<Y0:
+                raise StopIteration()
+    except StopIteration:
+        return Y
+    raise Exception," No good value for Y was found. Please increase M0!"
+
+
+
 def get_M_for_maass(R,Y,eps):
     r""" Computes the  truncation point for Maass waveform with parameter R.
 
@@ -3625,7 +3871,7 @@ def get_M_for_maass(R,Y,eps):
 
     try:
         for m in range(minm+1,10000,3):
-            erest=err_est_Maasswf(Y,m)
+            erest=err_est_Maasswf(Y,m,R,1)
             #print "erest=",erest
             if erest<eps:
                 raise StopIteration()
@@ -3636,10 +3882,11 @@ def get_M_for_maass(R,Y,eps):
     raise Exception," No good value for truncation was found!"
 
 
-def err_est_Maasswf(Y,M):
+def err_est_Maasswf(Y,M,R=0,pref=1):
     r"""
     Estimate the truncated series: $|\Sum_{n\ge M} a(n) \sqrt{Y} K_{iR}(2\pi nY) e(nx)|$
-
+    we use that K_{iR}(x) = sqrt(pi/2x)e^-x to estimate the sum with
+    1/sqrt(2Y) erfc(sqrt(2piMY))
     CAVEATS:
     - we assume the Ramanujan bound for the coefficients $a(n)$, i.e. $|a(n)|\le2$.
     - error estimate holds for 2piMY >> R
@@ -3663,53 +3910,64 @@ def err_est_Maasswf(Y,M):
 
     """
     import mpmath
-    arg=mpmath.fp.pi*mpmath.fp.mpf(Y)
-    r=mpmath.fp.mpf(1)/mpmath.fp.sqrt(arg)
-    arg=arg*mpmath.fp.mpf(2*M)
-    r=r*mpmath.fp.gammainc(mpmath.fp.mpf(0.5),arg)
+    YY = mpmath.fp.mpf(Y)
+    arg=sqrt(2*mpmath.fp.pi*YY*M)
+    if pref==1:
+        f = exp(mpmath.fp.pi*R/2)/sqrt(2*YY)
+    else:
+        f = 1/sqrt(2*YY) 
+    r = f*mpmath.fp.erfc(arg)
     return r
 
-cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):
-    cdef int i,M0,MMAX=1000,m
-    cdef double Y
-    M0 = S.smallest_M0()
-    for m in range(M0,M0*MMAX):
-        Y=get_Y_for_M_dp(S,R=R,M=m,eps=eps,verbose=verbose)
-        if verbose>1:
-            print "M={0}, Y={1}".format(m,Y)
-        if Y<0:
-            continue
-        MM = get_M_for_maass_dp_c(R,Y,eps)
-        MM +=10
-        return Y,MM
-    raise ArithmeticError,"Could not find good Y and M for eps={0}".format(eps)
+# cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):
+#     cdef int i,M0,MMAX=1000,m
+#     cdef double Y
+#     M0 = S.smallest_M0()
+#     for m in range(M0,M0*MMAX):
+#         Y=get_Y_for_M_dp(R,m,eps,S.group().minimal_height(),S.group().ncusps(),verbose=verbose)
+#         if verbose>1:
+#             print "M={0}, Y={1}".format(m,Y)
+#         if Y<0:
+#             continue
+#         MM = get_M_for_maass_dp_c(R,Y,eps)
+#         MM +=10
+#         return Y,MM
+#     raise ArithmeticError,"Could not find good Y and M for eps={0}".format(eps)
 
 
 
-cpdef get_Y_for_M_dp(S,double R,int M,double eps,int verbose=0):
+cpdef get_Y_for_M_dp_old(double R,int M,double eps,double Y,int nc,int verbose=0):
     r"""
     Computes a value of Y for a given M for which
     the estimated error is smaller than eps
     """
-    cdef double Y=S._group.minimal_height()
-    cdef int nc = S._group._ncusps
+    #cdef double Y=S._group.minimal_height()
+    #cdef int nc = S._group._ncusps
     cdef int yi,maxny=2000
-    cdef errest,errest_old
+    cdef double errest,errest_old,minv,twopim
+    cdef int minm,m
+    twopim=<double>2.0*M_PI*<double>M
     if R<0:
         raise ValueError,"Need non-negative R! Got R={0}".format(R)
     if M<=0:
         raise ValueError,"Need positive M! Got M={0}".format(M)
     Y = Y
+    # Recall that the error estimate is only valid if 2piYM>>R
+    # this is a good lower bound for this inequality
+    minv=(12.0*R**0.3333+R)/twopim
     errest_old=1
     for yi in range(maxny):
         Y = Y*0.995
-        errest=nc*err_est_Maasswf_dp_c(Y,M)
+        errest=nc*err_est_Maasswf_dp_c(Y,M,R,1)
         if verbose>0:
             print "errest({0},{1})={2}".format(Y,M,errest)
         if errest<eps:
             break
         if errest>errest_old+eps:
             return -1  ### We need to get a larger Y
+        if Y < minv:
+            return -1
+        
         errest_old=errest
     return Y
 
@@ -3752,7 +4010,7 @@ cdef int get_M_for_maass_dp_c(double R,double Y,double eps):
     minm=ceil(minv)
     try:
         for m in range(minm+1,200000,3):
-            errest=err_est_Maasswf_dp_c(Y,m)
+            errest=err_est_Maasswf_dp_c(Y,m,R,1)
             #print "erest=",erest
             if errest<eps:
                 raise StopIteration()
@@ -3761,7 +4019,7 @@ cdef int get_M_for_maass_dp_c(double R,double Y,double eps):
     raise ArithmeticError," No good value for truncation was found! For R={0}, Y={1} and eps={2}".format(R,Y,eps)
 
 @cython.cdivision(True)
-cdef double err_est_Maasswf_dp_c(double Y,int M):
+cdef double err_est_Maasswf_dp_c(double Y,int M,double R,int pref=1):
     r"""
     Estimate the truncated series: $|\Sum_{n\ge M} a(n) \sqrt{Y} K_{iR}(2\pi nY) e(nx)|$
 
@@ -3773,7 +4031,8 @@ cdef double err_est_Maasswf_dp_c(double Y,int M):
 
     - ``Y`` -- real > 0
     - ``M``  -- integer >0
-
+    - ``R`` -- float >0
+    - ``pref`` -- integer, set to 1 if we use the normalized K-Bessel function: e^(pi*R/2)*K_iR(x)
     OUTPUT:
 
     - ``r``  -- error estimate
@@ -3788,10 +4047,13 @@ cdef double err_est_Maasswf_dp_c(double Y,int M):
 
     """
     cdef double r,arg=M_PI*Y
-    r = 1.0/sqrt(arg)
-    arg=arg*<double>(2*M)
-    cdef double incgg  # = Gamma(1/2,arg)
-    return sqrt(M_PI)*erfc(sqrt(arg))*r
+    arg=M_PI*Y*<double>(2*M)
+    #cdef double incgg  # = Gamma(1/2,arg)
+    if pref==1:
+        r = exp(R*M_PI/2.0)/sqrt(2.0*Y)
+    else:
+        r = 1.0/sqrt(2.0*Y)
+    return erfc(sqrt(arg))*r
     # mpmath.fp.gammainc(mpmath.fp.mpf(0.5),arg)*sqrt(pi)/sqrt(arg)
 
 
@@ -5027,9 +5289,14 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     for j in range(nc):
         alphas[j]=<double>S.alpha(j)[0]
     cdef int cuspidal=1
-    cdef int Mv[2],Qv[2]
-    Mv[0]=Ms; Mv[1]=Mf
-    Qv[0]=Qs; Qv[1]=Qf
+    cdef int **Mv,**Qv
+    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qv=<int**>sage_malloc(sizeof(int*)*nc)
+    for i in range(nc):
+        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
+        Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
+        Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
     compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     cdef cnp.ndarray[CTYPE_t,ndim=2] VV
     if gr==1:

@@ -2519,7 +2519,7 @@ class AutomorphicFormElement(SageObject):
                                 if(a0_neg[j]):
                                     c_minus=self._coeffs[r][j][n]
                                 else:
-                                    c_minus=self._principal_part['-'][(j,0)]
+                                    c_minus=self._principal_part['-'].get((j,0),0)
                                 s = norm_sci_pretty_print(c_minus,16,latex_pow=True,zero_lim=zl) 
                                 if(s.lstrip()[0]<>"-"):                            
                                     row+="& "+ph+"$"+s+"$ "
@@ -4183,9 +4183,9 @@ def norm_sci_pretty_print(c,nd=0,es='e',latex_pow=False,zero_lim=0):
     if(abs(c)<zero_lim):
         return "0"
     if hasattr(c,"ae"):
-        x=cc.real; y=cc.imag
+        x=c.real; y=c.imag
     else:
-        x=cc.real(); y=cc.imag()
+        x=c.real(); y=c.imag()
     if(abs(x)>1E-5):
         sx = sci_pretty_print(x,nd,'',latex_pow)
     elif(abs(x)>zero_lim):

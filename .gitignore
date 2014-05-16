@@ -24,6 +24,7 @@ docs/notebook.out
 a.py
 a.sage
 go
+*.orig
 
 PKG-INFO
 setup.cfg

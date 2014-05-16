@@ -81,6 +81,10 @@ cdef class MyPermutation(SageObject):
         #i1=2**200
         #i2=2**200
         #i3=Integer(2)**Integer(200)
+        if isinstance(entries,MyPermutation):
+            length = entries.N()
+            entries = entries.list()
+            
         cdef int* used=NULL
         cdef int i,ok,ei
         cdef str s

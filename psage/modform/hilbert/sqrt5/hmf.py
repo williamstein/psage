@@ -31,7 +31,8 @@ from psage.number_fields.sqrt5 import primes_of_bounded_norm
 
 
 from sqrt5_fast import IcosiansModP1ModN
-from sage.rings.all import is_Ideal, Integer, prime_divisors, QQ, next_prime, ZZ
+from sage.rings.all import Integer, prime_divisors, QQ, next_prime, ZZ
+from sage.rings.ideal import is_Ideal
 from tables import ideals_of_norm
 from sage.matrix.all import matrix
 from sage.structure.all import Sequence

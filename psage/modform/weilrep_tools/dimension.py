@@ -18,9 +18,26 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from psage.modules import *
-from sage.all import SageObject, Integer, RR
+#from psage.modules import *
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp
 import sys
+
+try:
+    from psage.modules.finite_quadratic_module import FiniteQuadraticModule
+    from psage.modules.invariants import cython_invariants_dim
+except ImportError:
+    raise
+
+try:
+    from sage_code.fqm.genus_symbol import GenusSymbol
+except ImportError:
+    GENUS_SYMBOLS = False
+
+def BB(x):
+    RF=RealField(100)
+    x = RF(x)
+    onehalf = RF(1)/2
+    return x - onehalf*(floor(x)-floor(-x))
 
 class VectorValuedModularForms(SageObject):
     r"""
@@ -48,19 +65,48 @@ class VectorValuedModularForms(SageObject):
         :class:`psage.modules.finite_quadratic_modules.FiniteQuadraticModule`
     """
 
-    def __init__(self, A):
-        self._M = FiniteQuadraticModule(A)
-        self._W = WeilModule(self._M)
-        self._level = self._W.level()
-        n2 = self._M.kernel_subgroup(2).order()
-        self._signature = self._W.signature()
-        self._n2 = n2
-        m=self._M.order()
-        self._m=m
+    def __init__(self, A, use_genus_symbols = False, aniso_formula = False, use_reduction = False):
+        self._use_reduction = use_reduction
+        if not GENUS_SYMBOLS:
+            use_genus_symbols = False
+        if use_genus_symbols:
+            if isinstance(A, str):
+                g = GenusSymbol(A)
+            else:
+                try:
+                    g = GenusSymbol(A.jordan_decomposition().genus_symbol())
+                except:
+                    raise ValueError
+            self._g = g
+            n2 = self._n2 = g.torsion(2)
+            self._v2 = g.two_torsion_values()
+            self._M = None
+            self._aniso_formula = aniso_formula
+        else:
+            self._M = FiniteQuadraticModule(A)
+            self._g = None
+            self._level = self._M.level()
+            self._aniso_formula = False
+            if is_odd(self._M.order()):
+                self._n2 = n2 = 1
+                self._v2 = {0: 1}
+            else:
+                self._M2 = M2 = self._M.kernel_subgroup(2).as_ambient()[0]
+                self._n2 = n2 = self._M2.order()
+                self._v2 = self._M2.values()
+
+        if use_genus_symbols:
+            self._signature = g.signature()
+            m = g.order()
+        else:
+            self._signature = self._M.signature()
+            m = self._M.order()
+            
+        self._m = m
         d = Integer(1)/Integer(2)*(m+n2) # |discriminant group/{+/-1}|
         self._d = d
-        self._alpha3=None
-        self._alpha4=None
+        self._alpha3 = None
+        self._alpha4 = None
 
     def __repr__(self):
         return "Vector valued modular forms for the Weil representation corresponding to: \n" + self._M.__repr__()
@@ -68,45 +114,100 @@ class VectorValuedModularForms(SageObject):
     def finite_quadratic_module(self):
         return self._M
 
-    def dimension(self,k):
-        if k < 2:
+    def dimension(self,k,ignore=False, debug = 0):
+        if k < 2 and not ignore:
             raise NotImplementedError("k has to >= 2")
-        s=self._signature
+        s = self._signature
         if not (2*k in ZZ):
             raise ValueError("k has to be integral or half-integral")
-        if (2*k+s)%4 != 0:
+        if (2*k+s)%4 != 0 and not ignore:
             raise NotImplementedError("2k has to be congruent to -signature mod 4")
+        if self._v2.has_key(0):
+            v2 = self._v2[0]
+        else:
+            v2 = 1
+
+        if self._g != None:
+            if not self._aniso_formula:
+                vals = self._g.values()
+            #else:
+                #print "using aniso_formula"
+            M = self._g
+        else:
+            vals = self._M.values()
+            M = self._M
+            
+        prec = ceil(max(log(M.order(),2),52)+1)
+        #print prec
+        RR = RealField(prec)
+        CC = ComplexField(prec)
+        d = self._d
+        m = self._m
+        if debug > 0: print d,m
+            
         if self._alpha3 == None:
-            M2=self._M.kernel_subgroup(2).as_ambient()[0]
-            self._alpha3  = sum([(1-a)*m for a,m in M2.values().iteritems() if a != 0])
-            self._alpha3 += sum([(1-a)*m for a,m in self._M.values().iteritems() if a != 0])
-            self._alpha3 = self._alpha3 / Integer(2)
-            self._alpha4 = 1/Integer(2)*(self._M.values()[0]+M2.values()[0]) # the codimension of SkL in MkL
-        d=self._d
-        m=self._m
-        alpha3=self._alpha3
-        alpha4=self._alpha4
-        g1=self._M.char_invariant(1)
+            if self._aniso_formula:
+                self._alpha4 = 1
+                self._alpha3 = -sum([BB(a)*mm for a,mm in self._v2.iteritems() if a != 0])
+                #print self._alpha3
+                self._alpha3 += Integer(d) - Integer(1) - self._g.a5prime_formula()
+                #print self._alpha3, self._g.a5prime_formula()
+                self._alpha3 = self._alpha3/RR(2)
+            else:
+                self._alpha3 = sum([(1-a)*mm for a,mm in self._v2.iteritems() if a != 0])
+                #print self._alpha3
+                self._alpha3 += sum([(1-a)*mm for a,mm in vals.iteritems() if a != 0])
+                #print self._alpha3
+                self._alpha3 = self._alpha3 / Integer(2)
+                self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
+        alpha3 = self._alpha3
+        alpha4 = self._alpha4
+        if debug > 0: print alpha3, alpha4
+        g1=M.char_invariant(1)
         g1=CC(g1[0]*g1[1])
         #print g1
-        g2=self._M.char_invariant(2)
+        g2=M.char_invariant(2)
         g2=RR(real(g2[0]*g2[1]))
-        #print g2
-        g3=self._M.char_invariant(-3)
+        if debug > 0: print g2, g2.parent()
+        g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
-        #print g3
-        alpha1 = RR((d / Integer(4))) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * pi * i * (2 * k + s) / Integer(8))) * g2)
-        #print alpha1
-        alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * pi * i * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
-        #print alpha2
-        dim = round(real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3));
+        if debug > 0: print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8)))
+        alpha1 = RR(d) / RR(4) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8))) * g2)
+        if debug > 0: print alpha1
+        alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * CC.pi() * CC(0,1) * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
+        if debug > 0: print alpha1, alpha2, g1, g2, g3, d, k, s
+        dim = real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3)
+        if debug > 0:
+            print dim
+        if abs(dim-round(dim)) > 1e-6:
+            raise RuntimeError("Error ({0}) too large in dimension formula".format(abs(dim-round(dim))))
+        dim = round(dim)
+        if k >=2 and dim < 0:
+            raise RuntimeError("Negative dimension!")
         return dim
 
-    def dimension_cusp_forms(self,k):
-        dim=self.dimension(k)-self._alpha4
+    def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):
+        if k == Integer(3)/2:
+            dim = self.dimension(k, True) - self._alpha4
+            if not test_positive or dim <= 0:
+                if self._M == None:
+                    self._M = self._g.finite_quadratic_module()
+                corr = weight_one_half_dim(self._M, self._use_reduction, proof = proof)
+                #print "weight one half: {0}".format(corr)
+                dim += corr
+        else:
+            dim = self.dimension(k,ignore)-self._alpha4
+        if k == Integer(2) and not no_inv:
+            if self._M == None:
+                self._M = self._g.finite_quadratic_module()
+            if self._M.level() == 1:
+                return dim + 1
+            dinv = cython_invariants_dim(self._M,self._use_reduction)
+            dim = dim + dinv
+        if dim < 0:
+            raise RuntimeError("Negative dimension!")
         return dim
         
-
 def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
     for p in prime_range(minp,maxp):
         if p%4==1:
@@ -119,7 +220,7 @@ def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
                 k = minwt+2*kk
                 if M.dimension_cusp_forms(k)-dimension_cusp_forms(kronecker_character(p),k)/2 != 0:
                     print "ERROR: ", k, M.dimension_cusp_forms(k), dimension_cusp_forms(kronecker_character(p),k)/2
-                    return false
+                    return False
     return true
 
 #sys.path.append('/home/stroemberg/Programming/Sage/sage-add-ons3/nils')
@@ -142,5 +243,5 @@ def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
             dimV=M.dimension_cusp_forms(k-1/2)
         if dimJ-dimV != 0:
             print "ERROR: ", k, dimJ, dimV
-            return false
+            return False
     return true

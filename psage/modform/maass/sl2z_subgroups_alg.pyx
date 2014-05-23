@@ -39,7 +39,7 @@ from psage.modform.maass.mysubgroups_alg cimport SL2Z_elt
 from psage.modform.maass.mysubgroups_alg import  get_coset_reps_from_perms
 from sage.modules.vector_integer_dense cimport Vector_integer_dense
 
-from permutation_alg import verbosity,sort_perms
+from permutation_alg import verbosity,sort_perms,perm_to_cycle
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.groups.perm_gps.permgroup import PermutationGroup
 from sage.groups.perm_gps.permgroup_named import SymmetricGroup
@@ -168,7 +168,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef int max_fixed_by_R = 0
     if rfx_list<>[]:
         max_fixed_by_R = max(rfx_list)+2
-    else:
+    elif e2>0:
         max_fixed_by_R = e2 + 1
     cdef int first_non_fixed_elt = 1
     if 1 in rfx_list:
@@ -227,38 +227,46 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     pR = MyPermutation(length=mu)
     #print "max =", PRI._max_num
     t = 0
+    cdef int* Rptr
+    Rptr = <int*>sage_malloc(sizeof(int*)*mu)
+    cdef list Rlist = [0 for j in range(mu)]
     while mpz_cmp(counter.value,PRI._max_num.value)<=0:        
         if t==1:
             break
-        pR = MyPermutation(length=mu)        
+        # TEST: pR = MyPermutation(length=mu,init=0)        
         mpz_add_ui (counter.value,counter.value,1)
-        #print "counter=",counter
+
         checked+=1
-        #for i in range(mu):
-        pR.set_entries(PRI._current_perm)
-#       pR._entries = PRI._current_perm
+
+        #TEST: pR.set_entries(PRI._current_perm)
+        for j in range(mu):
+            Rptr[j] = PRI._current_perm[j]
         t = PRI._next()
         #print "pR=",pR
         ## If a is the first element not fixed by R and x = max of fixed elments by R
         ## then we can always assume R(a)<=x+2
         if verbose>1:
             print "Checking first cycle! "            
-        if pR._entries[first_non_fixed_elt-1]>max_fixed_by_R:
+        #TEST: if max_fixed_by_R>0 and pR._entries[first_non_fixed_elt-1]>max_fixed_by_R:
+        if max_fixed_by_R>0 and Rptr[first_non_fixed_elt-1]>max_fixed_by_R:
             #raise ArithmeticError," Should not have gotten this far! p = {0}".format(pR)
+            #are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
             continue
         if verbose>1:
             print "S=",S_canonical.cycles() #print_vec(mu,Sptr)
-            print "R=",pR.cycles() #print_vec(mu,<int *>PRI._current_perm)
+            #TEST: print "R=",pR.cycles()
+            print_vec(mu,<int *>Rptr)
         if verbose>1:
             print "Checking the number of cusps!"
-        _mult_perm_unsafe(mu,Sptr,<int *>pR._entries,Tptr)
+        # TEST: _mult_perm_unsafe(mu,Sptr,<int *>pR._entries,Tptr)
+        _mult_perm_unsafe(mu,Sptr,Rptr,Tptr)
         #T=E*R
         #Tcyc=perm_to_cycle_c(mu,Tptr)
         h_tmp = num_cycles_c(mu,Tptr)
         if verbose>1:
             pT = MyPermutation(length=mu)
             pT.set_entries(Tptr)
-            print "Tp=",Tcyc
+            print "Tp=",pT.cycles()
             print "current fixedpts=",PRI.fixed_pts()
             print "number of cusps=",h_tmp
         if h_tmp<>h:
@@ -269,7 +277,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         if verbose>1:
             print "Checking transitivity!"
         # If we have only one cusp we are always transitive
-        if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
+        #TEST: if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
+        if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose):
 #        if not are_transitive_perm_c(<int*>S_canonical._entries,<int*>PRI._current_perm,gotten,mu,mpi_verbose):            
             continue
 
@@ -281,10 +290,16 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             if congruence<>-1:
                 G=MySubgroup(o2=S_canonical,o3=pR)
                 if G.is_congruence() and congruence==1:
+                    pR = MyPermutation(length=mu,init=0)
+                    pR.set_entries(Rptr)
                     return S_canonical,pR
                 elif not G.is_congruence() and congruence==0:
+                    pR = MyPermutation(length=mu,init=0)
+                    pR.set_entries(Rptr)                    
                     return S_canonical,pR
             else:
+                pR = MyPermutation(length=mu,init=0)
+                pR.set_entries(Rptr)
                 return S_canonical,pR
             continue
         ## We will now further shorten the list by trying to pick representatives for R modulo permutations fixing 1
@@ -297,7 +312,12 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         for i in range(e3):
             used[rfx[i]-1]=1            
         rcycle_beg=0
-        Rcycles_list=pR.cycles_as_lists() #perm_to_cycle_c(mu,<int*>pR._entries)
+        #pR = MyPermutation(length=mu,init=0)
+        #pR.set_entries(Rptr)
+        # TEST: Rcycles_list=pR.cycles_as_lists()
+        for j in range(mu):
+            Rlist[j] = <int>Rptr[j]
+        Rcycles_list = perm_to_cycle(Rlist)
         do_cont = 0
 #        cdef int do_strict = 1
         for rc in Rcycles_list:
@@ -378,6 +398,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         else:
             pass
         ## If we are here, R is a true candidate.
+        pR = MyPermutation(length=mu,init=0)
+        pR.set_entries(PRI._current_perm)
         list_of_R.append(copy(pR))
         if verbose>1:
             print "added pR=",pR

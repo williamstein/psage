@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 # -*- coding: utf-8 -*-
 r"""
 Algorithms and classes for permutations representing subgroups of the modular group, as implemented in 'MySubgroup'.
@@ -81,6 +81,10 @@ cdef class MyPermutation(SageObject):
         #i1=2**200
         #i2=2**200
         #i3=Integer(2)**Integer(200)
+        if isinstance(entries,MyPermutation):
+            length = entries.N()
+            entries = entries.list()
+            
         cdef int* used=NULL
         cdef int i,ok,ei
         cdef str s
@@ -2714,7 +2718,46 @@ cpdef perm_to_cycle(perm):
     if cycle<>NULL:
         sage_free(cycle)
     return res
-
+# cpdef perm_to_cycle_ptr(int N,int* permv):
+#     r"""
+#     Writes a permutation, given as a list of integers, in terms of cycles 
+#     """
+#     cdef int i,last,l
+#     cdef int *cycle_lens=NULL
+#     cdef int *cycle=NULL
+#     #cdef int *permv=NULL
+#     #N = len(perm)
+#     cycle = <int*> sage_malloc(sizeof(int)*N)
+#     if cycle==NULL: raise MemoryError
+#     cycle_lens = <int*> sage_malloc(sizeof(int)*N)
+#     if cycle_lens==NULL: raise MemoryError
+#     #permv = <int*> sage_malloc(sizeof(int)*N)
+#     if permv==NULL: raise MemoryError
+#     for i  in range(N):
+#         #permv[i]=perm[i]
+#         cycle[i]=0
+#     _to_cycles(N,permv, cycle, cycle_lens)
+#     res = list()
+#     cy = list()
+#     last = 0
+#     for i in range(N):
+#         l = cycle_lens[i]
+#         if l==0:
+#             continue
+#         cy=list()
+#         for j in range(last,last+l):
+#             cy.append(cycle[j])
+#         last = last+l
+#         res.append(cy)
+#         if last>=N:
+#             break
+#     #if permv<>NULL:
+#     #    sage_free(permv)
+#     if cycle_lens<>NULL:
+#         sage_free(cycle_lens)
+#     if cycle<>NULL:
+#         sage_free(cycle)
+#     return res
 
    
 cdef int num_cycles_c(int N,int *perm):
@@ -2740,6 +2783,7 @@ cdef int num_cycles_c(int N,int *perm):
     if used<>NULL:
         sage_free(used)
     return n
+
 
 cdef int perm_to_cycle_c(int N,int *perm,int *cycle,int *cycle_lens):
     cdef int *permv=NULL
@@ -3012,6 +3056,17 @@ cpdef fixed_elements(list x):
 
 ###
 
+### Check number of cycles of T=S*R
+cpdef num_cycles_of_T_equal_to(MyPermutation S,MyPermutation R,int h):
+    r"""
+    Check number of cycles of T=S*R is equal to h
+    """
+    cdef int mu=S._N
+    cdef int* Tptr
+    Tptr = <int*>sage_malloc(sizeof(int)*mu)
+    _mult_perm_unsafe(mu,<int *>S._entries,<int *>R._entries,Tptr)    
+    return num_cycles_c(mu,Tptr) == h
+    
 ### Check transitivity
 
 cpdef are_transitive_permutations(MyPermutation pS,MyPermutation pR,int ret_maps=0,int verbose=0):

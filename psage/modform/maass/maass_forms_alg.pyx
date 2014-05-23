@@ -134,7 +134,7 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 
 from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par,SMAT_cplx_par_dp
 
-cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
+cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1,int verbose=0):
     r"""
     Evaluate a Maass form
     """
@@ -172,6 +172,8 @@ cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
         #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     else:
         x3 = x2; y3=y2
+    if verbose>0:
+        print "x3,y3=",x3,y3
     #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
     res=0
     twopi=RF(2)*RF.pi()
@@ -183,18 +185,22 @@ cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1):
         arx=twopi*x3
         ary=twopi*y3
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*fun(arx*n)
+            term=besselk_dp(R,ary*n,pref=1)*fun(arx*n)
             res=res+F._coeffs[fi][cj][n]*term
         res = res*sqrt(y3)
     else:
         arx=twopi*x3
         ary=twopi*y3
         for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n)*cexpi(arx*n)
-            res=res+F._coeffs[fi][cj][n]*term
+            term=besselk_dp(R,ary*n,pref=1)
+            if verbose>0:
+                print "term0 =",term
+                print "term2 =",(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
+            res = res + term*(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
         res = res*sqrt(y3)
     ## we have trivial character here...
-    return res*exp(RR.pi()*R*0.5)
+    # Recall that we sum larger numbers (with the prefactor in there to avoid cancellation)
+    return res*exp(-RR.pi()*R*0.5)
 
 
 cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):
@@ -257,7 +263,7 @@ cpdef whittaker_w_dp(double k,double R,double Y,int pref=0):
     return <double>rres
 
 @cython.boundscheck(False)
-cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight,int Mv[2],int Qv[2],int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
+cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
     r"""
     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
     INPUT:
@@ -284,8 +290,8 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
         raise ValueError," parameter cuspidal must be 0 or 1"
     if weight==0.0:
         raise ValueError," Use this routine only for non-zero weight!"
-    Ms=Mv[0]; Mf=Mv[1]
-    Qs=Qv[0]; Qf=Qv[1]
+    Ms=Mv[0][0]; Mf=Mv[0][1]
+    Qs=Qv[0][0]; Qf=Qv[0][1]
     pi=M_PI #<double>RealField(53).pi() #3.141592653589793238
     two=<double>(2)
     Y2pi=Y*pi*two
@@ -300,7 +306,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
     else:
         Qfak=<double>(Ql)
     if verbose>0:
-        print "Q=",Qv[0],Qv[1]
+        print "Q=",Qv[0][0],Qv[0][1]
         print "Ql=",Ql
         print "Qfak=",Qfak
     cdef double **nvec=NULL
@@ -528,7 +534,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
 
 
 @cython.boundscheck(False)
-cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv[2],int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
+cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
     r"""
     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
     INPUT:
@@ -553,8 +559,8 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int Mv[2],int Qv
     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
     if not cuspidal in [0,1]:
         raise ValueError," parameter cuspidal must be 0 or 1"
-    Ms=Mv[0]; Mf=Mv[1]
-    Qs=Qv[0]; Qf=Qv[1]
+    Ms=Mv[0][0]; Mf=Mv[0][1]
+    Qs=Qv[0][0]; Qf=Qv[0][1]
     pi=M_PI #<double>RealField(53).pi() #3.141592653589793238
     two=<double>(2)
     Y2pi=Y*pi*two
@@ -1804,15 +1810,16 @@ cdef normalize_matrix_cplx_sym_dp(double complex **V,double complex **V1,int Ml,
         sage_free(tmp)
 
 
-cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12):
+cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12,int do_par=0,int ncpus=1):
         r"""
         Pick the correct method...
         """
         if cusp_ev == {}:
             cusp_ev = Norm.get('cusp_ev',{})
         if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0: 
-            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c)
-        res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12)
+            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c,do_par=do_par,ncpus=ncpus)
+        else:
+            res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12,do_par=do_par,ncpus=ncpus)
         return res
             
 
@@ -2172,21 +2179,26 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     cdef double complex **vals_list=NULL
     cdef int nc,Ql,Qs,Qf,Ml,Ms,Mf,j,k,l,N,sym_type,i,n,r
     cdef int num_rhs=0
-    cdef double Qfak,weight
+    cdef double weight
+    cdef double *Qfak
     cdef int verbose=S._verbose
     weight = <double>RealField(53)(S.weight())
     if Q<M:
         Q=M+20
     sym_type = S._sym_type
-    if sym_type in [0,1]:
+    if sym_type == 1 or sym_type == 0:
         Ms=0;  Mf=M; Qs=1; Qf=Q
-        Qfak=<double>(Q)/<double>(2)
     else:
         Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
-        Qfak=<double>(2*Q)
     Ml=Mf-Ms+1
     Ql=Qf-Qs+1
     nc = S._group._ncusps
+    Qfak = <double*>sage_malloc(sizeof(double)*nc)
+    for i in range(nc):
+        if sym_type == 0 or sym_type==1:
+            Qfak[i] =<double>(Q)/<double>(2)
+        else:
+            Qfak[i] =<double>(2*Q)
     N = nc*Ml
     if Norm=={}:
         Norm = S.set_norm(1)
@@ -2205,7 +2217,7 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     else:
         ncols=N
     if verbose>1:
-        print "In get_coef_cplx_dp R=",R, "M=",M," Q=",Q
+        print "In get_coef_cplx_dp R=",R, "M=",M," Q=",Q,'do_par=',do_par,'ncpus=',ncpus
     if verbose>2:
         print "N=",N
         print "Vals=",Vals
@@ -2259,9 +2271,21 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     for j in range(nc):
         alphas[j]=<double>S.alpha(j)[0]
     cdef int cuspidal=1
-    cdef int Mv[2],Qv[2]
-    Mv[0]=Ms; Mv[1]=Mf
-    Qv[0]=Qs; Qv[1]=Qf
+    cdef int** Mv, **Qv
+    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qv=<int**>sage_malloc(sizeof(int*)*nc)
+    for i in range(nc):
+        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
+        Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
+        Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
+    cdef int* symmetric_cusps
+    symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
+    cdef double complex* cusp_evs
+    cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+    for i in range(nc):
+        cusp_evs[i]=0
+        symmetric_cusps[i]=-1
     if do_par==0:
         if weight==0.0:
             compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
@@ -2269,7 +2293,11 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
             compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     else:
         if weight==0.0:
-            compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+            compute_V_cplx_dp_sym_par(V,N,Xm,Xpb,Ypb,Cvec,
+                              cusp_evs,alphas,Mv,Qv,Qfak,
+                              symmetric_cusps,
+                              R,Y,nc,ncols,cuspidal,verbose,ncpus,0)
+#compute_V_cplx_dp_sym_par(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
         else:
             compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
             
@@ -5261,9 +5289,14 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     for j in range(nc):
         alphas[j]=<double>S.alpha(j)[0]
     cdef int cuspidal=1
-    cdef int Mv[2],Qv[2]
-    Mv[0]=Ms; Mv[1]=Mf
-    Qv[0]=Qs; Qv[1]=Qf
+    cdef int **Mv,**Qv
+    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qv=<int**>sage_malloc(sizeof(int*)*nc)
+    for i in range(nc):
+        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
+        Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
+        Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
     compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     cdef cnp.ndarray[CTYPE_t,ndim=2] VV
     if gr==1:

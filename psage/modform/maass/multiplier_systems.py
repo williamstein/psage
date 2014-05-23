@@ -771,7 +771,8 @@ class WeilRepMultiplier(MultiplierSystem):
             self._D = range(dim)
             self._sym_type=0
         if hasattr(self._weil_module,"finite_quadratic_module"):
-            for x in list(self._weil_module.finite_quadratic_module()):
+#            for x in list(self._weil_module.finite_quadratic_module()):
+            for x in self._weil_module.finite_quadratic_module():
                 self.Qv.append(self._weil_module.finite_quadratic_module().Q(x))
         else:
             self.Qv=self._weil_module.Qv

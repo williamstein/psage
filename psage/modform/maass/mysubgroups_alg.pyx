@@ -41,6 +41,7 @@ cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
 rnd = MPC_RNDNN
 rnd_re = GMP_RNDN
+
 from sage.rings.complex_mpc cimport * #MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
@@ -48,9 +49,12 @@ from sage.rings.real_mpfr import RealField
 from sage.modular.cusps import Cusp
 from sage.rings.infinity import infinity
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
+from sage.matrix.matrix_integer_dense import Matrix_integer_dense
+from sage.matrix.matrix_rational_dense import Matrix_rational_dense
 from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 from sage.matrix.matrix_integer_2x2 import Matrix_integer_2x2
 from sage.matrix.matrix_integer_2x2 import MatrixSpace_ZZ_2x2
+from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
 from sage.matrix.matrix_space import MatrixSpace
 from sage.rings.integer_ring cimport Integer
 from sage.rings.rational cimport Rational
@@ -70,7 +74,7 @@ cdef extern from "math.h":
     int floor(double)
     double M_LN10
     double log(double)
-
+    float INFINITY
 
 cdef extern from "stdio.h":
     int snprintf (char *s, size_t maxlen, char* format, int value)
@@ -97,12 +101,26 @@ import mpmath
 
 ### Optimized class for SL2(Z) elements
 ### represented as integer pointers with 4 elements
-cdef class SL2Z_elt(object):
+cdef class SL2Z_elt(GL2Z_elt):
     r"""
-    Class for efficient computations with elements of SL(2,Z)
+    Subclass for elements of SL(2,Z)
     """
-    def __cinit__(self,int a=1,int b=0,int c=0,int d=1):
-        assert a*d-b*c==1
+    def __init__(self,a=1,b=0,c=0,d=1):
+        assert a*d-b*c == 1
+    
+cdef class GL2Z_elt(object):
+    r"""
+    Class for efficient computations with elements of GL(2,Z)
+    """
+    def __cinit__(self,a=1,b=0,c=0,d=1):
+        if not isinstance(a,int):
+            try:
+                a = int(a); b=int(b); c=int(c); d=int(d)
+            except TypeError: ## If a can not be converted to int it is probably a matrix               
+                (a,b,c,d) = self._tuple_from_matrix(a)
+                #print "Here cinit! a=",a
+        self.det = a*d -b*c
+        assert self.det == 1 or self.det == -1
         self.ent=NULL
         if self.ent==NULL:
             self.ent=<int*>sage_malloc(sizeof(int)*4)
@@ -112,8 +130,10 @@ cdef class SL2Z_elt(object):
         self.ent[1]=b
         self.ent[2]=c
         self.ent[3]=d
-        self._str=''
 
+        self._str=''
+        
+        
     cpdef a(self):
         return self.ent[0]
     cpdef b(self):
@@ -122,14 +142,17 @@ cdef class SL2Z_elt(object):
         return self.ent[2]
     cpdef d(self):
         return self.ent[3]
-
+    cpdef determinant(self):
+        return self.det
     cpdef is_in_Gamma0N(self,int N):
         if self.ent[2] % N ==0:
             return 1
         return 0
         
-    def __init__(self,int a=1,int b=0,int c=0,int d=1):
-        pass
+    def __init__(self,a=1,b=0,c=0,d=1):
+        pass 
+    #print "Here init! a=",a
+        
 
     def __dealloc__(self):
         if self.ent<>NULL:
@@ -152,8 +175,7 @@ cdef class SL2Z_elt(object):
 
     
     def __reduce__(self):
-        #return (SL2Z_elt,(self.a(),self.b(),self.c(),self.d()))
-        return (SL2Z_elt,(self.ent[0],self.ent[1],self.ent[2],self.ent[3]))
+        return (self.__class__,(self.ent[0],self.ent[1],self.ent[2],self.ent[3]))
     
     
     def __getitem__(self,i):
@@ -171,12 +193,12 @@ cdef class SL2Z_elt(object):
             else:
                 res = bool(self._eq(other))
         else:
-            raise NotImplementedError,"No ordering of SL2Z elements is implemented!"
+            raise NotImplementedError,"No ordering of GL2Z elements is implemented!"
         if op==3:
             res=not res
         return res
 
-    cpdef _eq(self,SL2Z_elt other):
+    cpdef _eq(self,GL2Z_elt other):
         if self.ent[0] <> other.ent[0]:
             res=0
         elif self.ent[1]<>other.ent[1]:
@@ -198,8 +220,13 @@ cdef class SL2Z_elt(object):
 
 
     def SL2Z(self):
-        return SL2Z([self.ent[0],self.ent[1],self.ent[2],self.ent[3]])
-
+        r"""
+        Convert self to an element of (the sage class) SL2Z.
+        """
+        if self.det == 1:
+            return SL2Z([self.ent[0],self.ent[1],self.ent[2],self.ent[3]])
+        else:
+            raise ValueError,"Can not convert matrix with determinant {0} to SL2Z!".format(self.det)
     def matrix(self,mtype=0):
         r"""
         Return a matrix representation of self.
@@ -211,21 +238,32 @@ cdef class SL2Z_elt(object):
             return Matrix_integer_2x2(MS,[self.ent[0],self.ent[1],self.ent[2],self.ent[3]],True,True)
         MS = MatrixSpace(ZZ,2,2)
         return MS([self.ent[0],self.ent[1],self.ent[2],self.ent[3]])
-    # cdef _acton_d(self,double complex z):
-    #     den = self.ent[2]*z+self.ent[3]
-    #     if den==0:
-    #         return infinity
-    #     else:
-    #         return (self.ent[0]*z+self.ent[1])/den
-        
+
+    def _tuple_from_matrix(self,other):
+        r"""
+        Return the tuple of entries of a 2x2 matrix.
+        """
+        if isinstance(other,(ArithmeticSubgroupElement,GL2Z_elt)):
+            return (other.a(),other.b(),other.c(),other.d())
+        if isinstance(other,(Matrix_integer_dense,Matrix_integer_2x2)):
+            return (other[0,0],other[0,1],other[1,0],other[1,1])
+        if isinstance(other,(Matrix_rational_dense)):
+            if other[0,0].is_integral() and other[0,1].is_integral() and other[1,0].is_integral() and other[1,1].is_integral():
+                return (other[0,0],other[0,1],other[1,0],other[1,1])
+        raise ValueError,"Can not convert {0} to a matrix in SL(2,Z)!".format(other)
+            
+    
     def __pow__(self,k,dummy):
         return self._pow(int(k))
 
     cpdef _pow(self,int k):
         cdef int i
-        cdef SL2Z_elt res
+        cdef GL2Z_elt res
         if k==0:
-            return SL2Z_elt(1,0,0,1)
+            if isinstance(self,SL2Z_elt):
+                return SL2Z_elt(1,0,0,1)
+            else:
+                return GL2Z_elt(1,0,0,1)
         elif k==1:
             return self
         elif k==-1:
@@ -233,38 +271,66 @@ cdef class SL2Z_elt(object):
         else:
             if k>1:
                 res=self
-                for i from 1<=i<k:
+                for i in range(1,k): #from 1<=i<k:
                     res=self._mul(res)
             elif k<-1:
                 res= self.inverse()
-                return res**(-k)
+                return res._pow(-k)
             return res
         
     cpdef inverse(self):
-        return SL2Z_elt(self.ent[3],-self.ent[1],-self.ent[2],self.ent[0])
+        r"""
+        Calculate the inverse of self.
+        """
+        if self.det == 1:
+            return self.__class__(self.ent[3],-self.ent[1],-self.ent[2],self.ent[0])
+        return GL2Z_elt(-self.ent[3],self.ent[1],self.ent[2],-self.ent[0])        
                     
     def __mul__(self,other):
-        if isinstance(other,SL2Z_elt):
+        r"""
+        Multiply self by other where other is also an element of SL(2,Z)
+        """
+        if isinstance(other,GL2Z_elt):
             return self._mul(other)
         #elif hasattr(other,'BKZ') and other.nrows()==2 and other.ncols()==0:
         elif isinstance(other,Matrix_integer_dense) and other.nrows()==2 and other.ncols()==2 and other.det()==1:
             return self._mul_mat_id(<Matrix_integer_dense?>other)
-        elif isinstance(other,Matrix_integer_2x2) and other.det()==1:
+        elif isinstance(other,Matrix_integer_2x2) and abs(other.det())==1:
         #elif hasattr(other,'nrows') and other.nrows()==2 and other.ncols()==2:
             return self._mul_mat_i_2x2(<Matrix_integer_2x2?>other)
         raise ValueError,"Can not multiply {0} with {1}".format(type(self),type(other))
         
-    
-    cpdef _mul(self,SL2Z_elt other,int inv=0):
+
+    cpdef _conjugate(self,GL2Z_elt other):
+        r"""
+        Conjugate self by other.
+        """
+        cdef int a,b,c,d,ao,bo,co,do
+        return other._mul(self._mul(other,inv=2))
+
+    def conjugate(self,other,inv=0): ## Generic algorithm
+        r"""
+        Conjugate self by other (if inv=0) and by other^-1 if inv=1.  
+        """
+        if not isinstance(other,GL2Z_elt):
+            other = GL2Z_elt(other)
+        if inv==1:
+            other = other.inverse()
+        return self._conjugate(other)
+                        
+    cpdef _mul(self,GL2Z_elt other,int inv=0):
         r"""
         inv=1 => A^-1*B
         inv=2 => A*B^-1
         """
-        cdef SL2Z_elt res
+        cdef GL2Z_elt res
         cdef int* resent
         resent=<int*>sage_malloc(sizeof(int)*4)
         self._mul_c(other.ent,resent,inv)
-        res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        if resent[0]*resent[3]-resent[2]*resent[1] == 1:
+            res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        else:
+            res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
         if resent<>NULL:
             sage_free(resent)
         return res
@@ -274,12 +340,15 @@ cdef class SL2Z_elt(object):
         inv=1 => A^-1*B
         inv=2 => A*B^-1
         """
-        cdef SL2Z_elt res
+        cdef GL2Z_elt res
         cdef int* resent=NULL
         resent=<int*>sage_malloc(sizeof(int)*4)
         if resent==NULL: raise MemoryError
         self._mul_c_mpz(other._entries,resent,inv)
-        res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        if resent[0]*resent[3]-resent[2]*resent[1] == 1:
+            res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        else:
+            res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
         if resent<>NULL:
             sage_free(resent)
         return res
@@ -291,12 +360,15 @@ cdef class SL2Z_elt(object):
         inv=1 => A^-1*B
         inv=2 => A*B^-1
         """
-        cdef SL2Z_elt res
+        cdef GL2Z_elt res
         cdef int* resent=NULL
         resent=<int*>sage_malloc(sizeof(int)*4)
         if resent==NULL: raise MemoryError
         self._mul_c_mpz(other._entries,resent,inv)
-        res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        if resent[0]*resent[3]-resent[2]*resent[1] == 1:            
+            res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+        else:
+            res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
         if resent<>NULL:
             sage_free(resent)
         return res
@@ -1280,8 +1352,12 @@ cdef void _apply_sl2z_map_dp(double *x,double *y,int a, int b, int c,int d):
     dr=<double>d
     den=(cr*x[0]+dr)**2+(cr*y[0])**2
     tmp1 = ar*cr*(x[0]*x[0]+y[0]*y[0])+(a*d+b*c)*x[0]+br*dr
-    x[0] = tmp1/den
-    y[0] = y[0]/den
+    if den==0:
+        y[0]=INFINITY
+        x[0]=0
+    else:
+        x[0] = tmp1/den
+        y[0] = y[0]/den
 
 
 cpdef apply_sl2r_map_dp(double xin,double yin, double a,double b,double c,double d):
@@ -1296,8 +1372,12 @@ cdef void _apply_sl2r_map_dp(double *x,double *y,double a,double b,double c,doub
     cdef double den,tmp1,tmp2
     den=(c*x[0]+d)**2+(c*y[0])**2
     tmp1 = a*c*(x[0]*x[0]+y[0]*y[0])+(a*d+b*c)*x[0]+b*d
-    x[0] = tmp1/den
-    y[0] = y[0]/den    
+    if den == 0:
+        y[0]=INFINITY
+        x[0]=0
+    else:
+        x[0] = tmp1/den
+        y[0] = y[0]/den    
     #print "x,y=",x[0],y[0]
     #return x,y
 

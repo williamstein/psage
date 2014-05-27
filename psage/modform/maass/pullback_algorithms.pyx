@@ -499,7 +499,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                         print "m1,m2,m3=",m1,m2,m3
                 else:
                     _mat_mul_list(cusp_maps[vj][0],cusp_maps[vj][1],cusp_maps[vj][2],cusp_maps[vj][3],pba,pbb,pbc,pbd,A)
-                    tmp=<double complex>1.0
+                    tmp=1.0 #<double complex>1.0
                 if dir_char:
                     vi=A[3] % modulus
                     if vi<0:
@@ -521,7 +521,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                     tmp = tmp/v
                 Cvec[ci][cj][j]=tmp # mp_ctx.mpc(0,tmp)
             else:
-                Cvec[ci][cj][j]=<double complex>1.0   #mp_ctx.mpc(0,tmp)
+                Cvec[ci][cj][j]=1.0 #<double complex>1.0   #mp_ctx.mpc(0,tmp)
     for j from 0<=j<Ql:
         Xm[j]=Xm[j]*twopi
     if charvec<>NULL:

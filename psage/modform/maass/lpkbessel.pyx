@@ -99,8 +99,10 @@ cdef double d_two =<double> 2.0
 cdef double d_ten =<double> 10.0
 cdef double d_20 =<double> 20.0
 cdef double d_100 =<double> 100.0
-cdef double complex c_one =<double complex> 1.0
-cdef double complex c_zero =<double complex> 0.0
+cdef double complex c_one
+cdef double complex c_zero
+c_one = d_one #=<double complex> 1.0
+c_zero = d_zero #=<double complex> 0.0
 
 cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):  
     r"""

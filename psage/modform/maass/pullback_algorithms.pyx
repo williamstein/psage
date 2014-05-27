@@ -50,6 +50,8 @@ cdef extern from "complex.h":
     cdef double cabs(double complex)
     cdef double complex cpow(double complex,double complex)
     cdef double complex cexp(double complex)
+    cdef complex CMPLXF(float,float)
+    cdef complex CMPLX(double,double)    
     
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 from mysubgroup import MySubgroup
@@ -499,7 +501,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                         print "m1,m2,m3=",m1,m2,m3
                 else:
                     _mat_mul_list(cusp_maps[vj][0],cusp_maps[vj][1],cusp_maps[vj][2],cusp_maps[vj][3],pba,pbb,pbc,pbd,A)
-                    tmp=1.0 #<double complex>1.0
+                    tmp=CMPLX(1.0,0.0) #<double complex>1.0
                 if dir_char:
                     vi=A[3] % modulus
                     if vi<0:
@@ -521,7 +523,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                     tmp = tmp/v
                 Cvec[ci][cj][j]=tmp # mp_ctx.mpc(0,tmp)
             else:
-                Cvec[ci][cj][j]=1.0 #<double complex>1.0   #mp_ctx.mpc(0,tmp)
+                Cvec[ci][cj][j]=CMPLX(1.0,0.0) #<double complex>1.0   #mp_ctx.mpc(0,tmp)
     for j from 0<=j<Ql:
         Xm[j]=Xm[j]*twopi
     if charvec<>NULL:
@@ -950,7 +952,7 @@ def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
                     tmp=m1*m2*m3
                 else:
                     A=(U*Tj)
-                    tmp=<complex>1.0
+                    tmp=CMPLXF(1.0,0.0) #<complex>1.0
                 if not trivial_mult:
                     AA=A**-1
                     if verbose>1:
@@ -968,7 +970,7 @@ def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
                     tmp = tmp*v
                 Cvec[cii,cjj,j]=tmp # mp_ctx.mpc(0,tmp)
             else:
-                Cvec[cii,cjj,j]=<complex>1.0   #mp_ctx.mpc(0,tmp)
+                Cvec[cii,cjj,j]=CMPLXF(1.0,0.0) #<complex>1.0   #mp_ctx.mpc(0,tmp)
 
     for j in range(Qs,Qf+1): #1-Q,Q):
         Xm[j]=Xm[j]*twopi

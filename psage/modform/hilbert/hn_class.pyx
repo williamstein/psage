@@ -25,6 +25,11 @@ include 'sage/ext/interrupt.pxi'
 include "../../rings/double_prec_math.pxi"
 
 
+cdef extern from "complex.h":
+    cdef complex CMPLX(double,double)
+
+
+
 from sage.all import real,imag,Integer,Rational,ComplexField,Infinity
 from sage.rings.complex_number import is_ComplexNumber
 from sage.rings.real_mpfr import is_RealNumber
@@ -314,7 +319,7 @@ cdef class  Hn(object):
     cpdef norm(self):
         cdef int i
         if self._norm_set==0:
-            self._norm = 1.0 #<double complex>1.0
+            self._norm = CMPLX(1.0,0.0) #<double complex>1.0
             for i in range(self._degree):
                 self._norm = self._norm*(self._x[i]+_I*self._y[i])
             self._norm_set=1

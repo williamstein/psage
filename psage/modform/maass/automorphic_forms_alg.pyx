@@ -211,7 +211,7 @@ cpdef get_M_for_hwmf(Y,weight,ndig,PP={},verbose=0):
             print "er -=",errest2
             print "m=",m
         mpmath.mp.dps=dold
-        return m
+    return m
     
 
 cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):

@@ -58,8 +58,9 @@ from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from mysubgroups_alg cimport pullback_to_psl2z_mat_c,pullback_to_psl2z_mat,_apply_sl2z_map_mpfr
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
-from inc_gamma cimport incgamma_hint_c
+#from inc_gamma cimport incgamma_hint_c
 from inc_gamma import incgamma_hint  ## gamma(n+1/2,x)
+from psage.modform.maass.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
 import mpmath
 #from vv_harmonic_weak_maass_forms import rn_from_D
 #from sage.all import cached_method,cached_function
@@ -434,7 +435,6 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
 
 
     """
-    WR = H.WR
     cdef int prec
     prec = max(Y.base_ring().prec(),H._setupV_prec)
     if H._verbose>0:
@@ -461,7 +461,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     cdef list D,PP0,beta_rat,pp_c,mbeta_rat #,mm_real,mmi_cplx
     cdef mpfr_t tmpr_t[1]
     mpfr_init2(tmpr_t[0],prec)
-    D=WR.basis(); N=WR.rank()/2
+    D=H.index_set() #; N=H.rank()/2
     sym_type = H.sym_type(); verbose = H._verbose
     beta_rat=[]; pp_c=[]; mbeta_rat=[] #; mm_real=[]; mmi_cplx=[]
     cdef mpfr_t *mm_real
@@ -564,11 +564,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     kint=mpmath.mp.mpf(mpone-weight)
     ## Recall that we have different index sets depending on the symmetry
     cdef int Ds,Df,Dl,s
-    if sym_type==1:
-        Ds=int(0); Df=int(N) # 0,1,...,N
-    elif sym_type==-1:
-        Ds=int(1); Df=int(N-1) # 1,2,...,N-1  (since -0=0 and -N=N)
-    Dl = Df - Ds + 1
+    Ds = int(H.index_set()[0])
+    Df = int(H.index_set()[-1])
+    Dl = len(H.index_set())
     # Pullpack points
     #cdef Vector_real_mpfr_dense Xm
     #cdef Vector_complex_dense Zpb
@@ -578,7 +576,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
     if Cv==NULL: raise MemoryError
     #cdef int nr = Df -Ds + 1
-    cdef int nc = len(WR.basis())
+    cdef int nc = H.multiplier().ambient_rank()
     for j from 0 <= j < Ql: 
         Cv[j] = NULL
         Cv[j]=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Dl)
@@ -716,7 +714,10 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     mpc_init2(ch21[0],prec)
     mpc_init2(ch22[0],prec)
     cdef MPComplexNumber tmpV1
-
+    cdef int* minus_bi
+    minus_bi =<int*>sage_malloc(Df*sizeof(int))
+    for i in range(Df):
+        minus_bi[i]=int(H.multiplier().weil_module().neg_index(i))
     cdef int t
     tmpV1=CF(0)
     for l from 0 <= l < Ml:
@@ -728,20 +729,20 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                         print "Skipping l=",l," b=",bi-Ds, " lj=",lj
                     continue
                 for j from 0 <= j < Ql:
-                    if bi==0 or bi==N:
+                    mbi = minus_bi[bi]
+                    if mbi==bi:
                         mpc_set(ch[0],Cv[j][ai][bi],rnd)
                         # ch = Cv[j][ai,bi]
-                        bii= bi # this is true for bi=0 and bi=N
                         #mpc_set(ztmp.value,Cv[j][ai][bii],rnd)
-                        if is_zero(Cv[j][ai][bii]): #t_ch_r<>0 and t_ch_i<>0:
+                        if is_zero(Cv[j][ai][mbi]): #t_ch_r<>0 and t_ch_i<>0:
                             mpc_set_si(ch2[0],0,rnd) # ch2=CF(0)
                         else:
                             #print "non-zero!"
                             mpc_set_ui(ch2[0],1,rnd)
-                            mpc_div(ch2[0],ch2[0],Cv[j][ai][bii],rnd)
+                            mpc_div(ch2[0],ch2[0],Cv[j][ai][mbi],rnd)
                             #ch2=1/Cv[j][ai,bii]  #*Cfak[1-j][0]  #Cv[1-j][ai,bi]
                     else:
-                        mbi= abD -bi # else -bi = 2N-bi
+                        #mbi= abD -bi # else -bi = 2N-bi
                         ##ch = (Cv[j][ai,bi]+sym_type*Cv[j][ai,mbi])
                         mpc_set(ch[0],Cv[j][ai][mbi],rnd)
                         mpc_mul_si(ch[0],ch[0],sym_type,rnd)
@@ -848,7 +849,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
             mpc_sub_fr(V._matrix[ni][ni],V._matrix[ni][ni],kbes.value,rnd)
             mpc_set_si(summa.value,0,rnd) #=CF(0)
             #ni=Ml*ai+n-Ms
-            for bi from 0<= bi < len_of_pp:
+            for bi in range(len_of_pp):
                 #if verbose>0 :
                 #    print "bi=",bi
                 # We only need the first half
@@ -890,14 +891,15 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                             mpc_mul(tmp1[0],tmp1[0],tmpc.value,rnd)
                             mpc_add(summa.value,summa.value,tmp1[0],rnd)
                             #rtmp1[0].summa=summa+tmpc*tmp1[0]
-                            if beta_int[bi] == 0 or beta_int[bi]==N:
-                                bii = beta_int[bi]
-                            else:
-                                bii= abD - beta_int[bi] #
-                            if is_zero(Cv[j][ai][bii])==0:
+                            #if beta_int[bi] == 0 or beta_int[bi]==N:
+                            mbi = minus_bi[bi]
+                            #bii = beta_int[bi]
+                            #else:
+                            #    bii= abD - beta_int[bi] #
+                            if is_zero(Cv[j][ai][mbi])==0:
                                 #t_ch_r==0 or t_ch_i==0:
                                 # if Cv[j][ai,bii]<>0:
-                                mpc_div(tmp1[0],Cfak_minus._entries[j],Cv[j][ai][bii],rnd)
+                                mpc_div(tmp1[0],Cfak_minus._entries[j],Cv[j][ai][mbi],rnd)
                                 mpc_set(tmp2[0],tmpc.value,rnd)
                                 mpc_conj(tmp2[0],tmp2[0],rnd)
                                 mpc_mul(tmp1[0],tmp1[0],tmp2[0],rnd)
@@ -1035,7 +1037,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                 sage_free(fak2[n])            
         sage_free(fak2)
     W=dict()
-    W['WR']=WR
+    W['space']=H
     W['V']=V
     W['Ms']=Ms
     W['Mf']=Mf
@@ -1135,41 +1137,29 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
         mpfr_init2(mm_real[i],prec)
         mpc_init2(mmi_cplx[i],prec)
     for i from 0 <= i <len_of_pp:
-        ttt = PP.keys()[i]
+        ttt = PP['+'].keys()[i]
         if isinstance(ttt,tuple):
             (beta,m) = ttt
         elif isinstance(ttt,(int,Integer)):
             (beta,m) = rn_from_D(H.multiplier(),ttt)
-        pp_c.append(PP[ttt])
+        else:
+            raise ValueError,"principal part is not in corect form! Got:{0}".format(PP)
+        pp_c.append(PP['+'][ttt])
         if isinstance(beta,int) or isinstance(beta,Integer):
             beta_int[i]=int(beta)
-            if verbose>0:
-                beta_rat.append(WM.basis()[beta])
         #elif isinstance(beta,Rational):
         #    beta_rat.append(beta)
         #    beta_int[i]=int(D.index(beta))            
     if verbose>0:
-        print "beta_rat=",beta_rat
         print "pp_c    =",pp_c
     cdef Rational tt,mm
     tt = QQ(-1); mm=QQ(0)
     #cdef int mbi
     for i from 0 <= i < len_of_pp:
         mbeta_int[i] = WM._neg_index(beta_int[i])
-        if verbose>0:
-            p=numerator(1-beta_rat[i]); q=denominator(1-beta_rat[i])
-            mb=QQ(p % q)/QQ(q) # reduce mod 1
-            mbeta_rat.append(mb)
-        #mbeta_int[i]=int(D.index(mb))
-        if verbose>0:
-            print "b=",beta
-            print "1-b=",mb
-            print "mb=",mb
-        if not mb in D:
-            raise Exception,"Need beta=%s in D=" %(mb,D)
         mm = m+H.multiplier().Qv[beta_int[i]]
         if mm>0:
-            raise ValueError,"Need principal part with negative exponents! Got:%s for PP:%s" % (mm,PP)
+            raise ValueError,"Need principal part with non-positive exponents! Got:%s for PP:%s" % (mm,PP)
         tmp_r = RF(mm)
         mpfr_set(mm_real[i],tmp_r.value,rnd_re)
         #mm_real.append(RF(mm))
@@ -1190,11 +1180,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     assert abD>0
     if verbose>0:
         print "Ms,Mf=",Ms,Mf
-        print "beta=",beta_rat
         print "betai="
         for i from 0 <= i < len_of_pp:
             print ",bi[",i,"]=",beta_int[i]
-            print "-beta[",i,"]=",mbeta_rat[i]
         print "mbetai="
         print "mm=",mm
         for i from 0 <= i < len_of_pp:
@@ -1210,10 +1198,22 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
         print "Symmetry type=",sym_type
         print "D=",D
     if sym_type<>0:
-        Qs=1; Qf=Q; Ql=Qf-Qs; Qfaki=2*Q
+        Qs=1; Qf=Q; Ql=Qf-Qs+1; Qfaki=2*Q
     else:
-        Qs=1-Q; Qf=Q; Ql=Qf-Qs; Qfaki=4*Q
-    kint=mpmath.mp.mpf(mpone-weight)
+        Qs=1-Q; Qf=Q; Ql=Qf-Qs+1; Qfaki=4*Q
+    cdef int kinti
+    cdef int is_int=0
+    cdef int is_half_int=0
+    cdef RealNumber kint
+    kint = mpone - weight
+    if floor(kint)==pceil(kint):
+        kinti = int(kint); is_int = 1
+    if is_int==0:
+        ## Check if kint is half-integral.
+        if floor(2*kint)==pceil(2*kint):
+            is_half_int = 1
+            kinti = int(kint-RF(0.5))   
+ 
     ## Recall that we have different index sets depending on the symmetry
     cdef int Ds,Df,Dl,s
     if sym_type==1:
@@ -1323,6 +1323,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                 mpc_init2(fak2[n][ai][j],prec)
 
     cdef tuple tu
+    cdef int ok=0
     mparg = mpmath.mp.mpf(0)
     for n from 0 <= n < Ml:
         for ai from 0 <= ai < Dl:
@@ -1353,10 +1354,23 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                     mpc_mul(tmpc_t[0],nri[0],Zpb._entries[j],rnd)
                     mpc_exp(tmp1[0],tmpc_t[0],rnd)
                     mpfr_mul(tmparg.value,mpc_imagref(Zpb._entries[j]),nrtwo.value,rnd_re)
-                    tu = mpfr_to_mpfval(tmparg.value)
-                    mparg._set_mpf(tu)
-                    testmp= mpctx.gammainc(kint,mparg)
-                    mpfr_from_mpfval(kbes.value,testmp._mpf_)
+                    ok = 0
+                    if is_int==1:
+                        if kinti>0:
+                            ok = incgamma_pint_c(kbes.value,kinti,tmparg.value,verbose)
+                        else:
+                            ok = incgamma_nint_c(kbes.value,kinti,tmparg.value,verbose)
+                    elif is_half_int==1:
+                        ok = incgamma_hint_c(kbes.value,kinti,tmparg.value,verbose)
+                    if not ok:
+                        tu = mpfr_to_mpfval(tmparg.value)
+                        mparg._set_mpf(tu)
+                        testmp=mpctx.gammainc(kint,tmparg)
+                        mpfr_from_mpfval(kbes.value,testmp._mpf_)
+                    #tu = mpfr_to_mpfval(tmparg.value)
+                    #mparg._set_mpf(tu)                    
+                    #testmp= mpctx.gammainc(kint,mparg)
+                    #mpfr_from_mpfval(kbes.value,testmp._mpf_)
                     #mpgamma = mpctx.gammainc(kint,tmparg)
                     mpc_mul_fr(tmp1[0],tmp1[0],kbes.value,rnd)
                     mpc_set(fak1[n][ai][j],tmp1[0],rnd)
@@ -1523,10 +1537,19 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                 mpfr_mul_si(nrY4pi.value,nrY2pi.value,-2,rnd_re)
                 #if verbose>0:
                 #    print "nrY4pi=",nrY4pi
-                tu = mpfr_to_mpfval(nrY4pi.value)
-                mparg._set_mpf(tu)
-                testmp=mpctx.gammainc(kint,nrY4pi)
-                mpfr_from_mpfval(kbes.value,testmp._mpf_)
+                ok = 0
+                if is_int==1:
+                    if kinti>0:
+                        ok = incgamma_pint_c(kbes.value,kinti,nrY4pi.value,verbose)
+                    else:
+                        ok = incgamma_nint_c(kbes.value,kinti,nrY4pi.value,verbose)
+                elif is_half_int==1:
+                    ok = incgamma_hint_c(kbes.value,kinti,nrY4pi.value,verbose)
+                if not ok:
+                    tu = mpfr_to_mpfval(nrY4pi.value)
+                    mparg._set_mpf(tu)
+                    testmp=mpctx.gammainc(kint,nrY4pi)
+                    mpfr_from_mpfval(kbes.value,testmp._mpf_)
                 kbes=kbes*(-nrY2pi).exp()
             else:
                 #continue
@@ -2543,8 +2566,8 @@ cdef pullback_pts_weil_rep_mpc(H,int Q,RealNumber Y,RealNumber weight,Vector_rea
                 #    if r_ind[ri][rj]<>0:
                 #        aa = r[ri][rj]
                 #        mpc_pow_si(mptmp1,z0,aa,rnd)
-                #    else:
-                #        mpc_set_ui(mptmp1,0,rnd)
+                #    else: 
+               #        mpc_set_ui(mptmp1,0,rnd)
                 #    if r_ind[ri][rj]<>0:
                 #        bb = r[ri][twoN-rj]
                 #        mpc_pow_si(mptmp1,z0,bb,rnd)
@@ -2694,9 +2717,13 @@ cdef pullback_pts_weil_rep_mpc2(H,int Q,RealNumber Y,RealNumber weight,Vector_re
     #Xm = Vector_real_mpfr_dense(FreeModule(RF,Q+1),0)
     #Zpb= Vector_complex_dense(FreeModule(CF,Q+1),0)
     ## Cv has to be allocated outside this routine
+    Qs=1; Qf=Q; Ql = Qf - Qs + 1; fourQ=4*Q
+    if verbose>1:        
+        print "Xm.length()=",Xm.degree()
+        print "Ql=",Ql
     assert Cvec<>NULL
     #Cfak=dict()
-    Qs=1; Qf=Q; Ql = Qf - Qs + 1; fourQ=4*Q
+
     #N = WR.rank()/2
     #cdef int twoN = WR.weil_module().rank()
     cdef int twoN = WM.rank()
@@ -3785,3 +3812,12 @@ cdef one_rn_from_D(int N,int sig,int l,double Df,double* Qv,int* r,int* n,int ve
             r[0] = i
             break
 
+
+
+
+#def vv_harmonic_wmwf_phase2_tst1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
+#    try:
+#        CC=vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is,prec,Yin)
+#        return CC
+#    except KeyboardInterrupt:
+#        pass

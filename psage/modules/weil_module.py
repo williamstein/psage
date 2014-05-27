@@ -48,8 +48,7 @@ from psage.modform.maass.mysubgroups_alg import factor_matrix_in_sl2z
 from sage.modules.vector_integer_dense import Vector_integer_dense
 from weil_module_alg import *
 from finite_quadratic_module import FiniteQuadraticModuleElement,FiniteQuadraticModule
-from psage.modform.maass.mysubgroups_alg import SL2Z_elt
-from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
+
 #_sage_const_3 = Integer(3);
 #_sage_const_2 = Integer(2);
 #_sage_const_1 = Integer(1);
@@ -1195,25 +1194,18 @@ ss    Describes an element of a Weil module $K[A]$.
                          where 1 means that we compute this entry
                          of the matrix rho_{Q}(A) 
         """
-        if isinstance(A,(SL2Z_elt,ArithmeticSubgroupElement)):
-            a,b,c,d = list(A)
-        else:
-            raise ValueError,"Need SL2Z element got {0} of type {1}".format(A,type(A))
+        a=A[0 ,0 ]; b=A[0 ,1 ]; c=A[1 ,0 ]; d=A[1 ,1 ] #[a,b,c,d]=elts(A)
         if(c % self._level <>0 ):
             raise ValueError, "Must be called with Gamma0(l) matrix! not A=" %(A)
         r = matrix(self._K,self._n)
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
-#                if(self._L[ii]==d*self._L[jj] and (filter==None or filter[ii,jj]==1 )):
-                if self.lin_comb(ii,-d,jj)==0 and (filter==None or filter[ii,jj]==1):
-                    argl=self._level*b*d*self.Q(jj)
+                if(self._L[ii]==d*self._L[jj] and (filter==None or filter[ii,jj]==1 )):
+                    argl=self._level*b*d*self.Q(self._L[jj])
                     r[ii,jj]=self._zl**argl
         # Compute the character 
-        signature = self._W.signature() #inv['signature']
-        chi = 1
-        if self._verbose>1:
-            print "r=",r
-        if  self._level % 4  == 0 :
+        signature = inv['signature']
+        if( self._level % 4  == 0 ):
             test = (signature + kronecker(-1 ,self._n)) % 4
             if(is_even(test)):
                 if(test==0 ):
@@ -1232,7 +1224,7 @@ ss    Describes an element of a Weil module $K[A]$.
                     chi=1 
             chi = chi*kronecker(d,self._n*2**signature)
         else:
-            chi = kronecker(d,self._n)
+            chi = kronecker(d,self._n*2**signature)
         r=r*chi
         return [r,1 ]
         

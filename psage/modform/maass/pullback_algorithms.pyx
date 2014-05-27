@@ -950,7 +950,7 @@ def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
                     tmp=m1*m2*m3
                 else:
                     A=(U*Tj)
-                    tmp=<float complex>1.0
+                    tmp=<complex>1.0
                 if not trivial_mult:
                     AA=A**-1
                     if verbose>1:

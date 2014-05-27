@@ -314,7 +314,7 @@ cdef class  Hn(object):
     cpdef norm(self):
         cdef int i
         if self._norm_set==0:
-            self._norm = <double complex>1.0
+            self._norm = 1.0 #<double complex>1.0
             for i in range(self._degree):
                 self._norm = self._norm*(self._x[i]+_I*self._y[i])
             self._norm_set=1

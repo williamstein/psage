@@ -50,8 +50,14 @@ cdef extern from "complex.h":
     cdef double cabs(double complex)
     cdef double complex cpow(double complex,double complex)
     cdef double complex cexp(double complex)
-    cdef complex CMPLXF(float,float)
-    cdef complex CMPLX(double,double)    
+#    cdef complex CMPLXF(float,float)
+#    cdef double complex CMPLX(double,double)
+cdef complex CMPLXF(float x,float y):
+    return x+_Complex_I*y
+
+cdef double complex CMPLX(double x,double y):
+    return x+_Complex_I*y
+
     
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 from mysubgroup import MySubgroup

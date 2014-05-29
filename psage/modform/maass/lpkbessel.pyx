@@ -70,8 +70,14 @@ Also algorithms for incomplete gamma function.
 
 cdef extern from "complex.h":
     cdef double complex _Complex_I
-    cdef complex CMPLXF(float,float)
-    cdef complex CMPLX(double,double)  
+    #cdef complex CMPLXF(float,float)
+    #cdef double complex CMPLX(double,double)  
+
+cdef complex CMPLXF(float x,float y):
+    return x+_Complex_I*y
+
+cdef double complex CMPLX(double x,double y):
+    return x+_Complex_I*y
     
 cdef extern from "math.h" nogil:
     double log(double)

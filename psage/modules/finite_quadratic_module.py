@@ -86,6 +86,7 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
+from sage.functions.other                 import floor
 from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup 
@@ -2253,9 +2254,9 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
             i = j = 0
             for g in arg1:
                 if i == j:
-                    G[i,j] = g - g.floor();
+                    G[i,j] = g - floor(g);
                 else:
-                    G[i,j] = G[j,i] = QQ(g - g.floor())/QQ(2);
+                    G[i,j] = G[j,i] = QQ(g - floor(g))/QQ(2);
                 j += 1
                 if n == j:
                     i += 1; j = i

@@ -1,8 +1,29 @@
 from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree, lcm, Matrix
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from psage.modules.invariants import invariants
+from copy import copy
 
 def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
+    r"""
+    Computes the invariants of a direct summand in the decomposition for weight
+    one-half modular forms. Such a summand is of the form
+    \[
+      \mathbb{C}[(\mathbb{Z}/2N\mathbb{Z}, -x^2/4N)]^\epsilon \otimes \mathbb{C}[M],
+    \]
+    where $M$ is a given finite quadratic module and $\epsilon$ acts on the first
+    factor via $\mathfrak{e}_\mu \mapsto \mathfrak{e}_{-\mu}$.
+
+    INPUT:
+        - FQM: A given finite quadratic module, referred to as $M$ above
+        - TM: A cyclic module of the form as given abve (the first factor)
+
+    NOTE:
+        We do not check that TM is of the stated form. The function is an auxiliary function
+        usually only called by ``weight_one_half_dim``.
+
+    EXAMPLES:
+        NONE
+    """
     eps = True
     if TM != None and FQM != None:
         TMM = TM+FQM

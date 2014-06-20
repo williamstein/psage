@@ -373,7 +373,10 @@ build_system.setup(
                 'psage.modform.rational',
 
                 'psage.modform.siegel',
+                'psage.modform.jacobi',
+                'psage.modform.vector_valued',
                 'psage.modform.jacobiforms',
+                'psage.modform.weilrep_tools',
                 'psage.modform.maass',
 
         		'psage.modules',

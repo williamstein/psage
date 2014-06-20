@@ -454,7 +454,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 cycle_lens = self.permS.cycle_type()
             elif label_on=='T':
                 cycle_lens = self.permT.cycle_type()
-            Pold = self.permT            
+                Pold = self.permT            
             Pnew = []; j=1
             for i in cycle_lens:
                 Pnew.append([x for x in range(j,i+j)])
@@ -2754,6 +2754,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.draw_fundamental_domain()
 
         """
+        from plot_dom import HyperbolicTriangle
+        draw_axes=options.pop('draw_axes',1)
+        npts = options.pop('npts',10)
         if options['method']=='Farey' and options['model']=='H':
             options.pop('model'); options.pop('method');
             return self.farey_symbol().fundamental_domain(**options)
@@ -2761,8 +2764,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             raise NotImplementedError,"Pairings are only implemented for Farey symbols."
         draw_circle = options.pop('draw_circle',True)
         from sage.plot.colors import rainbow
-        from plot_dom import HyperbolicTriangle
-        npts = options.pop('npts',10)
         L = 10000
         #if options['method']=='Farey':
         #    version = 2
@@ -2902,6 +2903,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 g+=circle((0,0),1,edgecolor=circle_color)
             g.set_axes_range(-1, 1, -1, 1)    
             g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        
+        if draw_axes == 0:
+            g.axes(False)
         return g
     def is_interior_point(self,x,version=1,verbose=0):
         r"""

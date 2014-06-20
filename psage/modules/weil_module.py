@@ -1060,6 +1060,7 @@ ss    Describes an element of a Weil module $K[A]$.
         # figure out which matrix-entries we need to compute:
         if mode==0:
             filter=matrix(ZZ,self._n)
+            print filter
             for (k,x) in self:
                 jj = self._parent._el_index(x.list())
                 #jj = self._L.index(x)

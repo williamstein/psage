@@ -842,9 +842,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     # Checking after conjugation by J:
                     B = SL2Z_elt(-B.a(),B.b(),B.c(),-B.d())
                     Bi = B.inverse()
+                    if verbose>0:
+                        print "Check B=T^{0}A^-1_{1}\t\t =\t {2}".format(n,j,B)                    
                     t = [ B*x*Bi in self for x in Gs].count(False)
                     if verbose>0:
-                        print "Check B=T^{0}A^-1_{1}\t\t =\t {2}".format(n,j,B)
                         print "tests:",t
                     if t==0 and B not in self:
                         s = (j,-n,SL2Z_elt(B.a(),B.b(),B.c(),B.d()))
@@ -1016,10 +1017,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return False
         #if A**2 not in self: ### This is for an involution not a correspondence
         #    return False
+        if self._verbose>0 or verbose>0:
+            print A
         for cusp in self.cusps():
             x = cusp.numerator(); y = cusp.denominator()
             Ac = Cusp(a*x+b*y,c*x+d*y)
-            if verbose>0:
+            if self._verbose>1 or verbose>0:
                 print "A({0})={1}".format(cusp,Ac)
             #print Ac,c
             if not self.are_equivalent(Ac,cusp):

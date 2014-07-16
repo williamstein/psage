@@ -350,7 +350,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 if equivalent_integers_mod_fixS(a,c,mu,e2,end_fc,Sptr,used)==1:
                     if verbose>1:
                         print a," (a c) and ",c," are equivalent in",rc
-                    if b>c:
+                    if a>c:
                         if verbose>1:
                             print "remove (b>c)!"
                         do_cont = 1

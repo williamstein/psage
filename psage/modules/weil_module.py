@@ -1201,7 +1201,7 @@ ss    Describes an element of a Weil module $K[A]$.
         r = matrix(self._K,self._n)
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
-                if(self._QM(self._Q._elt(i), can_coords=True) == d*self._QM(self._W._elt(i), can_coords=True) and (filter==None or filter[ii,jj]==1 )):
+                if(self._QM(self._W._elt(ii), can_coords=True) == d*self._QM(self._W._elt(jj), can_coords=True) and (filter==None or filter[ii,jj]==1 )):
                     argl = self._level*b*d*self._QM.Q(self._QM(self._W._elt(jj), can_coords=True))
                     r[ii,jj]=self._zl**argl
         # Compute the character 

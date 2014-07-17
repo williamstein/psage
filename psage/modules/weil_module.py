@@ -1061,7 +1061,7 @@ ss    Describes an element of a Weil module $K[A]$.
         # figure out which matrix-entries we need to compute:
         if mode==0:
             filter=matrix(ZZ,self._n)
-            print filter
+            #print filter
             for (k,x) in self:
                 jj = self._parent._el_index(x.c_list())
                 #jj = self._L.index(x)
@@ -1077,7 +1077,7 @@ ss    Describes an element of a Weil module $K[A]$.
         # Compute rho_Q(A)*self
         res = FormalSum([(0 ,0 )],self._W)
         for (k,x) in self:
-            print "k,x=",k,x
+            #print "k,x=",k,x
             jj = self._parent._el_index(x.c_list())
             for ii in range(0,self._n):
                 if(act=='l'):
@@ -1198,14 +1198,14 @@ ss    Describes an element of a Weil module $K[A]$.
         a=A[0 ,0 ]; b=A[0 ,1 ]; c=A[1 ,0 ]; d=A[1 ,1 ] #[a,b,c,d]=elts(A)
         if(c % self._level <>0 ):
             raise ValueError, "Must be called with Gamma0(l) matrix! not A=" %(A)
-        r = matrix(self._K,self._n)
+        r = matrix(self._K,self._n, sparse=True)
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
                 if(self._QM(self._W._elt(ii), can_coords=True) == d*self._QM(self._W._elt(jj), can_coords=True) and (filter==None or filter[ii,jj]==1 )):
                     argl = self._level*b*d*self._QM.Q(self._QM(self._W._elt(jj), can_coords=True))
                     r[ii,jj]=self._zl**argl
         # Compute the character 
-        signature = inv['signature']
+        signature = self._inv['signature']
         if( self._level % 4  == 0 ):
             test = (signature + kronecker(-1 ,self._n)) % 4
             if(is_even(test)):
@@ -1216,7 +1216,7 @@ ss    Describes an element of a Weil module $K[A]$.
                 if( d % 4  == 1 ):
                     chi = 1 
                 else:
-                    chi=I**power
+                    chi=self._z8**(power*2)
                 chi=chi*kronecker(c,d)
             else:
                 if(test==3 ):

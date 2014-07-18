@@ -162,7 +162,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             names -- a string used to name the generators of
                      the underlying abelian group.
         """
-        if True == check:
+        if check:
             #TODO: check if R, G are matrices over ZZ, QQ, admit nonsquare R with rank == size G
             if False == hasattr( R, '_matrix_') or False == hasattr( G, '_matrix_'):
                 raise TypeError, "%s: not a matrix" %R

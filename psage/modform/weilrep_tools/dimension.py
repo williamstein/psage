@@ -29,12 +29,6 @@ try:
 except ImportError:
     raise
 
-try:
-    from sfqm.fqm.genus_symbol import GenusSymbol
-except ImportError, e:
-    print e
-    GENUS_SYMBOLS = False
-
 def BB(x):
     RF=RealField(100)
     x = RF(x)
@@ -68,10 +62,13 @@ class VectorValuedModularForms(SageObject):
     """
 
     def __init__(self, A, use_genus_symbols = False, aniso_formula = False, use_reduction = False):
-        self._use_reduction = use_reduction
-        if not GENUS_SYMBOLS:
-            print "Not using genus symbols"
+        try:
+            from sfqm.fqm.genus_symbol import GenusSymbol
+        except ImportError, e:
+            print e
             use_genus_symbols = False
+            print "Not using genus symbols."
+        self._use_reduction = use_reduction
         if use_genus_symbols:
             if isinstance(A, str):
                 g = GenusSymbol(A)

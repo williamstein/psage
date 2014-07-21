@@ -69,6 +69,7 @@ class VectorValuedModularForms(SageObject):
     def __init__(self, A, use_genus_symbols = False, aniso_formula = False, use_reduction = False):
         self._use_reduction = use_reduction
         if not GENUS_SYMBOLS:
+            print "Not using genus symbols"
             use_genus_symbols = False
         if use_genus_symbols:
             if isinstance(A, str):

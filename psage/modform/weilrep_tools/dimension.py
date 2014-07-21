@@ -31,7 +31,8 @@ except ImportError:
 
 try:
     from sfqm.fqm.genus_symbol import GenusSymbol
-except ImportError:
+except ImportError, e:
+    print e
     GENUS_SYMBOLS = False
 
 def BB(x):

@@ -3391,6 +3391,7 @@ class JordanDecomposition( SageObject):
             raise TypeError
         ppowers = [q for q in self.__jd.keys() if 0 == q % p]
         ppowers.sort()
+        print ppowers
         if [] == ppowers:
             return dict()
         orbitdict = {(1,) : 1}

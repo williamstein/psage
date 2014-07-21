@@ -25,12 +25,12 @@ from .weight_one_half import *
 
 try:
     from psage.modules.finite_quadratic_module import FiniteQuadraticModule
-    from psage.modules.invariants import cython_invariants_dim
+    from psage.modules.weil_invariants import cython_invariants_dim
 except ImportError:
     raise
 
 try:
-    from sage_code.fqm.genus_symbol import GenusSymbol
+    from sfqm.fqm.genus_symbol import GenusSymbol
 except ImportError:
     GENUS_SYMBOLS = False
 
@@ -187,17 +187,17 @@ class VectorValuedModularForms(SageObject):
             raise RuntimeError("Negative dimension!")
         return dim
 
-    def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False):
+    def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False, debug=0):
         if k == Integer(3)/2:
-            dim = self.dimension(k, True) - self._alpha4
+            dim = self.dimension(k, True, debug=debug) - self._alpha4
             if not test_positive or dim <= 0:
                 if self._M == None:
                     self._M = self._g.finite_quadratic_module()
                 corr = weight_one_half_dim(self._M, self._use_reduction, proof = proof)
-                #print "weight one half: {0}".format(corr)
+                if debug > 0: print "weight one half: {0}".format(corr)
                 dim += corr
         else:
-            dim = self.dimension(k,ignore)-self._alpha4
+            dim = self.dimension(k, ignore, debug=debug) - self._alpha4
         if k == Integer(2) and not no_inv:
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()

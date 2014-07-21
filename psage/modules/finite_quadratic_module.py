@@ -524,7 +524,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         return d
 
 
-    def char_invariant( self, s, p = None):
+    def char_invariant(self, s, p=None, debug=0):
         r"""
         If this quadratic module equals $A = (M,Q)$, return
         the characteristic function of $A$ (or $A(p)$ if $p$ is a prime)
@@ -536,12 +536,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES NONE
         """
-        s = s%self.level()
-        if s==0:
-            return 1,1
+        s = s % self.level()
+        if s == 0:
+            return 1, 1
         if not p is None and not is_prime(p):
             raise TypeError
-        if p and 0 != self.order()%p:
+        if p and 0 != self.order() % p:
             return 1,1
         _p = p
         K = CyclotomicField (8)
@@ -551,13 +551,16 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         for c in jd:
             # c: basis, ( prime p,  valuation of p-power n, dimension r, determinant d over p [, oddity o]) 
             p,n,r,d = c[1][:4]
-            #print "c=",c
+            if debug > 0: print "c=",c
+            if debug > 0: print "p={0}, n={1}, r={2}, d={3}".format(p,n,r,d)
             if _p and p != _p:
                 continue
             o = None if 4 == len(c[1]) else c[1][4]
+            if debug > 0: print "o=",o
             k = valuation( s, p)
             s1 = Integer(s/p**k)
             h = max(n-k,0)
+            if debug > 0: print "h={0}".format(h)
             q = p**h
             if p!=2:
                 lci  = z**((r*(1-q))%8) * d**(h%2) if h > 0 else 1
@@ -569,9 +572,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 f = z**o if o else 1 
                 lci = f * d**(h%2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
-                # print f, d, lci 
+                print f, d, lci 
             if 2 == p: lci = lci**s1
-            #print "lci=",lci
+            if debug > 0: print "lci=",lci
+            if debug > 0: print "lci1=", lci1
             ci *= lci * kronecker( s1, 1/lci1)
             ci1 *= lci1
         return ci, QQ(ci1).sqrt()
@@ -3391,7 +3395,7 @@ class JordanDecomposition( SageObject):
             raise TypeError
         ppowers = [q for q in self.__jd.keys() if 0 == q % p]
         ppowers.sort()
-        print ppowers
+        print "ppowers=", ppowers
         if [] == ppowers:
             return dict()
         orbitdict = {(1,) : 1}
@@ -3471,10 +3475,14 @@ class JordanDecomposition( SageObject):
         
         while multiplicitieslist != []:
 
+            print "multiplicitieslist=", multiplicitieslist
+
             multiplicities = multiplicitieslist.pop()
             k = len(multiplicities)-1
             pk = p**k
             m = p*pk
+
+            print "pk={0}, m={1}, k={2}".format(pk, m, k)
 
             if multiplicities[0] == multiplicities[k]:
 
@@ -3482,10 +3490,13 @@ class JordanDecomposition( SageObject):
                 ranksDv1 = ranks[len(ppowers) - len(ordersDv1):]
                 ordersDv1pk = [Integer(x / pk) for x in ordersDv1 if x > pk]
                 ranksDv1pk = ranksDv1[len(ordersDv1)-len(ordersDv1pk):]
+                print "ordersDv1 = {0}, ranksDv1={1}".format(ordersDv1, ranksDv1)
+                print "ordersDv1pk = {0}, ranksDv1pk={1}".format(ordersDv1pk, ranksDv1pk)
 
                 if len(ordersDv1pk) != 0 and ordersDv1pk[0] == p:
 
                     constantfactor = Integer(prod([min(pk, ordersDv1[j])**ranksDv1[j] for j in range(0, len(ordersDv1))]) / pk)
+                    print "constantfactor=", constantfactor
                     constantfactor *= prod(map(lambda x: p**x, ranksDv1pk[1:]))
                     rank = ranksDv1pk[0]
                     eps = epsilons[len(ranks)-len(ranksDv1pk)]

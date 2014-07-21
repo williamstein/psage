@@ -19,7 +19,8 @@ AUTHORS:
 #*****************************************************************************
 
 #from psage.modules import *
-from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, \
+                     RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, round
 #import sys
 from .weight_one_half import *
 
@@ -137,7 +138,7 @@ class VectorValuedModularForms(SageObject):
             vals = self._M.values()
             M = self._M
             
-        prec = ceil(max(log(M.order(),2),52)+1)
+        prec = ceil(max(log(M.order(),2),52)+1)+17
         #print prec
         RR = RealField(prec)
         CC = ComplexField(prec)
@@ -178,12 +179,13 @@ class VectorValuedModularForms(SageObject):
         if debug > 0: print alpha1, alpha2, g1, g2, g3, d, k, s
         dim = real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3)
         if debug > 0:
-            print dim
+            print "dimension:", dim
         if abs(dim-round(dim)) > 1e-6:
             raise RuntimeError("Error ({0}) too large in dimension formula".format(abs(dim-round(dim))))
+        dimr = dim
         dim = Integer(round(dim))
         if k >=2 and dim < 0:
-            raise RuntimeError("Negative dimension!")
+            raise RuntimeError("Negative dimension (= {0}, {1})!".format(dim, dimr))
         return dim
 
     def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False, debug=0):
@@ -205,7 +207,7 @@ class VectorValuedModularForms(SageObject):
             dinv = cython_invariants_dim(self._M,self._use_reduction)
             dim = dim + dinv
         if dim < 0:
-            raise RuntimeError("Negative dimension!")
+            raise RuntimeError("Negative dimension (= {0}, alpha4 = {1})!".format(dim, self._alpha4))
         return dim
         
 def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):

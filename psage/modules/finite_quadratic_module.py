@@ -1566,6 +1566,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
     ###################################
 
 
+    def an_element(self):
+        r"""
+        Returns an element of this finite quadratic module.
+        """
+        return sum(self.gens())
+    
     def random_element(self, bound=None):
         """
         Return a random element of this group.

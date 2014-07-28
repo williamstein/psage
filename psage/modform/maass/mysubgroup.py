@@ -3133,7 +3133,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         print "A=",A,type(A)
                         
                     if t==1 and A in self:
-                        a,b,c,d=A
+                        try: 
+                            a,b,c,d=A
+                        except ValueError as e:
+                            a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
+                            if self._verbose:
+                                print "We called with a sage matrix A!"
                         cii=cusps.index((pp,qq))
                         vertex_data[j]['cusp']=cii
                         vertex_data[j]['cusp_map']=SL2Z_elt(d,-b,-c,a)

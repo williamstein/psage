@@ -168,9 +168,15 @@ class WeilModule (FormalSums):
         return self._basis
         
     def _get_negative_indices(self):
+        r"""
+        Return a list of all indices of negatives of elements (using a method implemented in cython).
+        """        
         return cython_neg_indices(self._n,self._gen_orders)
         
     def _get_negative_indices_python(self):
+        r"""
+        Return a list of all indices of negatives of elements (using a method implemented in python).
+        """
         l=[]
         for ii in range(self._n):
             l.append(self._neg_index_python(ii))
@@ -178,6 +184,9 @@ class WeilModule (FormalSums):
 
     #@cached_method
     def _el_index(self,c):        
+        r"""
+        Return the index of the element c in self.
+        """
         if not isinstance(c,(list,Vector_integer_dense)):
             raise ValueError,"Need element of list form! Got c={0} of type={1}".format(c,type(c))
         if not len(c)==len(self._gen_orders):
@@ -186,20 +195,35 @@ class WeilModule (FormalSums):
     
     @cached_method
     def _neg_index(self,ii):
+        r"""
+        Return the index of -1 times the ii-th element of self.
+        """        
         return cython_neg_index(ii,self._gen_orders)
 
     @cached_method
     def _elt(self,ii):
+        r"""
+        Return the ii-th element of self.
+        """
         return cython_elt(ii,self._gen_orders)
 
     def zero(self):
+        r""" 
+        Return the zero element of self.
+        """
         return self._zero
 
     def an_element(self):
+        r"""
+        Return an element of self.
+        """
         return WeilModuleElement(self._QM.an_element(),parent=self)
 
     def random_element(self):
-        return WeilModuleElement(self._QM.an_element(),parent=self)
+        r"""
+        Return a random element of self.
+        """
+        return WeilModuleElement(self._QM.random_element(),parent=self)
         
     ###################################
     ## Introduce myself ...
@@ -2022,7 +2046,7 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
         while l>size_bd:
             FQ=FiniteQuadraticModuleRandom(fqbound,nbound,verbose-1)
             if list(FQ)==[FQ(0)]:
-                return FQ
+                continue ## This is just the 0 module
             l=len(list(FQ))
             W = WeilModule(FQ)
             g = FQ.jordan_decomposition().genus_symbol()
@@ -2030,6 +2054,8 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
         if verbose>0:
             print "signature=",s
             print "genus=",g
+            print "is_nondeg=",FQ.is_nondegenerate()
+            print "gram=",FQ.gram()
         w = W.an_element()
         i = 0
         j = 0
@@ -2042,7 +2068,7 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
                 continue
             j = 0
             i = i + 1
-            t = compare_formula_for_one_matrix(W,A,verbose,gamma0_test)
+            t = compare_formula_for_one_matrix(W,A,verbose)
             if not t:
                 if verbose>0:
                     print "A=",A

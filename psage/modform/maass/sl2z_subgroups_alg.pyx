@@ -206,8 +206,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
     #DEB sig_on()
-    #cdef MyPermutation ptest
-    #ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    #cdef MyPermutation ptestR
+    #ptestR = MyPermutation('(1 3 9)(2 4 10)(5 12 6)(7 11 8)')
     if used==NULL:
         used = <int *>sage_malloc(sizeof(int)*mu)
     if verbose>=0:
@@ -278,11 +278,16 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             print "Checking transitivity!"
         # If we have only one cusp we are always transitive
         #TEST: if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
-        if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose):
+        if h_tmp<>1 and are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose)==0:
 #        if not are_transitive_perm_c(<int*>S_canonical._entries,<int*>PRI._current_perm,gotten,mu,mpi_verbose):            
             continue
-
-
+        # if verbose>=0 and Rptr[0]==3 and Rptr[2]==9 and Rptr[1]==4:
+        #     pR = MyPermutation(length=mu)
+        #     pR.set_entries(Rptr)
+        #     #if pR==ptestR:
+        #     print "R(4)=",Rptr[3]
+        #     print "have ptestR=",pR
+        #     print "are transitive:",are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose)
         if verbose>1:
             print "current fixedpts1=",PRI.fixed_pts()
             print "rfx=",print_vec(e3,rfx)
@@ -399,8 +404,13 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             pass
         ## If we are here, R is a true candidate.
         pR = MyPermutation(length=mu,init=0)
-        pR.set_entries(PRI._current_perm)
+        pR.set_entries(Rptr)
         list_of_R.append(copy(pR))
+#        if pR==ptestR:
+#            print "Added pR=",pR
+#            Rtest = MyPermutation(length=mu)
+#            Rtest.set_entries(Rptr)
+#            print "Rptr=",Rtest
         if verbose>1:
             print "added pR=",pR
             print "Checked {0} Rs out of max. {1}".format(checked,max_num)
@@ -739,7 +749,10 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         conj_pgl = conjugates[(S,R)]['pgl']
         conj_psl = conjugates[(S,R)]['psl']
         do_cont = 0
+        #print "S,R=",S,R        
         for S1,R1 in conj_psl:
+            if verbose>=0:
+                print "S1,R1=",S1,R1
             t,A,p = are_conjugate_pairs_of_perms(S,Rs,S1,R1)
             if t==1:
                 reflections[(S,R)]={'group':(S1,R1),'map':A,'perm':p}

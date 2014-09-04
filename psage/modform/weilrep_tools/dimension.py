@@ -181,7 +181,7 @@ class VectorValuedModularForms(SageObject):
         if debug > 0:
             print "dimension:", dim
         if abs(dim-round(dim)) > 1e-6:
-            raise RuntimeError("Error ({0}) too large in dimension formula".format(abs(dim-round(dim))))
+            raise RuntimeError("Error ({0}) too large in dimension formula for {1} and k={2}".format(abs(dim-round(dim)), self._M if self._M is not None else self._g, k))
         dimr = dim
         dim = Integer(round(dim))
         if k >=2 and dim < 0:

@@ -151,7 +151,7 @@ class VectorValuedModularForms(SageObject):
                 self._alpha4 = 1
                 self._alpha3 = -sum([BB(a)*mm for a,mm in self._v2.iteritems() if a != 0])
                 #print self._alpha3
-                self._alpha3 += Integer(d) - Integer(1) - self._g.a5prime_formula()
+                self._alpha3 += Integer(d) - Integer(1) - self._g.beta_formula()
                 #print self._alpha3, self._g.a5prime_formula()
                 self._alpha3 = self._alpha3/RR(2)
             else:

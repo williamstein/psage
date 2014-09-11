@@ -2,6 +2,7 @@
 """ Excerpt from my MySubgroup class. Contains routines to draw fundamental domains.
 
 r"""
+import matplotlib
 import matplotlib.patches as patches
 import matplotlib.path as path
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -830,3 +831,187 @@ def nice_coset_reps(G):
             print "cl=",cl
             raise ValueError,"Problem getting coset reps! Need %s and got %s" %(G.index(),len(cl))
         return cl
+
+def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
+    if G.index()>1:
+        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'))
+    else:
+        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
+    l=build_connected_path(P,model=model)
+    if standalone:
+        fig=pyplot.Figure()
+        canvas = FigureCanvas(fig)
+        ax=fig.add_subplot(111)
+        ax.add_patch(patches.PathPatch(l,facecolor='none'))
+        #ax.plot(*zip(*l.vertices))
+        return fig
+    if as_patch:
+        return patches.PathPatch(l,facecolor='none')
+    return l
+    
+def build_connected_path(P,verbose=0,model='H'):
+    r"""
+    Takes a path P consisting of a list of segments (not necessarily in correct order) and constructs a connected path.
+    
+    """
+    from sage.all import deepcopy
+    ## This is the only place where we allow for coddes to be = 1 (i.e. starting a path)
+    if len(P)==0:
+        return P
+    #print "P=",P #0=",P[0]
+    ## Begin by locating left most path
+    if model == 'H':
+        xmin = P[0].vertices.min()
+    else:
+        xmin = None
+    imin = 0
+    for i in range(0,len(P)):
+        try:
+            if model=='H':
+                testmin = P[i].vertices.min()
+            else:
+                v = P[i].vertices[0]
+                w = (CC(v[1],-v[0]) - CC(0,1))/(CC(v[0],v[1]) - CC(1,0))
+                testmin = w.real()
+                for v in P[i].vertices:
+                    if v[1]==0 and v[0]==1.0: # correspond to infinity
+                        continue 
+                    w = (CC(v[1],-v[0]) - CC(0,1))/(CC(v[0],v[1]) - CC(1,0))
+                    if w.real()< testmin:
+                        testmin = w.real()
+                if verbose>0:
+                    print "testmin[{0}]={1}".format(P[i],testmin)
+            if xmin==None:
+                xmin = testmin
+            if testmin < xmin:
+                imin = i
+                xmin = testmin
+            if verbose>0:
+                print  "xmin=",xmin
+        except AttributeError:
+            pass
+    codes = deepcopy(P[imin].codes)
+    for j in range(len(codes)):
+        if codes[j]==10:
+            codes[j]=4
+#        if codes[j]==79:
+#            codes[j]=0
+    pt = patches.Path(P[imin].vertices,codes)
+    res = [pt]
+    used = [imin]
+    current = imin
+    if verbose>0:
+        print "left most path is nr. {0}".format(imin)
+    ii = 0
+    x,y = P[imin].vertices[-1]
+    eps = 1e-12
+    fc='orange'
+    lw=2
+    while len(res)<len(P) and ii<len(P):
+        ii+=1
+#        print "x,y=",x,y
+        for j in range(len(P)):
+            if verbose>0:
+                print "++++++++++++++++++++++++++++++++++++++j=",j
+            if j in used:
+                continue
+            if not hasattr(P[j],"vertices"):
+                used.append(j)
+                continue
+            xx,yy = P[j].vertices[0]
+            #if verbose>0:p
+            #    print "xx,yy(0)=",xx,yy
+            if abs(xx-x)<eps and abs(yy-y)<eps:
+                if verbose>0:
+                    print "connect prevsious segment with {0}".format(j)
+                    print "segment =",P[j]
+                #print "xx=x,yy=y"
+                vertices = P[j].vertices; codes = deepcopy(P[j].codes)
+                if not isinstance(vertices,list):
+                    vertices = vertices.tolist()
+                if not isinstance(codes,list):
+                    codes = codes.tolist()
+                for jjj in range(len(codes)):
+                    if codes[jjj]==10:
+                        if j<3:
+                            codes[jjj]=2
+                        else:
+                            codes[jjj]=4                        
+                    #print "vertex=",vertices[jjj]
+                    if model=='D' and abs(vertices[jjj][0]+0.34)<1e-2 and abs(vertices[jjj][1]+0.52)<1e-2:
+                        print "==========Changing to 2"
+                        codes[jjj]=2
+
+                if ii < len(P) and model=='H':
+                    vertices.pop(); codes.pop()
+                if verbose>0 and j==3:
+                    print "vertices=",vertices
+                    print "codes=",codes
+                pt = patches.Path(vertices,codes)
+                res.append(pt)
+                used.append(j)
+                current = j
+                x,y = P[j].vertices[-1]
+                break
+            xx,yy = P[j].vertices[-1]
+            #if verbose>0:
+            #    print "xx,yy(-1)=",xx,yy
+            if abs(xx-x)<eps and abs(yy-y)<eps:
+                if verbose>0:
+                    print "connect previous segment with {0} reversed".format(j)                
+                    print "segment =",P[j]
+                vertices = P[j].vertices; codes = deepcopy(P[j].codes)
+                if not isinstance(vertices,list):
+                    vertices = vertices.tolist()
+                vertices.reverse()
+                if not isinstance(codes,list):
+                    codes = codes.tolist()
+                if codes[0]<>1 and codes[-1]==1:
+                    codes.reverse()
+                for jjj in range(len(codes)):
+                    if codes[jjj]==10:
+                        if j==2 and (jjj==7 or jjj==8):
+                            #print "THIS IS HERE!"
+                            codes[jjj]=3
+                        else:
+                            codes[jjj]=3
+                if verbose>0 and j==2:
+                    print "vertices=",vertices
+                    print "codes=",codes
+                    #for jjj in range(len(vertices)-1):
+                    #    print "dy/dx({0},{1})={2}".format(jjj,jjj+1,(vertices[jjj][1]-vertices[jjj+1][1])/(vertices[jjj][0]-vertices[jjj+1][0]))
+#                    if model=='D' and abs(vertices[jjj][0]+0.098)<1e-3 and abs(vertices[jjj][1]+0.328)<1e-2:
+#                        print "Changing to 2"
+#                        codes[jjj]=2
+                if codes[0]<>1:
+                    raise ValueError,"Startpoint of path needs a code 1. got {0}".format(codes[0])
+                #print "codes[0]=",codes[0]
+                #print "codes[-1]=",codes[-1]
+                if ii < len(P) and model=='H':
+                    vertices.pop(); codes.pop()
+                pt = patches.Path(vertices,codes)
+                res.append(pt)
+                used.append(j)
+                current = j
+                x,y = P[j].vertices[0]
+                break
+    if len(used) < len(P):
+        print "Could not connect all paths!"
+    res = patches.Path.make_compound_path(*res)
+    # Now we have to make this into a closed path.
+    #codes = [max(res.codes[j],13) for j in range(len(res.codes))]
+    for i in range(len(res.codes)):
+        if res.codes[i]==1 and i>0:
+            res.codes[i]=2
+    if '1.3' in matplotlib.__version__:
+        res.codes[-1]=13
+    else:
+        res.codes[-1] = patches.Path.CLOSEPOLY
+    if verbose>0:
+        print "vertices=",res.vertices
+        print "codes=",res.codes
+        
+    #return patches.PathPatch(res)
+    #res.codes = codes
+    return res
+        

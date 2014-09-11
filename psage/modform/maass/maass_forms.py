@@ -1859,39 +1859,160 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 print "Hecke is ok up to ",d,"digits!"
             return d
 
-    def eval(self,x,y,version=1,use_pb=1,prec=1E-10):
+    def eval(self,x,y=None,version=1,fi=0,use_cj=-1,use_pb=1,verbose=0):
         r"""
         Evaluate self.
         """
-        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
+        import scipy
+        from sage.functions.trig import cos,sin
+        if y == None:
+            y = float(x.imag())
+            x = float(x.real())
+        RF=RealField(self.prec())
+        R = self._R
+        Y = self.group().minimal_height()
+        exceptional = self._space._exceptional
+        xx=x
+        yy=y
+        G=self.group()
+        # pullback
+        if use_cj==-1:
+            if use_pb == 1:
+                x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
+            else:
+                x1 = x; y1 = y
+            v = G.closest_vertex(x1,y1)
+            cj= G._vertex_data[v]['cusp'] #representative[v]
+            a,b,c,d=G._vertex_data[v]['cusp_map']
+            if a<>1 or b<>0 or c<>0 or d<>1:
+                x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
+            else:
+                x2=x1;y2=y1
+            # And then normalize to the correct cusp
+            if cj<>0:
+                a,b,c,d=G._cusp_data[cj]['normalizer']
+                wi = RF(G._cusp_data[cj]['width'])
+                if verbose>0:
+                    print "x2,y2=",x2,y2,a,b,c,d
+                x3,y3 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
+                if verbose>0:
+                    print "x2,y2=",x2,y2
+                    print "cj=",cj
+                    print "wi=",wi
+                x3 = x3/wi #sqrt(wi)
+                y3 = y3/wi #sqrt(wi)
+                if verbose>0:
+                    print "x3,y3=",x3,y3        
+                #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+            else:
+                wi = RF(G._cusp_data[0]['width'])
+                x3 = x2/wi; y3=y2/wi
+        else:
+            x3 = x;y3 = y
+            cj = use_cj
+        #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+        res=0
+        twopi=RF(2)*RF.pi()
+        if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):
+            f = 1.0
+            if self._sym_type==0:
+                fun=cos
+                f = 2.0
+            elif self._sym_type==1:
+                fun=sin
+                f = CC(0,2.0)
+            arx=twopi*x3
+            ary=twopi*y3
+            if exceptional:
+                for n in range(1,self._M0):
+                    term=scipy.special.kv(R,ary*n)*fun(arx*n)
+                    res=res+self._coeffs[fi][cj][n]*term
+            else:
+                for n in range(1,self._M0):
+                    term=besselk_dp(R,ary*n)*fun(arx*n)
+                    res=res+self._coeffs[fi][cj][n]*term
+            res = res*sqrt(y3)
+        else:
+            #print "use exp!"
+            arx=twopi*x3
+            ary=twopi*y3
+            if exceptional:
+                for n in range(-self._M0+1,self._M0):
+                    if n== 0:
+                        continue
+                    term=scipy.special.kv(R,ary*abs(n))*CC(0,arx*n).exp()
+                    res=res+self._coeffs[fi][cj][n]*term
+            else:
+                for n in range(-self._M0+1,self._M0):
+                    if n== 0:
+                        continue
+                    term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
+                    res=res+self._coeffs[fi][cj][n]*term            
+            #if res == 0.0:
+            #    continue #print "value = 0"
+            res = res*sqrt(y3)
+        return res*exp(RR.pi()*R*0.5)
+#        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
             
 
-    def plot(self,xlim,ylim,num_pts,**kwds):
+    def plot(self,xlim=(-0.5,0.5),ylim=(0,2),num_pts=100,**kwds):
         r"""
         Make a plot of self.
         """
-        # we evaluate self over a grid, for efficiency
-        P=density_plot(self.eval,(-0.5,0.5),(0.01,1.01),plot_points=100,axes=False,**kwds)
-        # P=density_plot(f,(-0.5,0.5),(0.01,1.01),plot_points=120,axes=False,**kwds)
-        return P
-        (xmin,xmax,Nx)=xlim
-        (ymin,ymax,Ny)=ylim
-        hy = (ymax-ymin)/RR(Ny)
-        hx = (xmax-xmin)/RR(Nx)
-        yvec=dict()
-        #assert self._G == 
-        for i in range(Nx):
-            y=ymin+i*hy
-            for n in range(1,M0):
-                yvec[n]=besselk_dp(self.R,RR(2*pi*n))
-            for j in range(Ny):
-                x=xmin+i*hx                
-                w=0
-                argx=CC(2*pi*x*I)
-                for n in range(M0):
-                    term=self.C[n]*exp(argx*N)
-        
+        from sage.all import xsrange
+        from sage.plot.all import Graphics
+        from sage.plot.misc import setup_for_eval_on_grid
+        import matplotlib.pyplot as plt        
+        from sage.plot.density_plot import DensityPlot
+        from psage.modform.maass.plot_dom import get_contour
+        G = self.group()
+        version = kwds.pop('version',0)
+        model = kwds.pop('model','H')
+        show_axis = kwds.pop('axis',False)
+        clip = kwds.pop('clip',True)
+        eps = 1e-10
+        def fun(x,y):
+            z = CC(x,y)
+            if model == 'D':
+                if abs(z)>=1:
+                    return 0.0
+                z = CC(-y,x+1)/CC(1-x,-y)
+                x = float(z.real()); y = float(z.imag())
+            if y <= 0.005:
+                return 0.0
+            xx,yy,a,b,c,d = G.pullback(x,y,version=version)
+            zpb = CC(xx,yy)
+            if abs(z-zpb)>eps:
+                return 0.0
+            w = self.eval(xx,yy,version=version)
+            #abs(f.eval(xx,yy))**2
+            return abs(w)**2
 
+        xrange = xlim
+        yrange = ylim
+        options = { 'plot_points' :  num_pts }
+        g, ranges = setup_for_eval_on_grid([fun], [xrange, yrange], options['plot_points'])
+        g = g[0]
+        xrange,yrange=[r[:2] for r in ranges]
+        xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
+        g = plt.figure()
+        ax = g.add_subplot(111)
+        x0,x1 = xlim
+        y0,y1 = ylim
+        im = ax.imshow(xy_data_array, origin='lower', cmap='jet', extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
+        fdom = get_contour(G,version=version,model=model,color='red',as_patch=True,thickness=3)
+
+        ax.add_patch(fdom)
+        if clip:
+            im.set_clip_path(fdom)
+        if not show_axis:
+            ax.set_frame_on(False)
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)        
+        if model == 'D':
+            c = patches.Circle((0.0,0.0),radius=1.0,fc='none')
+            ax.add_patch(c)
+        return g
  
 
                     

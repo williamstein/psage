@@ -58,7 +58,8 @@ from sage.all import find_root
 cimport numpy as cnp
 import numpy as np
 #cimport cython
-
+import scipy.special
+#from scipy.special import kv
 
 
 
@@ -263,7 +264,7 @@ cpdef whittaker_w_dp(double k,double R,double Y,int pref=0):
     return <double>rres
 
 @cython.boundscheck(False)
-cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
+cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec):
     r"""
     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
     INPUT:
@@ -299,7 +300,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
     #cdef int Ql,Ml
     Ql=Qf-Qs+1
     Ml=Mf-Ms+1
-    #cdef int is_trivial = M.multiplier().is_trivial()
+
     if sym_type in [0,1]:
         raise ValueError,"Call the symmetrized routine instead"
         Qfak=<double>(Ql)/<double>(2)
@@ -534,7 +535,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
 
 
 @cython.boundscheck(False)
-cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_trivial=0):
+cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_exceptional=0):
     r"""
     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
     INPUT:
@@ -571,7 +572,6 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
     cdef double besprec
     besprec=1.0E-14
 
-    #cdef int is_trivial = M.multiplier().is_trivial()
     if sym_type in [0,1]:
         Qfak=<double>(Ql)/<double>(2)
     else:
@@ -665,8 +665,11 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                 for icusp in range(nc):
                     if Ypb[icusp][jcusp][j]<>0:
                         besarg=abs(lr)*Ypb[icusp][jcusp][j]
-                        if lr<>0.0:
-                            besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                        if lr<>0.0: 
+                            if is_exceptional == 0:
+                                besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                            else:
+                                tmpr = scipy.special.kv(R,besarg)
                             #print "Ypb=",Ypb[icusp][jcusp][j],type(Ypb[icusp][jcusp][j])
                             #print "tmpr=",tmpr,type(tmpr)
                             kbesvec[l][icusp][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
@@ -686,11 +689,15 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                         #if(not Ypb.has_key((icusp,jcusp,j))):
                         continue
                     ckbes=kbesvec[l][icusp][j]*ef1[l][icusp][jcusp][j]
-                    #if do_real_norm and is_trivial:
+
                     #    pass
                     if verbose>2:
                         if abs(lr)>0:
-                            kbes=besselk_dp(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                            if is_exceptional == 0:
+                                kbes=besselk_dp(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                            else:
+                                besarg = abs(lr)*Ypb[icusp][jcusp][j]
+                                kbes = scipy.special.kv(R,besarg)
                             kbes = kbes*sqrt(Ypb[icusp][jcusp][j])
                             if abs(kbesvec[l][icusp][j]-kbes)>1E-12:
                                 print "l,icusp,jcusp,j=",l,icusp,jcusp,j
@@ -743,7 +750,10 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
             if nr==0.0:
                 kbes=<double>1.0
             else:
-                kbes=sqrtY*besselk_dp(R,nrY2pi,pref=1)
+                if is_exceptional == 0:
+                    kbes=sqrtY*besselk_dp(R,nrY2pi,pref=1)
+                else:
+                    kbes = sqrtY*scipy.special.kv(R,nrY2pi)
             #if nrY2pi==0.0:
             #    print "arg=0!"
             if verbose>2 and ni==0:
@@ -808,8 +818,7 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
                            double R,double Y,
                            int nc, int ncols,
                            int cuspidal,
-                           int verbose,
-                           int is_trivial=0):
+                           int verbose       ):
 
 
     r"""
@@ -1137,8 +1146,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                            double R,double Y,
                            int nc, int ncols,
                            int cuspidal,
-                           int verbose,
-                           int is_trivial=0):
+                           int verbose):
 
 
     r"""
@@ -2011,12 +2019,12 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         compute_V_cplx_dp_sym_par(V1,N1,Xm,Xpb,Ypb,Cvec,
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,
-                              R,Y,nc,ncols,cuspidal,verbose,ncpus,0)
+                              R,Y,nc,ncols,cuspidal,verbose,ncpus)
     else:
         compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,
-                              R,Y,nc,ncols,cuspidal,verbose,0)
+                              R,Y,nc,ncols,cuspidal,verbose)
 #    sig_off()
     cdef Matrix_complex_dense VV
     #Vtmp = load("A.sobj")
@@ -2182,6 +2190,7 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
     cdef double weight
     cdef double *Qfak
     cdef int verbose=S._verbose
+    cdef int  is_exceptional = S._exceptional
     weight = <double>RealField(53)(S.weight())
     if Q<M:
         Q=M+20
@@ -2288,7 +2297,7 @@ cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},
         symmetric_cusps[i]=-1
     if do_par==0:
         if weight==0.0:
-            compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+            compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec,is_exceptional=is_exceptional)
         else:
             compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
     else:
@@ -5205,6 +5214,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     cdef double Qfak
     cdef double complex tmp
     cdef int verbose=S._verbose
+    cdef int is_exceptional = S._exceptional
     if Q<M:
         Q=M+20
     sym_type = S._sym_type
@@ -5297,7 +5307,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
         Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
         Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
         Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
-    compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+    compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec,is_exceptional=is_exceptional)
     cdef cnp.ndarray[CTYPE_t,ndim=2] VV
     if gr==1:
         #VV=mpmath.fp.matrix(int(nc*Ml),int(nc*Ml),force_type=mpmath.fp.mpc)

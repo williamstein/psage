@@ -26,9 +26,13 @@ include "../../rings/double_prec_math.pxi"
 
 
 cdef extern from "complex.h":
-    cdef complex CMPLX(double,double)
-
-
+    ### Only in new versions of gcc....
+    ### cdef complex CMPLX(double,double)
+    cdef double complex _Complex_I
+    
+cdef double complex CMPLX(double x,double y):
+    return x+y*_Complex_I
+    
 
 from sage.all import real,imag,Integer,Rational,ComplexField,Infinity
 from sage.rings.complex_number import is_ComplexNumber

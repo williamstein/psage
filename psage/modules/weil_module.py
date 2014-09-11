@@ -159,16 +159,24 @@ class WeilModule (FormalSums):
     def basis(self):
         r"""
         Gives a basis of self as a vector space of dimension |D|
+        It is the ordered basis used in self.matrix(A).
         """
         if self._basis==[]:
-            for x in list(self._QM):
+            for i in range(self._QM.order()):
+                x = self._QM(self._elt(i), can_coords=True)
                 self._basis.append(WeilModuleElement([(1,x)],parent=self))
         return self._basis
         
     def _get_negative_indices(self):
+        r"""
+        Return a list of all indices of negatives of elements (using a method implemented in cython).
+        """        
         return cython_neg_indices(self._n,self._gen_orders)
         
     def _get_negative_indices_python(self):
+        r"""
+        Return a list of all indices of negatives of elements (using a method implemented in python).
+        """
         l=[]
         for ii in range(self._n):
             l.append(self._neg_index_python(ii))
@@ -176,6 +184,9 @@ class WeilModule (FormalSums):
 
     #@cached_method
     def _el_index(self,c):        
+        r"""
+        Return the index of the element c in self.
+        """
         if not isinstance(c,(list,Vector_integer_dense)):
             raise ValueError,"Need element of list form! Got c={0} of type={1}".format(c,type(c))
         if not len(c)==len(self._gen_orders):
@@ -184,20 +195,35 @@ class WeilModule (FormalSums):
     
     @cached_method
     def _neg_index(self,ii):
+        r"""
+        Return the index of -1 times the ii-th element of self.
+        """        
         return cython_neg_index(ii,self._gen_orders)
 
     @cached_method
     def _elt(self,ii):
+        r"""
+        Return the ii-th element of self.
+        """
         return cython_elt(ii,self._gen_orders)
 
     def zero(self):
+        r""" 
+        Return the zero element of self.
+        """
         return self._zero
 
     def an_element(self):
+        r"""
+        Return an element of self.
+        """
         return WeilModuleElement(self._QM.an_element(),parent=self)
 
     def random_element(self):
-        return WeilModuleElement(self._QM.an_element(),parent=self)
+        r"""
+        Return a random element of self.
+        """
+        return WeilModuleElement(self._QM.random_element(),parent=self)
         
     ###################################
     ## Introduce myself ...
@@ -838,11 +864,10 @@ ss    Describes an element of a Weil module $K[A]$.
         
         FormalSum.__init__(self,d, parent, check, True)
         if self._coordinates == []:
-            l = list(parent.finite_quadratic_module())
             self._coordinates = [0 for i in range(parent.rank())]
             for i,x in self._data:
-                ix = l.index(x)
-                self._coordinates[ix]=i
+                ix = parent._el_index(x.c_list())
+                self._coordinates[ix] = i
 
         self._W=parent
         self._parent = parent
@@ -902,7 +927,7 @@ ss    Describes an element of a Weil module $K[A]$.
     @cached_method
     def Bi(self,i,j):
 #ifdef NEW
-        return self._QM.B(self._QM(list(self._W._elt(i))),self._QM(list(self._W._elt(j))))
+        return self._QM.B(self._QM(list(self._W._elt(i)), can_coords=True),self._QM(list(self._W._elt(j)), can_coords=True))
 #else /* not NEW */
         #return self._QM.B(self._L[i],self._L[j])
 #endif /* not NEW */
@@ -921,7 +946,7 @@ ss    Describes an element of a Weil module $K[A]$.
     @cached_method
     def Q(self,i):
         #return self._QM.Q(self._L[i])
-        return self._QM.Q(self._QM(list(self._W._elt(i))))
+        return self._QM.Q(self._QM(list(self._W._elt(i)), can_coords=True))
 
     @cached_method
     def _minus_element(self,ii):
@@ -1060,8 +1085,9 @@ ss    Describes an element of a Weil module $K[A]$.
         # figure out which matrix-entries we need to compute:
         if mode==0:
             filter=matrix(ZZ,self._n)
+            #print filter
             for (k,x) in self:
-                jj = self._parent._el_index(x.list())
+                jj = self._parent._el_index(x.c_list())
                 #jj = self._L.index(x)
                 for ii in range(0 ,self._n):
                     if(act=='l'):
@@ -1076,14 +1102,13 @@ ss    Describes an element of a Weil module $K[A]$.
         res = FormalSum([(0 ,0 )],self._W)
         for (k,x) in self:
             #print "k,x=",k,x
-            jj = self._parent._el_index(x.list())
-            #jj = self._L.index(x)
+            jj = self._parent._el_index(x.c_list())
             for ii in range(0,self._n):
                 if(act=='l'):
-                    res=res+FormalSum([(r[ii,jj],self._QM(self._W._elt(ii)))],self._W)
+                    res=res+FormalSum([(r[ii,jj],self._QM(self._W._elt(ii), can_coords=True))],self._W)
                     #res=res+FormalSum([(r[ii,jj],self._L[ii])],self._W)
                 else:
-                    res=res+FormalSum([(r[jj,ii],self._QM(self._W._elt(ii)))],self._W)
+                    res=res+FormalSum([(r[jj,ii],self._QM(self._W._elt(ii), can_coords=True))],self._W)
                     #res=res+FormalSum([(r[jj,ii],self._L[ii])],self._W)
         return [res,fact]
 
@@ -1093,7 +1118,7 @@ ss    Describes an element of a Weil module $K[A]$.
         r""" Action by the generator sign*T^pow=[[a,b],[0,d]]
         where a=d=sign
         """
-        r = matrix(self._K,self._n)
+        r = matrix(self._K,self._n, sparse = filter is not None)
         if sign==-1:
             si=self._QM.sigma_invariant()**2 
         else:
@@ -1112,7 +1137,7 @@ ss    Describes an element of a Weil module $K[A]$.
         r"""
         Action by the generator S=[[0,-1],[1,0]]
         """
-        r = matrix(self._K,self._n)
+        r = matrix(self._K,self._n, sparse = filter is not None)
         if sign==-1:
             si = self._K(self._QM.sigma_invariant()**3)
             if is_odd(self.parent().signature()):
@@ -1197,14 +1222,14 @@ ss    Describes an element of a Weil module $K[A]$.
         a=A[0 ,0 ]; b=A[0 ,1 ]; c=A[1 ,0 ]; d=A[1 ,1 ] #[a,b,c,d]=elts(A)
         if(c % self._level <>0 ):
             raise ValueError, "Must be called with Gamma0(l) matrix! not A=" %(A)
-        r = matrix(self._K,self._n)
+        r = matrix(self._K,self._n, sparse=True)
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
-                if(self._L[ii]==d*self._L[jj] and (filter==None or filter[ii,jj]==1 )):
-                    argl=self._level*b*d*self.Q(self._L[jj])
+                if(self._QM(self._W._elt(ii), can_coords=True) == d*self._QM(self._W._elt(jj), can_coords=True) and (filter==None or filter[ii,jj]==1 )):
+                    argl = self._level*b*d*self._QM.Q(self._QM(self._W._elt(jj), can_coords=True))
                     r[ii,jj]=self._zl**argl
         # Compute the character 
-        signature = inv['signature']
+        signature = self._inv['signature']
         if( self._level % 4  == 0 ):
             test = (signature + kronecker(-1 ,self._n)) % 4
             if(is_even(test)):
@@ -1215,7 +1240,7 @@ ss    Describes an element of a Weil module $K[A]$.
                 if( d % 4  == 1 ):
                     chi = 1 
                 else:
-                    chi=I**power
+                    chi=self._z8**(power*2)
                 chi=chi*kronecker(c,d)
             else:
                 if(test==3 ):
@@ -1312,7 +1337,7 @@ ss    Describes an element of a Weil module $K[A]$.
                 #beta=self._L[nb]
                 #gamma=alpha-d*beta
                 # c*alpha' = 
-                gi=self.lin_comb(na,-d,nbm)
+                gi = self.lin_comb(na,-d,nbm)
                 try:
                     ngamma_c=norms_c[gi]
                     #ngamma_c_old=norms_c_old[gamma]
@@ -1374,7 +1399,7 @@ ss    Describes an element of a Weil module $K[A]$.
         """
         n=0 
         for ii in range(0,self._n):
-            x=self._QM(self._W._elt(ii))
+            x=self._QM(self._W._elt(ii), can_coords=True)
             if(c*x==self._QM(0)):
                 n=n+1 
         return n
@@ -1572,7 +1597,7 @@ ss    Describes an element of a Weil module $K[A]$.
         FQM = Finite Quadratic Module
         Test before that alpha is in D^c*!!
         """
-        alpha=self._QM(self._W._elt(ai))
+        alpha=self._QM(self._W._elt(ai), can_coords=True)
         xc=self._get_xc(c)
         if xc<>0:
             gammatmp=alpha-xc
@@ -1583,12 +1608,12 @@ ss    Describes an element of a Weil module $K[A]$.
         # print alpha,gammatmp
         if gcd(c,self._level)==1:
             cc = inverse_mod(c,self._level)
-            gamma = (cc*gammatmp).list()
+            gamma = (cc*gammatmp).c_list()
         else:
             gamma=[]
             for jj,g in enumerate(self._QM.gens()):
                 for x in range(g.order()):
-                    if (c*x - gammatmp.list()[jj]) % g.order() == 0:
+                    if (c*x - gammatmp.c_list()[jj]) % g.order() == 0:
                         gamma.append(x)
                         break
             if len(gamma)<len(self._QM.gens()):
@@ -1621,9 +1646,9 @@ ss    Describes an element of a Weil module $K[A]$.
             #res=res+self._QM.B(xc,gamma)
             if self._verbose>0:
                 print "xc=",xc
-                print "xc.list=",xc.list()
+                print "xc.c_list=",xc.c_list()
                 print "orders=",self._W._gen_orders
-            xci = self._W._el_index(xc.list())
+            xci = self._W._el_index(xc.c_list())
             res=res+self.Bi(xci,gi)
         return res
 
@@ -1855,8 +1880,8 @@ ss    Describes an element of a Weil module $K[A]$.
 
     @cached_method
     def lin_comb(self,a,d,b):
-        x = self._QM(self._W._elt(a))+d*self._QM(self._W._elt(b))
-        x=vector(x.list())
+        x = self._QM(self._W._elt(a), can_coords=True)+d*self._QM(self._W._elt(b), can_coords=True)
+        x=vector(x.c_list())
         x.set_immutable()
         return self._W._el_index(x)
 
@@ -2021,7 +2046,7 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
         while l>size_bd:
             FQ=FiniteQuadraticModuleRandom(fqbound,nbound,verbose-1)
             if list(FQ)==[FQ(0)]:
-                return FQ
+                continue ## This is just the 0 module
             l=len(list(FQ))
             W = WeilModule(FQ)
             g = FQ.jordan_decomposition().genus_symbol()
@@ -2029,6 +2054,8 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
         if verbose>0:
             print "signature=",s
             print "genus=",g
+            print "is_nondeg=",FQ.is_nondegenerate()
+            print "gram=",FQ.gram()
         w = W.an_element()
         i = 0
         j = 0
@@ -2041,7 +2068,7 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
                 continue
             j = 0
             i = i + 1
-            t = compare_formula_for_one_matrix(W,A,verbose,gamma0_test)
+            t = compare_formula_for_one_matrix(W,A,verbose)
             if not t:
                 if verbose>0:
                     print "A=",A

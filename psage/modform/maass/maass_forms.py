@@ -121,7 +121,8 @@ class MaassWaveForms (AutomorphicFormSpace):
         self._check_consistent_symmetrization()
         self._smallest_M0=0
         self._is_maass_waveform_space=True
-
+        self._exceptional = kwds.get('exceptional',False)
+        
     def _check_consistent_symmetrization(self):
         r"""
         Check that the symmetrization information supplied is consistent.
@@ -392,6 +393,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         norm = kwds.get('norm')
         do_par = kwds.get('do_par',0)
         ncpus= kwds.get('ncpus',1)
+        #exceptional = kwds.get('exceptional',0)
         try: 
             if RR(R).is_infinity() or RR(R).is_NaN() or R<0.0:
                 raise Exception

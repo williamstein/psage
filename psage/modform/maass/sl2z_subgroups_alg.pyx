@@ -76,7 +76,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     except:
         raise ValueError, "Indata not of correct format! sig=%s" %(sig)
     # For simplicity we fix the permutation of order two, E first:
-    ## We should check that the signature is valid (corresponds to a group)
+
+    ## If we have a complete signature then we should check that the signature is valid (corresponds to a group)
     if 12*g<>12+mu-6*h-3*e2-4*e3:
         print "lhs=",12*g
         print "rhs=",12+mu-6*h-3*e2-4*e3

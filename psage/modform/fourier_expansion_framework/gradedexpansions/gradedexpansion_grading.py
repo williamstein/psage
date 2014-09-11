@@ -31,7 +31,6 @@ from sage.modules.free_module import FreeModule
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
-from sage.rings.polynomial.all import is_Polynomial, is_MPolynomial
 from sage.structure.all import Sequence
 from sage.structure.sage_object import SageObject
 

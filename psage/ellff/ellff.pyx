@@ -55,7 +55,7 @@ from psage.function_fields.function_field import RationalFunctionField
 from psage.function_fields.function_field_element import FunctionFieldElement_rational
 ####################
 
-import psage.ellff.euler_database as edb
+# import psage.ellff.euler_database as edb
 
 ####################
 
@@ -1125,7 +1125,8 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             sage: E._save_euler_table(3)
         
     """
-        edb._save_euler_table(self, n, verbose)
+        raise NotImplementedError( "ZODB was removed from Sage 5.7.  Some other backend should be used here.  See the port of Conway polynomials for a possible way to go" )
+        # edb._save_euler_table(self, n, verbose)
 
     def _load_euler_table(self, n, force=False, verbose=False):
         r"""
@@ -1164,8 +1165,8 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             [0, 0, 4, -6, 3, 5, 1, -2, 4, -2, 3, 1]
             
         """
-
-        edb._load_euler_table(self, n, force, verbose)
+        raise NotImplementedError( "ZODB was removed from Sage 5.7.  Some other backend should be used here.  See the port of Conway polynomials for a possible way to go" )
+        # edb._load_euler_table(self, n, force, verbose)
 
     def M(self,fine=False):
         r"""

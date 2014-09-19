@@ -1955,17 +1955,21 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 #        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
             
 
-    def plot(self,xlim=(-0.5,0.5),ylim=(0,2),num_pts=100,**kwds):
+    def plot(self,xlim=None,ylim=(0,2),num_pts=100,**kwds):
         r"""
         Make a plot of self.
         """
-        from sage.all import xsrange
+        from sage.all import xsrange,Infinity
         from sage.plot.all import Graphics
         from sage.plot.misc import setup_for_eval_on_grid
         import matplotlib.pyplot as plt        
         from sage.plot.density_plot import DensityPlot
         from psage.modform.maass.plot_dom import get_contour
         G = self.group()
+        w = G.cusp_width(Infinity)
+        if xlim is None:
+            xlim = (-0.5*w,0.5*w)
+            
         version = kwds.pop('version',0)
         model = kwds.pop('model','H')
         show_axis = kwds.pop('axis',False)
@@ -1995,7 +1999,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         g = g[0]
         xrange,yrange=[r[:2] for r in ranges]
         xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
-        g = plt.figure()
+        xsize = (xlim[1]-xlim[0]); ysize = (ylim[1]-ylim[0])
+        g = plt.figure(figsize=(xsize,ysize))
         ax = g.add_subplot(111)
         x0,x1 = xlim
         y0,y1 = ylim

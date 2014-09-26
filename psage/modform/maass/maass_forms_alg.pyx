@@ -218,7 +218,6 @@ cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double
     kbvec[0] = 0
     coeffs = <double*>sage_malloc(nx*sizeof(double))
     ary=twopi*yy
-    arx=twopi*xx
     for n in range(1,M0):
         kbvec[n]=sqrt(y)*besselk_dp(R,ary*n)
     cdef double tmp = 0
@@ -2458,11 +2457,11 @@ cpdef get_coeff_fast_real_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
     ## Check that this "real" method is applicable here.
     if not S.multiplier().is_real():
         raise ValueError,"This method should only be called for real characters/multipliers!"
+    sym_type = S._sym_type
     if sym_type not in [0,1]:
         raise ValueError,"This method should only be called for symmetrized (even/odd) functions!"
     if Q<M:
         Q=M+20
-    sym_type = S._sym_type
     Ms=0;  Mf=M; Qs=1; Qf=Q
     Qfak=<double>(Q)/<double>(2)
     Ml=Mf-Ms+1
@@ -2717,7 +2716,7 @@ cdef my_dealloc_double_3(double ***A,int d1,int d2):
     if A<>NULL:
         for i in range(d1):
             if A[i]<>NULL:
-                for i in range(d2):
+                for j in range(d2):
                     if A[i][j]<>NULL:
                         sage_free(A[i][j])
                 sage_free(A[i])
@@ -3707,6 +3706,10 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
     if verbose>0:
         print "MM=",MM
         print "Y=",Y
+    if M0>0 and Y>0: # check if we are opk to begin with
+         if err_est_Maasswf(Y,M0,R,1)<eps:
+             return M0,Y
+         
     #if Y<0 or Y>Y0:
     #    raise ArithmeticError,"Could not get a good point"
     ## Now change M if necessary
@@ -3823,7 +3826,7 @@ cpdef  get_Y_from_M(double R,double Y0,int M0,double eps,int verbose=0,int maxny
             Y = Y*0.995
             ## Want to find largest Y which satisfies both estimates for the given M0
             erest = err_est_Maasswf(Y,M0,R,1)
-            Y0 = (log(2.0)-log(eps)-0.5*log(M0)+M_PI*R*0.5)/(2*M_PI*M0)
+            #Y0 = (log(2.0)-log(eps)-0.5*log(M0)+M_PI*R*0.5)/(2*M_PI*M0)
             #t =besselk_dp(R,twopim0*Y,pref=1)
             #t = (log(2.0)-log(eps)-0.5*log(M0)+RR.pi()*R*0.5)/(2*RR.pi()*M0)
             #print "erest=",erest
@@ -3835,7 +3838,7 @@ cpdef  get_Y_from_M(double R,double Y0,int M0,double eps,int verbose=0,int maxny
                 raise StopIteration()
     except StopIteration:
         return Y
-    raise Exception," No good value for Y was found. Please increase M0!"
+    raise ValueError," No good value for Y was found. Please increase M0!"
 
 
 
@@ -3920,12 +3923,14 @@ def err_est_Maasswf(Y,M,R=0,pref=1):
     """
     import mpmath
     YY = mpmath.fp.mpf(Y)
-    arg=sqrt(2*mpmath.fp.pi*YY*M)
+    #arg=sqrt(2*mpmath.fp.pi*YY*M)
+    gamma_arg=2*mpmath.fp.pi*YY*M
     if pref==1:
-        f = exp(mpmath.fp.pi*R/2)/sqrt(2*YY)
+        f = exp(mpmath.fp.pi*R/2.0)*sqrt(2.0/YY)
     else:
-        f = 1/sqrt(2*YY) 
-    r = f*mpmath.fp.erfc(arg)
+        f = sqrt(2.0/YY) 
+#    r = f*mpmath.fp.erfc(arg)
+    r = f*mpmath.fp.gammainc(0.75,gamma_arg)
     return r
 
 # cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):
@@ -5477,3 +5482,63 @@ cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,
         print "N,Ml,Ql=",N[0],Ml[0],Ql[0]
 
 
+
+
+cdef void set_Mv_Qv_symm_real(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,double * cusp_evs,int *cusp_offsets,int *N,int *Ml,int *Ql,int M,int Q,int verbose=0):
+    cdef int nc=S._group.ncusps()
+    cdef int sym_type = S._sym_type
+    N[0]=0
+    Ml[0]=0
+    Ql[0]=0
+    for i in range(nc):
+        symmetric_cusps[i]=0
+        # print "sym_type=",sym_type
+        symmetries=S.even_odd_symmetries()
+        if sym_type<>-1 and symmetries[i][0]<>0:
+            if symmetries[i][1]==1:
+                symmetric_cusps[i]=int(sym_type)
+            elif sym_type==0 and symmetries[i][1]==-1:
+                symmetric_cusps[i]=1
+            elif sym_type==1 and symmetries[i][1]==-1:
+                symmetric_cusps[i]=0
+            Mv[i][0]=0; Mv[i][1]=M;  Mv[i][2]=M+1
+            #Qv[i][0]=1; Qv[i][1]=Q;  Qv[i][2]=Q
+            Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
+            N[0]=N[0]+M+1
+        else:
+            #print "S._group._symmetrizable_cusp[",i,"]=",S._group._symmetrizable_cusp[i]
+            symmetric_cusps[i]=-1
+            #sym_type=-1
+            Mv[i][0]=-M; Mv[i][1]=M;  Mv[i][2]=2*M+1
+            Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
+            N[0]=N[0]+2*M+1
+        if Mv[i][2]>Ml[0]:
+            Ml[0]=Mv[i][2]
+        if Qv[i][2]>Ql[0]:
+            Ql[0]=Qv[i][2]
+        if verbose>0:
+            #print "symmetries=",symmetries
+            print "Mv[",i,"]=",Mv[i][0],Mv[i][1],Mv[i][2]
+            print "Qv[",i,"]=",Qv[i][0],Qv[i][1],Qv[i][2]
+            print "sym_cusps_evs[",i,"]=",symmetric_cusps[i]
+    for j in range(nc):
+        if symmetric_cusps[j]<0:
+            #if Qv[j][2]==2*Q:
+            Qfak[j]=<double>(Qv[j][2]) # = 2Q # factor for 1-Q<=j<=Q
+        else: #elif Qv[j][2]==Q:
+            Qfak[j]=<double>(Qv[j][1]) # = Q/2# factor for 1<=j<=Q
+        if verbose>0:
+            print "Qfak[{0}]={1}".format(j,Qfak[j])
+        #else:
+        #    raise ArithmeticError,"Got unknown Qv!"
+    for i in range(nc):
+        cusp_offsets[i]=0
+        for j in range(i):
+            if j==0 or cusp_evs[j]==0:
+                cusp_offsets[i]+=Mv[j][2]
+
+    if verbose>0:
+        print "N,Ml,Ql=",N[0],Ml[0],Ql[0]
+
+
+        

@@ -726,7 +726,7 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
         r = -r
     if abs(r)>0.5:
         raise ValueError,"Use only for r in [-0.5,0.5]"
-    if abs(x)>0.5:
+    if abs(x)==0.0:
         raise ValueError,"Use only for x>0"
     if eps == 0:
         eps = 2.0**(2-53)

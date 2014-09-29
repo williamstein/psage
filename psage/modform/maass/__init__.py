@@ -16,7 +16,7 @@ from weil_rep_simple import WeilRepDiscriminantForm
 #from eisenstein_series import *
 #from pullback_algorithms import *
 #from maass_forms_alg import *
-#from maass_forms_phase2 import *
+from maass_forms_phase2 import *
 #from automorphic_forms_alg import *
 
 from linear_system import *

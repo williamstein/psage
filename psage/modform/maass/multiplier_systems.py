@@ -860,8 +860,132 @@ class WeilRepMultiplier(MultiplierSystem):
             eps = self._sgn
         return self._weil_module.dimension_modular_forms(k,eps)    
 
-    
+
 class EtaQuotientMultiplier(MultiplierSystem):
+    r"""
+    Eta multiplier given by eta(Az)^{r}/eta(Bz)^s
+    The weight should be r/2-s/2 mod 2.
+    The group is Gamma0(lcm(A,B))
+    """
+    def __init__(self,args=[1],exponents=[1],ch=None,dual=False,version=1,**kwargs):
+        r"""
+        Initialize the Eta multiplier system: $\nu_{\eta}^{2(k+r)}$.
+        INPUT:
+
+        - G -- Group
+        - ch -- character
+        - dual -- if we have the dual (in this case conjugate)
+        - weight -- Weight (recall that eta has weight 1/2 and eta**2k has weight k. If weight<>k we adjust the power accordingly.
+        - number -- we consider eta^power (here power should be an integer so as not to change the weight...)
+
+        EXAMPLE:
+        
+                
+        """
+        assert len(args) == len(exponents)
+        self._level=lcm(args)
+        G = Gamma0(self._level)
+        k = sum([QQ(x)*QQ(1)/QQ(2) for x in exponents])
+        self._weight=QQ(k)
+        if floor(self._weight-QQ(1)/QQ(2))==ceil(self._weight-QQ(1)/QQ(2)):
+            self._half_integral_weight=1
+        else:
+            self._half_integral_weight=0
+        MultiplierSystem.__init__(self,G,dimension=1,character=ch,dual=dual)
+        self._arguments = args
+        self._exponents =exponents
+        self._pow=QQ((self._weight)) ## k+r
+        self._k_den = self._weight.denominator()
+        self._k_num = self._weight.numerator()
+        self._K = CyclotomicField(12*self._k_den)
+        self._z = self._K.gen()**self._k_num
+        self._i = CyclotomicField(4).gen()
+        self._fak = CyclotomicField(2*self._k_den).gen()**-self._k_num
+        self._version = version
+        self.is_consistent(k) # test consistency
+
+    def __repr__(self):
+        s="Quotient of Eta multipliers :  "
+        for i in range(len(self._arguments)):
+            n = self._arguments[i]
+            e = self._exponents[i]
+            s+="eta({0}z)^{1}".format(n,e)
+            if i < len(self._arguments)-1:
+                s+="*"
+        if self._character<>None and not self._character.is_trivial():
+            s+=" and character "+str(self._character)
+        s+=" with weight="+str(self._weight)
+        return s
+
+    def level(self):
+        return self._level
+        
+    def order(self):
+        return 12*self._k_den
+
+    def z(self):
+        return self._z
+
+    def q_shift(self):
+        r"""
+        Gives the 'shift' at the cusp at infinity of the q-series.
+        The 'true' q-expansion of the eta quotient is then q^shift*q_expansion
+        """
+        num =  sum([self._argument[i]*self._exponent[i] for i in range(len(self._arguments))])
+
+        return QQ(num)/QQ(24)
+    
+    def q_expansion(self,n=20):
+        r"""
+        Give the q-expansion of the quotient.
+        """
+        eta = qexp_eta(ZZ[['q']],n)
+        R = eta.parent()
+        q = R.gens()[0]
+        res = R(1)
+        prefak = 0
+        for i in range(len(self._arguments)):        
+            res = res*eta.subs({q:q**self._arguments[i]})**self._exponents[i]
+            prefak = prefak+self._arguments[i]*self._exponents[i]
+        if prefak % 24 == 0:
+            return res*q**(prefak/24)
+        else:
+            return res,prefak/24
+        #etA= et.subs(q=q**self._arg_num).power_series(ZZ[['q']])
+        #etB= et.subs(q=q**self._arg_den).power_series(ZZ[['q']])
+        #res = etA**(self._exp_num)/etB**(self._exp_den)
+        #return res
+    #def _action(self,A):
+    #    return self._action(A)
+        
+    def _action(self,A):
+        [a,b,c,d]=A
+        if not c % self._level == 0 :
+            raise ValueError,"Need A in {0}! Got: {1}".format(self.group,A)
+        fak=1
+        if c<0:
+            a=-a; b=-b; c=-c;  d=-d; fak=-self._fak
+            #fak = fak*(-1)**(self._exp_num-self._exp_den)
+        res = 1
+        exp = 0
+        for i in range(len(self._exponents)):
+            z = CyclotomicField(lcm(12,self._exponents[i].denominator())).gen()
+            arg,v = eta_conjugated(a,b,c,d,self._arguments[i])
+            #arg2,v2 = eta_conjugated(a,b,c,d,self._arg_den)
+            #res=self._z**(arg1*self._exp_num-arg2*self._exp_den)
+#            exp += arg*self._exponents[i]
+            if v<>1:
+                res=res*v**self._exponents[i]
+            #if v2<>1:
+            #res=res/v2**self._exp_den
+            res = res*z**(arg*self._exponents[i].numerator())
+#        res = res*self._z**exp
+        if fak<>1:
+            res=res*fak**exp
+        return res
+
+        
+class EtaQuotientMultiplier_2(MultiplierSystem):
     r"""
     Eta multiplier given by eta(Az)^{r}/eta(Bz)^s
     The weight should be r/2-s/2 mod 2.

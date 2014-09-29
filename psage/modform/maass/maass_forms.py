@@ -40,17 +40,17 @@ Maass waveforms for subgroups of the modular group and Eisenstein series for Hec
 
 AUTHORS:
 
- - Fredrik Strömberg (March 2010-)
+- Fredrik Strömberg (March 2010-)
 
 EXAMPLES::
 
 
- ?
+?
 
 
- TODO:
-   - Nontrivial multiplier systems and weights
-   - improve eigenvalue finding alorithms
+TODO:
+- Nontrivial multiplier systems and weights
+- improve eigenvalue finding alorithms
 
 
 """
@@ -67,21 +67,21 @@ class MaassWaveForms (AutomorphicFormSpace):
 
         INPUT:
 
-            - `'G``    -- subgroup of the modular group
-            - ``prec`` -- default working precision in bits 
-            - ``dprec`` -- default working precision in digits 
-            - ``Hecke`` -- if set to True we assume that we want Hecke eigenforms. In particular this implies that we have to work with complex numbers also for real characters.
-            - ``sym_type` -- Integer. Even (0) or Odd (1)
-            - ``atkin_lehner` -- Complex. Atkin-Lehner eigenvalues
+        - `'G``    -- subgroup of the modular group
+        - ``prec`` -- default working precision in bits
+        - ``dprec`` -- default working precision in digits
+        - ``Hecke`` -- if set to True we assume that we want Hecke eigenforms. In particular this implies that we have to work with complex numbers also for real characters.
+        - ``sym_type` -- Integer. Even (0) or Odd (1)
+        - ``atkin_lehner` -- Complex. Atkin-Lehner eigenvalues
         EXAMPLES::
 
 
-            sage: S=MaassWaveForms(Gamma0(1)); S
-            Space of Maass waveforms on the group G:
-            Arithmetic Subgroup of PSL2(Z) with index 1. Given by: 
-            perm(S)=()
-            perm(ST)=()
-            Constructed from G=Modular Group SL(2,Z)
+        sage: S=MaassWaveForms(Gamma0(1)); S
+        Space of Maass waveforms on the group G:
+        Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
+        perm(S)=()
+        perm(ST)=()
+        Constructed from G=Modular Group SL(2,Z)
 
         """
         if kwds.get('char_norm')=='Conrey' and ch>0:
@@ -102,7 +102,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         else:
             self._sym_type = sym_type
         self._Weyl_law_const=self._Weyl_law_consts()
-        maass_forms=dict() # list of members 
+        maass_forms=dict() # list of members
         self._use_real=True
         if not self._multiplier.is_trivial():
             if not self._multiplier.is_real() or hecke:
@@ -121,20 +121,21 @@ class MaassWaveForms (AutomorphicFormSpace):
         self._check_consistent_symmetrization()
         self._smallest_M0=0
         self._is_maass_waveform_space=True
+        self._exceptional = kwds.get('exceptional',False)
 
     def _check_consistent_symmetrization(self):
         r"""
         Check that the symmetrization information supplied is consistent.
         """
         # check consistency between cusp eigenvalues and even/odd symmetry
-        for i in range(self.group().ncusps()):            
+        for i in range(self.group().ncusps()):
             if self.cusp_evs()[i]<>0 and self.even_odd_symmetries()[i][0]<>1 and self.sym_type()<>-1:
                 raise ValueError,"Got incompatible symmetry information!"
         if self.sym_type() in [0,1]:
             ## We can now use symmetries for most cusps (and leave the other with exponentials)
             if not self.group().is_congruence() and self.group().ncusps()>1:
                 raise ValueError,"For non-cycloidal non-congruence subgroups we should not use even/odd symmetry!"
-        
+
         ## Also check that the eigenvalues are compatible
         for c in range(self._group.ncusps()):
             o,d=self.cusp_symmetries().get(c,(-1,0))
@@ -149,7 +150,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                     warnings.warn(s)
                     self._cusp_evs[c]=0
         # check consistency between cusp eigenvalues and even/odd symmetry
-        for i in range(self._group._ncusps):            
+        for i in range(self._group._ncusps):
             if self.cusp_evs()[i]<>0 and self.even_odd_symmetries()[i][0]<>1 and self._sym_type<>-1:
                 if self._verbose>0:
                     print "i=",i
@@ -158,8 +159,8 @@ class MaassWaveForms (AutomorphicFormSpace):
                     print "sym_type=",self._sym_type
                 raise ValueError,"Got incompatible symmetry information!"
 
-            
-        
+
+
     def weight(self):
         return self._weight
 
@@ -169,7 +170,7 @@ class MaassWaveForms (AutomorphicFormSpace):
     def atkin_lehner_eigenvalue(self,cusp):
         cc = self.group().cusp_representative(cusp)
         return self._atkin_lehner_evs.get(cc,0)
-    
+
     def atkin_lehner_eigenvalues(self):
         return self._atkin_lehner_evs
 
@@ -180,22 +181,22 @@ class MaassWaveForms (AutomorphicFormSpace):
                 self._cusp_evs.append(0)
         return self._cusp_evs
 
-        
+
     def set_sym_type(self,s):
         if s not in [0,1,-1]:
             raise ValueError,"{0} is not a valid symmetry type!".format(s)
         # check consistency between cusp eigenvalues and even/odd symmetry
-        for i in range(self._group._ncusps):            
+        for i in range(self._group._ncusps):
             if self.cusp_evs()[i]<>0 and self.even_odd_symmetries()[i][0]<>1 and self._sym_type<>-1:
-                raise ValueError,"Got incompatible symmetry information!"        
+                raise ValueError,"Got incompatible symmetry information!"
         self._sym_type=s
-    
+
     def set_cusp_evs(self,evs={}):
         r"""
         Set Atkin-Lehner eigenvalues for self. If only on is supplied we assume it to be the Fricke eigenvalue (i.e. Atkin-Lehner at 0)
 
         INPUT:
-          - ''evs'' -- dict or integer. 
+        - ''evs'' -- dict or integer.
         """
         if isinstance(evs,(int,Integer)):
             evs={0:int(eigenvalues)}
@@ -206,8 +207,8 @@ class MaassWaveForms (AutomorphicFormSpace):
             if c<>Cusp(1,0):
                 self._atkin_lehner_evs[c]=0
             else:
-                self._atkin_lehner_evs={Cusp(1,0):1}  # cusp at infinity                
-        ### We want to use cusp representatives 
+                self._atkin_lehner_evs={Cusp(1,0):1}  # cusp at infinity
+        ### We want to use cusp representatives
         if isinstance(evs,dict):
             for c in evs.keys():
                 ck = self.group().cusp_representative(c)
@@ -283,14 +284,14 @@ class MaassWaveForms (AutomorphicFormSpace):
                             vals.append(xij)
                     # Note that if vals<>[1] then this map is not really an involution
                     # since it sends a character to another character
-                    # but 
+                    # but
                     if len(vals)==1:
                         res[j]=o,vals[0]
                     else:
                         res[j]=0,0
         self._cusp_symmetries=res
         return res
-    
+
     def __repr__(self):
         r"""
         Return the string representation of self.
@@ -298,12 +299,12 @@ class MaassWaveForms (AutomorphicFormSpace):
         EXAMPLES::
 
 
-            sage: M=MaassWaveForms(MySubgroup(Gamma0(1)));M
-            Space of Maass waveforms on the group G:
-            Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
-                perm(S)=()
-                perm(ST)=()
-            Constructed from G=Modular Group SL(2,Z)
+        sage: M=MaassWaveForms(MySubgroup(Gamma0(1)));M
+        Space of Maass waveforms on the group G:
+        Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
+        perm(S)=()
+        perm(ST)=()
+        Constructed from G=Modular Group SL(2,Z)
 
 
         """
@@ -317,14 +318,13 @@ class MaassWaveForms (AutomorphicFormSpace):
             s+=" with trivial multiplier "
         s+=" on "
         if self._group._is_Gamma0:
-            
+
             s+='Gamma0({0})'.format(self.level())
         else:
             s+="the group G:\n"+str(self._group)
         return s
 
 
-        return s
 
     def __reduce__(self):
         r""" Used for pickling.
@@ -355,9 +355,9 @@ class MaassWaveForms (AutomorphicFormSpace):
                 return False
         return True
     #return self.__reduce__() == other.__reduce__()
-    
+
 #G,weight=0,multiplier="",ch=0,dprec=None,prec=None,sym_type=None,verbose=0,hecke=True,**kwds):
-    
+
     def __cmp__(self,other):
         r""" Compare self to other
         """
@@ -373,94 +373,20 @@ class MaassWaveForms (AutomorphicFormSpace):
 
     def is_congruence(self):
         return self._group.is_congruence()
-    
+
     def level(self):
         if not self._group.is_congruence():
             raise ValueError,"Can only call level for a congruence subgroup!"
         return self._group.generalised_level()
 
-    def get_element(self,R,Mset=None,Yset=None,dim=1,ndigs=12,set_c=[],**kwds):
-        #if sym_type==None:
-        #    sym_type=self._sym_type
-        eps = 10**(1-ndigs)
-        gr=kwds.get('gr',0)
-        param=self.set_default_parameters(R,Mset,Yset,ndigs)
-        Y=param['Y']
-        Q=param['Q']
-        M=param['M']
-        oldf = kwds.get('oldforms')
-        norm = kwds.get('norm')
-        do_par = kwds.get('do_par',0)
-        ncpus= kwds.get('ncpus',1)
-        try: 
-            if RR(R).is_infinity() or RR(R).is_NaN() or R<0.0:
-                raise Exception
-        except:
-            raise ValueError,"R must be a (finite) non-negative real! Got R:{0}".format(R)
-        if dim>1 and self.weight()==0 and oldf==None and norm==None and self.group().is_congruence():
-            return  self.get_Hecke_basis(R,None,M,Y,dim,ndigs,set_c)
-            ## We assume we have a scalar-valued Maass form for the moment
-        else:
-            if norm <> None:
-                NN = norm
-            else:
-                if self._verbose>0:
-                    print "setc=",set_c
-                NN = self.set_norm(dim,set_c=set_c)
-            #M0=0; Y0 = float(0.0)
-            #if Mset<>None: M0 = int(Mset)
-            #if Yset<>None: Y0 = float(Yset)
-            if self._verbose>0:
-                print "Y=",Y
-                print "M=",M
-                print "NN=",NN
-                print "gr=",gr
-            #if Y0==0.0 and M0==0:
-            #    Y0,M0=get_Y_and_M_dp(self,R,eps)
-            #if Y0==0.0 and M0<>0:
-            #    Y0=get_Y_for_M_dp(S,R,M0,eps)
-            #if Y0<>0 and M0==0:
-            #    M0=get_M_for_maass_dp(R,Y0,eps)                
-            #if self.weight()==0 and self.group().is_congruence():
-            #    C = get_coeff_fast_cplx_dp_sym(self,R,Y,M,0,NN,gr=gr)
-            #else:
-            #    if self._verbose>0:
-            #        print "Using routine without symmetry!"
-            #        print "R,Y0,M=",R,Y0,M
-            C = get_coeff_fast_cplx_dp(self,R,Y,M,0,NN,gr=gr,do_par=do_par,ncpus=ncpus)
-            if gr<>0:
-                return C
-            if self._verbose>0:
-                print "C.keys()==",C.keys()
-                print "NN=",NN
-            ## Make sure that the coefficient have Sage types
-            CF = ComplexField(self._prec)
-            for i in C.keys(): ## Functions in the space of dim>=1
-                if self.multiplier().rank()>1:
-                    for j in C[i].keys(): # Components
-                        for r in C[i][j].keys(): # Cusps 
-                            for n in C[i][j][r].keys(): # Coefficient c(n)
-                                c = C[i][j][r][n]
-                                C[i][j][r][n] = CF(c)
-                else:
-                    for r in C[i].keys(): # Cusps 
-                        for n in C[i][r].keys(): # Coefficient c(n)
-                            c = C[i][r][n]
-                            C[i][r][n] = CF(c)
-#            if len(C.keys())>1:
-#                res = []
-#                for i in C.keys():
-#                    res.append(Maasswaveform(self,R,C=C[i],compute=#False,Y=Y,norm=NN))
-#                return res
-#            else:
-            return Maasswaveform(self,R,C=C,compute=False,Y=Y,M0=M,norm=NN,dim=dim)
+    def get_element(self,R,**kwds):
+        r"""
+        Return an Maass waveform element of self.
+        """
+        compute = kwds.get('compute',True)
+        kwds['compute']=compute
+        return Maasswaveform(self,R,**kwds)
 
-            #X=coefficients_for_Maass_waveforms(self,R,Y,M,Q,ndigs,cuspidal=True,sym_type=sym_type,dim=dim,set_c=set_c)
-            #F._coeffs[0]=X[0]
-        #else:
-        #    raise ValueError,"Can not compute Maass forms of dimension {0}".format(dim)
-        
-            
     def get_Hecke_basis(self,R,p=None,Mset=None,Yset=None,dim=1,ndigs=12,set_c=[]):
         if dim==1:
             return self.get_element(R,Mset,Yset,dim,ndigs,set_c)
@@ -476,8 +402,8 @@ class MaassWaveForms (AutomorphicFormSpace):
         if Y0==0.0 and M0<>0:
             Y0=get_Y_for_M_dp(self,R,M0,eps)
         if Y0<>0 and M0==0:
-            M0=get_M_for_maass_dp(R,Y0,eps)                
-    
+            M0=get_M_for_maass_dp(R,Y0,eps)
+
         if self._verbose>0:
             print "Get Hecke basis with:{0},{1},{2},{3},{4}".format(R,Y0,M0,Q,dim)
         #if self.weight()==0:
@@ -496,7 +422,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             res.append(F)
         return res
 
-    
+
     def get_element_in_range(self,R1,R2,sym_type=None,Mset=None,Yset=None,dim=1,ndigs=12,set_c=None,neps=10):
         r""" Finds element of the space self with R in the interval R1 and R2
 
@@ -504,7 +430,7 @@ class MaassWaveForms (AutomorphicFormSpace):
 
         - ``R1`` -- lower bound (real)
         - ``R1`` -- upper bound (real)
-        
+
         """
         # Dummy element
         F=Maasswaveform(self,R2,sym_type=sym_type,dim=dim,compute=False)
@@ -541,9 +467,9 @@ class MaassWaveForms (AutomorphicFormSpace):
         EXAMPLES::
 
 
-            sage: M=MaassWaweForms(MySubgroup(Gamma0(1))
-            sage: M._Weyl_law_consts  
-            (0, 2/pi, (log(pi) - log(2) + 2)/pi, 0, -2)
+        sage: M=MaassWaweForms(MySubgroup(Gamma0(1))
+        sage: M._Weyl_law_consts
+        (0, 2/pi, (log(pi) - log(2) + 2)/pi, 0, -2)
         """
         import mpmath
         pi=mpmath.fp.pi
@@ -555,7 +481,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             lvl=0
         n2=Integer(self._group.nu2())
         n3=Integer(self._group.nu3())
-        if is_Hecke_triangle_group(self._group): 
+        if is_Hecke_triangle_group(self._group):
             if self._group._is_Gamma0:
                 q=3
             else:
@@ -574,9 +500,9 @@ class MaassWaveForms (AutomorphicFormSpace):
                     if(chi.is_primitive()):
                         num_prim_dc=num_prim_dc+1
                 for m in divisors(lvl):
-                    if(lvl % (m*q) == 0   and m % q ==0 ): 
+                    if(lvl % (m*q) == 0   and m % q ==0 ):
                         fak=(q*lvl)/gcd(m,lvl/m)
-                        A=A*Integer(fak)**num_prim_dc        
+                        A=A*Integer(fak)**num_prim_dc
             c4=-ln(A)/pi
         else:
             c4=Integer(0)
@@ -587,24 +513,24 @@ class MaassWaveForms (AutomorphicFormSpace):
     def Weyl_law_N(self,T,T1=None):
         r"""
         The counting function for this space. N(T)=#{disc. ev.<=T}
-        
+
         INPUT:
-        
+
         -  ``T`` -- double
 
 
         EXAMPLES::
 
-            sage: M=MaassWaveForms(MySubgroup(Gamma0(1))
-            sage: M.Weyl_law_N(10)
-            0.572841337202191
-            
+        sage: M=MaassWaveForms(MySubgroup(Gamma0(1))
+        sage: M.Weyl_law_N(10)
+        0.572841337202191
+
         """
         (c1,c2,c3,c4,c5)=self._Weyl_law_const
         cc1=RR(c1); cc2=RR(c2); cc3=RR(c3); cc4=RR(c4); cc5=RR(c5)
         #print "c1,c2,c3,c4,c5=",cc1,cc2,cc3,cc4,cc5
         t=sqrt(T*T+0.25)
-        try: 
+        try:
             lnt=ln(t)
         except TypeError:
             lnt=mpmath.ln(t)
@@ -629,10 +555,10 @@ class MaassWaveForms (AutomorphicFormSpace):
 
         EXAMPLES::
 
-            sage: M.next_eigenvalue(10.0)
-            12.2500000000000
+        sage: M.next_eigenvalue(10.0)
+        12.2500000000000
 
-        
+
         """
         #cdef nmax
         N=self.Weyl_law_N(R)
@@ -646,21 +572,21 @@ class MaassWaveForms (AutomorphicFormSpace):
             return R1
         else:
             raise ArithmeticError,"Could not find next eigenvalue! in interval: [%s,%s]" %(R,R1)
-        
+
     def Weyl_law_Np(self,T,T1=None):
         r"""
         The derviative of the counting function for this space. N(T)=#{disc. ev.<=T}
-        
+
         INPUT:
-        
+
         -  ``T`` -- double
 
 
         EXAMPLES::
 
-            sage: M=MaassWaweForms(MySubgroup(Gamma0(1))
-            sage: M.Weyl_law_Np(10)
-        
+        sage: M=MaassWaweForms(MySubgroup(Gamma0(1))
+        sage: M.Weyl_law_Np(10)
+
         """
         (c1,c2,c3,c4,c5)=self._Weyl_law_const
         cc1=RR(c1); cc2=RR(c2); cc3=RR(c3); cc4=RR(c4); cc5=RR(c5)
@@ -682,7 +608,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         if M0<=0 or M0==None:
             M0 =  self.smallest_M0(); MM = 0
         else:
-            MM = M0 
+            MM = M0
         if Y>0:
             YY=float(Y)
         else:
@@ -690,42 +616,45 @@ class MaassWaveForms (AutomorphicFormSpace):
         if MM==0 and YY==0:
             MM,YY = get_M_and_Y(R,self.group().minimal_height(),M0,eps)
         elif MM>0 and YY==0:
-            YY = get_Y_from_M(R,0.0,MM,eps,self.group().minimal_height(),self.group().ncusps())
+            try:
+                YY = get_Y_from_M(R,0.0,MM,eps,self.group().minimal_height(),self.group().ncusps())
+            except ValueError as e: # need to increase MM
+                raise e
         if YY > 0 and MM==0:
             MM=get_M_from_Y(float(R),float(YY),M0,float(eps))
-        Q=MM+10 
+        Q=MM+10
         res['Q']=Q
         res['M']=MM
         res['Y']=RF(YY)
-        return res  
+        return res
 
 
     def set_norm(self,k=1,cuspidal=True,sym_type=None,set_c=[],atkin_lehner={}):
         r""" Set normalization for computing maass forms.
-        
+
         INPUT:
-        
+
         - ``k`` -- dimension
         - ``cuspidal`` -- cuspidal maass waveforms (default=True)
-        
+
 
         OUTPUT:
-        
+
         - ``N`` -- normalization (dictionary)
-        -- N['comp_dim'] -- dimension of space we are computing in 
+        -- N['comp_dim'] -- dimension of space we are computing in
         -- N['SetCs']``     -- which coefficients are set
-        -- N['Vals']     -- values of set coefficients     
-        
+        -- N['Vals']     -- values of set coefficients
+
         EXAMPLES::
-        
+
         sage: set_norm_maass(1)
         {'Vals': {0: {0: 0, 1: 1}}, 'comp_dim': 1, 'num_set': 2, 'SetCs': [0, 1]}
         sage: set_norm_maass(1,cuspidal=False)
         {'Vals': {0: {0: 1}}, 'comp_dim': 1, 'num_set': 1, 'SetCs': [0]}
-         sage: set_norm_maass(2)
-         {'Vals': {0: {0: 0, 1: 1, 2: 0}, 1: {0: 0, 1: 0, 2: 1}}, 'comp_dim': 2, 'num_set': 3, 'SetCs': [0, 1, 2]}
-         
-         """
+        sage: set_norm_maass(2)
+        {'Vals': {0: {0: 0, 1: 1, 2: 0}, 1: {0: 0, 1: 0, 2: 1}}, 'comp_dim': 2, 'num_set': 3, 'SetCs': [0, 1, 2]}
+
+        """
         if k<1:
             raise ValueError,"Need to compute at least a one-dimensional space!"
         #if set_c<>[] and set_c<>None:
@@ -733,13 +662,13 @@ class MaassWaveForms (AutomorphicFormSpace):
         C=dict()
         Vals=dict()
         #  set coeffs c(0),c(1),...,c(k-1) if not cuspidal
-        #  set coeffs c(0)=0,c(1),...,c(k) if cuspidal 
+        #  set coeffs c(0)=0,c(1),...,c(k) if cuspidal
         SetCs=dict()
         for j in range(k):
             SetCs[j]=[]
             Vals[j]={}
         ### If we have set some c's explicitly then we only set these (plus constant terms if cuspidal):
-            
+
         if set_c<>[]:
             if len(set_c)<>k:
                 raise ValueError,"Need to give a complete set of set coefficients! Got dim={0} and set_c={1}".format(k,set_c)
@@ -761,7 +690,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                         SetCs[j].append((0,l))
                 #SetCs[j]=range(0,k+1)
                     for i in range(1,self.group().ncusps()):
-                        if SetCs[j].count((i,0))==0 and self.alpha(i)[0]==0: 
+                        if SetCs[j].count((i,0))==0 and self.alpha(i)[0]==0:
                             SetCs[j].append((i,0))
             else:
                 for j in range(k):
@@ -773,7 +702,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                 for r,n in SetCs[j]:
                     Vals[j][(r,n)]=0
         ## Set all valued = 0 first
-            for j in range(k):            
+            for j in range(k):
                 #print "Set Vals cuspidal=",cuspidal
                 #print "Vals=",Vals
                 if cuspidal:
@@ -782,7 +711,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                 else:
                     #if not Vals[j].has_key((0,j)):
                     Vals[j][(0,j)]=1
-        # Make sure that all constant terms are set to 0    
+        # Make sure that all constant terms are set to 0
         #if cuspidal:
         #    for i in range(1,self.group().ncusps()):
         #        Vals[j][(i,0)]=0
@@ -798,30 +727,30 @@ class MaassWaveForms (AutomorphicFormSpace):
 
     def set_norm2(self,k=1,cuspidal=True,sym_type=None,atkin_lehner={},use_c=[]):
         r""" Set normalization for computing maass forms.
-        
+
         INPUT:
-        
+
         - ``k`` -- dimension
         - ``cuspidal`` -- cuspidal maass waveforms (default=True)
-        - ``use_c`` -- which coefficients to use 
+        - ``use_c`` -- which coefficients to use
 
         OUTPUT:
-        
+
         - ``N`` -- normalization (dictionary)
-        -- N['comp_dim'] -- dimension of space we are computing in 
+        -- N['comp_dim'] -- dimension of space we are computing in
         -- N['SetCs']``     -- which coefficients are set
-        -- N['Vals']     -- values of set coefficients     
-        
+        -- N['Vals']     -- values of set coefficients
+
         EXAMPLES::
-        
+
         sage: set_norm_maass(1)
         {'Vals': {0: {0: 0, 1: 1}}, 'comp_dim': 1, 'num_set': 2, 'SetCs': [0, 1]}
         sage: set_norm_maass(1,cuspidal=False)
         {'Vals': {0: {0: 1}}, 'comp_dim': 1, 'num_set': 1, 'SetCs': [0]}
-         sage: set_norm_maass(2)
-         {'Vals': {0: {0: 0, 1: 1, 2: 0}, 1: {0: 0, 1: 0, 2: 1}}, 'comp_dim': 2, 'num_set': 3, 'SetCs': [0, 1, 2]}
-         
-         """
+        sage: set_norm_maass(2)
+        {'Vals': {0: {0: 0, 1: 1, 2: 0}, 1: {0: 0, 1: 0, 2: 1}}, 'comp_dim': 2, 'num_set': 3, 'SetCs': [0, 1, 2]}
+
+        """
         C=dict()
         Vals=dict()
         if len(use_c)==0:
@@ -830,15 +759,15 @@ class MaassWaveForms (AutomorphicFormSpace):
             else:
                 use_c = range(1,k+1)
         if len(use_c)<>k:
-                raise ArithmeticError,"Need the same number of coefficients to use as the dimension! Got dim={0}, use_c={1}".format(k,use_c)
+            raise ArithmeticError,"Need the same number of coefficients to use as the dimension! Got dim={0}, use_c={1}".format(k,use_c)
 
         #  set coeffs c(0),c(1),...,c(k-1) if not cuspidal
-        #  set coeffs c(0)=0,c(1),...,c(k) if cuspidal 
+        #  set coeffs c(0)=0,c(1),...,c(k) if cuspidal
         SetCs=dict()
         for j in range(k):
             SetCs[j]=[]
             for l in range(k):
-                SetCs[j].append((0,use_c[l]))            
+                SetCs[j].append((0,use_c[l]))
             if cuspidal:
                 for i in range(0,self.group().ncusps()):
                     if SetCs[j].count((i,0))==0 and self.alpha(i)[0]==0:
@@ -857,7 +786,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         for j in range(k):
             Vals[j][(0,use_c[j])]=1
 
-        # Make sure that all constant terms are set to 0    
+        # Make sure that all constant terms are set to 0
         #if cuspidal:
         #    for i in range(1,self.group().ncusps()):
         #        Vals[j][(i,0)]=0
@@ -869,7 +798,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         if atkin_lehner and isinstance(atkin_lehner,dict):
             C['atkin_lehner']=atkin_lehner
         return C
-    
+
 
 
 
@@ -882,32 +811,32 @@ class MaassWaveForms (AutomorphicFormSpace):
         eigenvalue as well as a 0<Y<Y0 s.t. K_IR(Y) has no zero here
 
         INPUT:
-        
-            - ''R1'' -- real
-            - ''R2'' -- real
+
+        - ''R1'' -- real
+        - ''R2'' -- real
 
         OUPUT:
 
-            - list of triplets (r1,r2,y) where [r1,r2] does not contain a zero of K_ir(y)
+        - list of triplets (r1,r2,y) where [r1,r2] does not contain a zero of K_ir(y)
 
         EXAMPLES::
 
 
-            sage: M._next_kbes
-            sage: l=M.split_interval(9.0,11.0)
-            sage: print l[0],'\n',l[1],'\n',l[2],'\n',l[3]
-            (9.00000000000000, 9.9203192604549457, 0.86169527676551638)
-            (9.9203192704549465, 10.135716354265259, 0.86083358148875089)
-            (10.13571636426526, 10.903681677771321, 0.86083358148875089)
-            (10.903681687771321, 11.0000000000000, 0.85997274790726208)
-            
+        sage: M._next_kbes
+        sage: l=M.split_interval(9.0,11.0)
+        sage: print l[0],'\n',l[1],'\n',l[2],'\n',l[3]
+        (9.00000000000000, 9.9203192604549457, 0.86169527676551638)
+        (9.9203192704549465, 10.135716354265259, 0.86083358148875089)
+        (10.13571636426526, 10.903681677771321, 0.86083358148875089)
+        (10.903681687771321, 11.0000000000000, 0.85997274790726208)
+
         """
         import mpmath
 
         # It is enough to work with double precision
         base=mpmath.fp
         pi=base.pi
-        # First we find the next zero 
+        # First we find the next zero
         # First split into intervals having at most one zero
         ivs=list()
         rnew=R1; rold=R1
@@ -952,31 +881,31 @@ class MaassWaveForms (AutomorphicFormSpace):
     def _next_kbessel_zero(self,r1,r2,y):
         r"""
         The first zero after r1 i the interval [r1,r2] of K_ir(y),K_ir(2y)
-        
+
         INPUT:
 
-            - ´´r1´´ -- double
-            - ´´r2´´ -- double
-            - ´´y´´  -- double
-    
+        - ´´r1´´ -- double
+        - ´´r2´´ -- double
+        - ´´y´´  -- double
+
         OUTPUT:
 
-            - ''double''
+        - ''double''
 
         EXAMPLES::
 
-        
-            sage: M=MaassWaveForms(MySubgroup(Gamma0(1)))
-            sage: Y0=0.995*sqrt(3.0)/2.0
-            sage: M._next_kbessel_zero(9.0,15.0,Y0)
-            9.9203192604549439
-            sage: M._next_kbessel_zero(9.921,15.0,Y0)
-            10.139781183668587
+
+        sage: M=MaassWaveForms(MySubgroup(Gamma0(1)))
+        sage: Y0=0.995*sqrt(3.0)/2.0
+        sage: M._next_kbessel_zero(9.0,15.0,Y0)
+        9.9203192604549439
+        sage: M._next_kbessel_zero(9.921,15.0,Y0)
+        10.139781183668587
 
 
         CAVEAT:
-            The rootfinding algorithm is not very sophisticated and might miss roots
-            
+        The rootfinding algorithm is not very sophisticated and might miss roots
+
         """
         base=mpmath.fp
         h=(r2-r1)/500.0
@@ -1066,7 +995,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         return Tp
 
 
-    
+
 
     def Hecke_eigenfunction(self,F,p,fnr=-1,verbose=0):
         r"""
@@ -1094,9 +1023,9 @@ class MaassWaveForms (AutomorphicFormSpace):
         for j in range(len(F)):
             C[j]=F[j]._coeffs[0]  ## We assume scalar-valued functions
         #M=F[0]._space
-        
+
         Cnew=self.Hecke_eigenfunction_from_coeffs(C,p,cusps='all',
-                                             fnr=fnr,verbose=verbose)
+                                                  fnr=fnr,verbose=verbose)
         #return Cnew
         res=[];
         for j in Cnew.keys():
@@ -1106,25 +1035,25 @@ class MaassWaveForms (AutomorphicFormSpace):
             FF._sym_type=FF.find_sym_type()
             res.append(FF)
         return res
-        # #    l=(Tp.transpose()).eigenvectors()[fnr]
-        # #print "l=",l
-        # ev=l[0]
-        # try:
-        #     v=l[1][0]
-        # except KeyError:
-        #     print "l=",l
-        #     raise ArithmeticError,"Problem computing eigenvectors!"
-        # #print "v=",v
-        # C1=dict()
-        # if len(v)==2:
-        #     res = F[0]._lin_comb(F[1],v[0],v[1])
-        # else:
-        #     res=F[0]*v[0]
-        #     for j in range(1,len(v)):
-        #         res=res+F[j]*v[j]
-        # res = res*(1/v[0])
+    # #    l=(Tp.transpose()).eigenvectors()[fnr]
+    # #print "l=",l
+    # ev=l[0]
+    # try:
+    #     v=l[1][0]
+    # except KeyError:
+    #     print "l=",l
+    #     raise ArithmeticError,"Problem computing eigenvectors!"
+    # #print "v=",v
+    # C1=dict()
+    # if len(v)==2:
+    #     res = F[0]._lin_comb(F[1],v[0],v[1])
+    # else:
+    #     res=F[0]*v[0]
+    #     for j in range(1,len(v)):
+    #         res=res+F[j]*v[j]
+    # res = res*(1/v[0])
 
-        # return res
+    # return res
         #for j in range(F._coeffs[0][0]):
 
 
@@ -1230,7 +1159,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                         v_norm=CF(v[i].real(),v[i].imag())
                         break
                 if v_norm==0:
-                    ## Presumably we had a too large-dimensional space 
+                    ## Presumably we had a too large-dimensional space
                     continue
                 # raise ArithmeticError,"Could not find non-zero Hecke eigenvector! \n Hecke matrix is:{0} \n".format(Tp.transpose())
                 res[jj]=dict()
@@ -1244,13 +1173,13 @@ class MaassWaveForms (AutomorphicFormSpace):
                     # print "C[0][",i,"]=",C[0][i]
                     for n in C[0][i].keys():
                         res[jj][i][n]=CF(0)
-                        for k in range(len(v)): 
+                        for k in range(len(v)):
                             vj=CF(v[k].real(),v[k].imag())
                             res[jj][i][n]=res[jj][i][n]+vj*C[k][i][n]
                         res[jj][i][n]=res[jj][i][n]/v_norm
                 jj+=1
         return res
-    
+
     def max_assumed_dim(self):
         r"""
         If the character has components of order two the dimension
@@ -1270,7 +1199,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             if m>1:
                 d=d*2
         return d
-    
+
     def get_primitive_p(self,p0=0,notone=1):
         r"""
         Gives a prime p to use for Hecke operator on M
@@ -1290,7 +1219,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             modulus=x.modulus()
         else:
             modulus=1
-        prim_to=lcm(self.level(),modulus) 
+        prim_to=lcm(self.level(),modulus)
         p00 = next_prime(p0)
         p01 = p00 + prim_to
         if notone:
@@ -1300,7 +1229,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                 #    pq=4
             else:
                 pq=1
-        
+
         for p in prime_range(p00,p01+1):
             if notone==1 and p%pq==1:
                 continue
@@ -1327,80 +1256,15 @@ class MaassWaveForms (AutomorphicFormSpace):
         return self._smallest_M0
 
 
-    def test_Hecke_relation(self,C={},a=0,b=0,signed=False):
-        r"""Testing Hecke relations for the Fourier coefficients in C
-
-        INPUT:
-        -''C'' -- dictionary of complex (Fourier coefficients)
-        -''a'' -- integer
-        -''b'' -- integer
-        -''signed'' -- Boolean. True if we want to return a positive or negative number
-
-        OUTPUT:
-        -''diff'' -- real : |C(a)C(b)-C(ab)| if (a,b)=1
-
-        EXAMPLE::
-
-
-        sage: S=MaassWaveForms(Gamma0(1))
-        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-        sage: Y=mpmath.mpf(0.85)
-        sage: C=coefficients_for_Maass_waveforms(S,R,Y,10,20,12)
-        sage: d=_test_Hecke_relations(C,2,3); mppr(d)
-        '9.29e-8'
-        sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
-        sage: d=_test_Hecke_relations(C,2,3); mppr(d)
-        '3.83e-43'
-
-
-        """
-        if a*b==0:
-            a = self.get_primitive_p()
-            b = self.get_primitive_p(a)
-        c=gcd(Integer(a),Integer(b))
-        if self._verbose>1:
-            print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)
-        if not C.has_key(0):
-            return -1
-        if not hasattr(C[0],"has_key"):
-            C = {0:C}
-        if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b): 
-            lhs=C[0][a]*C[0][b]
-            rhs=0
-            for d in divisors(c):
-                if self._ch<>0:
-                    x = self._character(d)
-                else:
-                    x = 1
-                m = Integer(a*b/d/d)
-                if self._verbose>1:
-                    print "rhs+=c*C[0][{0}]={1}".format(m,x*C[0][m])
-                rhs=rhs+x*C[0][m]
-            
-
-            if self._verbose>1:
-                print "|rhs|=",abs(rhs)
-                print "|lhs|=",abs(lhs)
-                print "self._prec=",self._prec
-                print "rhs/lhs-1=",rhs/lhs-1.0
-            #if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
-            #    return -1
-            ## We have to return true also for the zero function
-            t = rhs-lhs
-            if signed:
-                return t #rhs/lhs-1
-            else:
-                return abs(t) #rhs/lhs-1)
-        return -1
-
+   
 
     def scattering_determinant(self,s):
         r"""
         Computes the scattering determinant, varphi(s), of self at s
         using the non-holomorphic Eisenstein series
         Only implemented for Hecke triangle groups at the moment.
-        """        
-        if not is_Hecke_triangle_group(self._group): 
+        """
+        if not is_Hecke_triangle_group(self._group):
             raise NotImplementedError,"Only implemented for Hecke triangle groups"
         E = EisensteinSeries(self,s,verbose=self._verbose)
         return E._coeffs[0][0]
@@ -1475,10 +1339,10 @@ def Maasswaveform(space,eigenvalue,**kwds):
         data['_space'].set_sym_type(data['_sym_type'])
     else:
         data['_sym_type'] = data['_space'].sym_type()
-    
+
     data['_verbose'] = kwds.pop('verbose',0)
     data['_prec'] = kwds.pop('prec',53)
-    data['_coeffs']=kwds.pop('C',kwds.pop('coefficients',{}))
+    data['_coeffs']=kwds.pop('C',kwds.pop('coefficients',None))
     cusp_evs = kwds.pop('cusp_evs',{})
     if cusp_evs<>{}:
         cusp_evs = data['_space'].set_cusp_evs(cusp_evs)
@@ -1488,7 +1352,7 @@ def Maasswaveform(space,eigenvalue,**kwds):
     data['_dim'] = kwds.pop('dim',1)
     if data['_dim'] <> data['_space']._rdim:
         data['_space']._rdim = data['_dim']
-    
+
     #    data['_nd'] = kwds.pop('',12)
     data['_compute'] = kwds.pop('compute',1)
 #        ,G,R,C=None,nd=12,sym_type=None,cusp_evs={},verbose=None,prec=53,set_c=None,dim=1,compute=False,test=0,data={},**kwds):
@@ -1498,10 +1362,10 @@ def Maasswaveform(space,eigenvalue,**kwds):
     data['_norm'] =  kwds.get('norm',{})
     data['_nd']=kwds.get('nd',12)
     ## If self is constructed as a Hecke eigenform with respect
-    ## to T_p we don't want to use p for testing.    
+    ## to T_p we don't want to use p for testing.
     data['_from_hecke_p']=kwds.get('hecke_p',0)
     data['_test']=kwds.get('test',0)
-    data['compute']=kwds.get('compute',0)
+#    data['compute']=kwds.get('compute',0)
     data['_version']=1  ## Might be necessary in the future
     return MaassWaveformElement_class(data)
 
@@ -1512,25 +1376,77 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
     r"""
     An element of a space of Maass waveforms
 
+    Note: The Fourier coefficients are stored in a dictionary of the following format:
+    self._coeffs[r][i][n]
+    where r is the component (we treat all elements as vector-valued even of length 1),
+    i is the cusp and n is the index of the coefficient.
 
     EXAMPLES::
 
 
+    sage: G=MySubgroup(Gamma0(1))
+    sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+    sage: F=Maasswaveform(G,R)
+    Maass waveform with parameter R=9.5336952613536
+    in Space of Maass waveforms on the group G:
+    Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
+    perm(S)=()
+    perm(ST)=()
+    Constructed from G=Modular Group SL(2,Z)
+    sage: G=MySubgroup(Gamma0(4))
+    sage: R=mpmath.mpf(3.70330780121891)
+    sage: F=Maasswaveform(G,R);F
+    Maass waveform with parameter R=3.70330780121891
+    Member of the Space of Maass waveforms on the group G:
+    Arithmetic Subgroup of PSL2(Z) with index 6. Given by:
+    perm(S)=(1,2)(3,4)(5,6)
+    perm(ST)=(1,3,2)(4,5,6)
+    Constructed from G=Congruence Subgroup Gamma0(4)
+    sage: F.C(0,-1)
+    mpc(real='-1.0000000000014575', imag='5.4476887980094281e-13')
+    sage: F.C(0,15)-F.C(0,5)*F.C(0,3)
+    mpc(real='-5.938532886679327e-8', imag='-1.0564743382278074e-8')
+    sage: F.C(0,3)
+    mpc(real='0.53844676975670527', imag='-2.5525466782958545e-13')
+    sage: F.C(1,3)
+    mpc(real='-0.53844676975666916', imag='2.4484251009604091e-13')
+    sage: F.C(2,3)
+    mpc(real='-0.53844676975695485', imag='3.3624257152434837e-13')
+
+
+
+
+
+    """
+    def __init__(self,data={},**kwds):
+        r"""
+        Construct a Maass waveform on thegroup G with spectral parameter R and coefficients C
+
+        INPUT:
+
+
+        - ``G`` -- Group
+        - ``R`` -- Spectral parameter
+        - ``C`` -- Fourier coefficients (default None)
+        - ``nd``-- Number of desired digits (default 15)
+
+
+        EXAMPLES::
         sage: G=MySubgroup(Gamma0(1))
         sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-        sage: F=Maasswaveform(G,R)    
+        sage: F=Maasswaveform(G,R)
         Maass waveform with parameter R=9.5336952613536
         in Space of Maass waveforms on the group G:
         Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
-            perm(S)=()
-            perm(ST)=()
+        perm(S)=()
+        perm(ST)=()
         Constructed from G=Modular Group SL(2,Z)
         sage: G=MySubgroup(Gamma0(4))
         sage: R=mpmath.mpf(3.70330780121891)
         sage: F=Maasswaveform(G,R);F
         Maass waveform with parameter R=3.70330780121891
         Member of the Space of Maass waveforms on the group G:
-        Arithmetic Subgroup of PSL2(Z) with index 6. Given by: 
+        Arithmetic Subgroup of PSL2(Z) with index 6. Given by:
         perm(S)=(1,2)(3,4)(5,6)
         perm(ST)=(1,3,2)(4,5,6)
         Constructed from G=Congruence Subgroup Gamma0(4)
@@ -1544,109 +1460,55 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         mpc(real='-0.53844676975666916', imag='2.4484251009604091e-13')
         sage: F.C(2,3)
         mpc(real='-0.53844676975695485', imag='3.3624257152434837e-13')
-        
-        
-
-        
-    
-    """
-#    def __init__(self,G,R,C=None,nd=12,sym_type=None,cusp_evs={},verbose=None,prec=53,set_c=None,dim=1,compute=False,test=0,data={},**kwds):
-    def __init__(self,data={},**kwds):
-        r"""
-        Construct a Maass waveform on thegroup G with spectral parameter R and coefficients C
-        
-        INPUT:
-
-        
-        - ``G`` -- Group
-        - ``R`` -- Spectral parameter
-        - ``C`` -- Fourier coefficients (default None)
-        - ``nd``-- Number of desired digits (default 15)
-
-
-        EXAMPLES::
-            sage: G=MySubgroup(Gamma0(1))
-            sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=Maasswaveform(G,R)    
-            Maass waveform with parameter R=9.5336952613536
-            in Space of Maass waveforms on the group G:
-            Arithmetic Subgroup of PSL2(Z) with index 1. Given by:
-                perm(S)=()
-                perm(ST)=()
-            Constructed from G=Modular Group SL(2,Z)
-            sage: G=MySubgroup(Gamma0(4))
-            sage: R=mpmath.mpf(3.70330780121891)
-            sage: F=Maasswaveform(G,R);F
-            Maass waveform with parameter R=3.70330780121891
-            Member of the Space of Maass waveforms on the group G:
-            Arithmetic Subgroup of PSL2(Z) with index 6. Given by: 
-            perm(S)=(1,2)(3,4)(5,6)
-            perm(ST)=(1,3,2)(4,5,6)
-            Constructed from G=Congruence Subgroup Gamma0(4)
-            sage: F.C(0,-1)
-            mpc(real='-1.0000000000014575', imag='5.4476887980094281e-13')
-            sage: F.C(0,15)-F.C(0,5)*F.C(0,3)
-            mpc(real='-5.938532886679327e-8', imag='-1.0564743382278074e-8')
-            sage: F.C(0,3)
-            mpc(real='0.53844676975670527', imag='-2.5525466782958545e-13')
-            sage: F.C(1,3)
-            mpc(real='-0.53844676975666916', imag='2.4484251009604091e-13')
-            sage: F.C(2,3)
-            mpc(real='-0.53844676975695485', imag='3.3624257152434837e-13')
 
         """
         #import mpmath
         self.__dict__.update(data)
-        #print "data=",data
-        #print "coeffs",self._coeffs
         AutomorphicFormElement.__init__(self,self._space,self._coeffs,prec=self._prec,principal_part={},verbose=self._verbose)
-        #if nd>15:
-        #    mpmath.mp.dps=nd
-        #    self.mp_ctx=mpmath.mp
-        #else:
-        #    self.mp_ctx=mpmath.fp
-        ## We use the Fourier coefficients to verify whether we really have an eigenvalue
-        #self._coeffs={}
-        #
-        #
+
         if self._test==1 and self._errest<>0:
             self._errest = self.test()
-            
-        #self._M0 = max(self._coeffs.values().values().keys())
-        dprec=2.**(-self._nd)
-        if self._M0 == None or self._M0 <= 0:
-            if self._Y == None or self._Y <= 0:
-                self._M0,self._Y = get_M_and_Y(self._R,self.space().group().minimal_height(),
-                                     self.space().smallest_M0(),dprec)
-            else:
-                self._M0 = get_M_from_Y(self._R,self._Y,M0,dprec)
-        elif self._Y == None or self._Y <= 0:
-            self._Y = get_Y_from_M(self._R,self._Y,M0,dprec)
 
-        if data.get('compute',False)==True and self._coeffs=={}:
-            self._coeffs=self.get_coeffs()
-        elif self._coeffs == {}:
-            self._coeffs = {0: {}}
-            for j in range(self._space._group.ncusps()):
-                self._coeffs[0][j]={}
-        
-                    
+        #self._M0 = max(self._coeffs.values().values().keys())
+        dprec=10.**(-self._nd)
+        #if self._M0 == None or self._M0 <= 0:
+        if self._Y is None or self._M0 is None or self._Y<=0 or self._M0<=0:
+            M0,Y = get_M_and_Y(self._R,self.space().group().minimal_height(),
+                                   self.space().smallest_M0(),dprec)
+            if self._Y is None or self._Y<=0:
+                self._Y = Y
+            if self._M0 is None or self._M0 <=0:
+                self._M0 = M0
+        else:  ## See if we can get good enough error:
+            if err_est_Maasswf(self._Y,self._M0,self._R,1)>dprec:
+                print "WARNING: FIxed parameters will not give desired precision!"
+        #else:
+        #    M0 = get_M_from_Y(self._R,self._Y,self._M0,dprec)
+        #if self._M0 < M0:
+        #    self._M0 = M0
+#       #     self._M0 = M
+        #elif self._Y == None or self._Y <= 0:
+        #    self._Y = get_Y_from_M(self._R,self.group().minimal_height(),self._M0,dprec)
+
+        if data.get('_compute',False) is True and len(self._coeffs[0][0])<self._M0:
+            self.get_coeffs(Mset=self._M0,Yset=self._Y,ndigs=self._nd,dim=self._dim,norm=self._norm,**kwds)
+
     def _repr_(self):
         r""" Returns string representation of self.
 
         EXAMPLES::
 
 
-            sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=Maasswaveform(Gamma0(1),R,nd=50);F
-            Maass waveform with parameter R=9.5336952613535575543442352359287703238212563951073
-            Member of the Space of Maass waveforms on the group G:
-            Arithmetic Subgroup of PSL2(Z) with index 1.Given by
-                perm(S)=()
-                perm(ST)=()
-            Constructed from G=Modular Group SL(2,Z)
+        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+        sage: F=Maasswaveform(Gamma0(1),R,nd=50);F
+        Maass waveform with parameter R=9.5336952613535575543442352359287703238212563951073
+        Member of the Space of Maass waveforms on the group G:
+        Arithmetic Subgroup of PSL2(Z) with index 1.Given by
+        perm(S)=()
+        perm(ST)=()
+        Constructed from G=Modular Group SL(2,Z)
 
-        
+
         """
         s="Maass waveform with parameter R="+str(self._R)+". Symmetry: "
         if self._sym_type==1:
@@ -1662,7 +1524,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         return s
 
-   
+
 
     def __reduce__(self):
         r""" Used for pickling.
@@ -1672,7 +1534,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
     def group(self):
         r"""
-        Return self._group 
+        Return self._group
         """
         return self._space._group
 
@@ -1710,7 +1572,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             if st<>st_old and st_old<>-1:
                 return -1
             st_old=st
-    
+
     def C(self,i,j=None,r=0):
         r"""
         Return the coefficient C(i,j) i.e. coefficient nr. j at cusp i (or if j=none C(1,i))
@@ -1718,16 +1580,16 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         EXAMPLES::
 
-        
-            sage: G=MySubgroup(Gamma0(1))
-            sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=Maasswaveform(G,R)    
-            sage: F.C(2)
-            mpc(real='-1.068333551223568', imag='2.5371356217909904e-17')
-            sage: F.C(3)
-            mpc(real='-0.45619735450601293', imag='-7.4209294760716175e-16')
-            sage: F.C(2)*F.C(3)-F.C(6)
-            mpc(real='8.2470016583210667e-8', imag='1.6951583479643061e-9')
+
+        sage: G=MySubgroup(Gamma0(1))
+        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+        sage: F=Maasswaveform(G,R)
+        sage: F.C(2)
+        mpc(real='-1.068333551223568', imag='2.5371356217909904e-17')
+        sage: F.C(3)
+        mpc(real='-0.45619735450601293', imag='-7.4209294760716175e-16')
+        sage: F.C(2)*F.C(3)-F.C(6)
+        mpc(real='8.2470016583210667e-8', imag='1.6951583479643061e-9')
 
 
         """
@@ -1737,24 +1599,94 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         else:
             cusp=i
         if(not self._coeffs[r].has_key(cusp)):
-                raise ValueError," Need a valid index of a cusp as first argument! I.e in %s" %self._coeffs.keys()
+            raise ValueError," Need a valid index of a cusp as first argument! I.e in %s" %self._coeffs.keys()
         if(not self._coeffs[r][cusp].has_key(j)):
             return None
         return self._coeffs[r][cusp][j]
-        
+
+
+
+    def test_Hecke_relation(self,a=0,b=0,signed=False):
+        r"""Testing Hecke relations for the Fourier coefficients in C
+
+        INPUT:
+        -''C'' -- dictionary of complex (Fourier coefficients)
+        -''a'' -- integer
+        -''b'' -- integer
+        -''signed'' -- Boolean. True if we want to return a positive or negative number
+
+        OUTPUT:
+        -''diff'' -- real : |C(a)C(b)-C(ab)| if (a,b)=1
+
+        EXAMPLE::
+
+
+        sage: S=MaassWaveForms(Gamma0(1))
+        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+        sage: Y=mpmath.mpf(0.85)
+        sage: C=coefficients_for_Maass_waveforms(S,R,Y,10,20,12)
+        sage: d=_test_Hecke_relations(C,2,3); mppr(d)
+        '9.29e-8'
+        sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
+        sage: d=_test_Hecke_relations(C,2,3); mppr(d)
+        '3.83e-43'
+
+
+        """
+        if a*b==0:
+            a = self.space().get_primitive_p()
+            b = self.space().get_primitive_p(a)
+        c=gcd(Integer(a),Integer(b))
+        if self._verbose>1:
+            print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)
+        C = self._coeffs[0][0]
+        if not C.has_key(0):
+            return -1
+        if not hasattr(C[0],"has_key"):
+            C = {0:C}
+        if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b):
+            lhs=C[0][a]*C[0][b]
+            rhs=0
+            for d in divisors(c):
+                if not self.character().is_trivial():
+                    x = self.character()(d)
+                else:
+                    x = 1
+                m = Integer(a*b/d/d)
+                if self._verbose>1:
+                    print "rhs+=c*C[0][{0}]={1}".format(m,x*C[0][m])
+                rhs=rhs+x*C[0][m]
+
+
+            if self._verbose>1:
+                print "|rhs|=",abs(rhs)
+                print "|lhs|=",abs(lhs)
+                print "self._prec=",self._prec
+                print "rhs/lhs-1=",rhs/lhs-1.0
+            #if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
+            #    return -1
+            ## We have to return true also for the zero function
+            t = rhs-lhs
+            if signed:
+                return t #rhs/lhs-1
+            else:
+                return abs(t) #rhs/lhs-1)
+        return -1
+
+    
     def test(self,method='Hecke',up_to_M0=0,format='digits',verbose=0):
-        r""" Return the number of digits we believe are correct (at least) 
+        r""" Return the number of digits we believe are correct (at least)
         INPUT:
         - method -- string: 'Hecke' or 'pcoeff' or 'TwoY'
         - format = 'digits' or 'float'
         EXAMPLES::
 
-        
-            sage: G=MySubgroup(Gamma0(1))
-            sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-            sage: F=Maasswaveform(G,R)    
-            sage: F.test()
-            7
+
+        sage: G=MySubgroup(Gamma0(1))
+        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+        sage: F=Maasswaveform(G,R)
+        sage: F.test()
+        7
 
 
 
@@ -1776,7 +1708,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 if verbose>=0:
                     print "Too few coefficients for test!"
                 return 1
-            er=self._space.test_Hecke_relation(self._coeffs[0],a=a,b=b)
+            er=self.test_Hecke_relation(a=a,b=b)
             #print "er=",er
             if er == 0:
                 return 0
@@ -1833,6 +1765,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 print "Y0,Y1=",Y0,Y1
                 print "Check up to max from :",[M0/2,up_to_M0,5]
             for j in range(2,floor(max([M0/2,up_to_M0,5]))):
+                if verbose>2:
+                    print "j=",j
                 if self._coeffs[0][0].has_key(j):
                     t1=abs(C1[j]-self.C(j))
                     t2=abs(C2[j]-self.C(j))
@@ -1846,7 +1780,9 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     t=abs(C1[j]-C2[j])
                     if verbose>0:
                         print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],C2[j],t)
-                        
+
+                else:
+                    t = 1.0
                 if t>er:
                     er=t
             if er<>0:
@@ -1855,52 +1791,180 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 d = 0
             if self._verbose>0:
                 print "Hecke is ok up to ",d,"digits!"
+            if format=='float':
+                return er
             return d
 
-    def eval(self,x,y,version=1,use_pb=1,prec=1E-10):
+    def eval(self,x,y=None,version=1,fi=0,use_cj=-1,use_pb=1,verbose=0):
         r"""
         Evaluate self.
         """
-        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
-            
+        import scipy
+        from sage.functions.trig import cos,sin
+        if y == None:
+            y = float(x.imag())
+            x = float(x.real())
+        RF=RealField(self.prec())
+        R = self._R
+        Y = self.group().minimal_height()
+        exceptional = self._space._exceptional
+        xx=x
+        yy=y
+        G=self.group()
+        # pullback
+        if use_cj==-1:
+            if use_pb == 1:
+                x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
+            else:
+                x1 = x; y1 = y
+            v = G.closest_vertex(x1,y1)
+            cj= G._vertex_data[v]['cusp'] #representative[v]
+            a,b,c,d=G._vertex_data[v]['cusp_map']
+            if a<>1 or b<>0 or c<>0 or d<>1:
+                x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
+            else:
+                x2=x1;y2=y1
+            # And then normalize to the correct cusp
+            if cj<>0:
+                a,b,c,d=G._cusp_data[cj]['normalizer']
+                wi = RF(G._cusp_data[cj]['width'])
+                if verbose>0:
+                    print "x2,y2=",x2,y2,a,b,c,d
+                x3,y3 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
+                if verbose>0:
+                    print "x2,y2=",x2,y2
+                    print "cj=",cj
+                    print "wi=",wi
+                x3 = x3/wi #sqrt(wi)
+                y3 = y3/wi #sqrt(wi)
+                if verbose>0:
+                    print "x3,y3=",x3,y3
+                #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+            else:
+                wi = RF(G._cusp_data[0]['width'])
+                x3 = x2/wi; y3=y2/wi
+        else:
+            x3 = x;y3 = y
+            cj = use_cj
+        #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+        res=0
+        twopi=RF(2)*RF.pi()
+        if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):
+            f = 1.0
+            if self._sym_type==0:
+                fun=cos
+                f = 2.0
+            elif self._sym_type==1:
+                fun=sin
+                f = CC(0,2.0)
+            arx=twopi*x3
+            ary=twopi*y3
+            if exceptional:
+                for n in range(1,self._M0):
+                    term=scipy.special.kv(R,ary*n)*fun(arx*n)
+                    res=res+self._coeffs[fi][cj][n]*term
+            else:
+                for n in range(1,self._M0):
+                    term=besselk_dp(R,ary*n)*fun(arx*n)
+                    res=res+self._coeffs[fi][cj][n]*term
+            res = res*sqrt(y3)
+        else:
+            #print "use exp!"
+            arx=twopi*x3
+            ary=twopi*y3
+            if exceptional:
+                for n in range(-self._M0+1,self._M0):
+                    if n== 0:
+                        continue
+                    term=scipy.special.kv(R,ary*abs(n))*CC(0,arx*n).exp()
+                    res=res+self._coeffs[fi][cj][n]*term
+            else:
+                for n in range(-self._M0+1,self._M0):
+                    if n== 0:
+                        continue
+                    term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
+                    res=res+self._coeffs[fi][cj][n]*term
+            #if res == 0.0:
+            #    continue #print "value = 0"
+            res = res*sqrt(y3)
+        return res*exp(RR.pi()*R*0.5)
+#        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
 
-    def plot(self,xlim,ylim,num_pts,**kwds):
+
+    def plot(self,xlim=None,ylim=(0,2),num_pts=100,**kwds):
         r"""
         Make a plot of self.
         """
-        # we evaluate self over a grid, for efficiency
-        P=density_plot(self.eval,(-0.5,0.5),(0.01,1.01),plot_points=100,axes=False,**kwds)
-        # P=density_plot(f,(-0.5,0.5),(0.01,1.01),plot_points=120,axes=False,**kwds)
-        return P
-        (xmin,xmax,Nx)=xlim
-        (ymin,ymax,Ny)=ylim
-        hy = (ymax-ymin)/RR(Ny)
-        hx = (xmax-xmin)/RR(Nx)
-        yvec=dict()
-        #assert self._G == 
-        for i in range(Nx):
-            y=ymin+i*hy
-            for n in range(1,M0):
-                yvec[n]=besselk_dp(self.R,RR(2*pi*n))
-            for j in range(Ny):
-                x=xmin+i*hx                
-                w=0
-                argx=CC(2*pi*x*I)
-                for n in range(M0):
-                    term=self.C[n]*exp(argx*N)
-        
+        from sage.all import xsrange,Infinity
+        from sage.plot.all import Graphics
+        from sage.plot.misc import setup_for_eval_on_grid
+        import matplotlib.pyplot as plt
+        from sage.plot.density_plot import DensityPlot
+        from psage.modform.maass.plot_dom import get_contour
+        G = self.group()
+        w = G.cusp_width(Infinity)
+        if xlim is None:
+            xlim = (-0.5*w,0.5*w)
 
- 
+        version = kwds.pop('version',0)
+        model = kwds.pop('model','H')
+        show_axis = kwds.pop('axis',False)
+        clip = kwds.pop('clip',True)
+        eps = 1e-10
+        def fun(x,y):
+            z = CC(x,y)
+            if model == 'D':
+                if abs(z)>=1:
+                    return 0.0
+                z = CC(-y,x+1)/CC(1-x,-y)
+                x = float(z.real()); y = float(z.imag())
+            if y <= 0.005:
+                return 0.0
+            xx,yy,a,b,c,d = G.pullback(x,y,version=version)
+            zpb = CC(xx,yy)
+            if abs(z-zpb)>eps:
+                return 0.0
+            w = self.eval(xx,yy,version=version)
+            #abs(f.eval(xx,yy))**2
+            return abs(w)**2
 
-                    
-    def get_coeffs(self,Mset=0 ,Yset=None,ndigs=12,twoy=None,overwrite=False,dim=1,norm={}):
+        xrange = xlim
+        yrange = ylim
+        options = { 'plot_points' :  num_pts }
+        g, ranges = setup_for_eval_on_grid([fun], [xrange, yrange], options['plot_points'])
+        g = g[0]
+        xrange,yrange=[r[:2] for r in ranges]
+        xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
+        xsize = (xlim[1]-xlim[0]); ysize = (ylim[1]-ylim[0])
+        g = plt.figure(figsize=(xsize,ysize))
+        ax = g.add_subplot(111)
+        x0,x1 = xlim
+        y0,y1 = ylim
+        im = ax.imshow(xy_data_array, origin='lower', cmap='jet', extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
+        fdom = get_contour(G,version=version,model=model,color='red',as_patch=True,thickness=3)
+
+        ax.add_patch(fdom)
+        if clip:
+            im.set_clip_path(fdom)
+        if not show_axis:
+            ax.set_frame_on(False)
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+        if model == 'D':
+            c = patches.Circle((0.0,0.0),radius=1.0,fc='none')
+            ax.add_patch(c)
+        return g
+
+
+
+    def get_coeffs(self,Mset=0 ,Yset=None,ndigs=12,twoy=None,overwrite=False,dim=1,norm={},**kwds):
         r"""
         Compute M Fourier coefficients (at each cusp) of a Maass (cusp)
         waveform with eigenvalue R for the group G.
-        
-        
+
+
         INPUT:
-        
+
         - ''S''    -- space of Maass waveforms
         - ''R''    -- Real number with precision prec
         - ''Mset'' -- integer : number of desired coefficients
@@ -1908,27 +1972,26 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         - ''Yset'' -- real
         - ''ndigs''-- integer
         -``overwrite`` --  set to True to overwrite old coefficients
-        
+
         OUTPUT:
-        
+
         -''D'' -- dictionary of Fourier coefficients
-        
+
         EXAMPLES:
 
 
-          sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-          sage:         sage: M=MaassWaveForms(Gamma0(1))
-          sage:         sage: C=Maassform_coeffs(M,R)
-             
+        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+        sage:         sage: M=MaassWaveForms(Gamma0(1))
+        sage:         sage: C=Maassform_coeffs(M,R)
+
 
         """
         S=self._space
+        eps = 10**(1-ndigs)
         R=self._R
         G=S._group
-        import mpmath
-        if(S._verbose>1):
+        if S._verbose>1:
             print "S=",S
-        dold=mpmath.mp.dps
         param=self._space.set_default_parameters(R,Mset,Yset,ndigs)
         if Yset:
             Y=Yset
@@ -1947,19 +2010,21 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             print "Norm=",norm
             # print "nd=",mpmath.mp.dps
         do_cplx=1
-        if S.multiplier().is_real() and sym_type in [0,1] and S._use_real:            
+        ncpus = kwds.get('ncpus',1)
+        if ncpus == 1:
+            do_par = 0
+        else:
+            do_par = kwds.get('do_par',0)
+        if S.multiplier().is_real() and sym_type in [0,1] and S._use_real:
             do_cplx=0
-        #if self._dim>1:
-        #    raise NotImplementedError,"Vector-valued Maass waveforms are currently not implemented!"
         if ndigs<=15:
             if do_cplx:
-                if self.weight()==0 and self.group().is_congruence():
-                    X=get_coeff_fast_cplx_dp_sym(S,RR(R),RR(Y),int(M),int(Q),norm)
-                else:
-                    X=get_coeff_fast_cplx_dp_nosym(S,RR(R),RR(Y),int(M),int(Q),norm)
+                X = get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),0,norm,do_par=do_par,ncpus=ncpus)
             else:
-                X=get_coeff_fast_real_dp_nosym(S,RR(R),RR(Y),int(M),int(Q),norm)
+                raise NotImplementedError,"This algorithm has some problems now...!"
+                #X=get_coeff_fast_real_dp(S,RR(R),RR(Y),int(M),int(Q),norm)
             ## We still want the variables to have Sage types and not primitive python types
+
             for i in X.keys():
                 for j in X[i].keys():
                     if hasattr(X[i][j],"keys"):
@@ -1971,7 +2036,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                             c = CC(X[i][j])
                             X[i][j] = c
                         except TypeError as te:
-                            raise TypeError,"Could not coerce coeficient {0} to CC: {1}".format(X[i][j],te)
+                            raise TypeError,"Could not coerce coefficient {0} to CC: {1}".format(X[i][j],te)
         else:
             raise NotImplementedError,"High precision is currently not (efficiently) inplemented!"
         ## The parameters used to compute the current set of coefficients.xs
@@ -1984,20 +2049,51 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             self._coeffs=X
             return
         if not isinstance(self._coeffs,dict):
-            self._coeffs=dict()            
-            self._coeffs[0]=dict()
+            self._coeffs={i: {j:{} for j in range(self.group().ncusps())}  for u in range(self._dim)}
         if self._verbose>0:
             print "X.keys()=",X.keys()
-        for j in X.keys():
-            if not self._coeffs[0].has_key(j):
-                self._coeffs[0][j]=dict()
-            for n in X[j].keys():
-                if self._coeffs[0][j].has_key(n):
-                    continue
-                else:
-                    self._coeffs[0][j][n]=X[j][n]
+        for i in X.keys():
+            if not self._coeffs.has_key(i):
+                self._coeffs[i]=dict()
+            for j in X[i].keys():
+                if not self._coeffs[i].has_key(j):
+                    self._coeffs[i][j] = {}
+                for n in X[i][j].keys():
+                    self._coeffs[i][j][n]=X[i][j][n]
 
 
+    def phase2(self,n,**kwds):
+        r"""
+        Compute coefficients up to n of self.
+        """
+        from sage.all import log_b,floor
+        from maass_forms_phase2 import phase_2_cplx_dp_sym
+        t = self.test(format='float')
+        if t >=1:
+            raise ValueError,"We have too large error. This is probably not a Maassform!"
+        nd = floor(abs(log_b(t,10)))
+        ## Check that the parameters are sufficiently good....
+        eps = 10.0**(-nd)
+        #M0,Y = get_M_and_Y(self._R,self._Y,self._M0,eps,kwds.get('verbose',0)-2)
+        #if M0 > self._M0:
+        #    print "recompute F with M0=",M0
+        #    self.get_coeffs(Mset=M0,Yset=Y,ndigs=nd,dim=self._norm,norm=self._norm)
+        #assert self._M0 == M0
+        C = phase_2_cplx_dp_sym(self.space(),self.eigenvalue(),2,n,
+                                M0in=int(self._M0),ndig=int(nd-1),
+                                dim=int(self._dim),cuspstart=int(0),cuspstop=int(self.group().ncusps()),
+                                fnr=int(0),Cin=self._coeffs,Yin=float(self._Y),verbose=kwds.get('verbose',0),
+                                retf=int(0),n_step=int(kwds.get('n_step',50)),
+                                do_test=int(kwds.get('do_test',0)),method=kwds.get('method'))
+        for r in C.keys():
+            if not self._coeffs.has_key(r):
+                self._coeffs[r]={}
+            for ci in C[r].keys():
+                if not self._coeffs[r].has_key(ci):
+                    self._coeffs[r][ci]={}
+                for n in C[r][ci].keys():
+                    self._coeffs[r][ci][n] = C[r][ci][n]
+                    
 
     def Hecke_action(self,p):
         r"""
@@ -2044,7 +2140,7 @@ class EisensteinSeries(AutomorphicFormElement):
         if hasattr(s,"prec"):
             prec = s.prec()
         else:
-            prec = 53        
+            prec = 53
         self._prec = prec
         self._verbose = verbose
         CF = MPComplexField(self._prec)
@@ -2057,7 +2153,7 @@ class EisensteinSeries(AutomorphicFormElement):
         AutomorphicFormElement.__init__(self,self._space,C=None,prec=prec,principal_part={},verbose=verbose)
         if compute:
             self.get_coefficients()
-    
+
     def get_coefficients(self,Y0=0,M0=0):
         ## At the moment we have only implemented
         ## Eisenstein series for Hecke triangle groups.
@@ -2081,22 +2177,22 @@ class EisensteinSeries(AutomorphicFormElement):
             print "Computing coefficients at s={0} with Y={1}, M={2}".format(self._s,Y,M)
         C = Eisenstein_series_one_cusp(self._space,self._sigma,self._R,Y,M,self._verbose)
         self._coeffs = {0: C}
-        
 
 
-                    
+
+
 from numpy import array
 
 def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None,dim=1,set_c=None):
     r"""
     Compute coefficients of a Maass waveform given a specific M and Y.
-     INPUT:
-    
+    INPUT:
+
     - ''S''    -- Space of Maass waveforms
     - ''R''    -- real : 1/4+R*R is the eigenvalue
     - ''Y''    -- real number > 9
     - ''M''    -- integer
-    - ''Q''    -- integer        
+    - ''Q''    -- integer
     - ''cuspidal''-- logical (default True)
     - ''sym_type'' -- integer (default None)
     - ''ndigs''-- integer : desired precision
@@ -2108,12 +2204,12 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 
     EXAMPLES::
 
-        sage: S=MaassWaveForms(Gamma0(1))
-        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
-        sage: Y=mpmath.mpf(0.85)
-        sage: C=coefficients_for_Maass_waveforms(S,R,Y,10,20,12)
+    sage: S=MaassWaveForms(Gamma0(1))
+    sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
+    sage: Y=mpmath.mpf(0.85)
+    sage: C=coefficients_for_Maass_waveforms(S,R,Y,10,20,12)
 
-    
+
 
     """
     G=S.group()
@@ -2121,13 +2217,13 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
         print "R,Y,M,Q,sym_type=",R,Y,M,Q,sym_type
     ## Find out which method to use. I.e. real/complex/multiprec. etc.
     #if ndigs<=12:
-    #    
+    #
     if ndigs<=12:
         W=setup_matrix_for_Maass_waveforms(S,R,Y,M,Q,cuspidal=True,sym_type=sym_type,low_prec=True)
     else:
         W=setup_matrix_for_Maass_waveforms(S,R,Y,M,Q,cuspidal=True,sym_type=sym_type)
     #set_c=S._set_c
-    #dim=S._dim  ## Assumed dimension of ambient space / determines how many F-coeffs. we need to set. 
+    #dim=S._dim  ## Assumed dimension of ambient space / determines how many F-coeffs. we need to set.
     N=S.set_norm(dim,cuspidal=True)
     #return [W, N]
     dold=mpmath.mp.dps
@@ -2152,18 +2248,18 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
             raise ArithmeticError," Could not solve system!"
         j=j+1
     print "X.keys=",X.keys()
-    
+
     if(S._verbose>1):
         for m in X.keys():
-            print "Function nr. ",m+1 
+            print "Function nr. ",m+1
             for j in X[m].keys():
                 if(sym_type==None):
-                    for n in range(M,1 ,-1 ): 
+                    for n in range(M,1 ,-1 ):
                         print "C[",n,"]=",X[m][j][n]
-                    for n in range(M): 
+                    for n in range(M):
                         print "C[",n,"]=",X[m][j][n]
                 else:
-                    for n in range(1,M+1): 
+                    for n in range(1,M+1):
                         print "C[",n,"]=",X[m][j][n]
     #print "C2=",X[0][2]
     #print "c2c3-c6=",X[0][2]*X[0][3]-X[0][6]
@@ -2175,10 +2271,10 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 
 #     INPUT:
 #     -''S'' -- Space of Maass waveforms
-#     -''R'' -- real: (tentative) eigenvalue = 1/4+R**2 
+#     -''R'' -- real: (tentative) eigenvalue = 1/4+R**2
 #     -''nd''-- integer : number of digits we try to get (at a minimum)
 #     """
-    
+
 #     C=Maassform_coeffs(S,R,ST=ST ,ndigs=nd)
 
 
@@ -2197,10 +2293,10 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #     - ''neps'' -- number of desired digits
 
 #     OUPUT:
-    
+
 #     - ''R'' --
 
-    
+
 #     """
 #     G=S.group()
 #     jmax=1000  # maximal number of interation
@@ -2222,7 +2318,7 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #     h=dict()
 #     signs=dict();diffs=dict()
 #     c=dict(); h=dict()
-#     c[1]=2 ; c[2 ]=3 ; c[3 ]=4 
+#     c[1]=2 ; c[2 ]=3 ; c[3 ]=4
 #     #met='Hecke'
 
 #     met=method
@@ -2246,7 +2342,7 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #             var+=abs(diffs[1 ][j])+abs(diffs[3 ][j])
 #         print "var=",var
 #         for j in range(1 ,3 +1 ):
-#             signs[j]=1 
+#             signs[j]=1
 #             if(diffs[1 ][j]*diffs[3 ][j]>mpmath.eps()):
 #                 # If we do not have a signchange
 #                 # and the absolute values are relatively large
@@ -2254,14 +2350,14 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #                 if(abs(diffs[1][j])+abs(diffs[3][j]) > 0.01*var):
 #                     return [0 ,0 ]
 #             elif(diffs[1 ][j]>0 ):
-#                 signs[j]=-1         
+#                 signs[j]=-1
 #             # Recompute functionals using the signs
 #         if(S._verbose>1):
 #             print "h1=",h
 #             print "diffs1=",diffs
 #             print "signs=",signs
 #         for k in [1,3]:
-#             h[k]=0 
+#             h[k]=0
 #             for j in range(1,3+1):
 #                 h[k]=h[k]+signs[j]*diffs[k][j]
 #     Rnew=prediction(h[1 ],h[3 ],R1,R3)
@@ -2326,25 +2422,25 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #                 [diffs[2 ],h[2 ]]=functional(S,Rtest,M,Y1,Y2,signs,c,False,met,neps)
 #                 if is_zero_in(h) == 1: # all is ok
 #                     R1=Rtest; h[1]=h[2]; diffs[1]=diffs[2]; step=step+1
-                
+
 # ####
-            
+
 def is_zero_in(h):
     r"""
     Tells which interval contains changes of sign.
-    
+
 
     INPUT:
-    
+
     - ''h'' -- dictionary h[j]=[h1,h2,h3]
 
     OUTPUT:
-    
+
     - integer  (-1 0 1)
 
     EXAMPLES::
-    
-    
+
+
     """
     zi=dict(); i=0
     if(h[1]*h[2] < 0):
@@ -2352,7 +2448,7 @@ def is_zero_in(h):
     if(h[3]*h[2] < 0):
         zi[1]=1; i=1
     if(zi.values().count(1) >1 ): # need to split
-        return -2 
+        return -2
     #s="Neeed to split! Not implemented!"
     #raise ValueError,s
     return i
@@ -2373,25 +2469,25 @@ def prediction(f0,f1,x0,x1):
 
     INPUT:
 
-        - ''f0'' -- real
-        - ''f1'' -- real
-        - ''x0'' -- real
-        - ''x1'' -- real
+    - ''f0'' -- real
+    - ''f1'' -- real
+    - ''x0'' -- real
+    - ''x1'' -- real
 
     OUTPUT:
 
-        - real
+    - real
 
 
     EXAMPLES::
 
 
-        sage: prediction(-1,1,9,10)
-        19/2
-        sage: prediction(-1.0,1.0,9.0,10.0)
-        9.50000000000000
+    sage: prediction(-1,1,9,10)
+    19/2
+    sage: prediction(-1.0,1.0,9.0,10.0)
+    9.50000000000000
 
-    
+
     """
     xnew=x0-f0*(x1-x0)/(f1-f0)
     #if(xnew<x0 or xnew>x1):
@@ -2406,24 +2502,24 @@ def prediction_newton(x,f,df):
 
     INPUT:
 
-        - ''x''  -- real
-        - ''f''  -- real, f(x)
-        - ''df'' -- real, f'(x)
+    - ''x''  -- real
+    - ''f''  -- real, f(x)
+    - ''df'' -- real, f'(x)
 
     OUTPUT:
 
-        - real
+    - real
 
 
     EXAMPLES::
 
 
-        sage: prediction_newton(1,9,10)
-        19/2
-        sage: prediction_newton(1.0,9.0,10.0)
-        9.50000000000000
+    sage: prediction_newton(1,9,10)
+    19/2
+    sage: prediction_newton(1.0,9.0,10.0)
+    9.50000000000000
 
-    
+
     """
     if(df==0.0):
         st= "Newtons method failed! \n"
@@ -2452,7 +2548,7 @@ def find_Y_and_M(G,R,ndigs=12,Yset=None,Mset=None):
 
     EXAMPLES::
 
-    
+
 
     TODO:
     Better and more effective bound
@@ -2463,7 +2559,7 @@ def find_Y_and_M(G,R,ndigs=12,Yset=None,Mset=None):
     if(Mset <> None):
         # then we get Y corr. to this M
         Y0=RR(3).sqrt()/RR(2*l)
-        
+
     if(Yset==None):
         Y0=RR(3).sqrt()/RR(2*l)
         Y=mpmath.fp.mpf(0.95*Y0)
@@ -2474,7 +2570,7 @@ def find_Y_and_M(G,R,ndigs=12,Yset=None,Mset=None):
     eps= mpmath.fp.mpf(10 **-ndigs)
     twopiY=mpmath.fp.pi*Y*mpmath.fp.mpf(2)
 
-    M0=get_M_for_maass(R,Y,eps) 
+    M0=get_M_for_maass(R,Y,eps)
     if(M0<10):
         M0=10
     ## Do this in low precision
@@ -2525,7 +2621,7 @@ def _testing_kbes(Rt=[1,10,10],Xt=[1,10,100]):
             #    timeit( "besselk_dp_rec(R,x)",repeat=1)
             print "mpmath.besselk="
             timeit("mpmath.besselk(%s,%s)" %(iR,x),repeat=1)
-            
+
 
             #print "t1(",R,x,")=",t1
             #print "t2(",R,x,")=",t2
@@ -2553,7 +2649,7 @@ def _test_Hecke_relations(a=2,b=3,C={}):
 
     EXAMPLE::
 
-    
+
     sage: S=MaassWaveForms(Gamma0(1))
     sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534)
     sage: Y=mpmath.mpf(0.85)
@@ -2563,13 +2659,13 @@ def _test_Hecke_relations(a=2,b=3,C={}):
     sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
     sage: d=_test_Hecke_relations(C,2,3); mppr(d)
     '3.83e-43'
-    
-    
+
+
     """
     c=gcd(Integer(a),Integer(b))
     if not C.has_key(0):
         return 0
-    if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b): 
+    if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b):
         lhs=C[0][a]*C[0][b]
         rhs=0
         for d in divisors(c):
@@ -2584,25 +2680,25 @@ def _test_Hecke_relations_all(C={}):
 
     EXAMPLE::
 
-    
-        sage: S=MaassWaveForms(Gamma0(1))
-        sage: mpmath.mp.dps=100
-        sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534899129834778176925550997543536649304476785828585450706066844381418681978063450078510030977880577576)
-        sage: Y=mpmath.mpf(0.85)
-        sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
-        sage: test=_test_Hecke_relations_all(C); test  
-        {4: '9.79e-68', 6: '4.11e-63', 9: '4.210e-56', 10: '9.47e-54', 14: '2.110e-44', 15: '4.79e-42', 21: '4.78e-28', 22: '1.02e-25', 25: '9.72e-19', 26: '2.06e-16'}
-        
+
+    sage: S=MaassWaveForms(Gamma0(1))
+    sage: mpmath.mp.dps=100
+    sage: R=mpmath.mpf(9.53369526135355755434423523592877032382125639510725198237579046413534899129834778176925550997543536649304476785828585450706066844381418681978063450078510030977880577576)
+    sage: Y=mpmath.mpf(0.85)
+    sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
+    sage: test=_test_Hecke_relations_all(C); test
+    {4: '9.79e-68', 6: '4.11e-63', 9: '4.210e-56', 10: '9.47e-54', 14: '2.110e-44', 15: '4.79e-42', 21: '4.78e-28', 22: '1.02e-25', 25: '9.72e-19', 26: '2.06e-16'}
+
 
     We can see how the base precision used affects the coefficients
 
-        sage: mpmath.mp.dps=50
-        sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
-        sage: test=_test_Hecke_relations_all(C); test               
-        sage: test=_test_Hecke_relations_all(C); test  
-{4: '1.83e-48', 6: '4.75e-43', 9: '3.21e-36', 10: '1.24e-33', 14: '4.41e-25', 15: '1.53e-23', 21: '6.41e-8', 22: '4.14e-6', 25: '91.455', 26: '12591.0'}
+    sage: mpmath.mp.dps=50
+    sage: C=coefficients_for_Maass_waveforms(S,R,Y,30,50,20)
+    sage: test=_test_Hecke_relations_all(C); test
+    sage: test=_test_Hecke_relations_all(C); test
+    {4: '1.83e-48', 6: '4.75e-43', 9: '3.21e-36', 10: '1.24e-33', 14: '4.41e-25', 15: '1.53e-23', 21: '6.41e-8', 22: '4.14e-6', 25: '91.455', 26: '12591.0'}
 
-    
+
 
     """
     N=max(C[0].keys())
@@ -2610,7 +2706,7 @@ def _test_Hecke_relations_all(C={}):
     for a in prime_range(N):
         for b in prime_range(N):
             if(a*b <= N):
-                test[a*b]=mppr(_test_Hecke_relations(C,a,b))
+                test[a*b]=mppr(_test_Hecke_relations(C[0],a,b))
     return test
 
 
@@ -2626,13 +2722,13 @@ def solve_system_for_Maass_waveforms(W,N=None,deb=False,force_type=None):
         A=mat_conv_to_mpmath(W['V'])
         W['V']=A
     if hasattr(W['V'],"ctx"): ## We have an mpmath matrix
-        ## Recall that we may need to adjust the precision for mpmath solutions   
+        ## Recall that we may need to adjust the precision for mpmath solutions
         return solve_system_for_Maass_waveforms_mpmath(W,N,deb)
     elif hasattr(W['V'],"QR"): # Is a Matirx_complex_dense instance
         return solve_system_for_Maass_waveforms_mpc(W,N,deb)
     else:
         raise ValueError,"Unknown type of matrix!: {0}".format(type(W['V']))
-        
+
 def solve_system_for_Maass_waveforms_mpmath(W,N=None,deb=False,gr=False):
     r"""
     Solve the linear system to obtain the Fourier coefficients of Maass forms
@@ -2641,53 +2737,53 @@ def solve_system_for_Maass_waveforms_mpmath(W,N=None,deb=False,gr=False):
 
     - ``W`` --   (system) dictionary
 
-        - ``W['Ms']``  -- M start
-        - ``W['Mf']``  -- M stop
-        - ``W['nc']``  -- number of cusps
-        - ``W['V']``   -- matrix of size ((Ms-Mf+1)*nc)**2
-        - ``W['RHS']`` -- right hand side (for inhomogeneous system) matrix of size ((Ms-Mf+1)*nc)*(dim)
+    - ``W['Ms']``  -- M start
+    - ``W['Mf']``  -- M stop
+    - ``W['nc']``  -- number of cusps
+    - ``W['V']``   -- matrix of size ((Ms-Mf+1)*nc)**2
+    - ``W['RHS']`` -- right hand side (for inhomogeneous system) matrix of size ((Ms-Mf+1)*nc)*(dim)
 
     - ``N`` -- normalisation (dictionary, output from the set_norm_for_maass function)
 
-        - ``N['SetCs']``   -- Which coefficients are set
-        - ``N['Vals'] ``   -- To which values are these coefficients set
-        - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
-        
+    - ``N['SetCs']``   -- Which coefficients are set
+    - ``N['Vals'] ``   -- To which values are these coefficients set
+    - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
+
     - ``deb`` -- print debugging information (default False)
 
     OUTPUT:
-    
+
     - ``C`` -- Fourier coefficients
 
     EXAMPLES::
 
-        sage: S=MaassWaveForms(MySubgroup(Gamma0(1)))
-        sage: mpmath.mp.dps=20
-        sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
-        sage: Y=mpmath.mpf(0.5)
-        sage: W=setup_matrix_for_Maass_waveforms(S,R,Y,12,22)
-        sage: N=S.set_norm_maass(1)
-        sage: C=solve_system_for_Maass_waveforms(W,N)
-        sage: C[0][2]*C[0][3]-C[0][6]
-        mpc(real='-1.8055426724989656270259e-14', imag='1.6658248366482944572967e-19')
+    sage: S=MaassWaveForms(MySubgroup(Gamma0(1)))
+    sage: mpmath.mp.dps=20
+    sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
+    sage: Y=mpmath.mpf(0.5)
+    sage: W=setup_matrix_for_Maass_waveforms(S,R,Y,12,22)
+    sage: N=S.set_norm_maass(1)
+    sage: C=solve_system_for_Maass_waveforms(W,N)
+    sage: C[0][2]*C[0][3]-C[0][6]
+    mpc(real='-1.8055426724989656270259e-14', imag='1.6658248366482944572967e-19')
 
     If M is too large and the precision is not high enough the matrix might be numerically singular
 
-        W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)  
-        sage: C=solve_system_for_Maass_waveforms(W,N)
-        Traceback (most recent call last)
-        ...
-        ZeroDivisionError: Need higher precision! Use > 23 digits!
+    W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)
+    sage: C=solve_system_for_Maass_waveforms(W,N)
+    Traceback (most recent call last)
+    ...
+    ZeroDivisionError: Need higher precision! Use > 23 digits!
 
     Increasing the precision helps
-    
-        sage: mpmath.mp.dps=25
-        sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
-        sage: C=solve_system_for_Maass_waveforms(W,N)
-        sage: C[0][2]*C[0][3]-C[0][6]
-        mpc(real='3.780824715556976438911480324e-25', imag='2.114746048869188750991752872e-99')
 
-        
+    sage: mpmath.mp.dps=25
+    sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
+    sage: C=solve_system_for_Maass_waveforms(W,N)
+    sage: C[0][2]*C[0][3]-C[0][6]
+    mpc(real='3.780824715556976438911480324e-25', imag='2.114746048869188750991752872e-99')
+
+
     """
     import mpmath
     V=W['V']
@@ -2722,7 +2818,7 @@ def solve_system_for_Maass_waveforms_mpmath(W,N=None,deb=False,gr=False):
     vals_list=dict()
     for j in range(comp_dim):
         vals_list[j]=dict()
-    
+
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
             continue
@@ -2743,7 +2839,7 @@ def solve_system_for_Maass_waveforms_mpmath(W,N=None,deb=False,gr=False):
     t=V[0,0]
     if(isinstance(t,float)):
         mpmath_ctx=mpmath.fp
-    else:  
+    else:
         mpmath_ctx=mpmath.mp
     if(W.has_key('RHS')):
         RHS=W['RHS']
@@ -2779,7 +2875,7 @@ def solve_system_for_Maass_waveforms_mpmath(W,N=None,deb=False,gr=False):
                 #print "RHS[",r-roffs,fn_j,"]=",RHS[r-roffs,fn_j]
                 #print "V[",r,",",cset,"]=",V[r,cset]
         coffs=0
-        for k in range(ncols):            
+        for k in range(ncols):
             if setc_list.count(k)>0:
                 coffs=coffs+1
                 continue
@@ -2793,7 +2889,7 @@ def solve_system_for_Maass_waveforms_mpmath(W,N=None,deb=False,gr=False):
     oldprec=mpmath.mp.dps
     while done==0 and j<=10:
         if W['space']._verbose>1:
-             print "Trying to solve with prec=",mpmath.mp.dps
+            print "Trying to solve with prec=",mpmath.mp.dps
         try:
             A, p = mpmath_ctx.LU_decomp(LHS)
             done=1
@@ -2855,53 +2951,53 @@ def solve_system_for_Maass_waveforms_mpc(W,N=None,gr=False,cn=False):
 
     - ``H`` -- Space of Maass waveforms
     - ``W`` --   (system) dictionary
-        - ``W['Ms']``  -- M start
-        - ``W['Mf']``  -- M stop
-        - ``W['nc']``  -- number of cusps
-        - ``W['V']``   -- matrix of size ((Ms-Mf+1)*nc)**2
-        - ``W['RHS']`` -- right hand side (for inhomogeneous system) matrix of size ((Ms-Mf+1)*nc)*(dim)
+    - ``W['Ms']``  -- M start
+    - ``W['Mf']``  -- M stop
+    - ``W['nc']``  -- number of cusps
+    - ``W['V']``   -- matrix of size ((Ms-Mf+1)*nc)**2
+    - ``W['RHS']`` -- right hand side (for inhomogeneous system) matrix of size ((Ms-Mf+1)*nc)*(dim)
     - ``N`` -- normalisation (dictionary, output from the set_norm_for_maass function, default None)
-        - if N=None we assume that the solution is uniquely determined by the prinicpal part (in the right hand side)
-        - ``N['SetCs']``   -- Which coefficients are set
-        - ``N['Vals'] ``   -- To which values are these coefficients set
-        - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
-        - ``N['num_set']`` -- Number of coefficients which are set
-        
+    - if N=None we assume that the solution is uniquely determined by the prinicpal part (in the right hand side)
+    - ``N['SetCs']``   -- Which coefficients are set
+    - ``N['Vals'] ``   -- To which values are these coefficients set
+    - ``N['comp_dim']``-- How large is the assumed dimension of the solution space
+    - ``N['num_set']`` -- Number of coefficients which are set
 
-        
+
+
     - ''gr''  -- only return the reduced matrix and right hand side. do not perform the solving .
     - ''cn''  -- logical (default False) set to True to compute the max norm of V^-1
     OUTPUT:
-    
+
     - ``C`` -- Fourier coefficients
 
     EXAMPLES::
 
-        sage: G=MySubgroup(Gamma0(1))
-        sage: mpmath.mp.dps=20
-        sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
-        sage: Y=mpmath.mpf(0.5)
-        sage: W=setup_matrix_for_Maass_waveforms(G,R,Y,12,22)
-        sage: N=set_norm_maass(1)
-        sage: C=solve_system_for_Maass_waveforms(W,N)
-        sage: C[0][2]*C[0][3]-C[0][6]
-        mpc(real='-1.8055426724989656270259e-14', imag='1.6658248366482944572967e-19')
+    sage: G=MySubgroup(Gamma0(1))
+    sage: mpmath.mp.dps=20
+    sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
+    sage: Y=mpmath.mpf(0.5)
+    sage: W=setup_matrix_for_Maass_waveforms(G,R,Y,12,22)
+    sage: N=set_norm_maass(1)
+    sage: C=solve_system_for_Maass_waveforms(W,N)
+    sage: C[0][2]*C[0][3]-C[0][6]
+    mpc(real='-1.8055426724989656270259e-14', imag='1.6658248366482944572967e-19')
 
     If M is too large and the precision is not high enough the matrix might be numerically singular
 
-        W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)  
-        sage: C=solve_system_for_Maass_waveforms(W,N)
-        Traceback (most recent call last)
-        ...
-        ZeroDivisionError: Need higher precision! Use > 23 digits!
+    W=setup_matrix_for_Maass_waveforms(G,R,Y,20,40)
+    sage: C=solve_system_for_Maass_waveforms(W,N)
+    Traceback (most recent call last)
+    ...
+    ZeroDivisionError: Need higher precision! Use > 23 digits!
 
     Increasing the precision helps
-    
-        sage: mpmath.mp.dps=25
-        sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
-        sage: C=solve_system_for_Maass_waveforms(W,N)
-        sage: C[0][2]*C[0][3]-C[0][6]
-        mpc(real='3.780824715556976438911480324e-25', imag='2.114746048869188750991752872e-99')
+
+    sage: mpmath.mp.dps=25
+    sage: R=mpmath.mpf(9.533695261353557554344235235928770323821256395107251982375790464135348991298347781769255509975435366)
+    sage: C=solve_system_for_Maass_waveforms(W,N)
+    sage: C[0][2]*C[0][3]-C[0][6]
+    mpc(real='3.780824715556976438911480324e-25', imag='2.114746048869188750991752872e-99')
 
     """
     V=W['V']
@@ -2913,7 +3009,7 @@ def solve_system_for_Maass_waveforms_mpc(W,N=None,gr=False,cn=False):
     get_reduced_matrix=gr
     verbose = H._verbose
     comp_norm=cn
-    nc=H.group().ncusps() 
+    nc=H.group().ncusps()
     if V.ncols()<>Ml*nc or V.nrows()<>Ml*nc:
         raise Exception," Wrong dimension of input matrix!"
     if N==None:
@@ -2941,7 +3037,7 @@ def solve_system_for_Maass_waveforms_mpc(W,N=None,gr=False,cn=False):
     setc_list=list()
     vals_list=dict()
     for j in range(comp_dim):
-        vals_list[j]=dict()    
+        vals_list[j]=dict()
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
             continue
@@ -2987,17 +3083,17 @@ def solve_system_for_Maass_waveforms_mpc(W,N=None,gr=False,cn=False):
                 tmp=tmp*V[r,cset]
                 RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
-        for k in range(ncols):            
+        for k in range(ncols):
             if setc_list.count(k)>0:
                 coffs=coffs+1
                 if verbose>1:
                     print "skipping colum:",k
                 continue
-                if verbose>1 and r-roffs==1:
-                    print "Setting LHS[1,",k-coffs
+            if verbose>1 and r-roffs==1:
+                print "Setting LHS[1,",k-coffs
             LHS[r-roffs,k-coffs]=V[r,k]    # for a in range(nc):
     if get_reduced_matrix:
-#        return [LHS,RHS]
+        #        return [LHS,RHS]
         return [LHS,RHS]
     maxit=100;i=0
     done=False
@@ -3051,21 +3147,21 @@ def solve_system_for_Maass_waveforms_mpc(W,N=None,gr=False,cn=False):
 
 
 
-    def Hecke_action(self,p):
-        r"""
-        Return T_p(F)
-        Note: Only Fourier coefficients at infinity are computed
-        """
-        res = copy(self)
-        c = res._coeffs
-        x=self._space._multiplier._character
-        for r in res._coeffs.keys():
-            res._coeffs[r]=dict()
-            res._coeffs[r][0]=dict()
-            Ms = min(self._coeffs[r][0].keys())
-            Mf = max(self._coeffs[r][0].keys())
-            if Ms<0:
-                Ms=ceil(RR(Ms)/RR(p))
+def Hecke_action(self,p):
+    r"""
+    Return T_p(F)
+    Note: Only Fourier coefficients at infinity are computed
+    """
+    res = copy(self)
+    c = res._coeffs
+    x=self._space._multiplier._character
+    for r in res._coeffs.keys():
+        res._coeffs[r]=dict()
+        res._coeffs[r][0]=dict()
+        Ms = min(self._coeffs[r][0].keys())
+        Mf = max(self._coeffs[r][0].keys())
+        if Ms<0:
+            Ms=ceil(RR(Ms)/RR(p))
             Mf=floor(RR(Mf)/RR(p))
             for n in range(Ms,Mf+1):
                 tmp=0
@@ -3087,7 +3183,7 @@ def solve_system_for_Maass_waveforms_GaussElim(W,N=None,gr=False,cn=False):
     r"""
     Solve the linear system to obtain the Fourier coefficients of Maass forms
 
-  
+
     """
     V=W['V']
     Ms=W['Ms']
@@ -3097,7 +3193,7 @@ def solve_system_for_Maass_waveforms_GaussElim(W,N=None,gr=False,cn=False):
     get_reduced_matrix=gr
     verbose = H._verbose
     comp_norm=cn
-    nc=H.group().ncusps() 
+    nc=H.group().ncusps()
     if V.ncols()<>Ml*nc or V.nrows()<>Ml*nc:
         raise Exception," Wrong dimension of input matrix!"
     if N==None:
@@ -3125,7 +3221,7 @@ def solve_system_for_Maass_waveforms_GaussElim(W,N=None,gr=False,cn=False):
     setc_list=list()
     vals_list=dict()
     for j in range(comp_dim):
-        vals_list[j]=dict()    
+        vals_list[j]=dict()
     for r,n in SetCs:
         if r*Ml+n-Ms<0:
             continue
@@ -3164,13 +3260,13 @@ def solve_system_for_Maass_waveforms_GaussElim(W,N=None,gr=False,cn=False):
                 tmp=tmp*V[r,cset]
                 RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
-        for k in range(ncols):            
+        for k in range(ncols):
             if setc_list.count(k)>0:
                 coffs=coffs+1
                 continue
             LHS[r-roffs,k-coffs]=V[r,k]    # for a in range(nc):
     if get_reduced_matrix:
-#        return [LHS,RHS]
+        #        return [LHS,RHS]
         return [LHS,RHS]
     maxit=100;i=0
     dps0=CF.prec()
@@ -3200,7 +3296,7 @@ def solve_system_for_Maass_waveforms_GaussElim(W,N=None,gr=False,cn=False):
                 #print "C[",n+i*Ml-roffs,"=",C[n+i*Ml-roffs]
                 X[fn_j][i][n+Ms]=C[n+i*Ml-roffs]
     return X
- 
+
 
 
 def mat_conv_to_mpc(A):
@@ -3218,7 +3314,7 @@ def mat_conv_to_mpc(A):
         raise TypeError,"Cabn not convert matrix of type:{0}".format(type(A))
     CF=MPComplexField(prec)
     MS=MatrixSpace(CF,m,n)
-    V=Matrix_complex_dense(MS,0)    
+    V=Matrix_complex_dense(MS,0)
     for i in range(m):
         for j in range(n):
             tmp=A[i,j]
@@ -3266,23 +3362,23 @@ def my_kbes(r,x,mp_ctx=None):
 
     INPUT:
 
-        - ''r'' -- real
-        - ''x'' -- real
-        - ''mp_ctx'' -- mpmath context (default None)
+    - ''r'' -- real
+    - ''x'' -- real
+    - ''mp_ctx'' -- mpmath context (default None)
 
     OUTPUT:
 
-        - real -- K_ir(x)*exp(pi*r/2)
+    - real -- K_ir(x)*exp(pi*r/2)
 
     EXAsMPLES::
 
 
-        sage: my_kbes(9.0,1.0)
-        mpf('-0.71962866121965863')
-        sage: my_kbes(9.0,1.0,mpmath.fp)
-        -0.71962866121967572
+    sage: my_kbes(9.0,1.0)
+    mpf('-0.71962866121965863')
+    sage: my_kbes(9.0,1.0,mpmath.fp)
+    -0.71962866121967572
 
-    
+
 
     """
     import mpmath
@@ -3305,20 +3401,20 @@ def my_kbes_diff_r(r,x,mp_ctx=None):
 
     INPUT:
 
-        - ''r'' -- real
-        - ''x'' -- real
-        - ''ctx'' -- mpmath context (default mpmath.mp)
+    - ''r'' -- real
+    - ''x'' -- real
+    - ''ctx'' -- mpmath context (default mpmath.mp)
 
     OUTPUT:
-        - real -- K_ir(x)*exp(pi*r/2)
+    - real -- K_ir(x)*exp(pi*r/2)
 
     EXAMPLES::
 
 
-        sage: my_kbes_diff_r(9.45,0.861695276766 ,mpmath.fp)
-        -0.31374673969963851
-        sage: my_kbes_diff_r(9.4,0.861695276766 ,mpmath.fp)
-        0.074219541623676832
+    sage: my_kbes_diff_r(9.45,0.861695276766 ,mpmath.fp)
+    -0.31374673969963851
+    sage: my_kbes_diff_r(9.4,0.861695276766 ,mpmath.fp)
+    0.074219541623676832
 
 
     """
@@ -3338,17 +3434,17 @@ def dict_depth(d,i=0):
         if d.has_key(0):
             return dict_depth(d[0],i+1)
     return i
-            
+
 def scattering_determinant_Hecke_triangle(s,q,prec=0,use_eisenstein=0,**kwds):
     r"""
     Computes the scattering determinant phi(s)
-     for the Hecke triangle group G_q
+    for the Hecke triangle group G_q
 
 
     INPUT:
-     - ``s``  -- complex
-     - ``prec`` -- precision used if s does not have precision
-    
+    - ``s``  -- complex
+    - ``prec`` -- precision used if s does not have precision
+
     """
 
     if q not in [3,4,6] and use_eisenstein==0:
@@ -3377,16 +3473,16 @@ def scattering_determinant_Hecke_triangle(s,q,prec=0,use_eisenstein=0,**kwds):
 def scattering_determinant_sl2z(s,prec=0,verbose=0):
     r"""
     Computes the scattering determinant :
-      phi(s)=sqrt(pi)gamma(s-1/2)zeta(2s-1)/gamma(s)/zeta(2s)
+    phi(s)=sqrt(pi)gamma(s-1/2)zeta(2s-1)/gamma(s)/zeta(2s)
     for PSL2(Z).
 
     INPUT:
-     - ``s``  -- complex
-     - ``prec`` -- precision used if s does not have precision
-    
+    - ``s``  -- complex
+    - ``prec`` -- precision used if s does not have precision
+
     """
     if prec<=0:
-        prec = 53 
+        prec = 53
     if hasattr(s,"prec"):
         if prec<s.prec():
             prec = s.prec()
@@ -3406,9 +3502,9 @@ def eisenstein_series_coefficient_sl2z(s,m,prec=0):
     Computes the Fourier coefficients of the Eisenstein series E(s;z) for PSL(2,Z) using the explicit formula.
 
     INPUT:
-     - ``s``  -- complex
-     - ``m``  -- integer
-     - ``prec`` -- precision used if s does not have precision
+    - ``s``  -- complex
+    - ``m``  -- integer
+    - ``prec`` -- precision used if s does not have precision
 
     """
     if hasattr(s,"prec"):
@@ -3427,5 +3523,5 @@ def eisenstein_series_coefficient_sl2z(s,m,prec=0):
     summa=CF(0)
     for d in divisors(m):
         summa+=RF(d)**(mp1-2*s)
-    res = res * summa
+        res = res * summa
     return res

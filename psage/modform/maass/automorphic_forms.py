@@ -1790,16 +1790,19 @@ class AutomorphicFormElement(SageObject):
             print "dim=",M._rdim
         if(not hasattr(M,"_is_automorphic_form_space")):
              raise TypeError,"Need an element of AutomorphicFormSpace. got %s" %M
-        if(C <> None):
+        d1=M._rdim
+        d2=len(M._group.cusps())
+        if C <> None:
             # We need the correct length of the coefficient vector
-            d1=M._rdim
-            d2=len(M._group.cusps())
             if len(C.keys()) > d1 or (len(C.keys())<d1 and self._sym_type==None):
                 # If we have smaller amount we believe there is a symmetry at work...
                 #or (d1==1 and len(M._group._cusps)<>len(C.keys()))):
                 raise ValueError,"Coefficient vector of wrong format! Got length=%s" % len(C)
+            self._coeffs=C
+        else:
+            self._coeffs = {i : {j:{} for j in range(d2)} for i in range(d1)}
+
         self._space=M
-        self._coeffs=C
         self._prec=prec
         self._base_ring=MPComplexField(prec)
         self._verbose=verbose

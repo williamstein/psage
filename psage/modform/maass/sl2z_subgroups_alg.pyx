@@ -76,7 +76,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     except:
         raise ValueError, "Indata not of correct format! sig=%s" %(sig)
     # For simplicity we fix the permutation of order two, E first:
-    ## We should check that the signature is valid (corresponds to a group)
+
+    ## If we have a complete signature then we should check that the signature is valid (corresponds to a group)
     if 12*g<>12+mu-6*h-3*e2-4*e3:
         print "lhs=",12*g
         print "rhs=",12+mu-6*h-3*e2-4*e3
@@ -206,8 +207,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     gotten = <int *>sage_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
     #DEB sig_on()
-    #cdef MyPermutation ptest
-    #ptest = MyPermutation([[1, 3, 4], [2,  5,7], [8, 6,9], [10, 11, 12]])
+    #cdef MyPermutation ptestR
+    #ptestR = MyPermutation('(1 3 9)(2 4 10)(5 12 6)(7 11 8)')
     if used==NULL:
         used = <int *>sage_malloc(sizeof(int)*mu)
     if verbose>=0:
@@ -278,11 +279,16 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             print "Checking transitivity!"
         # If we have only one cusp we are always transitive
         #TEST: if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,<int*>pR._entries,gotten,mu,mpi_verbose):
-        if h_tmp<>1 and not are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose):
+        if h_tmp<>1 and are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose)==0:
 #        if not are_transitive_perm_c(<int*>S_canonical._entries,<int*>PRI._current_perm,gotten,mu,mpi_verbose):            
             continue
-
-
+        # if verbose>=0 and Rptr[0]==3 and Rptr[2]==9 and Rptr[1]==4:
+        #     pR = MyPermutation(length=mu)
+        #     pR.set_entries(Rptr)
+        #     #if pR==ptestR:
+        #     print "R(4)=",Rptr[3]
+        #     print "have ptestR=",pR
+        #     print "are transitive:",are_transitive_perm_c(<int*>S_canonical._entries,Rptr,gotten,mu,mpi_verbose)
         if verbose>1:
             print "current fixedpts1=",PRI.fixed_pts()
             print "rfx=",print_vec(e3,rfx)
@@ -350,7 +356,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 if equivalent_integers_mod_fixS(a,c,mu,e2,end_fc,Sptr,used)==1:
                     if verbose>1:
                         print a," (a c) and ",c," are equivalent in",rc
-                    if b>c:
+                    if a>c:
                         if verbose>1:
                             print "remove (b>c)!"
                         do_cont = 1
@@ -399,8 +405,13 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             pass
         ## If we are here, R is a true candidate.
         pR = MyPermutation(length=mu,init=0)
-        pR.set_entries(PRI._current_perm)
+        pR.set_entries(Rptr)
         list_of_R.append(copy(pR))
+#        if pR==ptestR:
+#            print "Added pR=",pR
+#            Rtest = MyPermutation(length=mu)
+#            Rtest.set_entries(Rptr)
+#            print "Rptr=",Rtest
         if verbose>1:
             print "added pR=",pR
             print "Checked {0} Rs out of max. {1}".format(checked,max_num)
@@ -582,7 +593,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
             if do_cnt == 1:
                 continue
             if verbose>0:
-                print "R,S^(1 {0})       ={1},{2}".format(j,Rpp,Spc)
+                print "R,S^(1 {0}) = {1},{2}".format(j,Rpp,Spc)
+                print "list_of_j=",list_of_j
             ## We try to normalize the fixed points of S:
             pl = range(1,Rp.N()+1)
             pl[0]=j; pl[j-1]=1
@@ -739,7 +751,10 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         conj_pgl = conjugates[(S,R)]['pgl']
         conj_psl = conjugates[(S,R)]['psl']
         do_cont = 0
+        #print "S,R=",S,R        
         for S1,R1 in conj_psl:
+            if verbose>=0:
+                print "S1,R1=",S1,R1
             t,A,p = are_conjugate_pairs_of_perms(S,Rs,S1,R1)
             if t==1:
                 reflections[(S,R)]={'group':(S1,R1),'map':A,'perm':p}
@@ -1271,7 +1286,7 @@ cpdef are_conjugate_groups(G1,G2,ret='SL2Z',coset_rep=1,check=0,verbose=0):
     cdef SL2Z_elt A
     if G1.signature()<>G2.signature():
         if ret=='SL2Z':
-            return 0,SL2Z([1,0,0,1])
+            return 0,SL2Z.one()
         else:
             return 0, MyPermutation(length=G1.index())
     R1 = G1.permR; R2=G2.permR
@@ -1305,17 +1320,24 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
     cdef int mu
     mu = <int>S1.N()
     cdef int* pp_entries = NULL
-    pp_entries = <int*>sage_malloc(sizeof(int)*mu)
     #verbose = 1
-    if pp_entries==NULL:
-        raise MemoryError
-    if p==0:
+    if verbose>0:
+        print "are_conjugate_perm(R1,R2)=",p
+    if p==0: # The pair is not conjugate
         if ret == 'perm':
             return 0,MyPermutation(length=S1.N())
         elif ret=='SL2Z':
             return 0,SL2Z_elt(1,0,0,1)
         else:
-            return 0, SL2Z_elt(1,0,0,1),MyPermutation(length=S1.N())
+            return 0, SL2Z_elt(1,0,0,1),MyPermutation(length=mu)
+    if map_from==0 and map_to==0 and p.is_identity(): # R1 == R2
+        if S1==S2: # the pairs are identical
+            if ret == 'perm':
+                return 1,p
+            elif ret=='SL2Z':
+                return 1,SL2Z_elt(1,0,0,1)
+            else:
+                return 1, SL2Z_elt(1,0,0,1),p
     pp = MyPermutation(length=mu)
     Sc = S1.conjugate(<MyPermutation>p)
     if verbose>0:
@@ -1324,6 +1346,13 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
         print "p=",pp
         print "S^p=",Sc
     cdef int j,t=0
+    pp_entries = <int*>sage_malloc(sizeof(int)*mu)
+    if pp_entries==NULL:
+        raise MemoryError
+    for j in range(mu):
+        pp_entries[j]=(<MyPermutation>p)._entries[j]
+        if verbose>0:
+            print "pp[{0}]={1}".format(j,pp_entries[j])
     if map_to<>0:        
         j = p(map_from)
         if verbose>0:
@@ -1352,6 +1381,7 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
     if verbose>0:
         pp0 = copy(pp)
         pp1 = p*pp
+        print "pp=",pp
     pp = p*pp
     if map_from>0:
         if pp._entries[map_from-1]<>map_to:
@@ -1374,9 +1404,9 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
         return 1,pp
     if pp.is_identity():
         if ret=='SL2Z':
-            return 1,SL2Z([1,0,0,1])
+            return 1,SL2Z.one()
         else:
-            return 1,SL2Z([1,0,0,1]),pp
+            return 1,SL2Z.one(),pp
 #    return 1,matrix_from_perm((S1,R1),pp,verbose)
     cdef SL2Z_elt V
     #    V = MySubgroup(o2=S1,o3=R1).coset_reps()[pp(1)-1]
@@ -1519,7 +1549,7 @@ cpdef str_to_slz(str):
     S,T = SL2Z.gens()
     R = T*S
     sl = str.split('*')
-    res = SL2Z([1,0,0,1])
+    res = SL2Z.one()
     for t in sl:
         tt = t.split('^')
         if len(tt)==1:

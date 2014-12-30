@@ -1333,6 +1333,8 @@ def Maasswaveform(space,eigenvalue,**kwds):
     r"""
     Return a Maass waveform as an element of type MaassWaveformElement_class
     """
+    if not isinstance(space,MaassWaveForms):
+        space = MaassWaveForms(space)
     data = {'_space':space,'_R':eigenvalue}
     data['_sym_type'] = kwds.pop('sym_type',-1)
     if data['_sym_type']<>-1:
@@ -1367,6 +1369,10 @@ def Maasswaveform(space,eigenvalue,**kwds):
     data['_test']=kwds.get('test',0)
 #    data['compute']=kwds.get('compute',0)
     data['_version']=1  ## Might be necessary in the future
+    ## Unless we are locating eigenvalues we want to use phase2 to improve on coefficients.
+    data['_phase2'] = kwds.get('phase2',True)
+    if kwds.get('return_data',False):
+        return data
     return MaassWaveformElement_class(data)
 
 
@@ -1489,10 +1495,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 #       #     self._M0 = M
         #elif self._Y == None or self._Y <= 0:
         #    self._Y = get_Y_from_M(self._R,self.group().minimal_height(),self._M0,dprec)
-
-        if data.get('_compute',False) is True and len(self._coeffs[0][0])<self._M0:
-            self.get_coeffs(Mset=self._M0,Yset=self._Y,ndigs=self._nd,dim=self._dim,norm=self._norm,**kwds)
-
+        self._exceptional = self._space._exceptional
+        if data.get('_compute',False) is True:
+            if len(self._coeffs[0][0])<self._M0:
+                self.get_coeffs(Mset=self._M0,Yset=self._Y,ndigs=self._nd,dim=self._dim,norm=self._norm,**kwds)
+            if data.get('_phase2'):
+                # unless we explicitly say that we don't want phase2 we always improve on the initial coefficients. 
+                self.phase2(self._M0)
+            self.set_atkin_lehner()
+            
     def _repr_(self):
         r""" Returns string representation of self.
 
@@ -1532,6 +1543,48 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         return(MaassWaveformElement_class,(self.__dict__,))
                                      #self._coeffs,self._nd,self._sym_type,self._cusp_evs,self._verbose,self._prec))
 
+    def is_exceptional(self):
+        return self._exceptional 
+    def dim(self):
+        r"""
+        Return the dimension of the space corresponding to the Laplace eigenvalue of self (i.e. 1 if we have a multiplicity one) 
+        """
+        return self._dim
+
+    
+    def sym_type(self):
+        r"""
+        Return the symmetry type of self, i.e. even (0) or odd (1). If not symmetric we return -1. 
+        """
+        return self._sym_type
+
+    def atkin_lehner_eigenvalues(self):
+        return self._cusp_evs
+
+    def set_atkin_lehner(self):
+        r"""
+
+        """
+        er = 100*self.errest()
+        c1 = self.C(0,1)
+        if abs(c1)  == 0:
+            self._cusp_evs = {}
+        for ci in range(self.group().ncusps()):
+            c1t = self.C(ci,1)/c1
+            if abs(c1t-1) < er:
+                    self._cusp_evs[ci]=int(1)
+            elif abs(c1t+1) < er:
+                self._cusp_evs[ci]=int(-1)
+            elif abs(abs(c1t)-1)<er:
+                self._cusp_evs[ci]=c1t  ## Complex? 
+        
+    
+    def cusp_evs(self):
+        r"""
+        
+        """
+        return self._cusp_evs
+    
     def group(self):
         r"""
         Return self._group
@@ -1547,6 +1600,12 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
     def eigenvalue(self):
         return self._R  #eigenvalue
 
+    def M0(self):
+        return self._M0
+
+    def Y(self):
+        return self._Y
+    
     def find_sym_type(self,tol=1e-7):
         cnr=1
         st_old=-1
@@ -1641,7 +1700,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)
         C = self._coeffs[0][0]
         if not C.has_key(0):
-            return -1
+            raise KeyError
         if not hasattr(C[0],"has_key"):
             C = {0:C}
         if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b):
@@ -1673,8 +1732,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 return abs(t) #rhs/lhs-1)
         return -1
 
+
+
     
-    def test(self,method='Hecke',up_to_M0=0,format='digits',verbose=0):
+    
+    def test(self,method='Hecke',up_to_M0=0,format='digits',check_all=False,verbose=0):
         r""" Return the number of digits we believe are correct (at least)
         INPUT:
         - method -- string: 'Hecke' or 'pcoeff' or 'TwoY'
@@ -1695,28 +1757,47 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         verbose = max(verbose,self._space._verbose)
         if self.generalised_level()==1:
             method='Hecke'
+        nmax = max(self._coeffs[0][0].keys())
+        
         if method=='Hecke' and self._space._group.is_congruence():
-            #a = self._space.get_primitive_p()
-            #b = self._space.get_primitive_p(a)
             p = self._from_hecke_p
             a = self._space.get_primitive_p(p)
-            b = self._space.get_primitive_p(a)
-            if verbose>1:
-                print "Check Hecke relations! a={0}, b={1}".format(a,b)
+            plist = []
+            if check_all is True:
+                print "nmax=",nmax
 
-            if len(self._coeffs)>b+3:
-                if verbose>=0:
-                    print "Too few coefficients for test!"
-                return 1
-            er=self.test_Hecke_relation(a=a,b=b)
-            #print "er=",er
-            if er == 0:
-                return 0
-            if er==-1:
+                
+                while a < nmax:
+                    plist.append(a)
+                    a = self._space.get_primitive_p(a)
+            else:
+                b = self._space.get_primitive_p(a)
+                plist = [a,b]
+                    #a = self._space.get_primitive_p(p)
+
+            if verbose>1:
+                print "Check Hecke relations for primes: {0}".format(plist)
+            #if len(self._coeffs)>b+3:
+            #    if verbose>=0:
+            #        print "Too few coefficients for test!"
+            #    return 1
+            ermax = 0.0
+            try: 
+                for a in plist:
+                    for b in plist:
+                        if a*b < nmax:
+                            er=self.test_Hecke_relation(a=a,b=b)
+                            if abs(er)>ermax:
+                                ermax = er
+            except KeyError:
                 return self.test(method='pcoeff',up_to_M0=up_to_M0,format=format)
+            #print "er=",er
+            #if ermax == 0:
+            #    return 0
+            self._errest = ermax
             if format=='float':
-                return er
-            d=floor(-log(er,10))
+                return ermax
+            d=floor(-log(ermax,10))
             if verbose>0:
                 print "Hecke is ok up to ",d,"digits!"
             return d
@@ -1741,7 +1822,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     p = x.conductor()
                     d2 = abs(abs(self._coeffs[0][0][p])-1)
                     if d2<d1: d1=d2
-            return d1
+            self._errest = d1
+            if format=='float':
+                return d1
+            d=floor(-log(d1,10))
+            return d
         else:
             # Test two Y's. Since we don't know which Y we had to start with we use two new ones and compare against the coefficients we already have
             nd=self._nd #+5
@@ -1791,6 +1876,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 d = 0
             if self._verbose>0:
                 print "Hecke is ok up to ",d,"digits!"
+            self._errest = er
             if format=='float':
                 return er
             return d
@@ -2074,11 +2160,6 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         nd = floor(abs(log_b(t,10)))
         ## Check that the parameters are sufficiently good....
         eps = 10.0**(-nd)
-        #M0,Y = get_M_and_Y(self._R,self._Y,self._M0,eps,kwds.get('verbose',0)-2)
-        #if M0 > self._M0:
-        #    print "recompute F with M0=",M0
-        #    self.get_coeffs(Mset=M0,Yset=Y,ndigs=nd,dim=self._norm,norm=self._norm)
-        #assert self._M0 == M0
         C = phase_2_cplx_dp_sym(self.space(),self.eigenvalue(),2,n,
                                 M0in=int(self._M0),ndig=int(nd-1),
                                 dim=int(self._dim),cuspstart=int(0),cuspstop=int(self.group().ncusps()),
@@ -2095,6 +2176,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     self._coeffs[r][ci][n] = C[r][ci][n]
                     
 
+    def errest(self):
+        
+        return self._errest
+    
+                    
     def Hecke_action(self,p):
         r"""
         Return T_p(F)

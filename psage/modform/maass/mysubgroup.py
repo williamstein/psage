@@ -57,7 +57,7 @@ Gamma^3
 #from sage.all_cmdline import *   # import sage library
 
 from sage.rings.arith    import xgcd
-from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,I,infinity,Rational,gcd
+from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational,gcd
 from sage.rings.real_mpfr import RealNumber as RealNumber_class
 #from sage.combinat.permutation import (Permutations,PermutationOptions)
 from sage.modular.cusps import Cusp
@@ -66,7 +66,7 @@ from sage.modular.arithgroup.all import *
 from sage.symbolic.expression import Expression
 from sage.modular.modsym.p1list import lift_to_sl2z 
 from sage.functions.other import ceil,floor,sqrt
-from sage.all import Matrix,SageObject,numerator,denominator,copy,log_b,is_odd
+from sage.all import Matrix,SageObject,numerator,denominator,copy,log_b,is_odd,I
 from sage.modular.arithgroup import congroup_gamma0
 from sage.modular.arithgroup.arithgroup_generic import ArithmeticSubgroup
 from sage.modular.arithgroup.arithgroup_perm import EvenArithmeticSubgroup_Permutation

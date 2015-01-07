@@ -152,7 +152,7 @@ EXAMPLES::
 #*****************************************************************************
 
 import mpmath
-from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing
+from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing,CyclotomicField,dimension_cusp_forms,dimension_modular_forms
 from mpmath import mpf
 from mysubgroup import *
 from automorphic_forms_alg import *
@@ -663,13 +663,15 @@ class AutomorphicFormSpace(Parent):
             return self._dimension
         if self._weight < 2 or self.level()<>1:
             return -1
-        if hasattr(self._multiplier,"dimension_cusp_forms"):
-            if self._cuspidal:
-                self._dimension = self._multiplier.dimension_cusp_forms(self._weight)
-            else:
-                self._dimension = self._multiplier.dimension_modular_forms(self._weight)
-            return self._dimension
-        
+        try:
+            if hasattr(self._multiplier,"dimension_cusp_forms"):
+                if self._cuspidal:
+                    self._dimension = self._multiplier.dimension_cusp_forms(self._weight)
+                else:
+                    self._dimension = self._multiplier.dimension_modular_forms(self._weight)
+                return self._dimension
+        except:
+            pass
         term0 = QQ(self._rdim*(self._weight-1))/QQ(12)
         S,T=SL2Z.gens()
         R = S*T; R2=R*R
@@ -685,9 +687,9 @@ class AutomorphicFormSpace(Parent):
             wR=self._multiplier(R)        
             wR2=self._multiplier(R2)            
             wT=self._multiplier(T)
-        z2=CycloidalGroup(4).gen()
+        z2=CyclotomicField(4).gen()
         term1 = wS/QQ(4)*z2*z2**(self._weight-1)
-        z3=CycloidalGroup(6).gen()        
+        z3=CyclotomicField(6).gen()        
         term2 = wR/QQ(3)/sqrt(3)*z2*z3**(self._weight-1)
         term3 = wR/QQ(3)/sqrt(3)*z2*z3**(2*(self._weight-1))
         term4=0

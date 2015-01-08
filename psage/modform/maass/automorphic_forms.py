@@ -152,7 +152,7 @@ EXAMPLES::
 #*****************************************************************************
 
 import mpmath
-from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing,CyclotomicField,dimension_cusp_forms,dimension_modular_forms
+from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing,CyclotomicField,dimension_cusp_forms,dimension_modular_forms,CuspForms
 from mpmath import mpf
 from mysubgroup import *
 from automorphic_forms_alg import *
@@ -565,12 +565,22 @@ class AutomorphicFormSpace(Parent):
         #k = QQ(RR(self._weight)) 
         kk = ZZ(k - QQ(1)/QQ(2))
         r2 = valuation(N,2)
-        if(r2>=4):
-            zeta_k_l_chi = lambda_k_l_chi
+        s2 = valuation(cond,2)
+        if(r2>=4): #   zeta_k_l_chi = lambda_k_l_chi
+            if 2*s2 <= r2:
+                if is_even(r2):
+                    rp = r2/QQ(2)
+                    zeta_k_l_chi = 2**(rp) + 2**(rp-1)
+                else:
+                    rp = (r2-1)/QQ(2)
+                    zeta_k_l_chi = 2*2**(rp)
+            elif 2*s2 > r2:
+                zeta_k_l_chi = 2*2**(rp-sp)            
         elif(r2==3):
             zeta_k_l_chi = 3
         elif(r2==2):
             zeta_k_l_chi = 0
+            ## Condition (C)
             for p in prime_divisors(N):
                 if( (p % 4) == 3):
                     rp = valuation(N,p)
@@ -578,17 +588,18 @@ class AutomorphicFormSpace(Parent):
                     if(is_odd(rp) or (rp>0 and rp < 2*sp)):
                         zeta_k_l_chi = 2
                         break
-                    if(is_even(kk)):
-                        if(s2==0):
-                            zeta_k_l_chi = QQ(3)/QQ(2)
-                        elif(s2==2):
-                            zeta_k_l_chi = QQ(5)/QQ(2)
-                    else:
-                        if(s2==0):
-                            zeta_k_l_chi = QQ(5)/QQ(2)
-                        elif(s2==2):
-                            zeta_k_l_chi = QQ(3)/QQ(2)
-        if(zeta_k_l_chi<0):
+            if zeta_k_l_chi== 0: # not (C)
+                if(is_even(kk)):
+                    if(s2==0):
+                        zeta_k_l_chi = QQ(3)/QQ(2)
+                    elif(s2==2):
+                        zeta_k_l_chi = QQ(5)/QQ(2)
+                else:
+                    if(s2==0):
+                        zeta_k_l_chi = QQ(5)/QQ(2)
+                    elif(s2==2):
+                        zeta_k_l_chi = QQ(3)/QQ(2)
+        if(zeta_k_l_chi<=0):
             raise ArithmeticError,"Could not compute zeta(k,l,chi)!"
         fak = QQ(1)
         for p in prime_divisors(N):

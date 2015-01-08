@@ -200,11 +200,18 @@ my_extensions = [
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 
+    Extension('psage.modform.periods.period_polynomials_algs',
+              ['psage/modform/periods/period_polynomials_algs.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),
+
     Extension('psage.modform.maass.inc_gamma',
               ['psage/modform/maass/inc_gamma.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
+    
     Extension('psage.modform.maass.mysubgroups_alg',
               ['psage/modform/maass/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
@@ -378,6 +385,7 @@ build_system.setup(
                 'psage.modform.jacobiforms',
                 'psage.modform.weilrep_tools',
                 'psage.modform.maass',
+                'psage.modform.periods',
 
         		'psage.modules',
 

@@ -325,8 +325,8 @@ ext_modules.extend(my_extensions)
 ## Stephan Ehlen's additional modules
 
 sehlen_extensions = [
-      Extension('psage.modules.invariants',
-              sources = ['psage/modules/invariants.pyx'],
+      Extension('psage.modules.weil_invariants',
+              sources = ['psage/modules/weil_invariants.pyx'],
               libraries = ['m']
 #              include_dirs = numpy_include_dirs),
      )

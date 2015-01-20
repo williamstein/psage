@@ -86,6 +86,7 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 
+from sage.functions.other                 import floor
 from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup 
@@ -115,7 +116,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
     more precisely, the $(i,j)$-th entry $g_{i,j}$ is a rational number
     such that $Q(e_i+e_j)-Q(r_i)-Q(e_j) = g_{i,j} + \ZZ$..
 
-    NOTES
+    NOTES ::
         The abelian group may also be thought of as $\ZZ^n/R\ZZ^n$,
         and the generators as $e_i = c_i + R\ZZ^n$, where $c_i$ is
         the canonical basis for $\ZZ^n$.
@@ -126,7 +127,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         Use FiniteQuadraticModule() for more flexibility when creating
         FiniteQuadraticModule_ambient objects.
 
-    EXAMPLES
+    EXAMPLES ::
         sage: R = matrix(2,2,[2,1,1,2])
         sage: G = 1/2 * R^(-1)
         sage: A.<a,b> = FiniteQuadraticModule_ambient( R, G); A
@@ -161,7 +162,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             names -- a string used to name the generators of
                      the underlying abelian group.
         """
-        if True == check:
+        if check:
             #TODO: check if R, G are matrices over ZZ, QQ, admit nonsquare R with rank == size G
             if False == hasattr( R, '_matrix_') or False == hasattr( G, '_matrix_'):
                 raise TypeError, "%s: not a matrix" %R
@@ -523,7 +524,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         return d
 
 
-    def char_invariant( self, s, p = None):
+    def char_invariant(self, s, p=None, debug=0):
         r"""
         If this quadratic module equals $A = (M,Q)$, return
         the characteristic function of $A$ (or $A(p)$ if $p$ is a prime)
@@ -535,12 +536,12 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
         EXAMPLES NONE
         """
-        s = s%self.level()
-        if s==0:
-            return 1,1
+        s = s % self.level()
+        if s == 0:
+            return 1, 1
         if not p is None and not is_prime(p):
             raise TypeError
-        if p and 0 != self.order()%p:
+        if p and 0 != self.order() % p:
             return 1,1
         _p = p
         K = CyclotomicField (8)
@@ -550,13 +551,16 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         for c in jd:
             # c: basis, ( prime p,  valuation of p-power n, dimension r, determinant d over p [, oddity o]) 
             p,n,r,d = c[1][:4]
-            #print "c=",c
+            if debug > 0: print "c=",c
+            if debug > 0: print "p={0}, n={1}, r={2}, d={3}".format(p,n,r,d)
             if _p and p != _p:
                 continue
             o = None if 4 == len(c[1]) else c[1][4]
+            if debug > 0: print "o=",o
             k = valuation( s, p)
             s1 = Integer(s/p**k)
             h = max(n-k,0)
+            if debug > 0: print "h={0}".format(h)
             q = p**h
             if p!=2:
                 lci  = z**((r*(1-q))%8) * d**(h%2) if h > 0 else 1
@@ -568,9 +572,10 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 f = z**o if o else 1 
                 lci = f * d**(h%2) if h > 0 else 1
                 lci1 = q**(-r) if h > 0 else 1
-                # print f, d, lci 
+                if debug > 0: print f, d, lci 
             if 2 == p: lci = lci**s1
-            #print "lci=",lci
+            if debug > 0: print "lci=",lci
+            if debug > 0: print "lci1=", lci1
             ci *= lci * kronecker( s1, 1/lci1)
             ci1 *= lci1
         return ci, QQ(ci1).sqrt()
@@ -2259,9 +2264,9 @@ def FiniteQuadraticModule( arg0=None, arg1=None, **args):
             i = j = 0
             for g in arg1:
                 if i == j:
-                    G[i,j] = g - g.floor();
+                    G[i,j] = g - floor(g);
                 else:
-                    G[i,j] = G[j,i] = QQ(g - g.floor())/QQ(2);
+                    G[i,j] = G[j,i] = QQ(g - floor(g))/QQ(2);
                 j += 1
                 if n == j:
                     i += 1; j = i
@@ -3342,7 +3347,7 @@ class JordanDecomposition( SageObject):
         return orbit_dict
 
         
-    def _orbit_list(self, p, short = False):
+    def _orbit_list(self, p, short = False, debug = 0):
         r"""
         If this is the Jordan decomposition for $(M,Q)$, return the dictionary of
         orbits corresponding to the p-group of $M$.
@@ -3396,6 +3401,7 @@ class JordanDecomposition( SageObject):
             raise TypeError
         ppowers = [q for q in self.__jd.keys() if 0 == q % p]
         ppowers.sort()
+        if debug > 0: print "ppowers=", ppowers
         if [] == ppowers:
             return dict()
         orbitdict = {(1,) : 1}
@@ -3475,10 +3481,14 @@ class JordanDecomposition( SageObject):
         
         while multiplicitieslist != []:
 
+            if debug > 0: print "multiplicitieslist=", multiplicitieslist
+
             multiplicities = multiplicitieslist.pop()
             k = len(multiplicities)-1
             pk = p**k
             m = p*pk
+
+            if debug > 0: print "pk={0}, m={1}, k={2}".format(pk, m, k)
 
             if multiplicities[0] == multiplicities[k]:
 
@@ -3486,10 +3496,13 @@ class JordanDecomposition( SageObject):
                 ranksDv1 = ranks[len(ppowers) - len(ordersDv1):]
                 ordersDv1pk = [Integer(x / pk) for x in ordersDv1 if x > pk]
                 ranksDv1pk = ranksDv1[len(ordersDv1)-len(ordersDv1pk):]
+                if debug > 0: print "ordersDv1 = {0}, ranksDv1={1}".format(ordersDv1, ranksDv1)
+                if debug > 0: print "ordersDv1pk = {0}, ranksDv1pk={1}".format(ordersDv1pk, ranksDv1pk)
 
                 if len(ordersDv1pk) != 0 and ordersDv1pk[0] == p:
 
                     constantfactor = Integer(prod([min(pk, ordersDv1[j])**ranksDv1[j] for j in range(0, len(ordersDv1))]) / pk)
+                    if debug > 0: print "constantfactor=", constantfactor
                     constantfactor *= prod(map(lambda x: p**x, ranksDv1pk[1:]))
                     rank = ranksDv1pk[0]
                     eps = epsilons[len(ranks)-len(ranksDv1pk)]
@@ -3576,7 +3589,7 @@ class JordanDecomposition( SageObject):
                     tpjvalues = [0 for j in skips]
                     tpjs = [[x / maxdenominators[0] for x in range(0,maxdenominators[0])]] + [[] for j in skips[1:]]
 
-                    # print "tpjs", tpjs
+                    # if debug > 0: print "tpjs", tpjs
                     
                     while tpjs[0] != []:
 
@@ -3650,7 +3663,7 @@ class JordanDecomposition( SageObject):
                                     
         return orbitdict
 
-    def values( self):
+    def values( self, debug = 0):
         r"""
         If this is the Jordan decomposition for $(M,Q)$, return the values of $Q(x)$ ($x \in M$) as a dictionary d.
 
@@ -3777,13 +3790,13 @@ class JordanDecomposition( SageObject):
             else:
                 squarerepresentationlist[0] = squarerepresentationlist[2**l] = 2**(l/2)
             for k in range(0,l-1,2):
-                # print "k:", k
+                # if debug > 0: print "k:", k
                 for a in range(1, 2**(l+1-k),8):
-                    # print "a:", a
+                    # if debug > 0: print "a:", a
                     squarerepresentationlist[2**k * a] = 2**(k/2 + 2)
-            # print "Test the squarelist:", sum(squarerepresentationlist) == level, squarerepresentationlist, level
+            # if debug > 0: print "Test the squarelist:", sum(squarerepresentationlist) == level, squarerepresentationlist, level
 
-            # print "tvalues", tvalues
+            # if debug > 0: print "tvalues", tvalues
             
             t1inverse = inverse_mod(tvalues[0], level)
             values = [squarerepresentationlist[(j * t1inverse)%level]/2 for j in range(0,level)]
@@ -3809,6 +3822,7 @@ class JordanDecomposition( SageObject):
             _P.remove(2)
             
             l = sorted([q for q in self.__jd.keys() if 0 == q%2])
+            if debug > 0: print l
             while l != []:
                 q = l.pop()
                 gs = self.__jd[q][1]
@@ -3816,12 +3830,13 @@ class JordanDecomposition( SageObject):
                     values = combine_lists(values, values_odd2adic(gs))
                 else:
                     values = combine_lists(values, values_even2adic(gs))
+                if debug > 0: print values
 
         _P.sort( reverse = True)
 
         while [] != _P:
-
             p = _P.pop()
+            if debug > 0: print "p = ", p
             shortorbitdict = self.orbit_list(p, short = True)
             level = max(q for q in self.__jd.keys() if 0 == q%p)
             newvalues = [0 for j in range(0,level)]
@@ -3832,7 +3847,7 @@ class JordanDecomposition( SageObject):
                 if orbit != (1,):
                     
                     k = Integer(valuation(orbit[0],p)-1)
-                    # print orbit
+                    # if debug > 0: print orbit
                     v1 = orbit[1]
                     if v1 == orbit[k+1]:
                     
@@ -3844,18 +3859,18 @@ class JordanDecomposition( SageObject):
 
                         newvalues[Integer(v1 * orbit[k+2] * level) % level] += shortorbitdict[orbit]
 
-                    # print "Position1:", sum(newvalues)
-            # print "1:", values
-            # print "2:", newvalues
+                    # if debug > 0: print "Position1:", sum(newvalues)
+            # if debug > 0: print "1:", values
+            # if debug > 0: print "2:", newvalues
             values = combine_lists(values, newvalues)
-            # print "3:", values
-            # print "Position2:", values, _P, p
+            # if debug > 0: print "3:", values
+            # if debug > 0: print "Position2:", values, _P, p
 
-        # print "Position3:", values
+        # if debug > 0: print "Position3:", values
             
         valuesdict = {Integer(j)/len(values) : values[j] for j in range(0,len(values)) if values[j] != 0}
 
-        # print "Position4:", values, valuesdict, "END"
+        # if debug > 0: print "Position4:", values, valuesdict, "END"
             
         return valuesdict #, values
 

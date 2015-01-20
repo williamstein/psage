@@ -55,6 +55,36 @@ TODO:
 
 """
 
+import logging
+try:
+    import colorlog
+    from colorlog import ColoredFormatter
+    maass_logger = logging.getLogger('Maass')
+    if not getattr(maass_logger, 'handler_set', None):
+        LOG_LEVEL = logging.DEBUG
+        #logging.root.setLevel(LOG_LEVEL)
+        LOGFORMAT = "  %(log_color)s%(levelname)-10s%(filename)s:%(lineno)d%(reset)s | %(log_color)s%(message)s%(reset)s"
+        formatter = ColoredFormatter(LOGFORMAT)
+        stream = logging.StreamHandler()
+        stream.setLevel(LOG_LEVEL)
+        stream.setFormatter(formatter)
+        logger2 = logging.getLogger('detailed log')
+        if not maass_logger.handlers:
+            maass_logger.addHandler(stream)
+        if not logger2.handlers:
+            logger2.addHandler(stream)
+        maass_logger.handler_set = True
+        
+except ImportError:
+    print "No module colorlog present!"
+    maass_logger = logging.getLogger('Maass')
+    if not getattr(maass_logger, 'handler_set', None):
+        logger2 = logging.getLogger('detailed log')
+        maass_logger.handler_set = True
+maass_logger.propagate = False
+#maass_logger.setLevel(logging.WARNING)
+#logger2.setLevel(logging.WARNING)
+
 
 class MaassWaveForms (AutomorphicFormSpace):
     r"""
@@ -1495,6 +1525,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 #       #     self._M0 = M
         #elif self._Y == None or self._Y <= 0:
         #    self._Y = get_Y_from_M(self._R,self.group().minimal_height(),self._M0,dprec)
+        self._is_new = None; self._new_level = None
         self._exceptional = self._space._exceptional
         if data.get('_compute',False) is True:
             if len(self._coeffs[0][0])<self._M0:
@@ -1736,7 +1767,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
     
     
-    def test(self,method='Hecke',up_to_M0=0,format='digits',check_all=False,verbose=0):
+    def test(self,method='eval',up_to_M0=0,format='digits',check_all=False,verbose=0):
         r""" Return the number of digits we believe are correct (at least)
         INPUT:
         - method -- string: 'Hecke' or 'pcoeff' or 'TwoY'
@@ -1753,11 +1784,17 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
         """
+        from sage.all import Infinity
         # If we have a Gamma_0(N) we can use Hecke operators
+        if method not in ['Hecke','pcoeff','eval']:
+            raise ValueError,"Method : {0} is not recognized!".format(method)
         verbose = max(verbose,self._space._verbose)
         if self.generalised_level()==1:
             method='Hecke'
-        nmax = max(self._coeffs[0][0].keys())
+        if self._coeffs[0][0].keys() <> []:
+            nmax = max(self._coeffs[0][0].keys())
+        else:
+            nmax = 0
         
         if method=='Hecke' and self._space._group.is_congruence():
             p = self._from_hecke_p
@@ -1828,54 +1865,87 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             d=floor(-log(d1,10))
             return d
         else:
+            ### Test to evaluate at different points close to the cusps...
+            er = 0 
+            for c in self.group().cusps():
+                a = c.numerator(); b = c.denominator()
+                if b==0:
+                    continue
+                if verbose>0:
+                    print "c=",c
+                x = RR(a)/RR(b)
+                y = 0.8*self.group().minimal_height()                
+                for j in range(100):
+                    if self.group().cusps()[self.group().closest_cusp(x,y)]==c:
+                        continue
+                    break
+                z = CC(x,y)
+                if verbose>0:
+                    print "z=",z
+                f1 = self.eval(z)
+                for A in self.group().generators_as_slz_elts():
+                    if A.c()==0:
+                        continue
+                    w = A.acton(z)
+                    if verbose>0:
+                        print "w=",w
+                    f2 = self.eval(w)
+                    err1 = abs(f2-f1)
+                    if verbose>0:
+                        print "|f({0})-f({1})|={2}".format(z,w,err1)
+                    if err1 > er:
+                        er = err1
+            if er == 0:
+                er = 1
+            
             # Test two Y's. Since we don't know which Y we had to start with we use two new ones and compare against the coefficients we already have
-            nd=self._nd #+5
-            Ctmp = deepcopy(self._coeffs)
-            if self._Y<=0:
-                [M0,Y0]=find_Y_and_M(self._space._group,self._R,nd)
-                self.get_coeffs(Mset=M0,Yset=Y0,ndigs=nd,overwrite=1,norm=self._norm)
-                C1 = deepcopy(self._coeffs[0][0])
-            else:
-                Y0 = self._Y*0.95
-                M0 = get_M_for_maass_dp(self._R,Y0,10**-nd)
-                C1 = deepcopy(self._coeffs[0][0])
-            Y1=Y0*0.95
-            self.get_coeffs(Mset=M0,Yset=Y1,ndigs=nd,overwrite=1,norm=self._norm)
-            C2 = deepcopy(self._coeffs[0][0])
-            self._coeffs=Ctmp
-            er=RR(0)
-            #print "C1.keys()=",C1.keys()
-            #print "C2.keys()=",C2.keys()
-            if verbose>1:
-                print "Y0,Y1=",Y0,Y1
-                print "Check up to max from :",[M0/2,up_to_M0,5]
-            for j in range(2,floor(max([M0/2,up_to_M0,5]))):
-                if verbose>2:
-                    print "j=",j
-                if self._coeffs[0][0].has_key(j):
-                    t1=abs(C1[j]-self.C(j))
-                    t2=abs(C2[j]-self.C(j))
-                    t = max(t1,t2)
-                    if verbose>0:
-                        if t==t1:
-                            print "|C1-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],self._coeffs[0][0][j],t)
-                        else:
-                            print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C2[j],self._coeffs[0][0][j],t)
-                elif C1.has_key(j) and C2.has_key(j):
-                    t=abs(C1[j]-C2[j])
-                    if verbose>0:
-                        print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],C2[j],t)
+            # nd=self._nd #+5
+            # Ctmp = deepcopy(self._coeffs)
+            # if self._Y<=0:
+            #     [M0,Y0]=find_Y_and_M(self._space._group,self._R,nd)
+            #     self.get_coeffs(Mset=M0,Yset=Y0,ndigs=nd,overwrite=1,norm=self._norm)
+            #     C1 = deepcopy(self._coeffs[0][0])
+            # else:
+            #     Y0 = self._Y*0.95
+            #     M0 = get_M_for_maass_dp(self._R,Y0,10**-nd)
+            #     C1 = deepcopy(self._coeffs[0][0])
+            # Y1=Y0*0.95
+            # self.get_coeffs(Mset=M0,Yset=Y1,ndigs=nd,overwrite=1,norm=self._norm)
+            # C2 = deepcopy(self._coeffs[0][0])
+            # self._coeffs=Ctmp
+            # er=RR(0)
+            # #print "C1.keys()=",C1.keys()
+            # #print "C2.keys()=",C2.keys()
+            # if verbose>1:
+            #     print "Y0,Y1=",Y0,Y1
+            #     print "Check up to max from :",[M0/2,up_to_M0,5]
+            # for j in range(2,floor(max([M0/2,up_to_M0,5]))):
+            #     if verbose>2:
+            #         print "j=",j
+            #     if self._coeffs[0][0].has_key(j):
+            #         t1=abs(C1[j]-self.C(j))
+            #         t2=abs(C2[j]-self.C(j))
+            #         t = max(t1,t2)
+            #         if verbose>0:
+            #             if t==t1:
+            #                 print "|C1-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],self._coeffs[0][0][j],t)
+            #             else:
+            #                 print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C2[j],self._coeffs[0][0][j],t)
+            #     elif C1.has_key(j) and C2.has_key(j):
+            #         t=abs(C1[j]-C2[j])
+            #         if verbose>0:
+            #             print "|C2-C[{0}]|=|{1}-{2}|={3}".format(j,C1[j],C2[j],t)
 
-                else:
-                    t = 1.0
-                if t>er:
-                    er=t
+            #     else:
+            #         t = 1.0
+            #     if t>er:
+            #         er=t
             if er<>0:
                 d=floor(-log(er,10))
             else:
                 d = 0
             if self._verbose>0:
-                print "Hecke is ok up to ",d,"digits!"
+                print "Test is ok up to ",d,"digits!"
             self._errest = er
             if format=='float':
                 return er
@@ -2101,8 +2171,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             do_par = 0
         else:
             do_par = kwds.get('do_par',0)
-        if S.multiplier().is_real() and sym_type in [0,1] and S._use_real:
-            do_cplx=0
+        #if S.multiplier().is_real() and sym_type in [0,1] and S._use_real:
+        #    do_cplx=0
         if ndigs<=15:
             if do_cplx:
                 X = get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),0,norm,do_par=do_par,ncpus=ncpus)
@@ -2160,12 +2230,14 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         nd = floor(abs(log_b(t,10)))
         ## Check that the parameters are sufficiently good....
         eps = 10.0**(-nd)
+        ynmax=kwds.get('ynmax',1000)
+        eps = kwds.get('eps',eps)
         C = phase_2_cplx_dp_sym(self.space(),self.eigenvalue(),2,n,
                                 M0in=int(self._M0),ndig=int(nd-1),
                                 dim=int(self._dim),cuspstart=int(0),cuspstop=int(self.group().ncusps()),
                                 fnr=int(0),Cin=self._coeffs,Yin=float(self._Y),verbose=kwds.get('verbose',0),
                                 retf=int(0),n_step=int(kwds.get('n_step',50)),
-                                do_test=int(kwds.get('do_test',0)),method=kwds.get('method'))
+                                do_test=int(kwds.get('do_test',0)),method=kwds.get('method'),ynmax=ynmax)
         for r in C.keys():
             if not self._coeffs.has_key(r):
                 self._coeffs[r]={}
@@ -2211,7 +2283,35 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
 
+    def is_new(self,tol=0,verbose=0):
+        r"""
+        Check if self is a newform.
+        """
+        if self._is_new is not None:
+            return self._is_new
+        self._is_new = True
+        if tol == 0:
+            tol = self.errest()*10 ## Allow for a bit more error
+        for d in ZZ(self.level()).divisors():
+            if d == self.level():
+                continue
+            if verbose>0:
+                print "Checking d={0}".format(d)
+            try: 
+                F = Maasswaveform(d,self.eigenvalue(),compute=True,phase2=False)
+                er = F.test(format='float')
+            except ValueError:
+                er = 1
+            if verbose>0:
+                print "tol=",tol
+                print "err",er
+            if er < tol:
+                self._is_new = False
+                self._new_level = d
+                break 
 
+        return self._is_new
+            
 class EisensteinSeries(AutomorphicFormElement):
     r"""
     Non-holomorphic Eisenstein series

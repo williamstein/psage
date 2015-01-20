@@ -107,7 +107,7 @@ CTYPE = np.complex128
 ctypedef cnp.complex128_t CTYPE_t
 
 cdef double complex _I = _Complex_I
-
+cdef double complex _I2 = _I + _I
 
 # some things that are not in the sage.libs.mpfr
 cdef extern from "mpfr.h":
@@ -125,7 +125,7 @@ from lpkbessel import besselk_dp
 #from lpkbessel cimport besselk_dp_c
 #from sage.modular.maass.all import MySubgroup,besselk_dp
 from mysubgroup import MySubgroup
-from pullback_algorithms cimport pullback_pts_mpc_new_c,pullback_pts_cplx_dp,pullback_pts_real_dp
+from pullback_algorithms cimport pullback_pts_mpc_new_c,pullback_pts_cplx_dp,pullback_pts_real_dp,pullback_pts_cplx_dp_sym
 from lpkbessel cimport besselk_dp_c
 
 from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
@@ -135,122 +135,122 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 
 from maass_forms_parallel_alg cimport compute_V_cplx_dp_sym_par,SMAT_cplx_par_dp
 
-cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1,int verbose=0):
-    r"""
-    Evaluate a Maass form
-    """
-    cdef float R = <float>F._R
-    cdef float Y = <float>F.group().minimal_height()
-    cdef float xx=<float>x
-    cdef float yy=<float>y
-    cdef int a,b,c,d
-    cdef int cj #G._cusps[cj]
-    cdef int ca,cb
-    RF=RealField(F.prec())
-    G=F.group()
-    # pullback
-    if use_pb == 1:
-        x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
-        #print "pullback=",x1,y1
-    else:
-        x1 = x; y1 = y
+# cpdef eval_maass_lp(F,double x,double y,int version = 1,int fi=0,int use_pb=1,int verbose=0):
+#     r"""
+#     Evaluate a Maass form
+#     """
+#     cdef float R = <float>F._R
+#     cdef float Y = <float>F.group().minimal_height()
+#     cdef float xx=<float>x
+#     cdef float yy=<float>y
+#     cdef int a,b,c,d
+#     cdef int cj #G._cusps[cj]
+#     cdef int ca,cb
+#     RF=RealField(F.prec())
+#     G=F.group()
+#     # pullback
+#     if use_pb == 1:
+#         x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
+#         #print "pullback=",x1,y1
+#     else:
+#         x1 = x; y1 = y
 
-    v = G.closest_vertex(x1,y1)
-    cj= G._vertex_data[v]['cusp'] #representative[v]
-    a,b,c,d=G._vertex_data[v]['cusp_map']
-    if a<>1 or b<>0 or c<>0 or d<>1:
-        x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
-    else:
-        x2=x1;y2=y1
-        # And then normalize to the correct cusp
-    ca,cb = G._cusps[cj]
-    if cj<>0:
-        a,b,c,d=G._cusp_data[cj]['normalizer']
-        wi = RF(G._cusp_data[cj]['width'])
-        x2,y2 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
-        x3 = x2/wi.sqrt()
-        y3 = y2/wi.sqrt()        
-        #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
-    else:
-        x3 = x2; y3=y2
-    if verbose>0:
-        print "x3,y3=",x3,y3
-    #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
-    res=0
-    twopi=RF(2)*RF.pi()
-    if F._sym_type in [0,1]:
-        if F._sym_type==0:
-            fun=cos
-        elif F._sym_type==1:
-            fun=sin
-        arx=twopi*x3
-        ary=twopi*y3
-        for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n,pref=1)*fun(arx*n)
-            res=res+F._coeffs[fi][cj][n]*term
-        res = res*sqrt(y3)
-    else:
-        arx=twopi*x3
-        ary=twopi*y3
-        for n in range(1,F._M0):
-            term=besselk_dp(R,ary*n,pref=1)
-            if verbose>0:
-                print "term0 =",term
-                print "term2 =",(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
-            res = res + term*(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
-        res = res*sqrt(y3)
-    ## we have trivial character here...
-    # Recall that we sum larger numbers (with the prefactor in there to avoid cancellation)
-    return res*exp(-RR.pi()*R*0.5)
+#     v = G.closest_vertex(x1,y1)
+#     cj= G._vertex_data[v]['cusp'] #representative[v]
+#     a,b,c,d=G._vertex_data[v]['cusp_map']
+#     if a<>1 or b<>0 or c<>0 or d<>1:
+#         x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
+#     else:
+#         x2=x1;y2=y1
+#         # And then normalize to the correct cusp
+#     ca,cb = G._cusps[cj]
+#     if cj<>0:
+#         a,b,c,d=G._cusp_data[cj]['normalizer']
+#         wi = RF(G._cusp_data[cj]['width'])
+#         x2,y2 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
+#         x3 = x2/wi.sqrt()
+#         y3 = y2/wi.sqrt()        
+#         #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+#     else:
+#         x3 = x2; y3=y2
+#     if verbose>0:
+#         print "x3,y3=",x3,y3
+#     #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+#     res=0
+#     twopi=RF(2)*RF.pi()
+#     if F._sym_type in [0,1]:
+#         if F._sym_type==0:
+#             fun=cos
+#         elif F._sym_type==1:
+#             fun=sin
+#         arx=twopi*x3
+#         ary=twopi*y3
+#         for n in range(1,F._M0):
+#             term=besselk_dp(R,ary*n,pref=1)*fun(arx*n)
+#             res=res+F._coeffs[fi][cj][n]*term
+#         res = res*sqrt(y3)
+#     else:
+#         arx=twopi*x3
+#         ary=twopi*y3
+#         for n in range(1,F._M0):
+#             term=besselk_dp(R,ary*n,pref=1)
+#             if verbose>0:
+#                 print "term0 =",term
+#                 print "term2 =",(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
+#             res = res + term*(cexpi(arx*n)*F._coeffs[fi][cj][n]+cexpi(-arx*n)*F._coeffs[fi][cj][-n])
+#         res = res*sqrt(y3)
+#     ## we have trivial character here...
+#     # Recall that we sum larger numbers (with the prefactor in there to avoid cancellation)
+#     return res*exp(-RR.pi()*R*0.5)
 
 
-cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):
-    r"""
-    Evaluate a Maass form on a set of nx equally distributed points z=x_i + iy
-    """
-    cdef double  xx
-    cdef double yy=<float>y
-    cdef double h
-    twopi=2.0*M_PI
-    h = float(x1-x0)/float(nx-1)
-    cdef double* kbvec, *coeffs
-    kbvec = <double*>sage_malloc(nx*sizeof(double))
-    kbvec[0] = 0
-    coeffs = <double*>sage_malloc(nx*sizeof(double))
-    ary=twopi*yy
-    for n in range(1,M0):
-        kbvec[n]=sqrt(y)*besselk_dp(R,ary*n)
-    cdef double tmp = 0
-    cdef list res
-    res = []
-    cdef double complex tmpc 
-    if sym_type  == 1:
-        for i in range(0,nx):
-            xx = x0+i*h
-            arx = twopi*xx
-            tmp = 0
-            for n in range(1,M0):
-                tmp  += C[n].real_part()*kbvec[n]*cos(arx*n)
-            res.append(tmp)
-    elif  sym_type  == -1:
-        for i in range(nx):
-            xx = x0+i*h
-            arx = twopi*xx
-            tmp = 0
-            for n in range(1,M0):
-                tmp  += C[n].real_part()*kbvec[n]*sin(arx*n)
-            res.append(tmp)
-    else:
-        for i in range(nx):
-            xx = x0+i*h
-            arx = CC(0,twopi*xx)
-            tmpc = 0
-            for n in range(1,M0):
-                tmpc  += C[n]*kbvec[n]*exp(arx*n)
-            res.append(tmp)
+# cpdef eval_maass_lp_vec(C,double R,int M0,int sym_type,double y,double x0,double x1,int nx):
+#     r"""
+#     Evaluate a Maass form on a set of nx equally distributed points z=x_i + iy
+#     """
+#     cdef double  xx
+#     cdef double yy=<float>y
+#     cdef double h
+#     twopi=2.0*M_PI
+#     h = float(x1-x0)/float(nx-1)
+#     cdef double* kbvec, *coeffs
+#     kbvec = <double*>sage_malloc(nx*sizeof(double))
+#     kbvec[0] = 0
+#     coeffs = <double*>sage_malloc(nx*sizeof(double))
+#     ary=twopi*yy
+#     for n in range(1,M0):
+#         kbvec[n]=sqrt(y)*besselk_dp(R,ary*n)
+#     cdef double tmp = 0
+#     cdef list res
+#     res = []
+#     cdef double complex tmpc 
+#     if sym_type  == 1:
+#         for i in range(0,nx):
+#             xx = x0+i*h
+#             arx = twopi*xx
+#             tmp = 0
+#             for n in range(1,M0):
+#                 tmp  += C[n].real_part()*kbvec[n]*cos(arx*n)
+#             res.append(tmp)
+#     elif  sym_type  == -1:
+#         for i in range(nx):
+#             xx = x0+i*h
+#             arx = twopi*xx
+#             tmp = 0
+#             for n in range(1,M0):
+#                 tmp  += C[n].real_part()*kbvec[n]*sin(arx*n)
+#             res.append(tmp)
+#     else:
+#         for i in range(nx):
+#             xx = x0+i*h
+#             arx = CC(0,twopi*xx)
+#             tmpc = 0
+#             for n in range(1,M0):
+#                 tmpc  += C[n]*kbvec[n]*exp(arx*n)
+#             res.append(tmp)
 
-    ## we have trivial character here...
-    return res
+#     ## we have trivial character here...
+#     return res
 
 
 
@@ -301,8 +301,7 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
     Ml=Mf-Ms+1
 
     if sym_type in [0,1]:
-        raise ValueError,"Call the symmetrized routine instead"
-        Qfak=<double>(Ql)/<double>(2)
+        raise ValueError,"We haven't implemented symmetries for non-zero weights!"
     else:
         Qfak=<double>(Ql)
     if verbose>0:
@@ -631,7 +630,7 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                         continue
                     argpb=nvec[n][jcusp]*Xpb[icusp][jcusp][j]
                     if sym_type==0:
-                        ef1[n][icusp][jcusp][j]=cos(argpb)
+                        ef1[n][icusp][jcusp][j]=2.0*cos(argpb)
                     elif sym_type==1:
                         ef1[n][icusp][jcusp][j]=sin(argpb)
                     else:
@@ -921,9 +920,9 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
             for j in range(Qv[jcusp][2]):
                 argm=nvec[jcusp][n]*Xm[j]
                 if symmetric_cusps[jcusp]==0:
-                    ef2_c[jcusp][n][j]=cos(argm)
+                    ef2_c[jcusp][n][j]=2.0*cos(argm)
                 elif symmetric_cusps[jcusp]==1:
-                    ef2_c[jcusp][n][j]=_I*sin(-argm)
+                    ef2_c[jcusp][n][j]=_I2*sin(-argm)
                 else:
                     ef2_c[jcusp][n][j]=cexpi(-argm)
 
@@ -936,9 +935,9 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
                         continue
                     argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
                     if symmetric_cusps[jcusp]==0:
-                        ef1[icusp][jcusp][n][j]=cos(argpb)
+                        ef1[icusp][jcusp][n][j]=2.0*cos(argpb)
                     elif symmetric_cusps[jcusp]==1:
-                        ef1[icusp][jcusp][n][j]=_I*sin(argpb)
+                        ef1[icusp][jcusp][n][j]=_I2*sin(argpb)
                     else:
                         ef1[icusp][jcusp][n][j]=cexpi(argpb)
                     ctmp = Cvec[icusp][jcusp][j]
@@ -1192,6 +1191,8 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
         if verbose>0:
             print "Qv[",i,"]=(",Qv[i][0],",",Qv[i][1],",",Qv[i][2],")"
             print "Mv[",i,"]=(",Mv[i][0],",",Mv[i][1],",",Mv[i][2],")"
+            print "Qfak[{0}]={1}".format(i,Qfak[i])
+            print "symmetric_cusps[{0}]={1}".format(i,symmetric_cusps[i])
     if verbose>0:
         print "N1=",N1
         print "Ql=",Ql
@@ -1244,7 +1245,10 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
     for jcusp in range(nc):
         for n in range(Mv[jcusp][2]):
             for j in range(Qv[jcusp][2]):
-                argm=nvec[jcusp][n]*Xm[j]
+                if j < Qv[0][1]:
+                    argm=nvec[jcusp][n]*Xm[j]
+                else:                    
+                    argm=-nvec[jcusp][n]*Xm[2*Qv[0][1]-1-j]
                 if symmetric_cusps[jcusp]==0:
                     ef2_c[jcusp][n][j]=cos(argm)
                 elif symmetric_cusps[jcusp]==1:
@@ -1488,7 +1492,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
     if sym_type in [0,1]:
         Qfak=<double>(Ql)/<double>(2)
     else:
-        Qfak=<double>(Ql)
+        raise ValueError,"Thius routine must be called with a completely symmetrised space so we get all parameters real!"
     #s=int(nc*Ml)
     #cdef nvec=np.arange(Ms,Mf+1,dtype=DTYPE)
     cdef double **nvec=NULL
@@ -1823,10 +1827,11 @@ cpdef get_coeff_fast_cplx_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr
         """
         if cusp_ev == {}:
             cusp_ev = Norm.get('cusp_ev',{})
-        if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0: 
-            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c,do_par=do_par,ncpus=ncpus)
-        else:
-            res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12,do_par=do_par,ncpus=ncpus)
+        #if cusp_ev=={} or not S.group().is_Gamma0() or S.weight()<>0:
+#        if  not S.group().is_Gamma0() or S.weight()<>0:             
+#            res = get_coeff_fast_cplx_dp_nosym(S,R,Y,M,Q,Norm,gr,norm_c,do_par=do_par,ncpus=ncpus)
+#        else:
+        res = get_coeff_fast_cplx_dp_sym(S,R,Y,M,Q,Norm,gr,norm_c,cusp_ev=cusp_ev,eps=1e-12,do_par=do_par,ncpus=ncpus)
         return res
             
 
@@ -1899,6 +1904,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if verbose>0:
         print "INPUT: R={0}, Y={1}, M={2}, Q={3}, Norm={4}, gr={5}, norm_c={6}, cusp_ev={7}, eps={8}".format(<double>R,<double>Y,M,Q, Norm,gr,norm_c,cusp_ev,eps)
     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N,&Ml,&Ql,M,Q,verbose)
+    
     Qs = 1-Q; Qf = Q
     if verbose>0:
         print "N=",N," Ml=",Ml," Ql=",Ql
@@ -1969,7 +1975,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     alphas=<double*>sage_malloc(sizeof(double)*nc)
     if alphas==NULL: raise MemoryError
     #printf("alphas_init=%p \n",alphas)
-    Xm=<double*>sage_malloc(sizeof(double)*Ql)
+    Xm=<double*>sage_malloc(sizeof(double)*Qv[0][1])
     if Xm==NULL: raise MemoryError
     Xpb = <double***> sage_malloc( sizeof(double** ) * nc )
     if Xpb==NULL: raise MemoryError
@@ -2004,7 +2010,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
                 Cvec[i][j][n]=0
 #    sig_on()
     cdef int t=0
-    t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+    t = pullback_pts_cplx_dp_sym(S,Qv,Y,Xm,Xpb,Ypb,Cvec)
     if t==1:
         raise ArithmeticError,"Need smaller Y than {0}".format(Y)
 #    sig_off()
@@ -2170,272 +2176,281 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     #    return res[0]
     return res
 
-cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,int do_par=0,int ncpus=1):
-    r"""
-    An efficient method to get coefficients in the double complex case.
-    """
-    import mpmath
-    cdef double complex **V=NULL
-    cdef double* Xm=NULL
-    cdef double*** Xpb=NULL
-    cdef double*** Ypb=NULL
-    cdef double complex*** Cvec=NULL
-    cdef double complex **C=NULL
-    cdef int *setc_list=NULL
-    cdef double complex *RHS=NULL
-    cdef double complex **vals_list=NULL
-    cdef int nc,Ql,Qs,Qf,Ml,Ms,Mf,j,k,l,N,sym_type,i,n,r
-    cdef int num_rhs=0
-    cdef double weight
-    cdef double *Qfak
-    cdef int verbose=S._verbose
-    cdef int  is_exceptional = S._exceptional
-    weight = <double>RealField(53)(S.weight())
-    if Q<M:
-        Q=M+20
-    sym_type = S._sym_type
-    if sym_type == 1 or sym_type == 0:
-        Ms=0;  Mf=M; Qs=1; Qf=Q
-    else:
-        Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
-    Ml=Mf-Ms+1
-    Ql=Qf-Qs+1
-    nc = S._group._ncusps
-    Qfak = <double*>sage_malloc(sizeof(double)*nc)
-    for i in range(nc):
-        if sym_type == 0 or sym_type==1:
-            Qfak[i] =<double>(Q)/<double>(2)
-        else:
-            Qfak[i] =<double>(2*Q)
-    N = nc*Ml
-    if Norm=={}:
-        Norm = S.set_norm(1)
-    cdef list SetCs
-    cdef dict Vals
-    SetCs=Norm['SetCs'][0]
-    Vals=Norm['Vals']
-    cdef int comp_dim,num_set
-    comp_dim=Norm['comp_dim']
-    num_set=len(SetCs)
-    V=<double complex**>sage_malloc(sizeof(double complex*)*N)
-    if V==NULL: raise MemoryError
-    cdef int ncols
-    if num_set<comp_dim:
-        ncols=N+comp_dim-num_set
-    else:
-        ncols=N
-    if verbose>1:
-        print "In get_coef_cplx_dp R=",R, "M=",M," Q=",Q,'do_par=',do_par,'ncpus=',ncpus
-    if verbose>2:
-        print "N=",N
-        print "Vals=",Vals
-        print "SetCs=",SetCs
-        print "comp_dim=",comp_dim
-        print "num_set=",num_set
-        print "ncols=",ncols
-    for j in range(N):
-        V[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols))
-        for k in range(ncols):
-            V[j][k]=0
-    Xm=<double*>sage_malloc(sizeof(double)*Ql)
-    if Xm==NULL: raise MemoryError
-    Xpb = <double***> sage_malloc( sizeof(double** ) * nc )
-    if Xpb==NULL: raise MemoryError
-    Ypb = <double***> sage_malloc( sizeof(double** ) * nc )
-    if Ypb==NULL: raise MemoryError
-    for i in range(nc):
-        Xpb[i]=NULL; Ypb[i]=NULL
-        Xpb[i] = <double**>sage_malloc(sizeof(double*) * nc )
-        Ypb[i] = <double**>sage_malloc(sizeof(double*) * nc )
-        if Ypb[i]==NULL or Xpb[i]==NULL:
-            raise MemoryError
-        for j in range(nc):
-            Xpb[i][j]=NULL; Ypb[i][j]=NULL
-            Xpb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-            Ypb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-            if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
-                raise MemoryError
-            for n in range(Ql):
-                Xpb[i][j][n]=<double>0
-                Ypb[i][j][n]=<double>0
-    Cvec = <double complex***>sage_malloc(sizeof(double complex**) * nc )
-    if Cvec==NULL: raise MemoryError
-    for i in range(nc):
-        Cvec[i] = <double complex**>sage_malloc(sizeof(double complex*) * nc )
-        if Cvec[i]==NULL:
-            raise MemoryError
-        for j in range(nc):
-            Cvec[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
-            if Cvec[i][j]==NULL:
-                raise MemoryError
-            for n in range(Ql):
-                Cvec[i][j][n]=0
-    cdef int t = 0
-    t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
-    if t==1:
-        raise ArithmeticError,"Need smaller Y than {0}".format(Y)
-    cdef double * alphas=NULL
-    alphas=<double*>sage_malloc(sizeof(double)*nc)
-    for j in range(nc):
-        alphas[j]=<double>S.alpha(j)[0]
-    cdef int cuspidal=1
-    cdef int** Mv, **Qv
-    Mv=<int**>sage_malloc(sizeof(int*)*nc)
-    Qv=<int**>sage_malloc(sizeof(int*)*nc)
-    for i in range(nc):
-        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
-        Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
-        Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
-        Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
-    cdef int* symmetric_cusps
-    symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
-    cdef double complex* cusp_evs
-    cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
-    for i in range(nc):
-        cusp_evs[i]=0
-        symmetric_cusps[i]=-1
-    if do_par==0:
-        if weight==0.0:
-            compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec,is_exceptional=is_exceptional)
-        else:
-            compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
-    else:
-        if weight==0.0:
-            compute_V_cplx_dp_sym_par(V,N,Xm,Xpb,Ypb,Cvec,
-                              cusp_evs,alphas,Mv,Qv,Qfak,
-                              symmetric_cusps,
-                              R,Y,nc,ncols,cuspidal,verbose,ncpus,0)
-#compute_V_cplx_dp_sym_par(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
-        else:
-            compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+# cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,int do_par=0,int ncpus=1):
+#     r"""
+#     An efficient method to get coefficients in the double complex case.
+#     """
+#     import mpmath
+#     cdef double complex **V=NULL
+#     cdef double* Xm=NULL
+#     cdef double*** Xpb=NULL
+#     cdef double*** Ypb=NULL
+#     cdef double complex*** Cvec=NULL
+#     cdef double complex **C=NULL
+#     cdef int *setc_list=NULL
+#     cdef double complex *RHS=NULL
+#     cdef double complex **vals_list=NULL
+#     cdef int nc,Ql,Qs,Qf,Ml,Ms,Mf,j,k,l,N,sym_type,i,n,r
+#     cdef int num_rhs=0
+#     cdef double weight
+#     cdef double *Qfak
+#     cdef int verbose=S._verbose
+#     cdef int  is_exceptional = S._exceptional
+#     weight = <double>RealField(53)(S.weight())
+#     if Q<M:
+#         Q=M+20
+#     sym_type = S._sym_type
+#     if sym_type == 1 or sym_type == 0:
+#         Ms=0;  Mf=M; Qs=1; Qf=Q
+#     else:
+#         Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
+#     Ml=Mf-Ms+1
+#     Ql=Qf-Qs+1
+#     for i in range(nc):
+#         if sym_type == 0 or sym_type==1:
+#             Qfak[i] =<double>(Q)/<double>(2)
+#         else:
+#             Qfak[i] =<double>(2*Q)    
+
+#     #Qfak = <double*>sage_malloc(sizeof(double)*nc)
+#     # if not Qfak: raise MemoryError    
+#     # symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
+#     # if not symmetric_cusps: raise MemoryError
+#     # cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+#     # if not cusp_evs: raise MemoryError
+#     # cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+#     # if cusp_offsets==NULL: raise MemoryError
+#     # set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N,&Ml,&Ql,M,Q,verbose)
+#     nc = S._group._ncusps
+#     N = nc*Ml
+#     if Norm=={}:
+#         Norm = S.set_norm(1)
+#     cdef list SetCs
+#     cdef dict Vals
+#     SetCs=Norm['SetCs'][0]
+#     Vals=Norm['Vals']
+#     cdef int comp_dim,num_set
+#     comp_dim=Norm['comp_dim']
+#     num_set=len(SetCs)
+#     V=<double complex**>sage_malloc(sizeof(double complex*)*N)
+#     if V==NULL: raise MemoryError
+#     cdef int ncols
+#     if num_set<comp_dim:
+#         ncols=N+comp_dim-num_set
+#     else:
+#         ncols=N
+#     if verbose>1:
+#         print "In get_coef_cplx_dp_nosym R=",R, "M=",M,"Y=",Y," Q=",Q,'do_par=',do_par,'ncpus=',ncpus
+#     if verbose>2:
+#         print "N=",N
+#         print "Vals=",Vals
+#         print "SetCs=",SetCs
+#         print "comp_dim=",comp_dim
+#         print "num_set=",num_set
+#         print "ncols=",ncols
+#     for j in range(N):
+#         V[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols))
+#         for k in range(ncols):
+#             V[j][k]=0
+#     Xm=<double*>sage_malloc(sizeof(double)*Ql)
+#     if Xm==NULL: raise MemoryError
+#     Xpb = <double***> sage_malloc( sizeof(double** ) * nc )
+#     if Xpb==NULL: raise MemoryError
+#     Ypb = <double***> sage_malloc( sizeof(double** ) * nc )
+#     if Ypb==NULL: raise MemoryError
+#     for i in range(nc):
+#         Xpb[i]=NULL; Ypb[i]=NULL
+#         Xpb[i] = <double**>sage_malloc(sizeof(double*) * nc )
+#         Ypb[i] = <double**>sage_malloc(sizeof(double*) * nc )
+#         if Ypb[i]==NULL or Xpb[i]==NULL:
+#             raise MemoryError
+#         for j in range(nc):
+#             Xpb[i][j]=NULL; Ypb[i][j]=NULL
+#             Xpb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+#             Ypb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+#             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
+#                 raise MemoryError
+#             for n in range(Ql):
+#                 Xpb[i][j][n]=<double>0
+#                 Ypb[i][j][n]=<double>0
+#     Cvec = <double complex***>sage_malloc(sizeof(double complex**) * nc )
+#     if Cvec==NULL: raise MemoryError
+#     for i in range(nc):
+#         Cvec[i] = <double complex**>sage_malloc(sizeof(double complex*) * nc )
+#         if Cvec[i]==NULL:
+#             raise MemoryError
+#         for j in range(nc):
+#             Cvec[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+#             if Cvec[i][j]==NULL:
+#                 raise MemoryError
+#             for n in range(Ql):
+#                 Cvec[i][j][n]=0
+#     cdef int t = 0
+#     t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+#     if t==1:
+#         raise ArithmeticError,"Need smaller Y than {0}".format(Y)
+#     cdef double * alphas=NULL
+#     alphas=<double*>sage_malloc(sizeof(double)*nc)
+#     for j in range(nc):
+#         alphas[j]=<double>S.alpha(j)[0]
+#     cdef int cuspidal=1
+#     cdef int** Mv, **Qv
+#     Mv=<int**>sage_malloc(sizeof(int*)*nc)
+#     Qv=<int**>sage_malloc(sizeof(int*)*nc)
+#     for i in range(nc):
+#         Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+#         Qv[i]=<int*>sage_malloc(sizeof(int)*3)        
+#         Mv[i][0]=Ms; Mv[i][1]=Mf; Mv[i][2]=Mf-Ms+1
+#         Qv[i][0]=Qs; Qv[i][1]=Qf; Qv[i][2]=Qf-Qs+1
+#     cdef int* symmetric_cusps
+#     symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
+#     cdef double complex* cusp_evs
+#     cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+#     for i in range(nc):
+#         cusp_evs[i]=0
+#         symmetric_cusps[i]=-1
+#     if do_par==0:
+#         if weight==0.0:
+#             compute_V_cplx_dp(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec,is_exceptional=is_exceptional)
+#         else:
+#             compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+#     else:
+#         if weight==0.0:
+#             compute_V_cplx_dp_sym_par(V,N,Xm,Xpb,Ypb,Cvec,
+#                               cusp_evs,alphas,Mv,Qv,Qfak,
+#                               symmetric_cusps,
+#                               R,Y,nc,ncols,cuspidal,verbose,ncpus,0)
+# #compute_V_cplx_dp_sym_par(V,R,Y,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
+#         else:
+#             compute_V_cplx_wt_dp(V,R,Y,weight,Mv,Qv,nc,cuspidal,sym_type,verbose,alphas,Xm,Xpb,Ypb,Cvec)
             
-    ## Try to make coefficients real if possible.
-    cdef int q
-    cdef double complex *sqch=NULL
-    # if norm_c==1:
-    #     chi = S.multiplier()._character
-    #     q   = chi.conductor()
-    #     sqch=<double complex *>sage_malloc(sizeof(double complex)*q)
-    #     for i from 0<=i<q:
-    #         sqch[i]=csqrt(<double complex>CC(chi(i)))
-    #     for n from 0<=n< nc*Ml:
-    #         for l in range(Ml):
-    #             if gcd(l-Ms,q)==1:
-    #                 i =int(  (l-Ms)%q )
-    #                 V[n][l]=V[n][l]*sqch[i]
+#     ## Try to make coefficients real if possible.
+#     cdef int q
+#     cdef double complex *sqch=NULL
+#     # if norm_c==1:
+#     #     chi = S.multiplier()._character
+#     #     q   = chi.conductor()
+#     #     sqch=<double complex *>sage_malloc(sizeof(double complex)*q)
+#     #     for i from 0<=i<q:
+#     #         sqch[i]=csqrt(<double complex>CC(chi(i)))
+#     #     for n from 0<=n< nc*Ml:
+#     #         for l in range(Ml):
+#     #             if gcd(l-Ms,q)==1:
+#     #                 i =int(  (l-Ms)%q )
+#     #                 V[n][l]=V[n][l]*sqch[i]
 
-    if alphas<>NULL:
-        sage_free(alphas)
-    if Ypb<>NULL:
-        for i in range(nc):
-            if Ypb[i]<>NULL:
-                for j in range(nc):
-                    if Ypb[i][j]<>NULL:
-                        sage_free(Ypb[i][j])
-                sage_free(Ypb[i])
-        sage_free(Ypb)
-    if Xpb<>NULL:
-        for i in range(nc):
-            if Xpb[i]<>NULL:
-                for j in range(nc):
-                    if Xpb[i][j]<>NULL:
-                        sage_free(Xpb[i][j])
-                sage_free(Xpb[i])
-        sage_free(Xpb)
-    if Cvec<>NULL:
-        for i in range(nc):
-            if Cvec[i]<>NULL:
-                for j in range(nc):
-                    if Cvec[i][j]<>NULL:
-                        sage_free(Cvec[i][j])
-                sage_free(Cvec[i])
-        sage_free(Cvec)
-    if sqch<>NULL:
-        sage_free(sqch)
+#     if alphas<>NULL:
+#         sage_free(alphas)
+#     if Ypb<>NULL:
+#         for i in range(nc):
+#             if Ypb[i]<>NULL:
+#                 for j in range(nc):
+#                     if Ypb[i][j]<>NULL:
+#                         sage_free(Ypb[i][j])
+#                 sage_free(Ypb[i])
+#         sage_free(Ypb)
+#     if Xpb<>NULL:
+#         for i in range(nc):
+#             if Xpb[i]<>NULL:
+#                 for j in range(nc):
+#                     if Xpb[i][j]<>NULL:
+#                         sage_free(Xpb[i][j])
+#                 sage_free(Xpb[i])
+#         sage_free(Xpb)
+#     if Cvec<>NULL:
+#         for i in range(nc):
+#             if Cvec[i]<>NULL:
+#                 for j in range(nc):
+#                     if Cvec[i][j]<>NULL:
+#                         sage_free(Cvec[i][j])
+#                 sage_free(Cvec[i])
+#         sage_free(Cvec)
+#     if sqch<>NULL:
+#         sage_free(sqch)
 
 
-    #cdef cnp.ndarray[CTYPE_t,ndim=2] VV
-    cdef Matrix_complex_dense VV
-    if gr==1:
-        #VV=mpmath.fp.matrix(int(nc*Ml),int(nc*Ml),force_type=mpmath.fp.mpc)
-        CF=MPComplexField(53)
-        MS=MatrixSpace(CF,nc*Ml,nc*Ml)
-        VV=Matrix_complex_dense(MS,0)
-        #VV=np.zeros([nc*Ml, nc*Ml], dtype=CTYPE)
-        for n in range(nc*Ml):
-            for l in range(nc*Ml):
-                VV[n,l]=V[n][l]
-        return VV
-    C=<double complex**>sage_malloc(sizeof(double complex*)*(comp_dim))
-    if C==NULL:
-        raise MemoryError
-    for i in range(comp_dim):
-        C[i]=<double complex*>sage_malloc(sizeof(double complex)*(nc*Ml))
-        if C[i]==NULL:
-            raise MemoryError
-    setc_list = <int*>sage_malloc(sizeof(int)*num_set)
-    if setc_list==NULL:
-        raise MemoryError
-    vals_list = <double complex** >sage_malloc(sizeof(double complex*)*comp_dim)
-    if vals_list==NULL:
-        raise MemoryError
-    for j in range(comp_dim):
-        vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set)
-    i=0
-    for r,n in SetCs:
-        if r*Ml+n-Ms<0:
-            continue
-        setc_list[i]=r*Ml+n-Ms
-        for j in range(comp_dim):
-            vals_list[j][i]=<double complex>CC(Vals[j][(r,n)])
-        if verbose>1:
-            print "setc_list[",i,"]=",setc_list[i]
-            for j in range(comp_dim):
-                print "vals_list[",i,j,"]=",vals_list[j][i]
-        i=i+1
-    if num_rhs>0 and num_rhs<>comp_dim:
-        raise ValueError,"Need same number of right hand sides (or just one) as the number of set coefficients!"
-    normalize_matrix_cplx_dp(V,N,comp_dim,num_set,setc_list,vals_list,verbose)
-    if gr==2:
-        VV=np.zeros([nc*Ml, nc*Ml], dtype=CTYPE)
-        #VV=mpmath.fp.matrix(int(N),int(N+comp_dim),force_type=mpmath.fp.mpc)
-        for n in range(N):
-            for l in range(ncols): #N+comp_dim:
-                VV[n,l]=V[n][l]
-        return VV
-    SMAT_cplx_dp(V,ncols-num_set,comp_dim,num_set,C,vals_list,setc_list)
-    if verbose>1:
-        for i in range(comp_dim):
-            for k in range(ncols-num_set):
-                print "C[{0}][{1}]={2}".format(i,k,C[i][k])
+#     #cdef cnp.ndarray[CTYPE_t,ndim=2] VV
+#     cdef Matrix_complex_dense VV
+#     if gr==1:
+#         #VV=mpmath.fp.matrix(int(nc*Ml),int(nc*Ml),force_type=mpmath.fp.mpc)
+#         CF=MPComplexField(53)
+#         MS=MatrixSpace(CF,nc*Ml,nc*Ml)
+#         VV=Matrix_complex_dense(MS,0)
+#         #VV=np.zeros([nc*Ml, nc*Ml], dtype=CTYPE)
+#         for n in range(nc*Ml):
+#             for l in range(nc*Ml):
+#                 VV[n,l]=V[n][l]
+#         return VV
+#     C=<double complex**>sage_malloc(sizeof(double complex*)*(comp_dim))
+#     if C==NULL:
+#         raise MemoryError
+#     for i in range(comp_dim):
+#         C[i]=<double complex*>sage_malloc(sizeof(double complex)*(nc*Ml))
+#         if C[i]==NULL:
+#             raise MemoryError
+#     setc_list = <int*>sage_malloc(sizeof(int)*num_set)
+#     if setc_list==NULL:
+#         raise MemoryError
+#     vals_list = <double complex** >sage_malloc(sizeof(double complex*)*comp_dim)
+#     if vals_list==NULL:
+#         raise MemoryError
+#     for j in range(comp_dim):
+#         vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set)
+#     i=0
+#     for r,n in SetCs:
+#         if r*Ml+n-Ms<0:
+#             continue
+#         setc_list[i]=r*Ml+n-Ms
+#         for j in range(comp_dim):
+#             vals_list[j][i]=<double complex>CC(Vals[j][(r,n)])
+#         if verbose>1:
+#             print "setc_list[",i,"]=",setc_list[i]
+#             for j in range(comp_dim):
+#                 print "vals_list[",i,j,"]=",vals_list[j][i]
+#         i=i+1
+#     if num_rhs>0 and num_rhs<>comp_dim:
+#         raise ValueError,"Need same number of right hand sides (or just one) as the number of set coefficients!"
+#     normalize_matrix_cplx_dp(V,N,comp_dim,num_set,setc_list,vals_list,verbose)
+#     if gr==2:
+#         VV=np.zeros([nc*Ml, nc*Ml], dtype=CTYPE)
+#         #VV=mpmath.fp.matrix(int(N),int(N+comp_dim),force_type=mpmath.fp.mpc)
+#         for n in range(N):
+#             for l in range(ncols): #N+comp_dim:
+#                 VV[n,l]=V[n][l]
+#         return VV
+#     SMAT_cplx_dp(V,ncols-num_set,comp_dim,num_set,C,vals_list,setc_list)
+#     if verbose>1:
+#         for i in range(comp_dim):
+#             for k in range(ncols-num_set):
+#                 print "C[{0}][{1}]={2}".format(i,k,C[i][k])
 
-    cdef dict res={}
-    for k in range(comp_dim):
-        res[k]=dict()
-        for i in range(nc):
-            res[k][i]=dict()
-            for j in range(Ml):
-                res[k][i][j+Ms]=C[k][i*Ml+j]
-    if setc_list<>NULL:
-        sage_free(setc_list)
-    if vals_list<>NULL:
-        for j in range(comp_dim):
-            if vals_list[j]<>NULL:
-                sage_free(vals_list[j])
-        sage_free(vals_list)
-    if V<>NULL:
-        for j in range(N):
-            if V[j]<>NULL:
-                sage_free(V[j])
-        sage_free(V)
-    if C<>NULL:
-        for i in range(comp_dim):
-            if C[i]<>NULL:
-                sage_free(C[i])
-        sage_free(C)
-    #if comp_dim==1:
-    #    return res[0]
-    return res
+#     cdef dict res={}
+#     for k in range(comp_dim):
+#         res[k]=dict()
+#         for i in range(nc):
+#             res[k][i]=dict()
+#             for j in range(Ml):
+#                 res[k][i][j+Ms]=C[k][i*Ml+j]
+#     if setc_list<>NULL:
+#         sage_free(setc_list)
+#     if vals_list<>NULL:
+#         for j in range(comp_dim):
+#             if vals_list[j]<>NULL:
+#                 sage_free(vals_list[j])
+#         sage_free(vals_list)
+#     if V<>NULL:
+#         for j in range(N):
+#             if V[j]<>NULL:
+#                 sage_free(V[j])
+#         sage_free(V)
+#     if C<>NULL:
+#         for i in range(comp_dim):
+#             if C[i]<>NULL:
+#                 sage_free(C[i])
+#         sage_free(C)
+#     #if comp_dim==1:
+#     #    return res[0]
+#     return res
 
 
 cpdef get_coeff_fast_real_dp(S,double R,double Y,int M,int Q,dict Norm={},int gr=0):
@@ -2820,15 +2835,16 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
     if sym_type in [0,1]:
         Ms=0;  Mf=M; Ml=Mf-Ms+1
         Qs=1; Qf=Q; Ql=Qf-Qs+1
-        mpfr_set_ui(Qfak,Q,rnd_re)
-        mpfr_div_ui(Qfak,Qfak,2,rnd_re)
+        #mpfr_set_ui(Qfak,Q,rnd_re)
+        #mpfr_div_ui(Qfak,Qfak,2,rnd_re)
         if verbose>0:
             print "using symmetry:",sym_type
     else:
         Ms=-M;  Mf=M; Ml=Mf-Ms+1
         Qs=1-Q; Qf=Q; Ql=Qf-Qs+1
-        mpfr_set_ui(Qfak,Q,rnd_re)
-        mpfr_mul_ui(Qfak,Qfak,2,rnd_re)
+    # Recall that we always use the same factor and change the functions sin/cos instead. 
+    mpfr_set_ui(Qfak,Q,rnd_re)
+    mpfr_mul_ui(Qfak,Qfak,2,rnd_re)
     if verbose>0:
         print "Qfak=",print_mpfr(Qfak)
         print "Qf=",Qf,"Qs=",Qs,"Ql=",Ql
@@ -2913,13 +2929,15 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2(S,RealNumber R,RealNumber Yin,in
             if sym_type==1:
                 mpfr_neg(argm,argm,rnd_re)
                 mpfr_sin(argm,argm,rnd_re)
+                mpfr_add(argm,argm,argm,rnd_re) ## *2
                 mpc_set_fr(iargm,argm,rnd)
             elif sym_type==0:
                 mpfr_cos(argm,argm,rnd_re)
+                mpfr_add(argm,argm,argm,rnd_re) ## *2
                 mpc_set_fr(iargm,argm,rnd)
             else:
                 mpfr_neg(argm,argm,rnd_re)
-                mpfr_sin_cos(mpc_imagref(iargm),mpc_realref(iargm),argm,rnd_re)
+                mpfr_sin_cos(mpc_imagref(iargm),mpc_realref(iargm),argm,rnd_re) ## exp=sin+I*cos
             mpc_init2(ef2[n][j],prec)
             mpc_set(ef2[n][j],iargm,rnd)
             #mpc_set(tmpz1.value,ef2[n][j],rnd)
@@ -5216,7 +5234,7 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     cdef double*** Ypb=NULL
     cdef double complex*** Cvec=NULL
     cdef int nc,Ql,Qs,Qf,Ml,Ms,Mf,j,k,l,N,sym_type,i,n,r
-    cdef double Qfak
+    #    cdef double Qfak
     cdef double complex tmp
     cdef int verbose=S._verbose
     cdef int is_exceptional = S._exceptional
@@ -5225,10 +5243,10 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     sym_type = S._sym_type
     if sym_type in [0,1]:
         Ms=0;  Mf=M; Qs=1; Qf=Q
-        Qfak=<double>(Q)/<double>(2)
+        #Qfak=<double>(Q)/<double>(2)
     else:
         Ms=-M;  Mf=M; Qs=1-Q; Qf=Q
-        Qfak=<double>(2*Q)
+        #Qfak=<double>(2*Q)
     Ml=Mf-Ms+1
     Ql=Qf-Qs+1
     nc = S.group().ncusps()
@@ -5424,7 +5442,6 @@ cpdef get_coeff_and_signs_fast_cplx_dp(S,double R,double Y,int M,int Q,double Y2
     #    return res[0]
     return res
 
-
 cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,double complex* cusp_evs,int *cusp_offsets,int *N,int *Ml,int *Ql,int M,int Q,int verbose=0):
     cdef int nc=S._group.ncusps()
     cdef int sym_type = S._sym_type
@@ -5443,8 +5460,8 @@ cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,
             elif sym_type==1 and symmetries[i][1]==-1:
                 symmetric_cusps[i]=0
             Mv[i][0]=0; Mv[i][1]=M;  Mv[i][2]=M+1
-            #Qv[i][0]=1; Qv[i][1]=Q;  Qv[i][2]=Q
-            Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
+            Qv[i][0]=1; Qv[i][1]=Q;  Qv[i][2]=Q
+            #Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
             N[0]=N[0]+M+1
         else:
             #print "S._group._symmetrizable_cusp[",i,"]=",S._group._symmetrizable_cusp[i]
@@ -5464,10 +5481,11 @@ cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,
             print "sym_cusps_evs[",i,"]=",symmetric_cusps[i]
     for j in range(nc):
         if symmetric_cusps[j]<0:
-            #if Qv[j][2]==2*Q:
-            Qfak[j]=<double>(Qv[j][2]) # = 2Q # factor for 1-Q<=j<=Q
+            #    #if Qv[j][2]==2*Q:
+            Qfak[j]=<double>(2*Q) # = 2Q # factor for 1-Q<=j<=Q
         else: #elif Qv[j][2]==Q:
-            Qfak[j]=<double>(Qv[j][1]) # = Q/2# factor for 1<=j<=Q
+            #Qfak[j]=<double>(Qv[j][1]) # = Q/2# factor for 1<=j<=Q
+            Qfak[j]=<double>(Q)/2.0 # We use the same factor but different cos/sin/exp functions instead
         if verbose>0:
             print "Qfak[{0}]={1}".format(j,Qfak[j])
         #else:
@@ -5484,61 +5502,733 @@ cdef void set_Mv_Qv_symm(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,
 
 
 
-cdef void set_Mv_Qv_symm_real(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,double * cusp_evs,int *cusp_offsets,int *N,int *Ml,int *Ql,int M,int Q,int verbose=0):
-    cdef int nc=S._group.ncusps()
-    cdef int sym_type = S._sym_type
-    N[0]=0
-    Ml[0]=0
-    Ql[0]=0
-    for i in range(nc):
-        symmetric_cusps[i]=0
-        # print "sym_type=",sym_type
-        symmetries=S.even_odd_symmetries()
-        if sym_type<>-1 and symmetries[i][0]<>0:
-            if symmetries[i][1]==1:
-                symmetric_cusps[i]=int(sym_type)
-            elif sym_type==0 and symmetries[i][1]==-1:
-                symmetric_cusps[i]=1
-            elif sym_type==1 and symmetries[i][1]==-1:
-                symmetric_cusps[i]=0
-            Mv[i][0]=0; Mv[i][1]=M;  Mv[i][2]=M+1
-            #Qv[i][0]=1; Qv[i][1]=Q;  Qv[i][2]=Q
-            Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
-            N[0]=N[0]+M+1
-        else:
-            #print "S._group._symmetrizable_cusp[",i,"]=",S._group._symmetrizable_cusp[i]
-            symmetric_cusps[i]=-1
-            #sym_type=-1
-            Mv[i][0]=-M; Mv[i][1]=M;  Mv[i][2]=2*M+1
-            Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
-            N[0]=N[0]+2*M+1
-        if Mv[i][2]>Ml[0]:
-            Ml[0]=Mv[i][2]
-        if Qv[i][2]>Ql[0]:
-            Ql[0]=Qv[i][2]
-        if verbose>0:
-            #print "symmetries=",symmetries
-            print "Mv[",i,"]=",Mv[i][0],Mv[i][1],Mv[i][2]
-            print "Qv[",i,"]=",Qv[i][0],Qv[i][1],Qv[i][2]
-            print "sym_cusps_evs[",i,"]=",symmetric_cusps[i]
-    for j in range(nc):
-        if symmetric_cusps[j]<0:
-            #if Qv[j][2]==2*Q:
-            Qfak[j]=<double>(Qv[j][2]) # = 2Q # factor for 1-Q<=j<=Q
-        else: #elif Qv[j][2]==Q:
-            Qfak[j]=<double>(Qv[j][1]) # = Q/2# factor for 1<=j<=Q
-        if verbose>0:
-            print "Qfak[{0}]={1}".format(j,Qfak[j])
-        #else:
-        #    raise ArithmeticError,"Got unknown Qv!"
-    for i in range(nc):
-        cusp_offsets[i]=0
-        for j in range(i):
-            if j==0 or cusp_evs[j]==0:
-                cusp_offsets[i]+=Mv[j][2]
+# cdef void set_Mv_Qv_symm_real(S,int **Mv,int **Qv,double *Qfak,int * symmetric_cusps,double * cusp_evs,int *cusp_offsets,int *N,int *Ml,int *Ql,int M,int Q,int verbose=0):
+#     r"""
+#     To be used in the completely real case. 
+#     """
+#     cdef int nc=S._group.ncusps()
+#     cdef int sym_type = S._sym_type
+#     N[0]=0
+#     Ml[0]=0
+#     Ql[0]=0
+#     for i in range(nc):
+#         symmetric_cusps[i]=0
+#         # print "sym_type=",sym_type
+#         symmetries=S.even_odd_symmetries()
+#         if sym_type<>-1 and symmetries[i][0]<>0:
+#             if symmetries[i][1]==1:
+#                 symmetric_cusps[i]=int(sym_type)
+#             elif sym_type==0 and symmetries[i][1]==-1:
+#                 symmetric_cusps[i]=1
+#             elif sym_type==1 and symmetries[i][1]==-1:
+#                 symmetric_cusps[i]=0
+#             Mv[i][0]=0; Mv[i][1]=M;  Mv[i][2]=M+1
+#             #Qv[i][0]=1; Qv[i][1]=Q;  Qv[i][2]=Q
+#             Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
+#             N[0]=N[0]+M+1
+#         else:
+#             #print "S._group._symmetrizable_cusp[",i,"]=",S._group._symmetrizable_cusp[i]
+#             symmetric_cusps[i]=-1
+#             #sym_type=-1
+#             Mv[i][0]=-M; Mv[i][1]=M;  Mv[i][2]=2*M+1
+#             Qv[i][0]=1-Q; Qv[i][1]=Q;  Qv[i][2]=2*Q
+#             N[0]=N[0]+2*M+1
+#         if Mv[i][2]>Ml[0]:
+#             Ml[0]=Mv[i][2]
+#         if Qv[i][2]>Ql[0]:
+#             Ql[0]=Qv[i][2]
+#         if verbose>0:
+#             #print "symmetries=",symmetries
+#             print "Mv[",i,"]=",Mv[i][0],Mv[i][1],Mv[i][2]
+#             print "Qv[",i,"]=",Qv[i][0],Qv[i][1],Qv[i][2]
+#             print "sym_cusps_evs[",i,"]=",symmetric_cusps[i]
+#     for j in range(nc):
+#         if symmetric_cusps[j]<0:
+#             #if Qv[j][2]==2*Q:
+#             Qfak[j]=<double>(Qv[j][2]) # = 2Q # factor for 1-Q<=j<=Q
+#         else: #elif Qv[j][2]==Q:
+#             Qfak[j]=<double>(Qv[j][1]) # = Q/2# factor for 1<=j<=Q
+#         if verbose>0:
+#             print "Qfak[{0}]={1}".format(j,Qfak[j])
+#         #else:
+#         #    raise ArithmeticError,"Got unknown Qv!"
+#     for i in range(nc):
+#         cusp_offsets[i]=0
+#         for j in range(i):
+#             if j==0 or cusp_evs[j]==0:
+#                 cusp_offsets[i]+=Mv[j][2]
 
-    if verbose>0:
-        print "N,Ml,Ql=",N[0],Ml[0],Ql[0]
+#     if verbose>0:
+#         print "N,Ml,Ql=",N[0],Ml[0],Ql[0]
 
 
         
+# ########################## TEST
+# cpdef get_coeff_fast_cplx_dp_sym2(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,dict cusp_ev={},double eps=1e-12,int do_par=0,int ncpus=1):
+#     r"""
+
+#     An efficient method to get coefficients in the double complex case.
+#     Trying to use as much symmetries as possible.
+
+#     """
+#     import mpmath
+#     cdef double complex **V=NULL
+#     cdef double complex **V1=NULL
+#     cdef double* Xm=NULL
+#     cdef double*** Xpb=NULL
+#     cdef double*** Ypb=NULL
+#     cdef double complex*** Cvec=NULL
+#     cdef double complex **C=NULL
+#     cdef int *setc_list=NULL
+#     cdef double complex *RHS=NULL
+#     cdef double complex **vals_list=NULL
+#     cdef double *alphas=NULL
+#     cdef int nc,Ql,Qs,Qf,Ml,Ms,Mf,j,k,l,N,sym_type,i,n,r
+#     cdef int num_rhs=0
+#     cdef double *Qfak,tmpr
+#     cdef double complex *cusp_evs=NULL
+#     cdef int **Mv=NULL
+#     cdef int **Qv=NULL
+#     cdef int verbose=S._verbose
+#     cdef int ncolsV1
+#     cdef int *symmetric_cusps=NULL
+#     cdef int N1=0
+#     cdef list SetCs
+#     cdef dict Vals
+#     cdef int comp_dim,num_set
+#     cdef int ncols,ncols1
+#     cdef int cuspidal=1
+#     cdef int q
+#     cdef double complex *sqch=NULL
+#     tmpr = <double>S._group.minimal_height()
+#     if Y<= 0 or Y >= tmpr:
+#         Y = 0.5 * tmpr
+#     if M<=0:
+#         M = get_M_for_maass_dp(R,Y,eps)
+
+#     if Q<M:
+#         Q=M+20
+#     #    Qfak=<double>(2*Q)
+#     sym_type = S._sym_type
+#     nc = int(S._group._ncusps)
+#     Qfak = <double *>sage_malloc(sizeof(double)*nc)
+#     Mv=<int**>sage_malloc(sizeof(int*)*nc)
+#     if not Mv: raise MemoryError
+#     Qv=<int**>sage_malloc(sizeof(int*)*nc)
+#     if not Qv: raise MemoryError
+#     for i in range(nc):
+#         Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+#         if not Mv[i]: raise MemoryError
+#         Qv[i]=<int*>sage_malloc(sizeof(int)*3)
+#         if not Qv[i]: raise MemoryError
+#     symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
+#     if not symmetric_cusps: raise MemoryError
+#     cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+#     if not cusp_evs: raise MemoryError
+#     N = 0; Ml=0; Ql=0
+#     cdef int* cusp_offsets=NULL
+#     cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+#     if cusp_offsets==NULL: raise MemoryError
+#     cdef dict symmetries
+#     if verbose>0:
+#         print "INPUT: R={0}, Y={1}, M={2}, Q={3}, Norm={4}, gr={5}, norm_c={6}, cusp_ev={7}, eps={8}".format(<double>R,<double>Y,M,Q, Norm,gr,norm_c,cusp_ev,eps)
+#     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N,&Ml,&Ql,M,Q,verbose)
+#     Qs = 1-Q; Qf = Q
+#     if verbose>0:
+#         print "N=",N," Ml=",Ml," Ql=",Ql
+#     if cusp_ev=={}:
+#         cusp_ev = S.atkin_lehner_eigenvalues()
+#     for i in range(nc):
+#         Qfak[i]=<double>(2*Q)
+#         cusp_evs[i]=CC(cusp_ev.get(S.group().cusps()[i],0))
+#         if i==0 or cusp_evs[i]==0:
+#             N1=N1+Mv[i][2]
+#         if verbose>0:
+#             print "cusp_ev[",i,"]=",cusp_evs[i]
+#     for jcusp in range(nc):
+#         cusp_offsets[jcusp]=0
+#         for icusp in range(jcusp):
+#             if icusp==0 or cusp_evs[icusp]==0:
+#                 cusp_offsets[jcusp]+=Mv[icusp][2]
+#                 if verbose>0:
+#                     print "cusp_offset[",jcusp,"]+=",Mv[icusp][2]
+#             #else:
+#             #    print "cusp_ev=",cusp_evs[icusp]
+#         if verbose>0:
+#             print "cusp_offset[",jcusp,"]=",cusp_offsets[jcusp]
+
+#     if verbose>0:
+#         print "N1=",N1
+#     if Norm=={}:
+#         Norm = S.set_norm(1)
+#     SetCs=Norm['SetCs'][0]
+#     Vals=Norm['Vals']
+#     comp_dim=Norm['comp_dim']
+#     num_set=0
+#     for r,n in SetCs:
+#         if r>0 and cusp_evs[r]<>0:
+#             continue
+#         num_set+=1
+#     V=<double complex**>sage_malloc(sizeof(double complex*)*N)
+#     if V==NULL: raise MemoryError
+#     V1=<double complex**>sage_malloc(sizeof(double complex*)*N1)
+#     if V1==NULL: raise MemoryError
+#     if num_set<comp_dim:
+#         ncols=N+comp_dim-num_set
+#         ncols1=N1+comp_dim-num_set
+#     else:
+#         ncols=N
+#         ncols1=N1
+#     if verbose>0:
+#         print "In get_coef_cplx_dp_sym R,Y,M,Q=",R,Y,M,Q
+#     if verbose>0:
+#         print "N=",N
+#         print "ncols=",ncols
+#         print "N1=",N1
+#         print "ncols1=",ncols1
+#         print "Vals=",Vals
+#         print "SetCs=",SetCs
+#         print "comp_dim=",comp_dim
+#         print "num_set=",num_set
+#         for i in range(nc):
+#             print "Ms,Mf,Ml[",i,"]=",Mv[i][0],Mv[i][1],Mv[i][2]
+#             print "Qs,Qf,Ql[",i,"]=",Qv[i][0],Qv[i][1],Qv[i][2]
+#     for j in range(N):
+#         V[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols))
+#         for k in range(ncols):
+#             V[j][k]=0
+#     for j in range(N1):
+#         V1[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols1))
+#         for k in range(ncols1):
+#             V1[j][k]=0
+#     alphas=<double*>sage_malloc(sizeof(double)*nc)
+#     if alphas==NULL: raise MemoryError
+#     #printf("alphas_init=%p \n",alphas)
+#     Xm=<double*>sage_malloc(sizeof(double)*Ql)
+#     if Xm==NULL: raise MemoryError
+#     Xpb = <double***> sage_malloc( sizeof(double** ) * nc )
+#     if Xpb==NULL: raise MemoryError
+#     Ypb = <double***> sage_malloc( sizeof(double** ) * nc )
+#     if Ypb==NULL: raise MemoryError
+#     for i in range(nc):
+#         Xpb[i]=NULL; Ypb[i]=NULL
+#         Xpb[i] = <double**>sage_malloc(sizeof(double*) * nc )
+#         Ypb[i] = <double**>sage_malloc(sizeof(double*) * nc )
+#         if Ypb[i]==NULL or Xpb[i]==NULL:
+#             raise MemoryError
+#         for j in range(nc):
+#             Xpb[i][j]=NULL; Ypb[i][j]=NULL
+#             Xpb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+#             Ypb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+#             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
+#                 raise MemoryError
+#             for n in range(Ql):
+#                 Xpb[i][j][n]=<double>0
+#                 Ypb[i][j][n]=<double>0
+#     Cvec = <double complex***>sage_malloc(sizeof(double complex**) * nc )
+#     if Cvec==NULL: raise MemoryError
+#     for i in range(nc):
+#         Cvec[i] = <double complex**>sage_malloc(sizeof(double complex*) * nc )
+#         if Cvec[i]==NULL:
+#             raise MemoryError
+#         for j in range(nc):
+#             Cvec[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+#             if Cvec[i][j]==NULL:
+#                 raise MemoryError
+#             for n in range(Ql):
+#                 Cvec[i][j][n]=0
+# #    sig_on()
+#     cdef int t=0
+#     t = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
+#     if t==1:
+#         raise ArithmeticError,"Need smaller Y than {0}".format(Y)
+# #    sig_off()
+#     for j in range(nc):
+#         tmpr=float(S.alpha(j)[0])
+#         alphas[j]=<double>tmpr
+#         if verbose>0:
+#             print "alphas[",j,"]=",alphas[j],type(alphas[j])
+# #    sig_on()
+#     if do_par==1 and ncpus>=1:
+#         compute_V_cplx_dp_sym_par(V1,N1,Xm,Xpb,Ypb,Cvec,
+#                               cusp_evs,alphas,Mv,Qv,Qfak,
+#                               symmetric_cusps,
+#                               R,Y,nc,ncols,cuspidal,verbose,ncpus)
+#     else:
+#         compute_V_cplx_dp_sym2(V1,N1,Xm,Xpb,Ypb,Cvec,
+#                               cusp_evs,alphas,Mv,Qv,Qfak,
+#                               symmetric_cusps,
+#                               R,Y,nc,ncols,cuspidal,verbose)
+# #    sig_off()
+#     cdef Matrix_complex_dense VV
+#     #Vtmp = load("A.sobj")
+#     #for l from 0<=l<N1:
+#     #    for n from 0<=n<N1:
+#     #        V1[l][n]=<double complex>complex(Vtmp[l][n])
+#     if Qfak<>NULL:
+#         sage_free(Qfak)
+#     if alphas<>NULL:
+#         sage_free(alphas)
+#     if Xm<>NULL:
+#         sage_free(Xm)
+#     if Ypb<>NULL:
+#         for i in range(nc):
+#             if Ypb[i]<>NULL:
+#                 for j in range(nc):
+#                     if Ypb[i][j]<>NULL:
+#                         sage_free(Ypb[i][j])
+#                 sage_free(Ypb[i])
+#         sage_free(Ypb)
+#     if Xpb<>NULL:
+#         for i in range(nc):
+#             if Xpb[i]<>NULL:
+#                 for j in range(nc):
+#                     if Xpb[i][j]<>NULL:
+#                         sage_free(Xpb[i][j])
+#                 sage_free(Xpb[i])
+#         sage_free(Xpb)
+#     if Cvec<>NULL:
+#         for i in range(nc):
+#             if Cvec[i]<>NULL:
+#                 for j in range(nc):
+#                     if Cvec[i][j]<>NULL:
+#                         sage_free(Cvec[i][j])
+#                 sage_free(Cvec[i])
+#         sage_free(Cvec)
+#     if sqch<>NULL:
+#         sage_free(sqch)
+#     if gr==1:
+#         CF=MPComplexField(53)
+#         MS=MatrixSpace(CF,N1,ncols1)
+#         VV=Matrix_complex_dense(MS,0)
+#         for n in range(N1):
+#             for l in range(ncols1):
+#                 VV[n,l]=V1[n][l]
+#         return VV
+#     C=<double complex**>sage_malloc(sizeof(double complex*)*(comp_dim))
+#     if C==NULL:
+#         raise MemoryError
+#     for i in range(comp_dim):
+#         C[i]=<double complex*>sage_malloc(sizeof(double complex)*(N1))
+#         if C[i]==NULL:
+#             raise MemoryError
+#     setc_list = <int*>sage_malloc(sizeof(int)*num_set)
+#     if setc_list==NULL:
+#         raise MemoryError
+#     vals_list = <double complex** >sage_malloc(sizeof(double complex*)*comp_dim)
+#     if vals_list==NULL:
+#         raise MemoryError
+#     for j in range(comp_dim):
+#         vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set)
+#     i=0
+#     for r,n in SetCs:
+#         if cusp_evs[r]<>0 and r>0:
+#             continue
+#         l = cusp_offsets[r]+n-Mv[r][0]
+#         if l<0:
+#             continue
+#         setc_list[i]=l
+#         for j in range(comp_dim):
+#             vals_list[j][i]=<double complex>CC(Vals[j][(r,n)])
+#         i=i+1
+#     if num_rhs>0 and num_rhs<>comp_dim:
+#         raise ValueError,"Need same number of right hand sides (or just one) as the number of set coefficients!"
+#     if verbose>0:
+#         print "comp_dim=",comp_dim
+#     normalize_matrix_cplx_dp(V1,N1,comp_dim,num_set,setc_list,vals_list,verbose)
+#     if gr==2:
+#         CF=MPComplexField(53)
+#         MS=MatrixSpace(CF,N1,ncols1)
+#         VV=Matrix_complex_dense(MS,0)
+#         for n in range(N1):
+#             for l in range(ncols1):
+#                 VV[n,l]=V1[n][l]
+#         return VV
+#     sig_on()
+#     if verbose>0:
+#         print "comp_dim=",comp_dim
+#     if do_par<=1:
+#         SMAT_cplx_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list)
+#     else:
+#         if verbose>0:
+#             print "smat parallel!"
+#         SMAT_cplx_par_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list,ncpus)
+#     sig_off()
+#     if verbose>1:
+#         for k in range(ncols1-num_set):
+#             print "C[",k,"]=",C[0][k]
+#     cdef dict res={}
+#     cdef int ki
+#     for j in range(comp_dim):
+#         res[j]=dict()
+#         for i in range(nc):
+#             if i>0 and cusp_evs[i]<>0:
+#                 res[j][i]=cusp_evs[i]
+#                 continue
+#             res[j][i]=dict()
+#             for k in range(Mv[i][2]):
+#                 ki=cusp_offsets[i]+k
+#                 res[j][i][k+Mv[i][0]]=C[j][ki]
+
+#     if setc_list<>NULL:
+#         sage_free(setc_list)
+#     if vals_list<>NULL:
+#         for j in range(comp_dim):
+#             if vals_list[j]<>NULL:
+#                 sage_free(vals_list[j])
+#         sage_free(vals_list)
+#     if V<>NULL:
+#         for j in range(N):
+#             if V[j]<>NULL:
+#                 sage_free(V[j])
+#         sage_free(V)
+#     if V1<>NULL:
+#         for j in range(N1):
+#             if V1[j]<>NULL:
+#                 sage_free(V1[j])
+#         sage_free(V1)
+
+#     if C<>NULL:
+#         for i in range(comp_dim):
+#             if C[i]<>NULL:
+#                 sage_free(C[i])
+#         sage_free(C)
+#     if Mv<>NULL:
+#         sage_free(Mv)
+#     if Qv<>NULL:
+#         sage_free(Qv)
+#     if symmetric_cusps<>NULL:
+#         sage_free(symmetric_cusps)
+#     if cusp_evs<>NULL:
+#         sage_free(cusp_evs)
+#     #if comp_dim==1:
+#     #    return res[0]
+#     return res
+        
+
+# cdef int compute_V_cplx_dp_sym2(double complex **V,
+#                            int N1,
+#                            double *Xm,
+#                            double ***Xpb,
+#                            double ***Ypb,
+#                            double complex ***Cvec,
+#                            double complex *cusp_evs,
+#                            double *alphas,
+#                            int **Mv,int **Qv,double *Qfak,
+#                            int *symmetric_cusps,
+#                            double R,double Y,
+#                            int nc, int ncols,
+#                            int cuspidal,
+#                            int verbose):
+
+
+#     r"""
+#     Set up the matrix for the system of equations giving the Fourier coefficients of the Maass waveforms.
+#     INPUT:
+
+#     - ``R``   -- double (eigenvalue)
+#     - ``Y``   -- double (the height of the sampling horocycle)
+#     - ``Ms,Mf``  -- int (The coefficients we want to compute are C(n), Ms<=n<=Mf )
+#     - ``Qs,Qf``  -- int (The sampling points are X_m, Qs<=m<=Qf)
+#     - ``alphas`` -- [nc] double array (the shifts of the Fourier expansion at each cusp)
+#     - ``V``   -- [(Mf-Ms)*nc]^2 double complex matrix (allocated)
+#     - ``Xm``  -- [Qf-Qs] double array (allocated)
+#     - ``Xpb`` -- nc*nc*[Qf-Qs] double array (allocated)
+#     - ``Ypb`` -- nc*nc*[Qf-Qs] double array (allocated)
+#     - ``Cvec`` -- nc*nc*[Qf-Qs] double complex array (allocated)
+#     - `` cuspidal`` -- int (set to 1 if we compute cuspidal functions, otherwise zero)
+#     - `` sym_type`` -- int (set to 0/1 if we compute even/odd functions, otherwise -1)
+#     - ``verbose`` -- int (verbosity of output)
+
+#     """
+#     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,s,Qs,Qf,Mf,Ms
+#     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,kbes,besarg,lr,nr
+#     cdef double complex ckbes,ctmpV,iargm,twopii,ctmp
+#     if not cuspidal in [0,1]:
+#         raise ValueError," parameter cuspidal must be 0 or 1"
+#     if R < 0:
+#         ## In this case (corresponding to lambda in [0,1/4] we use the real parameter K-Bessel
+#         R = -R
+#         set_pref = -1
+#     else:
+#         set_pref = 1
+#     pi=M_PI 
+#     sqrtY=sqrt(Y)
+#     two=<double>(2)
+#     Y2pi=Y*pi*two
+#     twopi=two*pi
+#     Ml=0; Ql=0
+#     for i in range(nc):
+#         if Mv[i][2]>Ml:
+#             Ml=Mv[i][2]
+#         if Qv[i][2]>Ql:
+#             Ql=Qv[i][2]
+#         if verbose>0:
+#             print "Qv[",i,"]=(",Qv[i][0],",",Qv[i][1],",",Qv[i][2],")"
+#             print "Mv[",i,"]=(",Mv[i][0],",",Mv[i][1],",",Mv[i][2],")"
+#             print "Qfak[{0}]={1}".format(i,Qfak[i])
+#             print "symmetric_cusps[{0}]={1}".format(i,symmetric_cusps[i])
+#             print "in sym2"
+#     if verbose>0:
+        
+#         print "N1=",N1
+#         print "Ql=",Ql
+#     ## This is the effective offset at the
+#     cdef int* cusp_offsets=NULL
+#     cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+#     if cusp_offsets==NULL: raise MemoryError
+#     for jcusp in range(nc):
+#         cusp_offsets[jcusp]=0
+#         for icusp in range(jcusp):
+#             if icusp==0 or cusp_evs[icusp]==0:
+#                 cusp_offsets[jcusp]+=Mv[icusp][2]
+#         if verbose>0:
+#             print "cusp_offsets[",jcusp,"]=",cusp_offsets[jcusp]
+#     cdef int nc_sym=0
+#     for jcusp in range(nc):
+#         if verbose>0:
+#             print "cusp_evs[",jcusp,"]=",cusp_evs[jcusp]
+#         if jcusp==0 or cusp_evs[jcusp]<>0:
+#             nc_sym+=1
+#     cdef double **nvec=NULL
+#     nvec = <double**>sage_malloc(sizeof(double*)*nc)
+#     if not nvec: raise MemoryError
+#     for icusp in range(nc):
+#         nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+#     cdef double complex ****ef1=NULL
+#     cdef double complex ***ef2_c=NULL
+#     ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+#     if not ef2_c: raise MemoryError
+#     for icusp in range(nc):
+#         ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+#         for n in range(Mv[icusp][2]):
+#             ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+#     ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+#     if ef1==NULL: raise MemoryError
+#     for icusp in range(nc):
+#         ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+#         if ef1[icusp]==NULL: raise MemoryError
+#         for jcusp in range(nc):
+#             ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+#             if ef1[icusp][jcusp]==NULL: raise MemoryError
+#             for n in range(Mv[jcusp][2]):
+#                 ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+#                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
+#     for jcusp in range(nc):
+#         for n in range(Ml):
+#             nvec[jcusp][n]=<double>(n+Mv[jcusp][0])+alphas[jcusp]
+#     cdef int twoQm1
+#     twoQm1= 2*Qv[0][1]-1
+#     for jcusp in range(nc):
+#         for n in range(Mv[jcusp][2]):
+#             for j in range(Qv[jcusp][2]):
+#                 argm=nvec[jcusp][n]*Xm[j]
+#                 if symmetric_cusps[jcusp]==0:
+#                     ef2_c[jcusp][n][j]=2.0*cos(argm)
+#                 elif symmetric_cusps[jcusp]==1:
+#                     ef2_c[jcusp][n][j]=_I2*sin(-argm)
+#                 else:
+#                     ef2_c[jcusp][n][j]=cexpi(-argm)
+
+#     cdef double argpb1
+#     for jcusp in range(nc):
+#         for icusp in range(nc):
+#             for n in range(Mv[jcusp][2]):
+#                 for j in range(Qv[jcusp][2]): #in range(Qs,Qf+1):
+#                     if Ypb[icusp][jcusp][j]==0: #not Xpb.has_key((icusp,jcusp,j):
+#                         continue
+#                     argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
+#                     if symmetric_cusps[jcusp]==0:
+#                         ef1[icusp][jcusp][n][j]=2.0*cos(argpb)
+#                     elif symmetric_cusps[jcusp]==1:
+#                         ef1[icusp][jcusp][n][j]=_I2*sin(argpb)
+#                     else:
+#                         ef1[icusp][jcusp][n][j]=cexpi(argpb)
+#                     ctmp = Cvec[icusp][jcusp][j]
+#                     ef1[icusp][jcusp][n][j]=ef1[icusp][jcusp][n][j]*ctmp
+
+#     if verbose>1:
+#         print "here1121"
+#     cdef double besarg_old=0.0
+#     cdef double y,kbes_old=1.0
+#     cdef double ***kbesvec=NULL
+#     kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+#     if kbesvec==NULL:
+#         raise MemoryError
+#     for jcusp in range(nc):
+#         kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+#         if kbesvec[jcusp]==NULL:
+#             raise MemoryError
+#         for l in range(Ml):
+#             kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+#             if kbesvec[jcusp][l]==NULL:
+#                 raise MemoryError
+#     if verbose>0:
+#         print "here0"
+#         print "Ml=",Ml
+#         print "Ql=",Ql
+#     cdef double tmpr
+#     cdef double besprec
+#     besprec=1.0E-14
+#     ## Can we somehow use that "most" of Xpb[icusp][jcusp][2Q-j-1]=-Xpb[icusp][jcusp][j] ?
+#     ## uncomment the below lines to see this.
+#     # for jcusp in range(nc):
+#     #     for icusp in range(nc):
+#     #         for j from 0<=j<Qv[1][1]:
+#     #             print "diff[",jcusp,icusp,j,"]=",Xpb[icusp][jcusp][j]+Xpb[icusp][jcusp][2*Qv[jcusp][1]-j-1]
+
+#     for jcusp in range(nc):
+#         for icusp in range(nc):
+#             if icusp>0 and cusp_evs[icusp]<>0:
+#                 continue
+#             for j in range(Qv[jcusp][2]):
+#                 if Ypb[icusp][jcusp][j]==0:
+#                     continue
+#                 for l in range(Mv[jcusp][2]):
+#                     lr=nvec[jcusp][l]*twopi
+#                     Mf = Mv[icusp][1]
+#                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
+#                     if lr<>0.0:
+#                         besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
+#                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
+#                     else:
+#                         kbesvec[icusp][l][j]=<double>1.0
+
+#     cdef double complex cuspev
+
+#     for jcusp in range(nc):
+#         for l in range(Mv[jcusp][2]):
+#             lr=nvec[jcusp][l]*twopi
+#             lj=cusp_offsets[jcusp]+l
+#             if jcusp>0 and cusp_evs[jcusp]<>0:
+#                 lj0=l; cuspev=cusp_evs[jcusp]
+#             else:
+#                 lj0=lj;  cuspev=1.0
+#             if lr==0.0 and cuspidal==1:
+#                 continue
+#             for j in range(Qv[jcusp][2]):
+#                 for icusp in range(nc):
+#                     if icusp>0 and cusp_evs[icusp]<>0:
+#                         continue
+#                     if Ypb[icusp][jcusp][j]==0:
+#                         continue
+#                     ckbes=kbesvec[icusp][l][j]*ef1[icusp][jcusp][l][j]
+#                     for n in range(Mv[icusp][2]):
+#                         if nvec[icusp][n]==0 and cuspidal==1:
+#                             continue
+#                         #if n+Mv[icusp][0]==0 and cuspidal==1:
+#                         #    continue
+#                         ni=cusp_offsets[icusp]+n
+#                         ctmpV=ckbes*ef2_c[icusp][n][j]
+#                         if ni>N1 or lj0>N1:
+#                             raise ArithmeticError,"Index outside!"
+#                         V[ni][lj0]=V[ni][lj0]+ctmpV*cuspev
+#                         # if verbose>0 and lj0==324 and ni==46:
+#                         if verbose>2 and ni==3 and lj0==3:
+#                             print "l,jcusp,n,icusp=",l+Mv[jcusp][0],jcusp,n+Mv[icusp][0],icusp
+#                             print "Ypb(",j+Qv[jcusp][0],")=",Ypb[icusp][jcusp][j]
+#                             print "Cvec=",Cvec[icusp][jcusp][j]
+#                             print "V[",ni,"][",lj0,"](",j,")=",V[ni][lj0]
+#                             print "ctmpV[",ni,"][",lj0,"]=",ctmpV
+#                             print "kbesvec[",icusp,l,j,"]=",kbesvec[icusp][l][j]
+#                             print "besarg=",fabs(lr)*Ypb[icusp][jcusp][j]
+#                             print "ef1=",ef1[icusp][jcusp][l][j]
+#                             print "ef2=",ef2_c[icusp][n][j]
+#                             print "V[",ni,"][",lj0,"]=",V[ni][lj0],"+",ctmpV,"*",cuspev
+
+#     if verbose>2:
+#     #    #for n from 30+cusp_offsets[3]<=n<40+cusp_offsets[3]:
+#     #    for n from 43<=n<49:
+#     #        print "V0[",0,n,"]=",V[0][n]
+#     #        #print "V0[",24,24,"]=",V[24][24]
+#         print "V0[",3,3,"]=",V[3][3]
+#         for icusp in range(nc):
+#             print "Qfak[{0}]={1}".format(icusp,Qfak[icusp])
+#     for icusp in range(nc):
+#         if icusp>0 and cusp_evs[icusp]<>0:
+#             continue
+#         for n in range(Mv[icusp][2]):
+#             ni=cusp_offsets[icusp]+n
+#             for jcusp in range(nc):
+#                 if jcusp>0 and cusp_evs[jcusp]<>0:
+#                     continue
+#                 for l in range(Mv[jcusp][2]):
+#                     lj=cusp_offsets[jcusp]+l
+#                     if lj>N1 or ni>N1: # some extra insurance...
+#                         print "ni=",cusp_offsets[icusp],"+",n,"=",ni
+#                         print "lj=",cusp_offsets[jcusp],"+",l,"=",lj
+#                         raise ArithmeticError,"Index outside!"
+#                     if verbose>2 and ni==3 and lj==3:
+#                         print "V[3][3]={0}/{1}".format(V[ni][lj],Qfak[jcusp])
+#                     V[ni][lj]=V[ni][lj]/<double complex>Qfak[jcusp]
+#                     if verbose>2 and ni==3 and lj==3:
+#                         print "V[3][3]/Qfak[{0}]={1}".format(jcusp,V[ni][lj])
+
+#     for icusp in range(nc):
+#         if icusp>0 and cusp_evs[icusp]<>0:
+#             continue
+#         for n in range(Mv[icusp][2]):
+#             nr=fabs(nvec[icusp][n])
+#             if nr==0.0 and cuspidal==1:
+#                 continue
+#             ni=cusp_offsets[icusp]+n
+#             nrY2pi=nr*Y2pi
+#             if nr==0.0:
+#                 kbes=<double>1.0
+#             else:
+#                 #mpIR=mpmath.fp.mpc(0,R)
+#                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
+#                 besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
+#                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
+#             if ni>N1:
+#                 raise ArithmeticError,"Index outside!"
+#             if verbose>2 and ni==3:
+#                 print "V[3][3]={0}-{1}={2}".format(V[ni][ni],kbes,V[ni][ni]-kbes)
+#             V[ni][ni]=V[ni][ni] - kbes
+
+#     if verbose>3:
+
+#         #        #for n from 30+cusp_offsets[3]<=n<40+cusp_offsets[3]:
+#         #        print "V3[",0,n,"]=",V[0][n]
+#         for n in range(min(100,Ml)):
+#             print "V3[",n,n,"]=",V[n][n]
+#     #if Qfak<>NULL:
+#     #    #for icusp in range(nc):
+#     #    #    if Qfak[icusp]<>NULL:
+#     #    #        sage_free(Qfak[icusp])
+#     #    sage_free(Qfak)
+#     if kbesvec<>NULL:
+#         for icusp in range(nc):
+#             if kbesvec[icusp]<>NULL:
+#                 for l in range(Ml):
+#                     if kbesvec[icusp][l]<>NULL:
+#                         sage_free(kbesvec[icusp][l])
+#                 sage_free(kbesvec[icusp])
+#         sage_free(kbesvec)
+#     #print "deal kbbes1"
+#     if ef1<>NULL:
+#         for jcusp in range(nc):
+#             if ef1[jcusp]<>NULL:
+#                 for icusp in range(nc):
+#                     if ef1[jcusp][icusp]<>NULL:
+#                         for n in range(Mv[icusp][2]):
+#                             if ef1[jcusp][icusp][n]<>NULL:
+#                                 sage_free(ef1[jcusp][icusp][n])
+#                         sage_free(ef1[jcusp][icusp])
+#                 sage_free(ef1[jcusp])
+#         sage_free(ef1)
+#     if ef2_c<>NULL:
+#         for icusp in range(nc):
+#             if ef2_c[icusp]<>NULL:
+#                 for n in range(Mv[icusp][2]):
+#                     if ef2_c[icusp][n]<>NULL:
+#                         sage_free(ef2_c[icusp][n])
+#                 sage_free(ef2_c[icusp])
+#         sage_free(ef2_c)
+#     if nvec<>NULL:
+#         for icusp in range(nc):
+#             if nvec[icusp]<>NULL:
+#                 sage_free(nvec[icusp])
+#         sage_free(nvec)
+#     if cusp_offsets<>NULL:
+#         sage_free(cusp_offsets)

@@ -1188,7 +1188,7 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
     """
     #cdef int a,b,c,d
     if verbose>0:
-        print "x_in,y_in=",x[0],y[0]
+        print "x_in,y_in,verbose=",x[0],y[0],verbose
     pullback_to_psl2z_mat_c(x,y,a,b,c,d,verbose)
     if verbose>0:
         print "x_pb,y_pb(mod)=",x[0],y[0]
@@ -1207,11 +1207,14 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
         raise MemoryError
     # V is now a 2x2 matrix over int 
     cdef int j,done=0
+    if verbose>2:
+        print "nreps=",nreps
     for j from 0<=j<nreps:
-        #print "reps[",j,",00=",reps[j][0][0]
-        #print "reps[",j,",01=",reps[j][0][1]
-        #print "reps[",j,",10=",reps[j][1][0]
-        #print "reps[",j,",11=",reps[j][1][1]        
+        if verbose>2:
+            print "reps[",j,",00=",reps[j][0][0]
+            print "reps[",j,",01=",reps[j][0][1]
+            print "reps[",j,",10=",reps[j][1][0]
+            print "reps[",j,",11=",reps[j][1][1]        
         V[0][0]=reps[j][0][0]
         V[0][1]=reps[j][0][1]
         V[1][0]=reps[j][1][0]
@@ -1662,6 +1665,10 @@ cdef int closest_vertex_dp_c(int nv,int **vertex_maps,double *widths,double* x,d
         if y2>ymax:
             ymax=y2
             vmax=i
+    if vmax == -1:
+        if verbose>0:
+            print "failed: vmax=-1"
+        raise ArithmeticError,"Could not get closest vertex to z={0}+i{1}".format(x[0],y[0])
     #print "vmax=",vmax
     return vmax
 

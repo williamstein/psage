@@ -16,3 +16,4 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
 
 cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec)
 
+cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec)

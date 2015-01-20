@@ -311,7 +311,13 @@ my_extensions = [
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']) 
+              extra_link_args=['-fopenmp']),
+
+
+    Extension("psage.groups.dirichlet_conrey",
+              ['psage/groups/dirichlet_conrey.pyx'],
+              libraries=['csage'],
+              extra_compile_args = ['-w','-O2'])
 ]
 
 ext_modules.extend(my_extensions)

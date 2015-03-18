@@ -8,12 +8,12 @@
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  PSAGE is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -31,7 +31,10 @@ from psage.number_fields.sqrt5 import primes_of_bounded_norm
 
 
 from sqrt5_fast import IcosiansModP1ModN
-from sage.rings.all import is_Ideal, Integer, prime_divisors, QQ, next_prime, ZZ
+
+from sage.rings.ideal import is_Ideal
+
+from sage.rings.all import Integer, prime_divisors, QQ, next_prime, ZZ
 from tables import ideals_of_norm
 from sage.matrix.all import matrix
 from sage.structure.all import Sequence
@@ -77,10 +80,10 @@ class Space(object):
 
     def subspace(self, V):
         raise NotImplementedError
-    
+
     def vector_space(self):
         raise NotImplementedError
-    
+
     def basis(self):
         return self.vector_space().basis()
 
@@ -99,19 +102,19 @@ class Space(object):
         EXAMPLES::
 
         We make a space of level a product of 2 split primes and (2)::
-        
+
             sage: from psage.modform.hilbert.sqrt5.hmf import F, HilbertModularForms
             sage: P = F.prime_above(31); Q = F.prime_above(11); R = F.prime_above(2)
             sage: H = HilbertModularForms(P*Q*R); H
             Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
 
         The full new space::
-        
+
             sage: N = H.new_subspace(); N
             Subspace of dimension 22 of Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
 
         The new subspace for each prime divisor of the level::
-        
+
             sage: N_P = H.new_subspace(P); N_P
             Subspace of dimension 31 of Hilbert modular forms of dimension 32, level 2*a-38 (of norm 1364=2^2*11*31) over QQ(sqrt(5))
             sage: N_Q = H.new_subspace(Q); N_Q
@@ -135,7 +138,7 @@ class Space(object):
         # iterate through primes ordered by *norm*, which is
         # potentially vastly faster.  Delete these functions
         # involving characteristic!
-        
+
         p = next_prime_of_characteristic_coprime_to(F.ideal(1), self.level())
         T = self.hecke_matrix(p)
         D = T.decomposition()
@@ -189,7 +192,7 @@ class HilbertModularForms(Space):
     def __init__(self, level):
         """
         Space of Hilbert modular forms of weight (2,2) over Q(sqrt(5)).
-        
+
         INPUT:
             - level -- an ideal or element of ZZ[(1+sqrt(5))/2].
 
@@ -225,7 +228,7 @@ class HilbertModularForms(Space):
 
     def level(self):
         return self._level
- 
+
     def vector_space(self):
         return self._vector_space
 
@@ -268,7 +271,7 @@ class HilbertModularForms(Space):
         d.set_immutable()
         self._degeneracy_matrices[p] = d
         return d
-                
+
     def __cmp__(self, other):
         if not isinstance(other, HilbertModularForms):
             raise NotImplementedError
@@ -277,7 +280,7 @@ class HilbertModularForms(Space):
 
     def subspace(self, V):
         return HilbertModularFormsSubspace(self, V)
-    
+
     def elliptic_curve_factors(self):
         D = [X for X in self.new_decomposition() if X.dimension() == 1]
         # Have to get rid of the Eisenstein factor
@@ -337,7 +340,7 @@ class HilbertModularFormsSubspace(Space):
 
     def dimension(self):
         return self._V.dimension()
-        
+
 
 class EllipticCurveFactor(object):
     """
@@ -374,9 +377,9 @@ class EllipticCurveFactor(object):
 
         OUTPUT:
             - the field Q(sqrt(5))
-        
+
         EXAMPLES::
-        
+
             sage: from psage.modform.hilbert.sqrt5.hmf import HilbertModularForms, F
             sage: H = HilbertModularForms(F.prime_above(31)).elliptic_curve_factors()[0]
             sage: H.base_field()
@@ -391,9 +394,9 @@ class EllipticCurveFactor(object):
 
         OUTPUT:
             - ideal of the ring of integers of Q(sqrt(5))
-        
+
         EXAMPLES::
-        
+
         """
         return self._S.level()
 
@@ -404,7 +407,7 @@ class EllipticCurveFactor(object):
 
         INPUT:
             - `P` -- a prime ideal of the ring of integers of Q(sqrt(5)).
-            
+
         OUTPUT:
             - an integer
 
@@ -453,7 +456,7 @@ class EllipticCurveFactor(object):
         If we can't find such a subspace using Hecke operators of norm
         less than B, then we raise a RuntimeError.  This should only happen
         if you set B way too small, or self is actually not new.
-        
+
         INPUT:
             - B -- Integer or None; if None, defaults to a heuristic bound.
         """
@@ -509,7 +512,7 @@ class EllipticCurveFactor(object):
 
         This agrees with what we get using an elliptic curve of this
         conductor::
-        
+
             sage: a = F.0; E = EllipticCurve(F, [a,a+1,a,a,0])
             sage: from psage.ellcurve.lseries.aplist_sqrt5 import aplist
             sage: w = aplist(E, 50)

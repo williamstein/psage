@@ -206,9 +206,9 @@ build_system.setup(
                 'psage.ellcurve',
                 'psage.ellcurve.lseries',
 
-                'psage.ellff',
+                #'psage.ellff',
 
-                'psage.function_fields',
+                #'psage.function_fields',
 
                 'psage.lmfdb',
                 'psage.lmfdb.ellcurves',
@@ -216,25 +216,25 @@ build_system.setup(
 
                 'psage.modform',
 
-                'psage.modform.fourier_expansion_framework',
-                'psage.modform.fourier_expansion_framework.gradedexpansions',
-                'psage.modform.fourier_expansion_framework.modularforms',
-                'psage.modform.fourier_expansion_framework.monoidpowerseries',
+                #'psage.modform.fourier_expansion_framework',
+                #'psage.modform.fourier_expansion_framework.gradedexpansions',
+                #'psage.modform.fourier_expansion_framework.modularforms',
+                #'psage.modform.fourier_expansion_framework.monoidpowerseries',
 
                 'psage.modform.hilbert',
                 'psage.modform.hilbert.sqrt5',
 
                 'psage.modform.rational',
 
-                'psage.modform.siegel',
-                'psage.modform.jacobiforms',
-                'psage.modform.maass',
+                #'psage.modform.siegel',
+                #'psage.modform.jacobiforms',
+                #'psage.modform.maass',
 
                 'psage.number_fields',
                 'psage.number_fields.sqrt5',
 
-                'psage.rh',
-                'psage.rh.mazur_stein'
+                #'psage.rh',
+                #'psage.rh.mazur_stein'
                 ],
     platforms = ['any'],
     download_url = 'NA',

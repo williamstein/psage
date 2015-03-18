@@ -8,12 +8,12 @@
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  PSAGE is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -40,7 +40,7 @@ USES:
    - Dokchitser as well.
 
    - Computes the *root number* in addition to the L-series.
-   
+
 """
 
 ####################################################################
@@ -131,13 +131,13 @@ cdef class TracesOfFrobenius:
     ##########################################################
     # Allocate and de-allocate basic data structures
     ##########################################################
-    
+
     def __cinit__(self):
         self.primes = NULL
         self.sqrt5 = NULL
         self.ap = NULL
         mpz_init(self.Ax); mpz_init(self.Ay); mpz_init(self.Bx); mpz_init(self.By)
-        
+
     def __init__(self, E, long bound):
         # Make table of primes up to the bound, and uninitialized
         # corresponding a_p (traces of Frobenius)
@@ -177,9 +177,9 @@ cdef class TracesOfFrobenius:
                     self.sqrt5[i] = 0
                     self.ap[i] = UNKNOWN
                     i += 1
-                
+
         self.table_size = i
-    
+
     def _initialize_coefficients(self,E):
         # Store all coefficients -- may be needed for trace of frob mod 2 and 3 and bad primes.
         self.E = E
@@ -205,7 +205,7 @@ cdef class TracesOfFrobenius:
         self.c_quo = (-48*A)/(-864*B)
         self.j = (-110592*A*A*A)/(-64*A*A*A - 432*B*B)
 
-        # Store the short Weierstrass form coefficients as a 4-tuple of GMP ints, 
+        # Store the short Weierstrass form coefficients as a 4-tuple of GMP ints,
         # where (Ax,Ay) <--> Ax + sqrt(5)*Ay.
         # By far the best way to get these Ax, Ay are to use the parts
         # method, which is very fast, and gives precisely what we want
@@ -228,7 +228,7 @@ cdef class TracesOfFrobenius:
             sage_free(self.sqrt5)
         if self.ap:
             sage_free(self.ap)
-        
+
     def _tables(self):
         """
         Return Python dictionary with copies of the internal tables.
@@ -314,7 +314,7 @@ cdef class TracesOfFrobenius:
         """
         if i < 0 or i >= self.table_size:
             raise IndexError, "i must be between 0 and %s"%(self.table_size-1)
-        
+
         # Non-optimized code that returns the ith prime of the quadratic number field.
         from psage.modform.hilbert.sqrt5.sqrt5 import F  # F = Q(sqrt(5))
         cdef long a, p = self.primes[i], s = self.sqrt5[i]
@@ -326,7 +326,7 @@ cdef class TracesOfFrobenius:
             return F.ideal(p)
         else: # split case
             return F.ideal([p, 2*F.gen()-1 - s])
-        
+
     def _compute_traces(self, inert_table, algorithm='smalljac'):
         self._compute_split_traces()
         self._compute_inert_and_ramified_traces(inert_table)
@@ -338,7 +338,7 @@ cdef class TracesOfFrobenius:
 
 def inert_primes(N):
     r"""
-    Return a list of the inert primes of `\QQ(\sqrt{5})` of norm less than `N`. 
+    Return a list of the inert primes of `\QQ(\sqrt{5})` of norm less than `N`.
 
     INPUT:
         - N -- positive integer
@@ -364,7 +364,7 @@ def unpickle_InertTraceCalculator(tables):
 
 cdef class InertTraceCalculator:
     cdef public dict tables
-    
+
     def __init__(self):
         self.tables = {}
 
@@ -380,9 +380,9 @@ cdef class InertTraceCalculator:
         cdef ResidueRingElement j = R(j0), c_quo = R(c_quo0)
         if R.element_is_0(j.x) or j.x[0]==1728%p and j.x[1]==0:
             raise NotImplementedError
-        
+
         cdef int i = R.index_of_element(j.x)
-        
+
         cdef IntList ap = T['ap'], c_quos = T['c_quo'], squares = T['squares']
         cdef long a = ap[i]
         cdef residue_element z
@@ -392,7 +392,7 @@ cdef class InertTraceCalculator:
             return -a
         else:
             return a
-        
+
 
     def init_table(self, int p):
         assert p >= 7 and (p%5 == 2 or p%5 == 3)  # inert prime >= 7
@@ -412,15 +412,15 @@ cdef class InertTraceCalculator:
 
         cdef IntList cubes = IntList(R.cardinality())
         self.cube_table(cubes, R)
-        
+
         cdef long i
         cdef residue_element j, a4, a6
-        _sig_on
+        sig_on()
         for i in range(R.cardinality()):
             R.unsafe_ith_element(j, i)
             self.elliptic_curve_from_j(a4, a6, j, R)
             self.ap_via_enumeration(&ap._values[i], &c_quo._values[i], a4, a6, R, squares, cubes)
-        _sig_off
+        sig_off()
 
     cdef int cube_table(self, IntList cubes, ResidueRing_abstract R) except -1:
         cdef long i
@@ -432,7 +432,7 @@ cdef class InertTraceCalculator:
             cubes._values[i] = R.index_of_element(y)
         return 0
 
-    cdef int init_squares_table(self, IntList squares, 
+    cdef int init_squares_table(self, IntList squares,
                                 ResidueRing_abstract R) except -1:
 
         cdef long i
@@ -463,22 +463,22 @@ cdef class InertTraceCalculator:
             R.set_element_to_0(a6)
             return 0
 
-        # -3 and -2               
+        # -3 and -2
         m_three[0] = R.p - 3; m_three[1] = 0
         m_two[0] = R.p - 2; m_two[1] = 0
 
-        # k = j-1728        
-        R.sub(k, j, k)  
+        # k = j-1728
+        R.sub(k, j, k)
 
         # a4 = -3*j*k
         R.mul(a4, m_three, j)
         R.mul(a4, a4, k)
 
         # a6 = -2*j*k^2
-        R.mul(a6, m_two, j)   
+        R.mul(a6, m_two, j)
         R.mul(a6, a6, k)
         R.mul(a6, a6, k)
-        
+
 
     cdef int ap_via_enumeration(self, int* ap, int* c_quo,
                                 residue_element a4, residue_element a6,
@@ -489,7 +489,7 @@ cdef class InertTraceCalculator:
         cdef long i, j, cnt = 1  # start 1 because of point at infinity
         cdef residue_element x, z, w
         for i in range(R.cardinality()):
-            R.unsafe_ith_element(x, i)            
+            R.unsafe_ith_element(x, i)
             R.unsafe_ith_element(z, cubes._values[i])  # z = x^3
             R.mul(w, a4, x)  # w = a4*x
             R.add(z, z, w)   # z = z + w = x^3 + a4*x
@@ -499,7 +499,7 @@ cdef class InertTraceCalculator:
             else:
                 if squares._values[R.index_of_element(z)]:  # assumes p!=2.
                     cnt += 2
-                    
+
         ap[0] = R.cardinality() + 1 - cnt
 
         # Now compute c4/c6 = a4/(18*a6)
@@ -512,5 +512,5 @@ cdef class InertTraceCalculator:
             R.mul(z, a4, w)             # z = a4/(18*a6)
             c_quo[0] = R.index_of_element(z)
         return 0   # no error occurred
-            
-            
+
+

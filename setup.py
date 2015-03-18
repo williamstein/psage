@@ -70,47 +70,47 @@ numpy_include_dirs = [os.path.join(SAGE_LOCAL,
                                    'lib/python/site-packages/numpy/core/include')]
 
 ext_modules = [
-    Extension("psage.ellff.ellff",
-              ["psage/ellff/ellff.pyx",
-               "psage/ellff/ell.cpp",
-               "psage/ellff/ell_surface.cpp",
-               "psage/ellff/euler.cpp",
-               "psage/ellff/helper.cpp",
-               "psage/ellff/jacobi.cpp",
-               "psage/ellff/lzz_pEExtra.cpp",
-               "psage/ellff/lzz_pEratX.cpp"],
-              language = 'c++'),
-
-    Extension("psage.function_fields.function_field_element",
-              ["psage/function_fields/function_field_element.pyx"]),
-
-    Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
-              ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),
-    
-    Extension("psage.modform.paramodularforms.siegelmodularformg2_misc_cython",
-              ["psage/modform/paramodularforms/siegelmodularformg2_misc_cython.pyx"]),
-
-    Extension("psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion_cython",
-              ["psage/modform/paramodularforms/siegelmodularformg2_fourierexpansion_cython.pyx"]),
-
-    Extension("psage.modform.paramodularforms.siegelmodularformg2vv_fegenerators_cython",
-              ["psage/modform/paramodularforms/siegelmodularformg2vv_fegenerators_cython.pyx"]),
-
-    Extension("psage.modform.paramodularforms.paramodularformd2_fourierexpansion_cython",
-              ["psage/modform/paramodularforms/paramodularformd2_fourierexpansion_cython.pyx"]),
-
-    Extension("psage.modform.siegel.fastmult",
-              ["psage/modform/siegel/fastmult.pyx"]),
-
-    Extension('psage.modform.maass.mysubgroups_alg',
-              ['psage/modform/maass/mysubgroups_alg.pyx']),
-
-    Extension('psage.modform.maass.maass_forms_alg',
-              ['psage/modform/maass/maass_forms_alg.pyx'],
-              include_dirs = numpy_include_dirs),
-
-    Extension('psage.modform.maass.lpkbessel',
-              ['psage/modform/maass/lpkbessel.pyx']),
+#    Extension("psage.ellff.ellff",
+#              ["psage/ellff/ellff.pyx",
+#               "psage/ellff/ell.cpp",
+#               "psage/ellff/ell_surface.cpp",
+#               "psage/ellff/euler.cpp",
+#               "psage/ellff/helper.cpp",
+#               "psage/ellff/jacobi.cpp",
+#               "psage/ellff/lzz_pEExtra.cpp",
+#               "psage/ellff/lzz_pEratX.cpp"],
+#              language = 'c++'),
+#
+#    Extension("psage.function_fields.function_field_element",
+#              ["psage/function_fields/function_field_element.pyx"]),
+#
+#    Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
+#              ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),
+#
+#    Extension("psage.modform.paramodularforms.siegelmodularformg2_misc_cython",
+#              ["psage/modform/paramodularforms/siegelmodularformg2_misc_cython.pyx"]),
+#
+#    Extension("psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion_cython",
+#              ["psage/modform/paramodularforms/siegelmodularformg2_fourierexpansion_cython.pyx"]),
+#
+#    Extension("psage.modform.paramodularforms.siegelmodularformg2vv_fegenerators_cython",
+#              ["psage/modform/paramodularforms/siegelmodularformg2vv_fegenerators_cython.pyx"]),
+#
+#    Extension("psage.modform.paramodularforms.paramodularformd2_fourierexpansion_cython",
+#              ["psage/modform/paramodularforms/paramodularformd2_fourierexpansion_cython.pyx"]),
+#
+#    Extension("psage.modform.siegel.fastmult",
+#              ["psage/modform/siegel/fastmult.pyx"]),
+#
+#    Extension('psage.modform.maass.mysubgroups_alg',
+#              ['psage/modform/maass/mysubgroups_alg.pyx']),
+#
+#    Extension('psage.modform.maass.maass_forms_alg',
+#              ['psage/modform/maass/maass_forms_alg.pyx'],
+#              include_dirs = numpy_include_dirs),
+#
+#    Extension('psage.modform.maass.lpkbessel',
+#              ['psage/modform/maass/lpkbessel.pyx']),
 
     Extension("psage.modform.rational.modular_symbol_map",
               ["psage/modform/rational/modular_symbol_map.pyx"]),
@@ -139,11 +139,11 @@ ext_modules = [
               sources = ['psage/ellcurve/minmodel/sqrt5.pyx'],
               libraries = ['gmp']),
 
-    Extension('psage.rh.mazur_stein.game',
-              sources = ['psage/rh/mazur_stein/game.pyx']),
+#    Extension('psage.rh.mazur_stein.game',
+#              sources = ['psage/rh/mazur_stein/game.pyx']),
 
-    Extension('psage.rh.mazur_stein.book_cython',
-              sources = ['psage/rh/mazur_stein/book_cython.pyx']),
+#    Extension('psage.rh.mazur_stein.book_cython',
+#              sources = ['psage/rh/mazur_stein/book_cython.pyx']),
 
     Extension("psage.ellcurve.lseries.fast_twist",
               ["psage/ellcurve/lseries/fast_twist.pyx"],
@@ -158,7 +158,7 @@ ext_modules = [
               libraries = ['pari']),
 
     Extension("psage.modform.rational.special_fast",
-              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
+              ["psage/modform/rational/special_fast.pyx"],
               libraries = ['gmp', 'flint'],
               language = 'c++',
               include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],

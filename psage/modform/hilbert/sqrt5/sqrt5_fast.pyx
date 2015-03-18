@@ -8,12 +8,12 @@
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  PSAGE is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -22,11 +22,12 @@
 """
 Fast Cython code needed to compute Hilbert modular forms over F = Q(sqrt(5)).
 
-All the code in this file is meant to be highly optimized. 
+All the code in this file is meant to be highly optimized.
 """
 
 include 'stdsage.pxi'
 include 'cdefs.pxi'
+include 'python.pxi'
 
 from sage.rings.all import Integers, is_Ideal, ZZ, QQ
 from sage.matrix.all import MatrixSpace, zero_matrix
@@ -106,7 +107,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
     def __init__(self, P, p, e):
         """
         INPUT:
-        
+
             - P -- prime ideal of O_F
             - e -- positive integer
         """
@@ -174,7 +175,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
         #         x = (x.a + x.b*sqrt(5))/x.denom.
         # Let n be the characteristic of self, and assume n is odd. Set
         #       a = x.a (mod n),   b = x.b (mod n),   e = x.denom^(-1) (mod n).
-        # all long ints. 
+        # all long ints.
         #   We have x = (a+sqrt(5)*b)*e (mod n).
         # The r[0] and r[1] we want are the coefficients of 1 and (1+sqrt(5))/2.
         #    c + d*(1+sqrt(5))/2 = a*e + sqrt(5)*b*e
@@ -230,8 +231,8 @@ cdef class ResidueRing_abstract(CommutativeRing):
         if v0[0] < 0:
             v0[0] += n
         v1[0] = (2*b*e)%n
-                
-            
+
+
         return 0  # success
 
     cdef int coerce_from_nf(self, residue_element r, NumberFieldElement_quadratic x) except -1:
@@ -249,7 +250,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         raise NotImplementedError
     cdef void sub(self, residue_element rop, residue_element op0, residue_element op1):
-        raise NotImplementedError        
+        raise NotImplementedError
     cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
         raise NotImplementedError
     cdef int inv(self, residue_element rop, residue_element op) except -1:
@@ -264,7 +265,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
 
     cdef bint element_is_0(self, residue_element op):
         return op[0] == 0 and op[1] == 0
-    
+
     cdef void set_element_to_1(self, residue_element op):
         op[0] = 1
         op[1] = 0
@@ -307,7 +308,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
             e /= 2
             if e:
                 self.mul(z, z, z)
-                  
+
     cdef bint is_square(self, residue_element op):
         raise NotImplementedError
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
@@ -338,12 +339,12 @@ cdef class ResidueRing_abstract(CommutativeRing):
 
     cdef int next_element(self, residue_element rop, residue_element op) except -1:
         # Raises ValueError if there is no next element.
-        # op is assumed valid. 
+        # op is assumed valid.
         raise NotImplementedError
 
     cdef bint is_last_element(self, residue_element op):
         raise NotImplementedError
-    
+
     cdef long index_of_element(self, residue_element op) except -1:
         # Return the index of the given residue element.
         raise NotImplementedError
@@ -353,14 +354,14 @@ cdef class ResidueRing_abstract(CommutativeRing):
         # assumed to be in the maximal ideal P.  This is the index, as
         # an element of P.
         raise NotImplementedError
-        
+
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
         # Sets rop to next element in the enumeration of self that is in P, assuming
         # that op is in P.
         # Raises ValueError if there is no next element.
-        # op is assumed valid (i.e., is in P, etc.). 
+        # op is assumed valid (i.e., is in P, etc.).
         raise NotImplementedError
-    
+
     cdef bint is_last_element_in_P(self, residue_element op):
         raise NotImplementedError
 
@@ -370,14 +371,14 @@ cdef class ResidueRing_abstract(CommutativeRing):
         z.x[0] = op[0]
         z.x[1] = op[1]
         return str(z)
-        
-    
+
+
 cdef class ResidueRing_split(ResidueRing_abstract):
     cdef ResidueRingElement new_element(self):
         cdef ResidueRingElement_split z = PY_NEW(ResidueRingElement_split)
         z._parent = self
         return z
-        
+
     def __init__(self, P, p, e):
         ResidueRing_abstract.__init__(self, P, p, e)
         self.element_class = ResidueRingElement_split
@@ -392,7 +393,7 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         if alpha - z0 in P:
             self.im_gen0 = z0
         else:
-            z1 = divmod_long(1-z, 2, p**e)  # z = (1-sqrt(5))/2 mod p^e.        
+            z1 = divmod_long(1-z, 2, p**e)  # z = (1-sqrt(5))/2 mod p^e.
             if alpha - z1 in P:
                 self.im_gen0 = z1
             else:
@@ -410,39 +411,39 @@ cdef class ResidueRing_split(ResidueRing_abstract):
     def __reduce__(self):
         return ResidueRing_split, (self.P, self.p, self.e)
 
-    cdef object element_to_residue_field(self, residue_element x):    
+    cdef object element_to_residue_field(self, residue_element x):
         return self.residue_field()(x[0])
 
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] + op1[0])%self.n0
         rop[1] = 0
-        
+
     cdef void sub(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] - op1[0])%self.n0
-        rop[1] = 0        
-        
+        rop[1] = 0
+
     cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] * op1[0])%self.n0
-        rop[1] = 0        
+        rop[1] = 0
 
     cdef int inv(self, residue_element rop, residue_element op) except -1:
         rop[0] = invmod_long(op[0], self.n0)
-        rop[1] = 0        
+        rop[1] = 0
         return 0
 
     cdef bint is_unit(self, residue_element op):
         return gcd_long(op[0], self.n0) == 1
-    
+
     cdef void neg(self, residue_element rop, residue_element op):
         rop[0] = self.n0 - op[0] if op[0] else 0
-        rop[1] = 0        
+        rop[1] = 0
 
     cdef bint is_square(self, residue_element op):
         cdef residue_element rop
         if op[0] % self.p == 0:
             # TODO: This is inefficient.
             try:
-                # do more complicated stuff involving valuation, unit part, etc. 
+                # do more complicated stuff involving valuation, unit part, etc.
                 self.sqrt(rop, op)
             except ValueError:
                 return False
@@ -453,18 +454,18 @@ cdef class ResidueRing_split(ResidueRing_abstract):
 
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
         rop[0] = sqrtmod_long(op[0], self.p, self.e)
-        rop[1] = 0        
+        rop[1] = 0
         if (rop[0] * rop[0])%self.n0 != op[0]:
             raise ValueError, "element must be a square"
         return 0
 
     cdef void unsafe_ith_element(self, residue_element rop, long i):
         rop[0] = i
-        rop[1] = 0                
-    
+        rop[1] = 0
+
     cdef int next_element(self, residue_element rop, residue_element op) except -1:
         rop[0] = op[0] + 1
-        rop[1] = 0                
+        rop[1] = 0
         if rop[0] >= self.n0:
             raise ValueError, "no next element"
 
@@ -481,21 +482,21 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         if rop[0] >= self.n0:
             raise ValueError, "no next element in P"
         return 0
-        
+
     cdef bint is_last_element_in_P(self, residue_element op):
         return op[0] == self.n0 - self.p
 
     cdef long index_of_element_in_P(self, residue_element op) except -1:
         return op[0]/self.p
 
-        
-        
+
+
 cdef class ResidueRing_nonsplit(ResidueRing_abstract):
     cdef ResidueRingElement new_element(self):
         cdef ResidueRingElement_nonsplit z = PY_NEW(ResidueRingElement_nonsplit)
         z._parent = self
         return z
-        
+
     def __init__(self, P, p, e):
         ResidueRing_abstract.__init__(self, P, p, e)
         self.element_class = ResidueRingElement_nonsplit
@@ -511,12 +512,12 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 
     def __reduce__(self):
         return ResidueRing_nonsplit, (self.P, self.p, self.e)
-        
-    cdef object element_to_residue_field(self, residue_element x):    
+
+    cdef object element_to_residue_field(self, residue_element x):
         k = self.residue_field()
         if self.p != 5:
             return k([x[0], x[1]])
-        
+
         # OK, now p == 5 and power of prime sqrt(5) is even...
         # We have that self is Z[x]/(5^n, x^2-x-1) --> F_5, where the map sends x to 3, since x^2-x-1=(x+2)^2 (mod 5).
         # Thus a+b*x |--> a+3*b.
@@ -525,7 +526,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] + op1[0])%self.n0
         rop[1] = (op0[1] + op1[1])%self.n1
-        
+
     cdef void sub(self, residue_element rop, residue_element op0, residue_element op1):
         # cython uses python mod normalization convention, so no need to do that manually
         rop[0] = (op0[0] - op1[0])%self.n0
@@ -560,12 +561,12 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         We view the residue ring as R[x]/(p^e, x^2-x-1).
         We first compute the power of p that divides our
         element a+bx, which is just v=min(ord_p(a),ord_p(b)).
-        If v=infinity, i.e., a+bx=0, then it's a square. 
+        If v=infinity, i.e., a+bx=0, then it's a square.
         If this power is odd, then a+bx can't be a square.
         Otherwise, it is even, and we next look at the unit
         part of a+bx = p^v*unit.  Then a+bx is a square if and
         only if the unit part is a square modulo p^(e-v) >= p,
-        since a+bx!=0. 
+        since a+bx!=0.
         When p>2, the unit part is a square if and only if it is a
         square modulo p, because of Hensel's lemma, and we can check
         whether or not something is a square modulo p quickly by
@@ -580,17 +581,17 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         cdef residue_element unit, z
         cdef int v = 0
         cdef long p = self.p
-        
+
         if op[0] == 0 and op[1] == 0:
             return True
-        
+
         if p == 5:
             try:
                 self.sqrt(z, op)
             except ValueError:
                 return False
             return True
-        
+
         # The "unit" stuff below doesn't make sense for p=5, since
         # then the maximal ideal is generated by sqrt(5) rather than 5.
 
@@ -613,10 +614,10 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 
         # Now unit is not a multiple of p, so it is a unit.
         self.pow(z, unit, (self.p*self.p-1)/2)
-        
+
         # The result z is -1 or +1, so z[1]==0 (mod p), no matter what, so no need to look at it.
         return z[0]%p == 1
-    
+
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
         """
         Set rop to a square root of op, if one exists.
@@ -624,16 +625,16 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
         ALGORITHM:
         We view the residue ring as R[x]/(p^e, x^2-x-1), and want to compute
         a square root a+bx of c+dx.  We have (a+bx)^2=c+dx, so
-           a^2+b^2=c and 2ab+b^2=d.  
+           a^2+b^2=c and 2ab+b^2=d.
         Setting B=b^2 and doing algebra, we get
            5*B^2 - (4c+2d)B + d^2 = 0,
         so B = ((4c+2d) +/- sqrt((4c+2d)^2-20d^2))/10.
         In characteristic 2 or 5, we compute the numerator mod p^(e+1), then
-        divide out by p first, then 10/p. 
+        divide out by p first, then 10/p.
         """
         if op[0] == 0 and op[1] == 0:
             # easy special case that is hard to deal with using general algorithm.
-            rop[0] = 0; rop[1] = 0 
+            rop[0] = 0; rop[1] = 0
             return 0
 
         # TODO: The following is stupid, and doesn't scale up well... except
@@ -650,7 +651,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
             for b in range(self.n1):
                 rop[1] = b
                 self.mul(t, rop, rop)
-                if t[0] == op[0] and t[1] == op[1]: 
+                if t[0] == op[0] and t[1] == op[1]:
                     return 0
         raise ValueError, "not a square"
 
@@ -672,14 +673,14 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 ##                         rop[0] = sqrtmod_long((c-B)%n0, p, e)
 ##                         print "try: %s,%s"%(rop[0],rop[1])
 ##                         self.mul(z, rop, rop)
-##                         if z[0] == op[0] and z[1] == op[1]: 
+##                         if z[0] == op[0] and z[1] == op[1]:
 ##                             return 0
-##                         else: print "fail"                        
+##                         else: print "fail"
 ##                         # try other sign for "b":
 ##                         rop[1] = n0 - rop[1]
-##                         print "try: %s,%s"%(rop[0],rop[1])                        
+##                         print "try: %s,%s"%(rop[0],rop[1])
 ##                         self.mul(z, rop, rop)
-##                         if z[0] == op[0] and z[1] == op[1]: 
+##                         if z[0] == op[0] and z[1] == op[1]:
 ##                             return 0
 ##                         else: print "fail"
 ##                     except ValueError:
@@ -695,12 +696,12 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 ##             rop[1] = sqrtmod_long(B, p, e)
 ##             rop[0] = sqrtmod_long((c-B)%n0, p, e)
 ##             self.mul(z, rop, rop)
-##             if z[0] == op[0] and z[1] == op[1]: 
+##             if z[0] == op[0] and z[1] == op[1]:
 ##                 return 0
-##             # try other sign for "b":            
+##             # try other sign for "b":
 ##             rop[1] = n0 - rop[1]
 ##             self.mul(z, rop, rop)
-##             if z[0] == op[0] and z[1] == op[1]: 
+##             if z[0] == op[0] and z[1] == op[1]:
 ##                 return 0
 ##         except ValueError:
 ##             pass
@@ -709,14 +710,14 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 ##         rop[1] = sqrtmod_long(B, p, e)
 ##         rop[0] = sqrtmod_long((c-B)%n0, p, e)
 ##         self.mul(z, rop, rop)
-##         if z[0] == op[0] and z[1] == op[1]: 
+##         if z[0] == op[0] and z[1] == op[1]:
 ##             return 0
 ##         rop[1] = n0 - rop[1]
 ##         self.mul(z, rop, rop)
 ##         assert z[0] == op[0] and z[1] == op[1]
 ##         return 0
 
-    
+
 
 ##     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
 ##         k = self.residue_field()
@@ -731,7 +732,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 ##         # TODO: the stupid overhead in this step alone is vastly more than
 ##         # the time to actually compute the sqrt in Givaro or Pari (say)...
 ##         a = k([op[0],op[1]]).sqrt()._vector_()
-##        
+##
 ##         # The rest of this function is fast (hundreds of times
 ##         # faster than above line)...
 ##
@@ -742,7 +743,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 ##         if rop[0] == 0 and rop[1] == 0:
 ##             # TODO: Finish sqrt when number is 0 mod P in inert case.
 ##             raise NotImplementedError
-##        
+##
 ##         # Hensel lifting to get square root modulo P^e.
 ##         # See the code sqrtmod_long below, which is basically
 ##         # the same, but more readable.
@@ -768,7 +769,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 ##             t[0] *= pm;  t[1] *= pm
 ##             # Now do y = y + pm * t
 ##             self.add(rop, rop, t)
-##            
+##
 ##         return 0 # success
 
     cdef void unsafe_ith_element(self, residue_element rop, long i):
@@ -795,7 +796,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
 
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
         """
-        
+
         For p = 5, we use the following enumeration, for R=O_F/P^(2e).  First, note that we
         represent R as
             R = (Z/5^e)[x]/(x^2-x-1)
@@ -822,7 +823,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
                 rop[0] = 0
                 rop[1] = (rop[1] + 5)%self.n1
             return 0
-            
+
         # General case (p!=5):
         rop[0] = op[0] + self.p
         rop[1] = op[1]
@@ -832,7 +833,7 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
             if rop[1] >= self.n1:
                 raise ValueError, "no next element in P"
         return 0
-        
+
     cdef bint is_last_element_in_P(self, residue_element op):
         if self.p == 5:
             # see the comment above in "next_element_in_P".
@@ -843,19 +844,19 @@ cdef class ResidueRing_nonsplit(ResidueRing_abstract):
                 # next element got by incrementing both a and b by 1 in enumeration,
                 # and 3a+5b=8.
                 return op[0] == self.n0 - 1 and (op[1]+8)%self.n1 == 0
-        # General case (p!=5):        
+        # General case (p!=5):
         return op[0] == self.n0 - self.p and op[1] == self.n1 - self.p
 
     cdef long index_of_element_in_P(self, residue_element op) except -1:
-        if self.p == 5: 
+        if self.p == 5:
             # see the comment above in "next_element_in_P".
             # The index is a + 5^e*b, so we have to recover a and b in op=a+(3a+5b)x.
             # We have a = op[0], which is easy.  Then b=(op[1]-3a)/5
             return op[0] + ((op[1] - 3*op[0])/5 % (self.n1/self.p)) * self.n0
-            
+
         # General case (p!=5):
         return op[0]/self.p + op[1]/self.p * (self.n0/self.p)
-        
+
 cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
     cdef ResidueRingElement new_element(self):
         cdef ResidueRingElement_ramified_odd z = PY_NEW(ResidueRingElement_ramified_odd)
@@ -864,12 +865,12 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
 
     cdef long two_inv
     def __init__(self, P, p, e):
-        ResidueRing_abstract.__init__(self, P, p, e)        
+        ResidueRing_abstract.__init__(self, P, p, e)
         # This is assumed in the code for the element_class so it better be true!
         assert self.F.defining_polynomial().list() == [-1,-1,1]
         self.n0 = p**(e//2 + 1)
         self.n1 = p**(e//2)
-        self._cardinality = self.n0 * self.n1        
+        self._cardinality = self.n0 * self.n1
         self.two_inv = (Integers(self.n0)(2)**(-1)).lift()
         self.element_class = ResidueRingElement_ramified_odd
 
@@ -890,7 +891,7 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
     def __reduce__(self):
         return ResidueRing_ramified_odd, (self.P, self.p, self.e)
 
-    cdef object element_to_residue_field(self, residue_element x):    
+    cdef object element_to_residue_field(self, residue_element x):
         k = self.residue_field()
         # For odd ramified case, we use a different basis, which is:
         # x[0]+sqrt(5)*x[1], so mapping to residue field mod (sqrt(5))
@@ -900,11 +901,11 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] + op1[0])%self.n0
         rop[1] = (op0[1] + op1[1])%self.n1
-        
+
     cdef void sub(self, residue_element rop, residue_element op0, residue_element op1):
         rop[0] = (op0[0] - op1[0])%self.n0
         rop[1] = (op0[1] - op1[1])%self.n1
-        
+
     cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
         cdef long a = op0[0], b = op0[1], c = op1[0], d = op1[1]
         rop[0] = (a*c + 5*b*d)%self.n0
@@ -965,7 +966,7 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
            2ab = d (mod p^n1)
         Multiply first equation through by A=a^2, to get quadratic in A:
               A^2 - c*A + 5d^2/4 = 0 (mod n0).
-        Solve for A = (c +/- sqrt(c^2-5d^2))/2. 
+        Solve for A = (c +/- sqrt(c^2-5d^2))/2.
 
         Thus the algorithm is:
               1. Extract sqrt s of c^2-5d^2 modulo n0.  If no sqrt, then not square
@@ -980,7 +981,7 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
             for b in range(self.n1):
                 rop[1] = b
                 self.mul(t, rop, rop)
-                if t[0] == op[0] and t[1] == op[1]: 
+                if t[0] == op[0] and t[1] == op[1]:
                     return 0
         raise ValueError, "not a square"
 
@@ -992,7 +993,7 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
 ##             rop[0] = sqrtmod_long(((c+s)*two_inv)%n0, p, self.e//2 + 1)
 ##             rop[1] = (divmod_long(d,rop[0],n1) * two_inv)%n1
 ##             self.mul(t, rop, rop)
-##             if t[0] == op[0] and t[1] == op[1]: 
+##             if t[0] == op[0] and t[1] == op[1]:
 ##                 return 0
 ##         except ValueError:
 ##             pass
@@ -1001,7 +1002,7 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
 ##         self.mul(t, rop, rop)
 ##         assert t[0] == op[0] and t[1] == op[1]
 ##         return 0
-            
+
 
     cdef void unsafe_ith_element(self, residue_element rop, long i):
         # Definition: If the element is rop = [a,b], then
@@ -1035,10 +1036,10 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
 
     cdef bint is_last_element_in_P(self, residue_element op):
         return op[0] == self.n0 - self.p and op[1] == self.n1 - 1
-    
+
     cdef long index_of_element_in_P(self, residue_element op) except -1:
         return op[0]/self.p + op[1] * (self.n0/self.p)
-    
+
 
 ###########################################################################
 # Ring elements
@@ -1070,7 +1071,7 @@ cdef class ResidueRingElement:
         elements of the parent.
         """
         return self._parent.index_of_element(self.x)
-    
+
     def __add__(ResidueRingElement left, ResidueRingElement right):
         cdef ResidueRingElement z = left.new_element()
         left._parent.add(z.x, left.x, right.x)
@@ -1089,14 +1090,14 @@ cdef class ResidueRingElement:
         left._parent.mul(z.x, left.x, z.x)
         return z
     def __neg__(ResidueRingElement self):
-        cdef ResidueRingElement z = self.new_element()        
+        cdef ResidueRingElement z = self.new_element()
         self._parent.neg(z.x, self.x)
         return z
     def __pow__(ResidueRingElement self, e, m):
         cdef ResidueRingElement z = self.new_element()
         self._parent.pow(z.x, self.x, e)
         return z
-    
+
     def __invert__(ResidueRingElement self):
         cdef ResidueRingElement z = self.new_element()
         self._parent.inv(z.x, self.x)
@@ -1118,13 +1119,13 @@ cdef class ResidueRingElement:
 
     def __hash__(self):
         return self.x[0] + self._parent.n0*self.x[1]
-        
+
     cpdef bint is_unit(self):
         return self._parent.is_unit(self.x)
-    
+
     cpdef bint is_square(self):
         return self._parent.is_square(self.x)
-    
+
     cpdef sqrt(self):
         cdef ResidueRingElement z = self.new_element()
         self._parent.sqrt(z.x, self.x)
@@ -1141,7 +1142,7 @@ cdef class ResidueRingElement_split(ResidueRingElement):
             return
         elif len(v) == 1:
             self.x[0] = v[0] % self._parent.n0
-            return 
+            return
         self.x[0] = v[0] + parent.im_gen0*v[1]
         self.x[0] = self.x[0] % self._parent.n0
         self.x[1] = 0
@@ -1167,7 +1168,7 @@ cdef class ResidueRingElement_nonsplit(ResidueRingElement):
         sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import ResidueRing
 
     Inert example::
-    
+
         sage: F.<a> = NumberField(x^2 - x - 1)
         sage: P_inert = F.primes_above(3)[0]
         sage: R_inert = ResidueRing(P_inert, 2)
@@ -1234,7 +1235,7 @@ cdef class ResidueRingElement_nonsplit(ResidueRingElement):
                 else:
                     return '%s*g'%self.x[1]
             return '0'
-        
+
     def lift(self):
         """
         Return lift of element to number field F.
@@ -1277,7 +1278,7 @@ cdef class ResidueRingElement_ramified_odd(ResidueRingElement):
 
     The element omega = F.gen(), which is (1+sqrt(5))/2 maps to
     (1+x)/2 = (1/2, 1/2), which is the generator of this ring.
-    """    
+    """
     def __init__(self, ResidueRing_ramified_odd parent, x):
         self._parent = parent
         assert x.parent() is parent.F
@@ -1367,11 +1368,11 @@ cdef long invmod_long(long x, long m) except -1:
 
 cdef long gcd_long(long a, long b) except -1:
     return Arith_llong.c_gcd_longlong(a, b)
-    
+
 cdef long divmod_long(long x, long y, long m) except -1:
     #return quotient x/y mod m, assuming x, y < SQRT_MAX_LONG
     return (x * invmod_long(y, m)) % m
-    
+
 cpdef long sqrtmod_long(long x, long p, int n) except -1:
     cdef long a, r, y, z
     if n <= 0:
@@ -1379,7 +1380,7 @@ cpdef long sqrtmod_long(long x, long p, int n) except -1:
 
     if x == 0 or x == 1:
         # easy special case that works no matter what p is.
-        return x 
+        return x
 
     if p == 2: # pain in the butt case
         if n == 1:
@@ -1409,7 +1410,7 @@ cpdef long sqrtmod_long(long x, long p, int n) except -1:
                 return int(pari(cmd))
             except PariError:
                 raise ValueError, "not a square"
-    
+
     if x%p == 0:
         a = x/p
         y = 1
@@ -1422,7 +1423,7 @@ cpdef long sqrtmod_long(long x, long p, int n) except -1:
         if r % 2 != 0:
             raise ValueError, "not a square"
         return y * sqrtmod_long(a, p, n - r//2)
-    
+
     # Compute square root of x modulo p^n using Hensel lifting, where
     # p id odd.
 
@@ -1464,7 +1465,7 @@ cpdef long sqrtmod_long(long x, long p, int n) except -1:
         # And set y = y + pm*t, which gives next correct approximation for y.
         y += (pm * t) % ppm
         pm = ppm
-    
+
     return y
 
 ###########################################################################
@@ -1485,7 +1486,7 @@ cdef class ResidueRingModN:
     cdef public list residue_rings
     cdef object N
     cdef int r  # number of prime divisors
-    
+
     def __init__(self, N):
         self.N = N
 
@@ -1498,7 +1499,7 @@ cdef class ResidueRingModN:
         v.sort()
         self.residue_rings = [x[-1] for x in v]
         self.r = len(self.residue_rings)
-            
+
     def __repr__(self):
         return "Residue class ring modulo the ideal %s of norm %s"%(
             self.N._repr_short(), self.N.norm())
@@ -1600,7 +1601,7 @@ cdef class ResidueRingModN:
                 rop[j][0] = op[j][0]
                 rop[j][1] = op[j][1]
         return 0
-            
+
     cdef element_to_str(self, modn_element op):
         s = ','.join([(<ResidueRing_abstract>self.residue_rings[i]).element_to_str(op[i]) for
                           i in range(self.r)])
@@ -1623,7 +1624,7 @@ cdef class ResidueRingModN:
         for i in range(self.r):
             R = self.residue_rings[i]
             R.mul(rop[i], op0[i], op1[i])
-        
+
     cdef int inv(self, modn_element rop, modn_element op) except -1:
         cdef int i
         cdef ResidueRing_abstract R
@@ -1631,7 +1632,7 @@ cdef class ResidueRingModN:
             R = self.residue_rings[i]
             R.inv(rop[i], op[i])
         return 0
-        
+
     cdef int neg(self, modn_element rop, modn_element op) except -1:
         cdef int i
         cdef ResidueRing_abstract R
@@ -1676,7 +1677,7 @@ cdef class ResidueRingModN:
                 else:
                     R.next_element(rop[i], op[i])
                     done = True
-                    
+
     cdef bint is_square(self, modn_element op):
         cdef int i
         cdef ResidueRing_abstract R
@@ -1685,7 +1686,7 @@ cdef class ResidueRingModN:
             if not R.is_square(op[i]):
                 return False
         return True
-        
+
     cdef int sqrt(self, modn_element rop, modn_element op) except -1:
         cdef int i
         cdef ResidueRing_abstract R
@@ -1695,8 +1696,8 @@ cdef class ResidueRingModN:
         return 0
 
     #######################################
-    # modn_matrices 
-    #######################################    
+    # modn_matrices
+    #######################################
     cdef matrix_to_str(self, modn_matrix A):
         return '[%s, %s; %s, %s]'%tuple([self.element_to_str(A[i]) for i in range(4)])
 
@@ -1739,8 +1740,8 @@ cdef class ResidueRingModN:
         self.add(rop[2], t, t2)
         self.mul(t, x[2], y[1])
         self.mul(t2, x[3], y[3])
-        self.add(rop[3], t, t2)        
-        
+        self.add(rop[3], t, t2)
+
     cdef matrix_mul_ith_factor(self, modn_matrix rop, modn_matrix x, modn_matrix y, int i):
         cdef ResidueRing_abstract R = self.residue_rings[i]
         cdef residue_element t, t2
@@ -1755,7 +1756,7 @@ cdef class ResidueRingModN:
         R.add(rop[2][i], t, t2)
         R.mul(t, x[2][i], y[1][i])
         R.mul(t2, x[3][i], y[3][i])
-        R.add(rop[3][i], t, t2)        
+        R.add(rop[3][i], t, t2)
 
 ###########################################################################
 # The projective line P^1(O_F/N)
@@ -1774,7 +1775,7 @@ cdef class ProjectiveLineModN:
         cdef int i
         for i in range(self.r):
             R = self.S.residue_rings[i]
-            self.cards[i] = (R.cardinality() + R.cardinality()/R.residue_field().cardinality()) 
+            self.cards[i] = (R.cardinality() + R.cardinality()/R.residue_field().cardinality())
             self._cardinality *= self.cards[i]
 
     cpdef long cardinality(self):
@@ -1797,7 +1798,7 @@ cdef class ProjectiveLineModN:
         if self.r > 1:
             s = '(' + s + ')'
         return s
-     
+
     cdef int matrix_action(self, p1_element rop, modn_matrix op0, p1_element op1) except -1:
         # op0  = [a,b; c,d];    op1=[u;v]
         # product is  [a*u+b*v; c*u+d*v]
@@ -1811,7 +1812,7 @@ cdef class ProjectiveLineModN:
 
     cdef void set_element(self, p1_element rop, p1_element op):
         self.S.set_element(rop[0], op[0])
-        self.S.set_element(rop[1], op[1])        
+        self.S.set_element(rop[1], op[1])
 
     ######################################################################
     # Reducing elements to canonical form, so can compute index
@@ -1856,7 +1857,7 @@ cdef class ProjectiveLineModN:
         self.first_element(x)
         v = []
         from random import randrange
-        cdef ResidueRing_abstract R 
+        cdef ResidueRing_abstract R
         while True:
             # get y from x by multiplying through each entry by 3
             for i in range(self.r):
@@ -1872,7 +1873,7 @@ cdef class ProjectiveLineModN:
                 self.next_element(x, x)
             except ValueError:
                 return [w for w in v if w[0] != w[2]]
-        
+
     def test_reduce2(self, int m, int n):
         cdef int i
         cdef p1_element x, y, z
@@ -1880,7 +1881,7 @@ cdef class ProjectiveLineModN:
         for i in range(m):
             self.next_element(x, x)
         print self.element_to_str(x)
-        cdef ResidueRing_abstract R 
+        cdef ResidueRing_abstract R
         for i in range(self.r):
             R = self.S.residue_rings[i]
             y[0][i][0] = (3*x[0][i][0])%R.n0
@@ -1893,7 +1894,7 @@ cdef class ProjectiveLineModN:
         for i in range(n):
             self.reduce_element(z, y)
         return cputime(t)
-            
+
 
     ######################################################################
     # Standard index of elements
@@ -1914,16 +1915,16 @@ cdef class ProjectiveLineModN:
 
     cdef long ith_standard_index(self, p1_element z, int i) except -1:
         cdef ResidueRing_abstract R = self.S.residue_rings[i]
-        # Find standard index of normalized element 
+        # Find standard index of normalized element
         #        (z[0][i], z[1][i])
         # of R x R.  The index is defined by the ordering on
         # normalized elements given by the next_element method (see
         # docs below).
-        
+
         if R.element_is_1(z[1][i]):
             # then the index is the index of the first entry
             return R.index_of_element(z[0][i])
-        
+
         # The index is the cardinality of R plus the index of z[1][i]
         # in the list of multiples of P in R.
         return R._cardinality + R.index_of_element_in_P(z[1][i])
@@ -1931,7 +1932,7 @@ cdef class ProjectiveLineModN:
     ######################################################################
     # Enumeration of elements
     ######################################################################
-    
+
     def test_enum(self):
         cdef p1_element x
         self.first_element(x)
@@ -1974,7 +1975,7 @@ cdef class ProjectiveLineModN:
 
         if rop != z:  # not the same C-level pointer
             self.set_element(rop, z)
-            
+
         cdef int i=0
         while i < self.r and self.next_element_factor(rop, i):
             # it rolled over
@@ -2068,7 +2069,7 @@ cpdef object quaternion_in_terms_of_icosian_basis(object alpha):
     Write the quaternion alpha in terms of the fixed basis for integer icosians.
     """
     # this is a critical path for speed.
-    cdef NumberFieldElement_quadratic b0 = alpha[0], b1=alpha[1], b2=alpha[2], b3=alpha[3], 
+    cdef NumberFieldElement_quadratic b0 = alpha[0], b1=alpha[1], b2=alpha[2], b3=alpha[3],
     return [F_two._mul_(b0), F_gen_m1._mul_(b0)._sub_(b1)._add_(F_gen._mul_(b3)),
             F_gen_m1._mul_(b0)._add_(F_gen._mul_(b1))._sub_(b2),
             F_gen_m2._mul_(b0)._add_(F_gen._mul_(b2))._sub_(b3)]
@@ -2116,7 +2117,7 @@ cdef class ModN_Reduction:
             for k in range(4):
                 self.S.set_element_reducing_exponent_of_ith_factor(f.G[j][k], self.G[j][k], i)
         return f
-                
+
     cdef compute_ith_local_splitting(self, int i):
         cdef ResidueRingElement z
         cdef long m, n
@@ -2165,7 +2166,7 @@ cdef class ModN_Reduction:
             R.add(c, minus_one, t)
             if R.is_square(c):
                 # Next set a = -sqrt(c).
-                R.sqrt(a, c)  
+                R.sqrt(a, c)
                 # Set the matrix self.G[2] to [a,b,(j2-a*a)/b,-a]
                 R.set_element(self.G[2][0][i], a)
                 R.set_element(self.G[2][1][i], b)
@@ -2242,7 +2243,7 @@ cdef class ModN_Reduction:
                 for j in range(1,4):
                     R.mul(t2, self.G[j][i][0], z[j])
                     R.add(M[i][0], M[i][0], t2)
-            
+
 
     def __call__(self, alpha):
         """
@@ -2295,10 +2296,10 @@ cdef class IcosiansModP1ModN:
         self.P1 = ProjectiveLineModN(N)
         self.orbit_reps = <long*>0
         self.std_to_rep_table = <long*> sage_malloc(sizeof(long) * self.P1.cardinality())
-        
-        # TODO: This is very wasteful of memory, by a factor of about 120 on average?  
+
+        # TODO: This is very wasteful of memory, by a factor of about 120 on average?
         self.orbit_reps_p1elt = <p1_element*>sage_malloc(sizeof(p1_element) * self.P1.cardinality())
-        
+
         # initialize the group G of the 120 mod-N icosian matrices
         from sqrt5 import all_icosians
         X = all_icosians()
@@ -2329,7 +2330,7 @@ cdef class IcosiansModP1ModN:
         """
         Return the level N, which is the ideal we quotiented out by in
         constructing this set.
-        
+
         EXAMPLES::
 
         """
@@ -2362,11 +2363,11 @@ cdef class IcosiansModP1ModN:
                 else:
                     # This is a very good test that we got things right.  If any
                     # arithmetic or reduction is wrong, the orbits for the R^*
-                    # "action" are likely to fail to be disjoint. 
+                    # "action" are likely to fail to be disjoint.
                     assert self.std_to_rep_table[k] == i, "Bug: orbits not disjoint"
             # This assertion below is also an extremely good test that we got the
             # local splittings, etc., right.  If any of that goes wrong, then
-            # the "orbits" have all kinds of random orders. 
+            # the "orbits" have all kinds of random orders.
             assert 120 % orbit_cnt == 0, "orbit size = %s must divide 120"%orbit_cnt
             orbit_cnt = 0
             while ind < self.P1._cardinality and self.std_to_rep_table[ind] != -1:
@@ -2408,11 +2409,11 @@ cdef class IcosiansModP1ModN:
                 else:
                     # This is a very good test that we got things right.  If any
                     # arithmetic or reduction is wrong, the orbits for the R^*
-                    # "action" are likely to fail to be disjoint. 
+                    # "action" are likely to fail to be disjoint.
                     assert self.std_to_rep_table[k] == i, "Bug: orbits not disjoint"
             # This assertion below is also an extremely good test that we got the
             # local splittings, etc., right.  If any of that goes wrong, then
-            # the "orbits" have all kinds of random orders. 
+            # the "orbits" have all kinds of random orders.
             assert 120 % orbit_cnt == 0, "orbit size = %s must divide 120"%orbit_cnt
             print "It has an orbit of size %s"%orbit_cnt
             orbit_cnt = 0
@@ -2438,7 +2439,7 @@ cdef class IcosiansModP1ModN:
             - P -- prime ideal
             - ``sparse`` -- bool (default: True) if True, then a sparse
               matrix is returned, otherwise a dense one
-              
+
         OUTPUT:
             - a dense or sparse matrix over the rational numbers
 
@@ -2499,7 +2500,7 @@ cdef class IcosiansModP1ModN:
             (True, True, True)
 
         Examples involving a prime dividing the level::
-        
+
             sage: from psage.modform.hilbert.sqrt5.sqrt5_fast import F, IcosiansModP1ModN
             sage: v = F.primes_above(31); I = IcosiansModP1ModN(v[0])
             sage: t31 = I.hecke_matrix(v[1]); t31
@@ -2544,7 +2545,7 @@ cdef class IcosiansModP1ModN:
                 j = self.std_to_rep_table[self.P1.standard_index(Mx)]
                 T[i,j] += 1
         return T
-        
+
 
     def _hecke_matrix_badnorm(self, P, sparse=True):
         """
@@ -2642,7 +2643,7 @@ cdef class IcosiansModP1ModN:
                     self.P1.reduce_element(Mx, Mx)
                     v[self.std_to_rep_table[self.P1.standard_index(Mx)]] += 1
         return v
-        
+
 
     def degeneracy_matrix(self, P, sparse=True):
         """
@@ -2652,7 +2653,7 @@ cdef class IcosiansModP1ModN:
         #################################################################################
         # Important comment / thought regarding this function!
         # For this to work, the local splitting maps must be chosen
-        # in a compatible way.  Let R be the icosian ring. 
+        # in a compatible way.  Let R be the icosian ring.
         # We compute somehow a map
         #            R ---> M_2(O/P^n)
         # and somehow else, we compute a map
@@ -2662,13 +2663,13 @@ cdef class IcosiansModP1ModN:
         # will simply be WRONG.
         #   SO WATCH OUT!    (This took me like 3 hours of frustration to realize...)
         ##################################################################################
-        
-        
+
+
         N = self.P1.S.N
         # Figure out the index of P as a prime divisor of N
         cdef ResidueRing_abstract R
         cdef int k, ind = -1, m = len(self.P1.S.residue_rings)
-        
+
         for k, R in enumerate(self.P1.S.residue_rings):
             if R.P == P:
                 # Got it
@@ -2679,7 +2680,7 @@ cdef class IcosiansModP1ModN:
 
         # Compute basis of the P^1 for lower level.
         N2 = N/P
-        
+
         # CRITICAL: see above comment.  We have to compute the mod-N2
         # local splitting map in terms of the fixed choice of map for
         # self.  If we don't, we will get very subtle bugs.
@@ -2689,7 +2690,7 @@ cdef class IcosiansModP1ModN:
         D = zero_matrix(QQ, self._cardinality, I2._cardinality, sparse=sparse)
         cdef Py_ssize_t i, j
         cdef p1_element x, y
-        
+
         for i in range(self._cardinality):
             # Make the p1_element y from self.orbit_reps_p1elt[i]
             # by reducing at the the "ind" position
@@ -2702,25 +2703,25 @@ cdef class IcosiansModP1ModN:
             #print "... to ", I2.P1.element_to_str(x)
             j = I2.std_to_rep_table[I2.P1.standard_index(x)]
             D[i,j] += 1
-            
+
         return D
 
 def unpickle_IcosiansModP1ModN_v1(x):
     import sqrt5
     return IcosiansModP1ModN(sqrt5.F.ideal(x))
 
- 
+
 ####################################################################
 # fragments/test code below
 ####################################################################
-    
+
 ## def test(v, int n):
 ##     cdef list w = v
 ##     cdef int i
 ##     cdef ResidueRing_abstract R
 ##     for i in range(n):
 ##         R = w[i%3]
-        
+
 
 ## def test(ResidueRing_abstract R):
 ##     cdef modn_element x
@@ -2743,7 +2744,7 @@ def unpickle_IcosiansModP1ModN_v1(x):
 ##     x[3] = 2
 ##     x[4] = 1
 ##     x[5] = 2
-##     from sqrt5 import F     
+##     from sqrt5 import F
 ##     Pinert = F.primes_above(7)[0]
 ##     cdef ResidueRing_nonsplit Rinert = ResidueRing(Pinert, 2)
 ##     print (x+2)[0], (x+2)[1]
@@ -2762,7 +2763,7 @@ def unpickle_IcosiansModP1ModN_v1(x):
 ##     return t
 
 ## def bench2(int n):
-##     from sqrt5 import F     
+##     from sqrt5 import F
 ##     Pinert = F.primes_above(3)[0]
 ##     cdef ResidueRing_nonsplit Rinert = ResidueRing(Pinert, 2)
 ##     cdef ResidueRingElement_nonsplit2 s_inert = Rinert(F.gen(0)+3)

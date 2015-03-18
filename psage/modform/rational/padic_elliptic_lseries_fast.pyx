@@ -8,12 +8,12 @@
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  PSAGE is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -67,8 +67,8 @@ cdef class pAdicLseries:
             sage_free(self.teich)
         if self.teich_mulmod:
             sage_free(self.teich_mulmod)
-    
-    
+
+
     def __init__(self, E, p, algorithm='eclib', parallel=False):
         """
         INPUT:
@@ -96,10 +96,10 @@ cdef class pAdicLseries:
             sage: L.series_modp()
             5*T^2 + 3*T^3 + 6*T^4 + O(T^5)
             sage: L.series_modp().list()
-            [0, 0, 5, 3, 6]        
+            [0, 0, 5, 3, 6]
 
         We use Sage modular symbols instead of eclib's::
-        
+
             sage: L = pAdicLseries(E, 7, algorithm='sage')
             sage: L.series(n=3)
             O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
@@ -107,7 +107,7 @@ cdef class pAdicLseries:
         When we use algorithm='modsym', we see that the normalization
         is not correct (as is documented above -- no attempt is made
         to normalize!)::
-        
+
             sage: L = pAdicLseries(E, 7, algorithm='modsym')
             sage: L.series(n=3)
             O(7^2) + O(7^2)*T + (6 + 5*7 + O(7^2))*T^2 + (5 + 6*7 + O(7^2))*T^3 + (3 + 5*7 + O(7^2))*T^4 + O(T^5)
@@ -115,7 +115,7 @@ cdef class pAdicLseries:
             O(7^2) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
 
         These agree with the L-series computed directly using separate code in Sage::
-        
+
             sage: L = E.padic_lseries(7)
             sage: L.series(3)
             O(7^5) + O(7^2)*T + (5 + 4*7 + O(7^2))*T^2 + (3 + 6*7 + O(7^2))*T^3 + (6 + 3*7 + O(7^2))*T^4 + O(T^5)
@@ -126,7 +126,7 @@ cdef class pAdicLseries:
             sage: L = pAdicLseries(EllipticCurve('389a'),997)
             sage: L2 = pAdicLseries(EllipticCurve('389a'),997,parallel=True)
             sage: L.series_modp() == L2.series_modp()
-            True        
+            True
 
         If you time the left and right above separately, and have a
         multicore machine, you should see that the right is much
@@ -138,7 +138,7 @@ cdef class pAdicLseries:
 
         # prec = biggest n such that p^n <= 2^63, so n = floor(log_p(2^63))
         self.prec = ZZ(2**63).exact_log(p)
-        
+
         assert Integer(p).is_pseudoprime(), "p (=%s) must be prime"%p
         assert E.is_ordinary(p), "p (=%s) must be ordinary for E"%p
         assert E.is_good(p), "p (=%s) must be good for E"%p
@@ -154,10 +154,10 @@ cdef class pAdicLseries:
             self.modsym = ModularSymbolMap(A)
         else:
             raise ValueError, "unknown algorithm '%s'"%algorithm
-            
+
         # the denom must be a unit, given our hypotheses (and assumptions in code!)
         assert ZZ(self.modsym.denom)%self.p != 0, "internal modsym denominator must be a p(=%s)-unit, but it is %s"%(self.p, self.modsym.denom)
-            
+
         # Compute alpha:
         f = ZZ['x']([p, -E.ap(p), 1])
         G = f.factor_padic(p, self.prec)
@@ -188,7 +188,7 @@ cdef class pAdicLseries:
         self.alpha_inv_mulmod[0] = u
         for n in range(self.prec):
             u *= alpha
-            self.alpha_inv_mulmod[n+1] = K_mulmod(1/u).lift()  
+            self.alpha_inv_mulmod[n+1] = K_mulmod(1/u).lift()
 
         # Make a table of powers of p up to prec
         ppow = 1
@@ -218,7 +218,7 @@ cdef class pAdicLseries:
 
     def alpha(self):
         return self._alpha
-        
+
     cpdef long modular_symbol(self, long a, long b):
         cdef long v[1]
         self.modsym.evaluate(v, a, b)
@@ -257,19 +257,19 @@ cdef class pAdicLseries:
 
         cdef long ans = (mulmod(self.alpha_inv_mulmod[n], self.modular_symbol(a, self.p_pow[n]), pp)
                          - mulmod(self.alpha_inv_mulmod[n+1], self.modular_symbol(a, self.p_pow[n-1]), pp))
-        
+
         # mulmod returns a number between 0 and pp-1, inclusive, and so does this function.  Since
         # we compute ans as a difference of two such numbers, it is already in the interval [0..pp-1],
         # or it is in the interval [-(pp-1)..-1], in which case we add pp.
         if ans < 0:
             ans += pp
         return ans
-                        
+
     def _series(self, int n, prec, ser_prec=5, bint verb=0, bint force_mulmod=False,
                  long start=-1, long stop=-1):
         """
         EXAMPLES::
-        
+
             sage: import psage.modform.rational.padic_elliptic_lseries_fast as p; L = p.pAdicLseries(EllipticCurve('389a'),5)
             sage: f = L._series(2, 3, ser_prec=6); f.change_ring(Integers(5^3))
             73*T^4 + 42*T^3 + 89*T^2 + 120*T
@@ -282,11 +282,11 @@ cdef class pAdicLseries:
         """
         if verb:
             print "_series %s computing mod p^%s"%(n, prec)
-            
+
         cdef long a, b, j, s, gamma_pow, gamma, pp
 
         assert prec >= n, "prec (=%s) must be as large as approximation n (=%s)"%(prec, n)
-        
+
         pp = self.p_pow[prec]
 
         gamma = 1 + self.p
@@ -301,7 +301,7 @@ cdef class pAdicLseries:
         if start == -1:
             start = 0
             stop = self.p_pow[n-1]
-            
+
         if start != 0:
             # initialize gamma_pow and one_plus_T_factor to be
             #    gamma_pow = gamma^start
@@ -312,12 +312,12 @@ cdef class pAdicLseries:
         if not force_mulmod and prec <= self.prec // 2:
             # no concerns about overflow when multiplying together two longs, then reducing modulo pp
             for j in range(start, stop):
-                _sig_on
+                sig_on()
                 s = 0
                 for a in range(1, self.p):
                     b = self.teich[a] * gamma_pow
                     s += self.measure(b, n)
-                _sig_off
+                sig_off()
                 L += (s * one_plus_T_factor).truncate(ser_prec)
                 one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
                 gamma_pow = (gamma_pow * gamma)%pp
@@ -326,24 +326,24 @@ cdef class pAdicLseries:
         else:
             if verb: print "Using mulmod"
             # Since prec > self.prec//2, where self.prec =
-            #     ZZ(2**63).exact_log(p) = floor(log_p(2^63)), 
+            #     ZZ(2**63).exact_log(p) = floor(log_p(2^63)),
             # all multiplies in the loop above of longs must be done with
             # long long, then reduced modulo pp.  This is slower, but
             # is necessary to ensure no overflow.
 
             assert prec <= self.prec, "requested precision (%s) too large (max: %s)"%(prec, self.prec)
             for j in range(start, stop):
-                _sig_on
+                sig_on()
                 s = 0
                 for a in range(1, self.p):
                     b = mulmod(self.teich_mulmod[a], gamma_pow, pp)
                     s += self.measure_mulmod(b, n, pp)
                     if s >= pp: s -= pp  # normalize
-                _sig_off
+                sig_off()
                 L += (s * one_plus_T_factor).truncate(ser_prec)
                 one_plus_T_factor = (one_plus_T*one_plus_T_factor).truncate(ser_prec)
                 gamma_pow = mulmod(gamma_pow, gamma, pp)
-            return L * self.normalization_mulmod            
+            return L * self.normalization_mulmod
 
     def _series_parallel(self, int n, prec, ser_prec=5, bint verb=0, bint force_mulmod=False,
                          ncpus=None):
@@ -359,7 +359,7 @@ cdef class pAdicLseries:
                 enj = bino
             res.append(enj)
         return res
-    
+
     def series(self, int n=2, prec=None, ser_prec=5, int check=True, bint verb=False,
                parallel=None):
         """
@@ -386,7 +386,7 @@ cdef class pAdicLseries:
             assert self.E.galois_representation().is_surjective(p), "p (=%s) must be surjective for E"%p
         if parallel is None:
             parallel = self.parallel
-        
+
         if parallel:
             f = self._series_parallel(n, prec, ser_prec, verb=verb)
         else:
@@ -401,7 +401,7 @@ cdef class pAdicLseries:
         ser_prec = min([ser_prec] + [i for i in range(len(aj)) if aj[i].precision_absolute() == 0])
         L = R[['T']](aj, ser_prec)
         return L / self.modsym.denom
-        
+
     def series_modp(self, int n=2, ser_prec=5, int check=True):
         """
         EXAMPLES::
@@ -448,7 +448,7 @@ cdef class pAdicLseries:
             sage: L
             O(13^2) + O(13^2)*T + (10*13 + O(13^2))*T^2 + (12*13 + O(13^2))*T^3 + (9 + 10*13 + O(13^2))*T^4 + (7 + 9*13 + O(13^2))*T^5 + O(T^6)
             sage: reg
-            12*13^3 + 4*13^4 + 9*13^5 + 11*13^6 + 5*13^7 + 7*13^9 + 6*13^10 + 5*13^12 + 4*13^13 + 4*13^14 + 5*13^15 + 5*13^16 + 4*13^17 + 10*13^18 + 2*13^19 + 6*13^20 + O(13^21)             
+            12*13^3 + 4*13^4 + 9*13^5 + 11*13^6 + 5*13^7 + 7*13^9 + 6*13^10 + 5*13^12 + 4*13^13 + 4*13^14 + 5*13^15 + 5*13^16 + 4*13^17 + 10*13^18 + 2*13^19 + 6*13^20 + O(13^21)
         """
         L   = self.series_to_enough_prec(verb=verb)
         p   = ZZ(self.p)
@@ -461,9 +461,9 @@ cdef class pAdicLseries:
 
         #sha = Mod(tam * (reg / lg**r) * eps / tor,  p)
         sha = L[r] / (tam * (reg / lg**r) * eps / tor)
-        
+
         return sha, L, reg
-        
+
 def series_parallel(L, n, prec, ser_prec=5, verb=False, force_mulmod=False, ncpus=None):
     # Use @parallel to do this computation by dividing it up into
     # p separate tasks, doing those in separate processes,
@@ -477,7 +477,7 @@ def series_parallel(L, n, prec, ser_prec=5, verb=False, force_mulmod=False, ncpu
         return L._series(n, prec, ser_prec, verb, force_mulmod, start, stop)
 
     # intervals is going to be a list of (start, stop) pairs that give
-    # the (Python) range of j's to sum over.   We thus must divide 
+    # the (Python) range of j's to sum over.   We thus must divide
     #     range(0, p^(n-1))
     # up into ncpus sublists.
     last = ZZ(L.p)**(n-1)

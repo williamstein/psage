@@ -29,7 +29,8 @@ include 'stdsage.pxi'
 include 'cdefs.pxi'
 include 'python.pxi'
 
-from sage.rings.all import Integers, is_Ideal, ZZ, QQ
+from sage.rings.ideal import is_Ideal
+from sage.rings.all import Integers, ZZ, QQ
 from sage.matrix.all import MatrixSpace, zero_matrix
 
 from sage.rings.integer cimport Integer

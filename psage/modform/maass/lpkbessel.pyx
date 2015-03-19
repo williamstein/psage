@@ -14,14 +14,8 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-include "sage/ext/cdefs.pxi"
-include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
-include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
+include 'common_defs.pxd'
 
-from sage.libs.mpfr cimport *
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
-cdef mpfr_rnd_t rnd
-rnd = GMP_RNDN
 import cython
 
 r"""
@@ -618,13 +612,13 @@ cpdef besselk_real_rec(RealNumber r,RealNumber x,double eps=0,int verbose=0):
     f111=r*f11
     f2 = t1**-1
     # rk0 = f111 + f2
-    mpfr_add(rk0.value,f111.value,f2.value,rnd)
+    mpfr_add(rk0.value,f111.value,f2.value,rnd_re)
     fk0 = f11 - f2/r
-    mpfr_sub(tmpx,one.value,r.value,rnd)
-    mpfr_div(tmpx,f111.value,tmpx,rnd)
-    mpfr_add(tmpx1,one.value,r.value,rnd)
-    mpfr_div(tmpx1,f2.value,tmpx1,rnd)
-    mpfr_add(rk1.value,tmpx,tmpx1,rnd)
+    mpfr_sub(tmpx,one.value,r.value,rnd_re)
+    mpfr_div(tmpx,f111.value,tmpx,rnd_re)
+    mpfr_add(tmpx1,one.value,r.value,rnd_re)
+    mpfr_div(tmpx1,f2.value,tmpx1,rnd_re)
+    mpfr_add(rk1.value,tmpx,tmpx1,rnd_re)
     #rk1 = f111/(one-r) + f2/(one+r)
     R2 = r*r
     fk1 = (fk0 + rk0)/(one-R2)
@@ -632,7 +626,7 @@ cpdef besselk_real_rec(RealNumber r,RealNumber x,double eps=0,int verbose=0):
     xtwo = RF(x)**2
     xtwo_by_four = xtwo/four
     ck0 = one
-    mpfr_set(ck1.value,xtwo_by_four.value,rnd)
+    mpfr_set(ck1.value,xtwo_by_four.value,rnd_re)
     s = ck0*fk0+ck1*fk1
     #print "eps=",eps
     #print "test=",2.0**(2-RF.prec())
@@ -661,27 +655,27 @@ cpdef besselk_real_rec(RealNumber r,RealNumber x,double eps=0,int verbose=0):
     # fk1 = fk[k-1]
 
     for k in range(2,N+1):
-        mpfr_set_ui(kk.value,k,rnd)
-        mpfr_pow_ui(k2.value,kk.value,2,rnd)
-        mpfr_sub(tmpx,k2.value,R2.value,rnd)
-        mpfr_mul(tmpx1,kk.value,fk1.value,rnd)
-        mpfr_add(tmpx1,tmpx1,rk1.value,rnd)
-        mpfr_div(fk1.value,tmpx1,tmpx,rnd)
+        mpfr_set_ui(kk.value,k,rnd_re)
+        mpfr_pow_ui(k2.value,kk.value,2,rnd_re)
+        mpfr_sub(tmpx,k2.value,R2.value,rnd_re)
+        mpfr_mul(tmpx1,kk.value,fk1.value,rnd_re)
+        mpfr_add(tmpx1,tmpx1,rk1.value,rnd_re)
+        mpfr_div(fk1.value,tmpx1,tmpx,rnd_re)
         #fk1 = (kk*fk1 + rk1)/(k2-R2)
-        mpfr_div(tmpx,xtwo_by_four.value,kk.value,rnd)
-        mpfr_mul(ck1.value,ck1.value,tmpx,rnd)
+        mpfr_div(tmpx,xtwo_by_four.value,kk.value,rnd_re)
+        mpfr_mul(ck1.value,ck1.value,tmpx,rnd_re)
         #ck1 = ck1*xtwo_by_four/kk
-        mpfr_mul(term.value,ck1.value,fk1.value,rnd)
+        mpfr_mul(term.value,ck1.value,fk1.value,rnd_re)
         #term = ck1*fk1
         if verbose>1:
             print "f[{0}]={1}".format(k,fk1) 
             print "c[{0}]={1}".format(k,ck1)
-        mpfr_add(s.value,s.value,term.value,rnd)
+        mpfr_add(s.value,s.value,term.value,rnd_re)
         if k > kmin:
             # Get a rigorous error term for truncation
             ef2 = (2.0*k+2.0)**rmax
             ef3 = (3.0/k)**(k+1)
-            err_est = ef1*ef2*ef3*mpfr_get_d(ck1.value,rnd)
+            err_est = ef1*ef2*ef3*mpfr_get_d(ck1.value,rnd_re)
             # Also add numerical error
 #            err_est+=k*meps
             if verbose>0:
@@ -690,22 +684,22 @@ cpdef besselk_real_rec(RealNumber r,RealNumber x,double eps=0,int verbose=0):
             #print "s=",s
             if abs(err_est)< eps: #abs(term)/abs(s)<eps:
                 break
-        mpfr_mul_si(tmpx,rk1.value,2*k-1,rnd)
-        mpfr_sub(tmpx,tmpx,rk0.value,rnd)
-        mpfr_set(rtmpx.value,tmpx,rnd)
+        mpfr_mul_si(tmpx,rk1.value,2*k-1,rnd_re)
+        mpfr_sub(tmpx,tmpx,rk0.value,rnd_re)
+        mpfr_set(rtmpx.value,tmpx,rnd_re)
         #print "(2k-1)rk-r0=",rtmpx
         #print "(2k-1)rk-r0=",((2*kk-1)*rk1 - rk0)        
-        mpfr_sub(tmpx1,k2.value,R2.value,rnd)
-        mpfr_set(rtmpx.value,tmpx1,rnd)
+        mpfr_sub(tmpx1,k2.value,R2.value,rnd_re)
+        mpfr_set(rtmpx.value,tmpx1,rnd_re)
         #print "k2-r2=",rtmpx
         #print "k2-r2=",(k2-R2)
-        mpfr_div(rk_new.value,tmpx,tmpx1,rnd)
+        mpfr_div(rk_new.value,tmpx,tmpx1,rnd_re)
         #print "rk_new 1=",rtmpx
         #print "rk_new 2=",((2*kk-1)*rk1 - rk0)/(k2 - R2)
         #rk_new = ((2*kk-1)*rk1 - rk0)/(k2 - R2)
         #print "rk_new 3=",rk_new
-        mpfr_set(rk0.value,rk1.value,rnd)
-        mpfr_set(rk1.value,rk_new.value,rnd)
+        mpfr_set(rk0.value,rk1.value,rnd_re)
+        mpfr_set(rk1.value,rk_new.value,rnd_re)
         #rk0 = rk1
         #rk1 = rk_new
         if verbose>2:

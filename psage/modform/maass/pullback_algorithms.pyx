@@ -6,8 +6,7 @@ Pullback algorithms optimized  for various settings.
 
 """
 
-cimport common_defs
-from common_defs cimport *
+include 'common_defs.pxd'
 
 
 from sage.rings.complex_mpc import MPComplexField

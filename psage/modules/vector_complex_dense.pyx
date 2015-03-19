@@ -43,8 +43,8 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
-cimport psage.modform.maass.common_defs
-from psage.modform.maass.common_defs cimport *
+include '../modform/maass/common_defs.pxd'
+
 
 
 

@@ -32,11 +32,8 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-#include 'sage/ext/gmp.pxi'
-include 'sage/ext/interrupt.pxi'
-#include 'sage/structure/coerce.pxi'
+include 'common_defs.pxd'
+
 from sage.modules.all import vector
 import sage.structure.element
 cimport sage.structure.element

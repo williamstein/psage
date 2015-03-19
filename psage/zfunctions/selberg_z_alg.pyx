@@ -5,8 +5,8 @@
 
 
 
-cimport psage.modform.maass.common_defs
-from  psage.modform.maass.common_defs cimport *
+include '../modform/maass/common_defs.pxd'
+
 
 #include "sage/rings/mpc.pxi"
 from psage.rings.mpfr_nogil cimport *
@@ -21,15 +21,10 @@ from cython.parallel cimport parallel, prange
 
 #from sage.libs.mpfr cimport *
 import sys
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = MPFR_RNDN
+
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
 
-from sage.rings.complex_number cimport ComplexNumber
 from sage.rings.complex_field import ComplexField
 from sage.rings.integer import Integer,is_Integer
 from sage.all import exp,I,CC,vector

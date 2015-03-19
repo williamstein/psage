@@ -29,8 +29,8 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
-cimport common_defs
-from common_defs cimport *
+include 'common_defs.pxd'
+
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0
 

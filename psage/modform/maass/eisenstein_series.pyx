@@ -20,8 +20,8 @@ Used by routines in maass_forms.py
 
 """
 
-cimport psage.modform.maass.common_defs
-from psage.modform.maass.common_defs cimport *
+include 'common_defs.pxd'
+
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
 import mpmath    
 

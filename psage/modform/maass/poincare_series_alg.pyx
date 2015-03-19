@@ -20,8 +20,7 @@ Cython algorithms for scalar-valued Poincare series.
 TODO: add proven error estimates
 
 """
-cimport common_defs
-from common_defs cimport *
+include 'common_defs.pxd'
 
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField

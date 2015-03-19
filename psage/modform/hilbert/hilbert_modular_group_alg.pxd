@@ -1,7 +1,7 @@
 include "sage/libs/ntl/decl.pxi"
 include 'sage/ext/stdsage.pxi'
 include 'sage/ext/interrupt.pxi'
-include "sage/rings/mpc.pxi"
+#include "sage/rings/mpc.pxi"
 cimport sage.structure.element
 from sage.rings.integer cimport Integer
 from sage.rings.rational cimport Rational

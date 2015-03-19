@@ -6,29 +6,21 @@ Pullback algorithms optimized  for various settings.
 
 """
 
-#include 'sage/ext/stdsage.pxi'
-#include "sage/ext/cdefs.pxi"
-#include 'sage/ext/interrupt.pxi'
-#include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
+cimport common_defs
+from common_defs cimport *
 
-from sage.libs.mpfr cimport *
 
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
-from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
+from sage.rings.complex_field import ComplexField
 from sage.rings.real_mpfr import RealField
-from sage.rings.complex_number cimport ComplexNumber
-from sage.all import ComplexField,vector,matrix,Integer
+
+from sage.modules.all import vector
+from sage.matix.all import matrix
+from sage.rings.integer import Integer
+from sage.ring.real_mpfr import RR
 import sage.structure.element
-cimport sage.structure.element
-from sage.structure.element cimport Element, ModuleElement, RingElement
 from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
-from sage.all import copy,RR
+from sage.all import copy
 from mysubgroup import is_Hecke_triangle_group
 import cython
 cdef extern from "math.h":
@@ -340,7 +332,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
     #    print "Here2"
     Ql = 0
 #    cdef int some_nonsymmetric_cusp = 0
-    for c in range(nc):
+    for ci in range(nc):
         if Qv[ci][2]>Ql:
             Ql = Qv[ci][2]
 #                Ql=Qf-Qs+1
@@ -520,7 +512,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
                     m3=cexp(_Complex_I*tmparg3)
                     tmp=cexp(_Complex_I*(tmparg2-tmparg1+tmparg3))
                     if verbose>2:
-                        print "tmparg3=",tmparg
+                        print "tmparg3=",tmparg3
                         print "A[2],A[3]=",A[2],A[3]
                         print "A[3]=",A[3],"% modulus:",vi
                         print "m1,m2,m3=",m1,m2,m3
@@ -946,7 +938,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                     m3=cexp(_Complex_I*tmparg3)
                     tmp=cexp(_Complex_I*(tmparg2-tmparg1+tmparg3))
                     if verbose>2:
-                        print "tmparg3=",tmparg
+                        print "tmparg3=",tmparg3
                         print "A[2],A[3]=",A[2],A[3]
                         print "A[3]=",A[3],"% modulus:",vi
                         print "m1,m2,m3=",m1,m2,m3

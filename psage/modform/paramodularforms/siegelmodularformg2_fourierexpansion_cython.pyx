@@ -34,7 +34,7 @@ include "interrupt.pxi"
 include "stdsage.pxi"
 include "cdefs.pxi"
 
-include 'sage/ext/gmp.pxi'
+#include 'sage/ext/gmp.pxi'
 
 from sage.rings.integer cimport Integer
 from sage.rings.ring cimport Ring

@@ -34,7 +34,7 @@ AUTHOR:
 
 include 'sage/ext/stdsage.pxi'
 include "sage/ext/cdefs.pxi"
-include 'sage/ext/gmp.pxi'
+#include 'sage/ext/gmp.pxi'
 include 'sage/ext/interrupt.pxi'
 #include 'sage/structure/coerce.pxi'
 from sage.modules.all import vector

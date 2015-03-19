@@ -18,23 +18,11 @@ r"""
 Algorithms for phase 2 for Maass waveforms
 """
 
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
-#include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
+cimport common_defs
+from common_defs cimport *
 
-
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
-
-from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
-from sage.rings.complex_number cimport ComplexNumber
 from sage.all import CC
 from maass_forms import Maasswaveform,maass_logger
 

@@ -1,7 +1,8 @@
 include "sage/ext/interrupt.pxi" 
 include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
-include "sage/rings/mpc.pxi"
+from sage.libs.mpfr cimport *
+#include "sage/rings/mpc.pxi"
 #include "sage/ext/gmp.pxi"
 
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense

@@ -17,15 +17,11 @@
 include "sage/ext/cdefs.pxi"
 include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
 include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
-include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
 
 from sage.libs.mpfr cimport *
-
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
 cdef mpfr_rnd_t rnd
 rnd = GMP_RNDN
-
 import cython
 
 r"""

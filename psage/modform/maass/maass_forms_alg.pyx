@@ -19,30 +19,18 @@ Cython algorithms for Maass waveforms.
 Used by routines in maass_forms.py
 
 """
+cimport common_defs
+from common_defs cimport *
 
-include 'sage/ext/stdsage.pxi' 
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
-#include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
 from sage.all import save,incomplete_gamma,load,bessel_K
 import mpmath
-from sage.libs.mpfr cimport *
 
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = MPFR_RNDN
-from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
-from sage.rings.complex_number cimport ComplexNumber
 import sage.structure.element
 cimport sage.structure.element
 from sage.structure.element cimport Element, ModuleElement, RingElement
 from sage.modular.cusps import Cusp
-#xfrom sage.modular.cusps cimport Cusp
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer,is_Integer
 from sage.rings.complex_double import CDF
@@ -51,10 +39,6 @@ from numpy import array
 from sage.all import exp,I,CC
 from sage.all import find_root
 ## Since I want to import sinand cos from math.h
-#from sage.all import sin as ssin
-#from sage.all import cos as scos
-#from libc.math cimport sin as dsin
-#from libc.math cimport cos as dcos
 cimport numpy as cnp
 import numpy as np
 #cimport cython

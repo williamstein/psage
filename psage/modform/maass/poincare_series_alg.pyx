@@ -20,24 +20,11 @@ Cython algorithms for scalar-valued Poincare series.
 TODO: add proven error estimates
 
 """
+cimport common_defs
+from common_defs cimport *
 
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
-include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
-from sage.libs.mpfr cimport *
-
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
-
-from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
-from sage.rings.complex_number cimport ComplexNumber
 #from sage.all import Bessel_J
 import mpmath
 import cython

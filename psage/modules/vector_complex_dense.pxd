@@ -1,7 +1,5 @@
-include '../ext/stdsage.pxi'
-include '../ext/cdefs.pxi'
-include "../rings/mpc.pxi"
-#include "../ext/gmp.pxi"
+cimport psage.modform.maass.common_defs
+from psage.modform.maass.common_defs cimport *
 
 from sage.modules.free_module_element cimport FreeModuleElement
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense

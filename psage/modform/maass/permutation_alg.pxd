@@ -1,9 +1,6 @@
-include "sage/ext/interrupt.pxi" 
-include "sage/ext/stdsage.pxi"  
-include "sage/ext/cdefs.pxi"
-include "sage/rings/mpc.pxi"
-#include "../ext/gmp.pxi"
-#include "sage/ext/python_int.pxi"
+cimport common_defs
+from common_defs cimport *
+
 from sage.structure.sage_object cimport SageObject
 from sage.structure.parent cimport Parent
 from sage.rings.integer cimport Integer

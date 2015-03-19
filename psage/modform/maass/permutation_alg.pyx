@@ -29,7 +29,8 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
-
+cimport common_defs
+from common_defs cimport *
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0
 
@@ -2869,7 +2870,9 @@ cpdef conjugate_perm(perma,permb):
 
     """
     cdef int N = len(perma)
-    cdef int *a, *b, *c
+    cdef int *a
+    cdef int *b
+    cdef int *c
     cdef int i
     a = <int*> sage_malloc(sizeof(int)*N)
     if not a: raise MemoryError

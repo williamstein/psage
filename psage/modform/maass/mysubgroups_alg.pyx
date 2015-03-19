@@ -28,19 +28,8 @@ AUTHOR:
 
 """
 
-
-include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
-include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
-include "sage/ext/cdefs.pxi"
-include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
-
-## For multiprecision support
-from sage.libs.mpfr cimport *
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
+cimport common_defs
+from common_defs cimport *
 
 from sage.rings.complex_mpc cimport * #MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField

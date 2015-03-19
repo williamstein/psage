@@ -1,9 +1,5 @@
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
-#include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
-from sage.libs.mpfr cimport *
+cimport common_defs
+from common_defs cimport *
 
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from sage.rings.real_mpfr cimport RealNumber

@@ -25,6 +25,7 @@ from multiplier_systems import MultiplierSystem,TrivialMultiplier,ThetaMultiplie
 
 from automorphic_forms import AutomorphicFormSpace,HalfIntegralWeightForms,HarmonicWeakMaassForms,HolomorphicModularForms,WeakModularForm,HarmonicWeakMaassForm
 from poincare_series import PoincareSeries
+from poincare_series_vv import *
 
 #from poincare_series_alg import *
 #from vv_harmonic_weak_maass_forms_alg import *

@@ -53,7 +53,7 @@ from sage.rings.number_field.number_field import is_fundamental_discriminant
 from sage.all import RealNumber as makeRealNumber
 from sage.all import ComplexNumber as makeComplexNumber
 
-from sage.functions.special import bessel_J
+from sage.functions.special import spherical_bessel_J as bessel_J
 from sage.functions.other import gamma,ceil
 #from sage.calculus.calculus import ceil
 from sage.rings.arith import gcd,xgcd,kronecker,factor,odd_part,is_square,lcm

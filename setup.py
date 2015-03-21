@@ -107,12 +107,8 @@ ext_modules = [
     Extension("psage.modform.siegel.fastmult",
               ["psage/modform/siegel/fastmult.pyx"]),
 
-#    Extension('psage.modform.maass.common_defs',
-#              ['psage/modform/maass/common_defs'],
-#              include_dirs = numpy_include_dirs),
-
-    Extension('psage.modform.maass.mysubgroups_alg',
-              ['psage/modform/maass/mysubgroups_alg.pyx'],
+    Extension('psage.modform.arithgroup.mysubgroups_alg',
+              ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs),
 
@@ -204,17 +200,24 @@ my_extensions = [
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 
+    Extension('psage.modform.periods.period_polynomials_algs',
+              ['psage/modform/periods/period_polynomials_algs.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),
+
     Extension('psage.modform.maass.inc_gamma',
               ['psage/modform/maass/inc_gamma.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
-    Extension('psage.modform.maass.mysubgroups_alg',
-              ['psage/modform/maass/mysubgroups_alg.pyx'],
+    
+    Extension('psage.modform.arithgroup.mysubgroups_alg',
+              ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
 
-    Extension('psage.modform.maass.sl2z_subgroups_alg',
-              ['psage/modform/maass/sl2z_subgroups_alg.pyx'],
+    Extension('psage.modform.arithgroup.sl2z_subgroups_alg',
+              ['psage/modform/arithgroup/sl2z_subgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
 
     Extension('psage.modform.maass.permutation_alg',
@@ -388,6 +391,7 @@ build_system.setup(
                 'psage.modform.jacobiforms',
                 'psage.modform.weilrep_tools',
                 'psage.modform.maass',
+                'psage.modform.periods',
 
         		'psage.modules',
 

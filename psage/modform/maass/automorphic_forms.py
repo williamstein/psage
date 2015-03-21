@@ -154,7 +154,7 @@ EXAMPLES::
 import mpmath
 from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing,CyclotomicField,dimension_cusp_forms,dimension_modular_forms,CuspForms
 from mpmath import mpf
-from mysubgroup import *
+from psage.modform.arithgroup.mysubgroup import *
 from automorphic_forms_alg import *
 from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing
 

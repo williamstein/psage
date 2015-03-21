@@ -1,12 +1,9 @@
-import sl2z_subgroups_alg 
 import inc_gamma
-import mysubgroups_alg
+
 import maass_forms
 from inc_gamma import incgamma_int,incgamma_hint,pochammer
-
-from mysubgroups_alg import SL2Z_elt,factor_matrix_in_sl2z,ncf_to_SL2Z_element,GL2Z_elt
 from permutation_alg import MyPermutation,MyPermutationIterator,CycleCombinationIterator
-from mysubgroup import MySubgroup,HeckeTriangleGroup,nearest_integer_continued_fraction,list_valid_signatures
+
 from maass_forms import MaassWaveForms,EisensteinSeries,scattering_determinant_Hecke_triangle
 from maass_forms import Maasswaveform
 from maass_forms_alg import get_Y_from_M,get_M_from_Y,get_M_and_Y

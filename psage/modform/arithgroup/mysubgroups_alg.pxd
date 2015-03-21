@@ -71,3 +71,5 @@ cdef void _normalize_point_to_cusp_dp(double *x,double *y,int a,int b,int c,int 
 cdef void _normalize_point_to_cusp_real_dp(double *x,double *y,int a,int b,int c,int d, double wi, int inv=?)    
 
 cdef void pullback_to_hecke_triangle_mat_c_mpfr(mpfr_t x,mpfr_t y,mpfr_t lambdaq,mpfr_t a,mpfr_t b,mpfr_t c,mpfr_t d)
+
+cdef tuple fast_sl2z_factor(int a,int b,int c,int d,int verbose=?)

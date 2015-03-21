@@ -31,15 +31,15 @@ include "sage/ext/interrupt.pxi"
 include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
 
-from permutation_alg cimport MyPermutation,MyPermutationIterator,CycleCombinationIterator
-from permutation_alg cimport print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm_unsafe,are_transitive_perm_c,perm_to_cycle_c,are_conjugate_perm,get_conjugating_perm_list,get_conjugating_perm_ptr_unsafe,num_cycles_c
+from psage.modform.maass.permutation_alg cimport MyPermutation,MyPermutationIterator,CycleCombinationIterator,print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm_unsafe,are_transitive_perm_c,perm_to_cycle_c,are_conjugate_perm,get_conjugating_perm_list,get_conjugating_perm_ptr_unsafe,num_cycles_c
+from psage.modform.maass.permutation_alg import verbosity,sort_perms,perm_to_cycle
 
-from psage.modform.maass.mysubgroup import MySubgroup
-from psage.modform.maass.mysubgroups_alg cimport SL2Z_elt
-from psage.modform.maass.mysubgroups_alg import  get_coset_reps_from_perms
+from psage.modform.arithgroup.mysubgroup import MySubgroup
+from psage.modform.arithgroup.mysubgroups_alg cimport SL2Z_elt
+from psage.modform.arithgroup.mysubgroups_alg import  get_coset_reps_from_perms
 from sage.modules.vector_integer_dense cimport Vector_integer_dense
 
-from permutation_alg import verbosity,sort_perms,perm_to_cycle
+
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.groups.perm_gps.permgroup import PermutationGroup
 from sage.groups.perm_gps.permgroup_named import SymmetricGroup

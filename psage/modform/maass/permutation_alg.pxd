@@ -1,5 +1,4 @@
-cimport common_defs
-from common_defs cimport *
+from psage.modform.maass.common_defs cimport *
 
 from sage.structure.sage_object cimport SageObject
 from sage.structure.parent cimport Parent

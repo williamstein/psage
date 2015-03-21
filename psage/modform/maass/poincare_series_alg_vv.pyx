@@ -32,7 +32,7 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-include 'common_defs.pxd'
+from psage.modform.maass.common_cdefs cimport *
 
 from sage.modules.all import vector
 import sage.structure.element

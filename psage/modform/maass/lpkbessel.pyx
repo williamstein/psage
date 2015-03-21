@@ -14,7 +14,7 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-include 'common_defs.pxd'
+from psage.modform.maass.common_cdefs cimport *
 
 import cython
 

@@ -29,7 +29,7 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
-include 'common_defs.pxd'
+from psage.modform.maass.common_cdefs cimport *
 
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0

@@ -107,6 +107,10 @@ ext_modules = [
     Extension("psage.modform.siegel.fastmult",
               ["psage/modform/siegel/fastmult.pyx"]),
 
+#    Extension('psage.modform.maass.common_defs',
+#              ['psage/modform/maass/common_defs'],
+#              include_dirs = numpy_include_dirs),
+
     Extension('psage.modform.maass.mysubgroups_alg',
               ['psage/modform/maass/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],

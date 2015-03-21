@@ -28,7 +28,7 @@ AUTHOR:
 
 """
 
-include 'common_defss.pxd'
+from psage.modform.maass.common_cdefs cimport *
 
 from sage.rings.complex_mpc cimport * #MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField

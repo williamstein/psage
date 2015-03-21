@@ -1,4 +1,5 @@
-import sqrt5, sqrt5_fast
+import sqrt5_fast
+import sqrt5
 from sage.misc.all import cputime
 from sage.rings.all import Integer, ZZ
 

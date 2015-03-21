@@ -17,7 +17,7 @@
 r"""
 Algorithms for phase 2 for Maass waveforms
 """
-include 'common_defs.pxd'
+from psage.modform.maass.common_cdefs cimport *
 
 
 from sage.rings.complex_mpc import MPComplexField

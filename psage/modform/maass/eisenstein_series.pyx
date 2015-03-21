@@ -20,7 +20,7 @@ Used by routines in maass_forms.py
 
 """
 
-include 'common_defs.pxd'
+from psage.modform.maass.common_cdefs cimport *
 
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
 import mpmath    

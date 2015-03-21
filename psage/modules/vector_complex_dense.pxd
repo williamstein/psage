@@ -1,5 +1,4 @@
-cimport psage.modform.maass.common_defs
-from psage.modform.maass.common_defs cimport *
+include       '../modform/maass/common_defs.pxd'
 
 from sage.modules.free_module_element cimport FreeModuleElement
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense

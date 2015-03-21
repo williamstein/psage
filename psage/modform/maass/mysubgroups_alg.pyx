@@ -28,7 +28,7 @@ AUTHOR:
 
 """
 
-include 'common_defs.pxd'
+include 'common_defss.pxd'
 
 from sage.rings.complex_mpc cimport * #MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
@@ -74,9 +74,6 @@ cdef extern from "stdio.h":
 #cdef extern class sage.matrix.matrix_integer_2x2.Matrix_integer_2x2 as Matrix_integer_2x2_class:
 #    pass
 
-
-
-    
 # We import these rather than the implementation since it is limited to n<12 
 from sage.combinat.permutation_cython cimport *
 

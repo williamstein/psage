@@ -33,7 +33,7 @@ include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
 include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
 include "sage/ext/cdefs.pxi"
 include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
+include "sage/rings/mpc.pxi"
 
 ## For multiprecision support
 from sage.libs.mpfr cimport *
@@ -517,7 +517,7 @@ cpdef factor_matrix_in_sl2z_ncf(A,B=None,C=None,D=None,int check=1,int verbose=0
 
 
     
-cdef fast_sl2z_factor(int a,int b,int c,int d,int verbose=0):
+cdef tuple fast_sl2z_factor(int a,int b,int c,int d,int verbose=0):
     r"""
     Factor a matrix in S and T.
     INPUT:
@@ -570,7 +570,7 @@ cdef fast_sl2z_factor(int a,int b,int c,int d,int verbose=0):
             pref=-1
         else:
             raise ArithmeticError," Could not pullback! A={0}, AA={1}".format((a,b,c,d),(aa,bb,cc,dd))
-    return [pref,ntrans,l]
+    return (pref,ntrans,l)
 
 
 cpdef ncf_to_SL2Z_element(l):

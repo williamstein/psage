@@ -6,7 +6,7 @@ Pullback algorithms optimized  for various settings.
 
 """
 
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 
 from sage.rings.complex_mpc import MPComplexField
@@ -14,13 +14,14 @@ from sage.rings.complex_field import ComplexField
 from sage.rings.real_mpfr import RealField
 
 from sage.modules.all import vector
-from sage.matix.all import matrix
+from sage.matrix.all import matrix
 from sage.rings.integer import Integer
 from sage.ring.real_mpfr import RR
 import sage.structure.element
 from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 from sage.all import copy
-from mysubgroup import is_Hecke_triangle_group
+from psage.modform.arithgroup.mysubgroup import is_Hecke_triangle_group,MySubgroup
+
 import cython
 cdef extern from "math.h":
     double fabs(double)
@@ -51,13 +52,13 @@ cdef double complex CMPLX(double x,double y):
 
     
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
-from mysubgroup import MySubgroup
-from mysubgroups_alg import apply_sl2z_map,pullback_general_group_dp,pullback_general_group
-from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp,normalize_point_to_cusp_mpmath
-from mysubgroups_alg cimport _apply_sl2z_map_dp,_apply_sl2z_map_mpfr,_pullback_to_Gamma0N_dp,pullback_to_hecke_triangle_mat_c_mpfr
+from psage.modform.maass.arithgroup.mysubgroups_alg import apply_sl2z_map,pullback_general_group_dp,pullback_general_group
+from psage.modform.maass.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp,normalize_point_to_cusp_mpmath
+from psage.modform.arithgroup.mysubgroups_alg cimport _apply_sl2z_map_dp,_apply_sl2z_map_mpfr,_pullback_to_Gamma0N_dp,pullback_to_hecke_triangle_mat_c_mpfr,pullback_to_Gamma0N_mpfr_c,normalize_point_to_cusp_mpfr_c,_normalize_point_to_cusp_dp,_normalize_point_to_cusp_real_dp,SL2Z_elt,_normalize_point_to_cusp_mpfr,closest_vertex_dp_c
+
 from sage.all import CC,save
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense 
-from mysubgroups_alg cimport pullback_to_Gamma0N_mpfr_c,normalize_point_to_cusp_mpfr_c,_normalize_point_to_cusp_dp,_normalize_point_to_cusp_real_dp,SL2Z_elt,_normalize_point_to_cusp_mpfr,closest_vertex_dp_c
+
 
 import mpmath
 

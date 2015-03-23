@@ -20,7 +20,7 @@ Cython algorithms for scalar-valued Poincare series.
 TODO: add proven error estimates
 
 """
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField

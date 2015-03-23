@@ -32,7 +32,7 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 from sage.modules.all import vector
 import sage.structure.element

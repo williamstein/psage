@@ -7,7 +7,7 @@ Dense matrices over the complex field.
 
 EXAMPLES
 """
-include '../modform/maass/common_defs.pxd'
+from psage.rings.mp_cimports cimport *
 
 
 # set rounding to be nearest integer

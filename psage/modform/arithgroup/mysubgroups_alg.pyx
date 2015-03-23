@@ -28,7 +28,7 @@ AUTHOR:
 
 """
 
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 from sage.rings.complex_mpc cimport * #MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr cimport RealNumber,RealField_class
@@ -51,7 +51,7 @@ from copy import deepcopy
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
 
-from psage.modform.maass.permutation_alg cimport MyPermutation
+from psage.groups.permutation_alg cimport MyPermutation
 #from sage.rings.rational.Rational import floor as qq_floor
 import cython
 cdef extern from "math.h":

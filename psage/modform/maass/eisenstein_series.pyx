@@ -20,7 +20,7 @@ Used by routines in maass_forms.py
 
 """
 
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
 import mpmath    

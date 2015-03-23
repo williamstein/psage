@@ -17,7 +17,7 @@
 r"""
 Algorithms for phase 2 for Maass waveforms
 """
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 
 from sage.rings.complex_mpc import MPComplexField

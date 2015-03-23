@@ -29,7 +29,7 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0
@@ -48,8 +48,8 @@ from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
 import cython
-from psage.modform.maass.mysubgroup import MySubgroup
-from psage.modform.maass.mysubgroups_alg cimport SL2Z_elt
+#from psage.modform.maass.arithgroup.mysubgroup import MySubgroup
+#from psage.modform.maass.arithgroup.mysubgroups_alg cimport SL2Z_elt
 
 from libc.stdlib cimport malloc, free
 
@@ -3131,179 +3131,7 @@ cpdef are_transitive_permutations(MyPermutation pS,MyPermutation pR,int ret_maps
     return res
 
 
-cpdef are_transitive_permutations_wmaps(MyPermutation pS,MyPermutation pR,int verbose=0):
-    r""" Check that E,R are transitive permutations, i.e. that <E,R>=S_N
 
-    INPUT:
-
-         - ``E`` -- permutation on N letters 
-         - ``R`` -- permutation on N letters
-
-             - E and R can be in any of the following formats:
-
-                 - list [a1,a2,...,aN]
-                 - member of Permutations(N)
-                 - member of SymmetricGroup(N)
-
-     OUTPUT:
-
-     - bool  
-
-
-     EXAMPLES::
-
-         sage: E=Permutations(4)([1,2,4,3]); E.cycles()
-         [(1,), (2,), (3, 4)]
-         sage: R=Permutations(4)([2,1,3,4]); R.cycles()
-         [(1, 2), (3,), (4,)]
-         sage: are_transitive_permutations(E,R)
-         False
-         sage: R=Permutations(4)([2,3,1,4]); R.cycles()
-         [(1, 2, 3), (4,)]
-         sage: are_transitive_permutations(E,R)
-         True
-         sage: ES=SymmetricGroup(4)([1,2,4,3]);ES
-         (3,4)
-         sage: ER=SymmetricGroup(4)([2,3,1,4]);ER
-         (1,2,3)
-         sage: are_transitive_permutations(ES,RS)
-         True
-
-    """
-    cdef int *gotten
-    cdef int N=pS.N()
-    cdef int *maps=NULL
-    cdef int nmaps
-    cdef MyPermutation pT=pS*pR
-    if pS.order()<>2 or pR.order()<>3:
-        raise ValueError,"Need pS of order 2 and pR of order 3"
-    gotten = <int *>sage_malloc(sizeof(int)*N)
-    if not gotten: raise MemoryError
-    cdef int num,num_old
-    cdef int i,j,k,x
-    cdef dict maps_list={}
-    cdef int* cycle_lens=NULL
-    pT.cycles(order=0)  ## make sure we have the cycle containing 1 first
-    cdef int numc = pT.num_cycles()
-#    cdef list cycle_lens = pT.cycle_lens() #<int*>sage_malloc(sizeof(int)*numc)
-    if cycle_lens==NULL:
-        raise MemoryError
-    for i in range(numc):
-        cycle_lens[i]=pT.cycle_lens()[i]
-    for i in range(N):
-        gotten[i]=0
-    cdef SL2Z_elt A,R,S,T
-    A = SL2Z_elt(1,0,0,1)
-    R = SL2Z_elt(0,-1,1,1)
-    S = SL2Z_elt(0,-1,1,0)
-    T = SL2Z_elt(1,1,0,1)
-    x = 1
-    maps_list[1]=A
-    gotten[0]=1
-    for i in range(1,cycle_lens[0]):
-        x = pT._entries[x-1]
-        gotten[x-1]=x
-        if verbose>0:
-            print "gotten[{0}]={1}".format(x-1,x)
-        maps_list[x]=SL2Z_elt(1,i,0,1)
-        #print "maps{0}={1}".format(x,maps_list[x])
-    num = cycle_lens[0]
-
-    if verbose>0:
-        print "gotten=",print_vec(N,gotten)
-        for i in range(N):
-            print "gotten[{0}]={1}".format(i,gotten[i])
-    cdef int cycle_bd=cycle_lens[0]
-    for j in range(1,numc):
-        if verbose>0:
-            print "cycle[{0}]={1}".format(j,pT.cycles()[j])
-        ## want to connect with the next cycle of pT
-        num_old = num
-        for i in range(N):
-            if gotten[i]==0:
-                continue
-            if verbose>0:
-                print "Checking {0}".format(i+1)
-                print "S({0})={1}".format(i+1,pS._entries[i])
-                print "R({0})={1}".format(i+1,pR._entries[i])
-                print "R^2({0})={1}".format(i+1,pR._entries[pR._entries[i]-1])                
-            if _is_in_list(pT._cycles+cycle_bd,pS._entries[i],cycle_lens[j]):
-                x = pS._entries[i]
-                A = maps_list[i+1]*S
-            elif _is_in_list(pT._cycles+cycle_bd,pR._entries[i],cycle_lens[j]):
-                x = pS._entries[i]
-                A = maps_list[i+1]*R
-            elif _is_in_list(pT._cycles+cycle_bd,pR._entries[pR._entries[i]-1],cycle_lens[j]):
-                x =  pR._entries[pR._entries[i]-1]
-                A = maps_list[i+1]*R*R
-            else:
-                continue
-            if verbose>0:
-                print "Here A=",A
-            gotten[x-1]=x
-            maps_list[x]=A
-            num+=1
-            for k in range(1,cycle_lens[j]):
-                A = A*T
-                x = pT._entries[x-1]
-                gotten[x-1]=x
-                maps_list[x]=A
-                num+=1
-            if num==N:
-                break
-        if num==N:
-            break
-        if num_old==num:
-            # we didn't get to the next cycle so we are not transitive
-            if cycle_lens<>NULL:
-                sage_free(cycle_lens)
-            return 0,{}
-        cycle_bd+=cycle_lens[j]
-    if cycle_lens<>NULL:
-        sage_free(cycle_lens)
-    return 1,maps_list
-                
-    #     num_old = num
-        
-    #     for k in range(num_old):
-    #         x = gotten[k]
-    #         if verbose>0:
-    #             print "gotten[{0}]={1}".format(k,x)
-    #             print "Sl[x-1]=",pS._entries[x-1]
-    #         A = S*A #tmp_list.append('S')
-    #         if _is_in_list(gotten,pS._entries[x-1],num)==0:
-    #             gotten[num]=pS._entries[x-1];  num+=1
-    #             maps_list[pS._entries[x-1]]=A #copy(tmp_list)
-    #         x = pS._entries[x-1]
-    #         if verbose>0:
-    #             print "gotten=",print_vec(N,gotten)
-    #             print "x=",x
-    #             print "Rl[x-1]=",pR._entries[x-1]
-    #         A = R*A #tmp_list.append('R')
-    #         if _is_in_list(gotten,pR._entries[x-1],num)==0:
-    #             gotten[num]=pR._entries[x-1];  num+=1
-    #             maps_list[pR._entries[x-1]]=A #copy(tmp_list)
-    #             #tmp_list.append('R')
-    #         A = R*R*A
-    #         x=pR._entries[x-1]
-    #         if verbose>0:
-    #             print "x1=",x
-    #         if _is_in_list(gotten,pR._entries[x-1],num)==0:
-    #             gotten[num]=pR._entries[x-1];  num+=1
-    #             maps_list[pR._entries[x-1]]=A #copy(tmp_list)
-    #         if verbose>0:
-    #             print "num=",num
-    #             print "gotten[end]=",print_vec(N,gotten)
-    #             print "maps_list = ",maps_list
-    #     if num == num_old:
-    #         if num<>N:
-    #             sage_free(gotten)
-    #             return 0,{}
-    #         else:
-    #             sage_free(gotten)
-    #             return 1,maps_list
-    # sage_free(gotten)
-    # return 0,{}
 
 
 cdef int are_transitive_perm_c(int *Rl,int *Sl,int *gotten, int n,int verbose=0):

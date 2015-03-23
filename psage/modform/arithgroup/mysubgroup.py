@@ -76,10 +76,8 @@ from sage.groups.all import SymmetricGroup
 from sage.rings.arith import lcm
 from copy import deepcopy
 from psage.modform.maass.mysubgroups_alg import * 
-from psage.modform.maass.permutation_alg import MyPermutation 
-#from psage.modform.maass.permutation_alg import MyPermutation,MyPermutationIterator
+from psage.groups.permutation_alg import MyPermutation,are_transitive_permutations,num_fixed 
 from plot_dom import draw_funddom_d,draw_funddom,my_hyperbolic_triangle
-from psage.modform.maass.permutation_alg import are_transitive_permutations,num_fixed
 from psage.modform.maass.sl2z_subgroups_alg import are_mod1_equivalent
 
 from sage.plot.all import Graphics

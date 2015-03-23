@@ -1,4 +1,4 @@
-from psage.modform.maass.common_defs cimport *
+from psage.rings.mp_cimports cimport *
 
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from sage.rings.real_mpfr cimport RealNumber

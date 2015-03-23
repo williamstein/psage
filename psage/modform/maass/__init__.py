@@ -2,7 +2,6 @@ import inc_gamma
 
 import maass_forms
 from inc_gamma import incgamma_int,incgamma_hint,pochammer
-from permutation_alg import MyPermutation,MyPermutationIterator,CycleCombinationIterator
 
 from maass_forms import MaassWaveForms,EisensteinSeries,scattering_determinant_Hecke_triangle
 from maass_forms import Maasswaveform

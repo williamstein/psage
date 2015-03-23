@@ -14,7 +14,7 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-from psage.modform.maass.common_cdefs cimport *
+from psage.rings.mp_cimports cimport *
 
 import cython
 

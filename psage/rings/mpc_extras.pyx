@@ -9,11 +9,9 @@ All functions return 0 on success but the only fail which returns an error code 
 include "sage/ext/stdsage.pxi"
 #include "sage/ext/cdefs.pxi"
 #include "sage/rings/mpc.pxi"
-
+from psage.rings.mp_cimports cimport *
 
 from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes
-from sage.rings.complex_mpc cimport MPComplexNumber
-from sage.rings.real_mpfr cimport RealNumber
 from sage.rings.real_mpfr import RealField
 #from sage.libs.mpfr cimport *
 #include "mpfr_loc.pxi"

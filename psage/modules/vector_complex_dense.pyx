@@ -43,13 +43,11 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
-include '../modform/maass/common_defs.pxd'
+from psage.rings.mp_cimports cimport *
 
-
-
-
-
-from sage.all import FreeModule
+from sage.all import FreeModule #,FreeModuleElement,ModuleElement
+from sage.structure.element cimport Element,ModuleElement,RingElement
+from sage.modules.free_module_element cimport FreeModuleElement
 
 cdef class Vector_complex_dense(FreeModuleElement):
     cdef bint is_dense_c(self):

@@ -5,7 +5,7 @@
 
 
 
-include '../modform/maass/common_defs.pxd'
+from psage.rings.mp_cimports cimport *
 
 
 #include "sage/rings/mpc.pxi"

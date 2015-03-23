@@ -1,4 +1,4 @@
-from psage.modform.maass.common_defs cimport *
+from psage.rings.mp_cimports cimport *
 
 from sage.structure.sage_object cimport SageObject
 from sage.structure.parent cimport Parent
@@ -130,3 +130,4 @@ cdef int perm_to_cycle_c(int N,int *perm,int* cycle,int* cycle_lens)
 cdef print_vec(int n,int *list)
 cdef int num_cycles_c(int N,int *perm)
 cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl)
+cdef int _is_in_list(int *lista,int y,int num)

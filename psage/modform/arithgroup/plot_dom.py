@@ -18,7 +18,7 @@ from sage.plot.primitive import GraphicPrimitive
 from sage.plot.colors import to_mpl_color
 from sage.plot.misc import options, rename_keyword
 from sage.plot.all import text
-from sage.plot.hyperbolic_triangle import HyperbolicTriangle, hyperbolic_triangle
+from sage.plot.hyperbolic_polygon import HyperbolicPolygon, hyperbolic_triangle
 from sage.plot.hyperbolic_arc import hyperbolic_arc
 from sage.plot.bezier_path import BezierPath
 
@@ -182,7 +182,7 @@ def draw_transformed_triangle_H(A,xmax=20):
     return tri
     
 
-class MyHyperbolicTriangle(HyperbolicTriangle):
+class HyperbolicTriangle(HyperbolicPolygon):
     """
     Primitive class for hyberbolic triangle type. See ``hyperbolic_triangle?``
     for information about plotting a hyperbolic triangle in the complex plane.
@@ -196,11 +196,14 @@ class MyHyperbolicTriangle(HyperbolicTriangle):
 
     EXAMPLES:
 
-    Note that constructions should use ``hyperbolic_triangle``::
+    Note that constructions should use ``hyperbolic_``::
 
          sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
          sage: print HyperbolicTriangle(0, 1/2, I, {})
          Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
+
+    Note: The main reason for this extension is that we sometimes want to draw only certain sides of the triangle.
+
     """
     def __init__(self, A, B, C, options):
         """
@@ -211,6 +214,7 @@ class MyHyperbolicTriangle(HyperbolicTriangle):
             sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
             sage: print HyperbolicTriangle(0, 1/2, I, {})
             Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
+
         """
         A, B, C = (CC(A), CC(B), CC(C))
         self.path = []
@@ -251,6 +255,7 @@ class MyHyperbolicTriangle(HyperbolicTriangle):
             
         BezierPath.__init__(self, self.path, options)
         self.A, self.B, self.C = (A, B, C)
+        self._pts = [A,B,C]
 
 class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
     r"""
@@ -514,12 +519,13 @@ def my_hyperbolic_triangle(a, b, c, **options):
             if verbose>0:
                 print "adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
             options.pop('verbose',0)
+            ## check if We need my class or the original class
             g.add_primitive(HyperbolicTriangle(a, b, c, options))
         else:
             options['sides']=sides
             if verbose>0:
-                print "adding MyHyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
-            g.add_primitive(MyHyperbolicTriangle(a, b, c, options))                           
+                print "adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
+            g.add_primitive(HyperbolicTriangle(a, b, c, options))                           
     g.set_aspect_ratio(1)
     return g
 

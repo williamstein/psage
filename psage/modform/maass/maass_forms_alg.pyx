@@ -107,11 +107,11 @@ from sage.modular.arithgroup.congroup_sl2z import SL2Z
 from lpkbessel import besselk_dp
 #from lpkbessel cimport besselk_dp_c
 #from sage.modular.maass.all import MySubgroup,besselk_dp
-from mysubgroup import MySubgroup
+from psage.modform.arithgroup.mysubgroup import MySubgroup
 from pullback_algorithms cimport pullback_pts_mpc_new_c,pullback_pts_cplx_dp,pullback_pts_real_dp,pullback_pts_cplx_dp_sym
 from lpkbessel cimport besselk_dp_c
 
-from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
+from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
 #from mysubgroups_alg cimport _apply_sl2z_map_mpfr
 
 from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mpc_new

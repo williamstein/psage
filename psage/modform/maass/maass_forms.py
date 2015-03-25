@@ -2056,7 +2056,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         from sage.plot.misc import setup_for_eval_on_grid
         import matplotlib.pyplot as plt
         from sage.plot.density_plot import DensityPlot
-        from psage.modform.maass.plot_dom import get_contour
+        from psage.modform.arithgroup.plot_dom import get_contour
         G = self.group()
         w = G.cusp_width(Infinity)
         if xlim is None:

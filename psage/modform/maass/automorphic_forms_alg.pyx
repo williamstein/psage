@@ -61,7 +61,7 @@ from sage.functions.all import floor
 from maass_forms_alg import *
 #from maass_forms_alg cimport *
 
-from mysubgroups_alg import normalize_point_to_cusp_mpfr as normalize_point_to_cusp
+from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr as normalize_point_to_cusp
 from psage.modform.arithgroup.mysubgroups_alg cimport _apply_sl2z_map_mpfr
 from psage.modform.arithgroup.mysubgroups_alg import apply_sl2z_map,pullback_to_psl2z_mat #,pullback_to_G
 #from maass_forms_alg import smallest_inf_norm

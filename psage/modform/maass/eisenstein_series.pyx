@@ -90,7 +90,7 @@ from psage.rings.mpc_extras cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
-from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
+from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
 from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mpc_new
 from pullback_algorithms cimport pullback_pts_cplx_dp
 

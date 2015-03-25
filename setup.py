@@ -198,7 +198,9 @@ my_extensions = [
     Extension('psage.groups.permutation_alg',
               ['psage/groups/permutation_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
-
+    Extension('psage.rings.mp_cimports',
+              sources= ['psage/rings/mp_cimports.pyx'],
+              libraries = ['gmp','mpfr','mpc']),
     Extension('psage.rings.mpc_extras',
               sources = ['psage/rings/mpc_extras.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
@@ -257,8 +259,6 @@ my_extensions = [
               ['psage/modform/hilbert/hilbert_modular_group_alg.pyx'],
               libraries = ["flint", "gmp", "gmpxx", "m","ntl"],
               language="c"),
-
-    Extension('psage.rings.mp_cimports',['psage/rings/mp_cimports.pyx']),
 
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],

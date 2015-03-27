@@ -213,8 +213,8 @@ my_extensions = [
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 
-    Extension('psage.modform.maass.inc_gamma',
-              ['psage/modform/maass/inc_gamma.pyx'],
+    Extension('psage.functions.inc_gamma',
+              ['psage/functions/inc_gamma.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
@@ -364,7 +364,7 @@ build_system.setup(
     packages = ['psage',
                 'psage.ellcurve',
                 'psage.ellcurve.lseries',
-
+                'psage.functions',
 #                'psage.ellff',
 
                 'psage.function_fields',

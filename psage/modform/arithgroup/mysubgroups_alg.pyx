@@ -1844,10 +1844,21 @@ cpdef nearest_integer_continued_fraction_real(RealNumber x,int nmax=0):
         jj=jj+1 
     return cf
 
+
+cpdef nearest_integer(x):
+    if isinstance(x,RealNumber):
+        return nearest_integer_real(x)
+    elif isinstance(x,Rational):
+        return nearest_integer_rational(x)
+    elif isinstance(x,float):
+        return nearest_integer_dble(x)
+    else:
+        raise ValueError,"Could not find nearest integer of {0}".format(x)
+        
 cpdef nearest_integer_real(RealNumber x):
     return (x+x.parent()(0.5)).floor()
 
-cpdef nearest_integer(Rational x):
+cpdef nearest_integer_rational(Rational x):
     r""" Returns the nearest integer to x: [x]
     using the convention that 
     [1/2]=0 and [-1/2]=0

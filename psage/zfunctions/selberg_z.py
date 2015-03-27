@@ -42,13 +42,12 @@ sage: st8=Z.make_table_phi(prec=249,M0=150,N=2,outprec=66)
 
 
 import mpmath as mpmath
-from sage.all import  Parent,RR,ZZ,QQ,is_even,matrix,zeta,is_odd,is_even,ceil,log_b,log,gamma,tan,cos,sin,latex,CyclotomicField
+from sage.all import  Parent,RR,ZZ,QQ,is_even,matrix,zeta,is_odd,is_even,ceil,log_b,log,gamma,tan,cos,sin,latex,CyclotomicField,MatrixSpace,sign,binomial
 from selberg_z_alg import *
 from psage.rings import mpc_pochammer
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.complex_field import ComplexField
-from psage.matrix import Matrix_complex_dense
-from sage.all import MatrixSpace,sign,binomial
+from psage.matrix.matrix_complex_dense import Matrix_complex_dense
 from psage.modform.maass.maass_forms import scattering_determinant_sl2z,scattering_determinant_Hecke_triangle
 
 from sage.misc.sage_timeit import sage_timeit

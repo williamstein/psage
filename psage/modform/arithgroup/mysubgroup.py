@@ -78,7 +78,7 @@ from copy import deepcopy
 from psage.modform.arithgroup.mysubgroups_alg import * 
 from psage.groups.permutation_alg import MyPermutation,are_transitive_permutations,num_fixed 
 from plot_dom import draw_funddom_d,draw_funddom,my_hyperbolic_triangle
-from psage.modform.arithgroup.sl2z_subgroups_alg import are_mod1_equivalent
+from psage.groups.permutation_alg import are_mod1_equivalent
 
 from sage.plot.all import Graphics
 from sage.plot.circle import circle

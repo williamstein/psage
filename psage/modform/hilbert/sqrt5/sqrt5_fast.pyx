@@ -310,7 +310,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
             if e:
                 self.mul(z, z, z)
 
-    cdef bint is_square(self, residue_element op):
+    cdef bint is_square(self, residue_element op) except -2:
         raise NotImplementedError
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
         raise NotImplementedError
@@ -439,7 +439,7 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         rop[0] = self.n0 - op[0] if op[0] else 0
         rop[1] = 0
 
-    cdef bint is_square(self, residue_element op):
+    cdef bint is_square(self, residue_element op) except -2:
         cdef residue_element rop
         if op[0] % self.p == 0:
             # TODO: This is inefficient.

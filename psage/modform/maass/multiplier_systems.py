@@ -278,6 +278,8 @@ class TrivialMultiplier(MultiplierSystem):
         else:
             prec = None
 
+    def order(self):
+        return 1
         
     def set_character_values(self):
         l = self._character.values()

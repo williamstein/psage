@@ -30,7 +30,8 @@ Conventions for return codes:
  '-1'- error in input parameters
  
 """
-
+#include "sage/ext/cdefs.pxi"
+include "sage/ext/stdsage.pxi"
 ## For multiprecision support
 cdef mpfr_rnd_t rnd_re
 rnd_re = MPFR_RNDN

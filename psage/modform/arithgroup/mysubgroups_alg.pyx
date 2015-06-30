@@ -27,6 +27,9 @@ AUTHOR:
 
 
 """
+include "sage/ext/interrupt.pxi"  
+include "sage/ext/stdsage.pxi"  
+from sage.ext.memory cimport check_allocarray
 
 from psage.rings.mp_cimports cimport *
 from sage.rings.complex_mpc cimport * #MPComplexNumber
@@ -38,9 +41,6 @@ from sage.rings.infinity import infinity
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
 from sage.matrix.matrix_integer_dense import Matrix_integer_dense
 from sage.matrix.matrix_rational_dense import Matrix_rational_dense
-from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
-from sage.matrix.matrix_integer_2x2 import Matrix_integer_2x2
-from sage.matrix.matrix_integer_2x2 import MatrixSpace_ZZ_2x2
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
 from sage.matrix.matrix_space import MatrixSpace
 from sage.rings.integer_ring cimport Integer
@@ -68,10 +68,6 @@ cdef extern from "stdio.h":
     #int sprintf (char *s, char* format, int value)
     int sprintf (char *s, char* format, ...)
 
-#cdef extern class sage.matrix.matrix_integer_dense.Matrix_integer_dense as Matrix_integer_dense_class#:
-#    pass
-#cdef extern class sage.matrix.matrix_integer_2x2.Matrix_integer_2x2 as Matrix_integer_2x2_class:
-#    pass
 
 # We import these rather than the implementation since it is limited to n<12 
 from sage.combinat.permutation_cython cimport *
@@ -107,7 +103,7 @@ cdef class GL2Z_elt(object):
         assert self.det == 1 or self.det == -1
         self.ent=NULL
         if self.ent==NULL:
-            self.ent=<int*>sage_malloc(sizeof(int)*4)
+            self.ent=<int*>check_allocarray(4,sizeof(int))
             if self.ent==NULL:
                 raise MemoryError
         self.ent[0]=a
@@ -211,15 +207,10 @@ cdef class GL2Z_elt(object):
             return SL2Z([self.ent[0],self.ent[1],self.ent[2],self.ent[3]])
         else:
             raise ValueError,"Can not convert matrix with determinant {0} to SL2Z!".format(self.det)
-    def matrix(self,mtype=0):
+    def matrix(self):
         r"""
         Return a matrix representation of self.
-        mtype=0 => return matrix of type Matrix_integer_2x2
-        mtype=1 => return matrix of type matrix(Integer,2,2,[a,b,c,d])
         """
-        if mtype==0:
-            MS = MatrixSpace_ZZ_2x2()
-            return Matrix_integer_2x2(MS,[self.ent[0],self.ent[1],self.ent[2],self.ent[3]],True,True)
         MS = MatrixSpace(ZZ,2,2)
         return MS([self.ent[0],self.ent[1],self.ent[2],self.ent[3]])
 
@@ -229,7 +220,7 @@ cdef class GL2Z_elt(object):
         """
         if isinstance(other,(ArithmeticSubgroupElement,GL2Z_elt)):
             return (other.a(),other.b(),other.c(),other.d())
-        if isinstance(other,(Matrix_integer_dense,Matrix_integer_2x2)):
+        if isinstance(other,(Matrix_integer_dense)):
             return (other[0,0],other[0,1],other[1,0],other[1,1])
         if isinstance(other,(Matrix_rational_dense)):
             if other[0,0].is_integral() and other[0,1].is_integral() and other[1,0].is_integral() and other[1,1].is_integral():
@@ -279,9 +270,9 @@ cdef class GL2Z_elt(object):
         #elif hasattr(other,'BKZ') and other.nrows()==2 and other.ncols()==0:
         elif isinstance(other,Matrix_integer_dense) and other.nrows()==2 and other.ncols()==2 and other.det()==1:
             return self._mul_mat_id(<Matrix_integer_dense?>other)
-        elif isinstance(other,Matrix_integer_2x2) and abs(other.det())==1:
-        #elif hasattr(other,'nrows') and other.nrows()==2 and other.ncols()==2:
-            return self._mul_mat_i_2x2(<Matrix_integer_2x2?>other)
+        #elif isinstance(other,Matrix_integer_2x2) and abs(other.det())==1:
+        ##elif hasattr(other,'nrows') and other.nrows()==2 and other.ncols()==2:
+        #    return self._mul_mat_i_2x2(<Matrix_integer_2x2?>other)
         raise ValueError,"Can not multiply {0} with {1}".format(type(self),type(other))
         
 
@@ -309,7 +300,7 @@ cdef class GL2Z_elt(object):
         """
         cdef GL2Z_elt res
         cdef int* resent
-        resent=<int*>sage_malloc(sizeof(int)*4)
+        resent=<int*>check_allocarray(4,sizeof(int))
         self._mul_c(other.ent,resent,inv)
         if resent[0]*resent[3]-resent[2]*resent[1] == 1:
             res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
@@ -326,7 +317,7 @@ cdef class GL2Z_elt(object):
         """
         cdef GL2Z_elt res
         cdef int* resent=NULL
-        resent=<int*>sage_malloc(sizeof(int)*4)
+        resent=<int*>check_allocarray(4,sizeof(int))
         if resent==NULL: raise MemoryError
         self._mul_c_mpz(other._entries,resent,inv)
         if resent[0]*resent[3]-resent[2]*resent[1] == 1:
@@ -339,23 +330,23 @@ cdef class GL2Z_elt(object):
 
 
 
-    cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=0):
-        r"""
-        inv=1 => A^-1*B
-        inv=2 => A*B^-1
-        """
-        cdef GL2Z_elt res
-        cdef int* resent=NULL
-        resent=<int*>sage_malloc(sizeof(int)*4)
-        if resent==NULL: raise MemoryError
-        self._mul_c_mpz(other._entries,resent,inv)
-        if resent[0]*resent[3]-resent[2]*resent[1] == 1:            
-            res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
-        else:
-            res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
-        if resent<>NULL:
-            sage_free(resent)
-        return res
+    # cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=0):
+    #     r"""
+    #     inv=1 => A^-1*B
+    #     inv=2 => A*B^-1
+    #     """
+    #     cdef GL2Z_elt res
+    #     cdef int* resent=NULL
+    #     resent=<int*>sage_malloc(sizeof(int)*4)
+    #     if resent==NULL: raise MemoryError
+    #     self._mul_c_mpz(other._entries,resent,inv)
+    #     if resent[0]*resent[3]-resent[2]*resent[1] == 1:            
+    #         res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+    #     else:
+    #         res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
+    #     if resent<>NULL:
+    #         sage_free(resent)
+    #     return res
 
     cdef _mul_c(self,int* other,int* res,int inv=0):
         if inv==0:
@@ -580,12 +571,12 @@ cpdef ncf_to_SL2Z_matrix(l):
     r"""
     RETURNS matrix
     """
-
-    S=Matrix_integer_2x2([0,-1,1,0])
-    T=Matrix_integer_2x2([1,1,0,1])
-    A=Matrix_integer_2x2([1,l[0],0,1])
+    MS = MatrixSpace(ZZ,2,2)
+    S=MS([0,-1,1,0])
+    T=MS([1,1,0,1])
+    A=MS([1,l[0],0,1])
     for j in range(1,len(l)):
-        A=A*S*Matrix_integer_2x2([1,l[j],0,1]) #T**l[j]
+        A=A*S*MS([1,l[j],0,1]) #T**l[j]
     return A
 
 
@@ -985,11 +976,11 @@ cpdef pullback_to_Gamma0N_mpfr(G,RealNumber x,RealNumber y):
     nreps=G.index()
     if G._coset_reps_v0==None:
         G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
-    reps= <int ***> sage_malloc(sizeof(int**) * nreps)
+    reps= <int ***> check_allocarray(nreps,sizeof(int**))
     for j from 0 <=j<nreps:
-        reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
-        reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
-        reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
+        reps[j]=<int **> check_allocarray(2,sizeof(int*))
+        reps[j][0]=<int *> check_allocarray(2,sizeof(int))
+        reps[j][1]=<int *> check_allocarray(2,sizeof(int))
         reps[j][0][0]=G._coset_reps_v0[j][0]
         reps[j][0][1]=G._coset_reps_v0[j][1]
         reps[j][1][0]=G._coset_reps_v0[j][2]
@@ -1017,11 +1008,11 @@ cdef void pullback_to_Gamma0N_mpfr_c(G,mpfr_t xout,mpfr_t yout, mpfr_t xin,mpfr_
     nreps=G.index()
     if G._coset_reps_v0==None:
         G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
-    reps= <int ***> sage_malloc(sizeof(int**) * nreps)
+    reps= <int ***> check_allocarray(nreps,sizeof(int**))
     for j in range(nreps):
-        reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
-        reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
-        reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
+        reps[j]=<int **> check_allocarray(2,sizeof(int*))
+        reps[j][0]=<int *> check_allocarray(2,sizeof(int))
+        reps[j][1]=<int *> check_allocarray(2,sizeof(int))
         reps[j][0][0]=G._coset_reps_v0[j][0]
         reps[j][0][1]=G._coset_reps_v0[j][1]
         reps[j][1][0]=G._coset_reps_v0[j][2]
@@ -1072,9 +1063,9 @@ cdef void _pullback_to_Gamma0N_mpfr(int*** reps ,int nreps, int N,mpfr_t x,mpfr_
     #A=SL2Z([a,b,c,d])
     cdef int a1,b1,c1,d1
     cdef int** V
-    V= <int **> sage_malloc(sizeof(int*) * 2)
-    V[0]= <int *> sage_malloc(sizeof(int) * 2)
-    V[1]= <int *> sage_malloc(sizeof(int) * 2)
+    V= <int **> check_allocarray(2,sizeof(int*))
+    V[0]= <int *> check_allocarray(2,sizeof(int))
+    V[1]= <int *> check_allocarray(2,sizeof(int))
     # V is now a 2x2 matrix over int 
     cdef int j
     for j from 0<=j<=nreps:
@@ -1111,17 +1102,17 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
     nreps=G.index()
     if G._coset_reps_v0==None:
         G._coset_reps_v0 = G._get_coset_reps_from_perms(G.permS,G.permR)
-    reps= <int ***> sage_malloc(sizeof(int**) * nreps)
+    reps= <int ***> check_allocarray(nreps,sizeof(int**))
     for j from 0 <=j<nreps:
         reps[j]=NULL
-        reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
+        reps[j]=<int **> check_allocarray(2,sizeof(int*))
         if reps[j]==NULL:
             raise MemoryError
         reps[j][0]=NULL;reps[j][1]=NULL
-        reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
+        reps[j][0]=<int *> check_allocarray(2,sizeof(int))
         if reps[j][0]==NULL:
             raise MemoryError
-        reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
+        reps[j][1]=<int *> check_allocarray(2,sizeof(int))
         if reps[j][1]==NULL:
             raise MemoryError
         reps[j][0][0]=G._coset_reps_v0[j][0]
@@ -1179,14 +1170,14 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
         print "map:",a[0],b[0],c[0],d[0]
     cdef int a1,b1,c1,d1
     cdef int** V=NULL
-    V= <int **> sage_malloc(sizeof(int*) * 2)
+    V= <int **> check_allocarray(2,sizeof(int*))
     if V==NULL:
         raise MemoryError
     V[0]=NULL; V[1]=NULL
-    V[0]= <int *> sage_malloc(sizeof(int) * 2)
+    V[0]= <int *> check_allocarray(2,sizeof(int))
     if V[0]==NULL:
         raise MemoryError
-    V[1]= <int *> sage_malloc(sizeof(int) * 2)
+    V[1]= <int *> check_allocarray(2,sizeof(int))
     if V[1]==NULL:
         raise MemoryError
     # V is now a 2x2 matrix over int 
@@ -1600,17 +1591,17 @@ cpdef closest_vertex(in_vertex_maps, wids,int nv_in,double x,double y,int verbos
     cdef int nv=int(nv_in)
     if y<=0:
         raise ArithmeticError,"Can not have y<=0! Got y={0}".format(y)
-    vertex_maps=<int**>sage_malloc(sizeof(int*)*nv)
+    vertex_maps=<int**>check_allocarray(nv,sizeof(int*))
     if vertex_maps==NULL: raise MemoryError
     for i from 0<=i<nv:
-        vertex_maps[i]=<int*>sage_malloc(sizeof(int)*4)
+        vertex_maps[i]=<int*>check_allocarray(4,sizeof(int))
         #if vertex_maps[i]==NULL: raise MemoryError
         #a,b,c,d=in_vertex_maps[i]
         vertex_maps[i][0]=<SL2Z_elt>in_vertex_maps[i].a()
         vertex_maps[i][1]=<SL2Z_elt>in_vertex_maps[i].b()
         vertex_maps[i][2]=<SL2Z_elt>in_vertex_maps[i].c()
         vertex_maps[i][3]=<SL2Z_elt>in_vertex_maps[i].d()
-    widths=<double*>sage_malloc(sizeof(double)*nv)
+    widths=<double*>check_allocarray(nv,sizeof(double))
     for i from 0<=i<nv:
         widths[i]=<double>wids[i]
     xx=<double>x

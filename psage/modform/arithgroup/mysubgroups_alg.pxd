@@ -1,12 +1,10 @@
 include "sage/ext/interrupt.pxi" 
-include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
 from sage.libs.mpfr cimport *
 #include "sage/rings/mpc.pxi"
 #include "sage/ext/gmp.pxi"
 
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
-from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 
 cdef class GL2Z_elt(object):
     cdef int* ent
@@ -21,7 +19,7 @@ cdef class GL2Z_elt(object):
     cpdef acton(self,z)
     cpdef _mul(self,GL2Z_elt other,int inv=?)
     cpdef _mul_mat_id(self,Matrix_integer_dense other,int inv=?)
-    cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=?)
+    #cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=?)
     cdef _mul_c(self,int* other,int *res,int inv=?)
     cdef _mul_c_mpz(self,mpz_t* other,int *res,int inv=?)
     cpdef inverse(self)

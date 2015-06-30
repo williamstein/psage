@@ -62,12 +62,12 @@ cdef extern from "math.h":
     double M_LN10
     double log(double)
     
+from sage.libs.gmp.pylong cimport mpz_get_pylong,mpz_get_pyintlong,mpz_set_pylong
 
-
-cdef extern from "mpz_pylong.h":
-    cdef mpz_get_pylong(mpz_t src)
-    cdef mpz_get_pyintlong(mpz_t src)
-    cdef int mpz_set_pylong(mpz_t dst, src) except -1
+#cdef extern from "mpz_pylong.h":
+#    cdef mpz_get_pylong(mpz_t src)
+#    cdef mpz_get_pyintlong(mpz_t src)
+#    cdef int mpz_set_pylong(mpz_t dst, src) except -1
 
     
 cdef class MyPermutation(SageObject):

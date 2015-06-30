@@ -18,7 +18,6 @@ from sage.matrix.all import matrix
 from sage.rings.integer import Integer
 from sage.rings.real_mpfr import RR
 import sage.structure.element
-from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 from sage.all import copy
 from psage.modform.arithgroup.mysubgroup import is_Hecke_triangle_group,MySubgroup
 

@@ -29,6 +29,8 @@ include 'stdsage.pxi'
 include 'cdefs.pxi'
 include 'python.pxi'
 
+from sqrt5_fast cimport residue_element
+
 from sage.rings.all import Integers, ZZ, QQ
 from sage.rings.ideal import is_Ideal
 from sage.matrix.all import MatrixSpace, zero_matrix
@@ -310,7 +312,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
             if e:
                 self.mul(z, z, z)
                   
-    cdef bint is_square(self, residue_element op):
+    cdef bint is_square(self, residue_element op) except -2:
         raise NotImplementedError
     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
         raise NotImplementedError
@@ -439,7 +441,7 @@ cdef class ResidueRing_split(ResidueRing_abstract):
         rop[0] = self.n0 - op[0] if op[0] else 0
         rop[1] = 0        
 
-    cdef bint is_square(self, residue_element op):
+    cdef bint is_square(self, residue_element op) except -2:
         cdef residue_element rop
         if op[0] % self.p == 0:
             # TODO: This is inefficient.
@@ -1679,7 +1681,7 @@ cdef class ResidueRingModN:
                     R.next_element(rop[i], op[i])
                     done = True
                     
-    cdef bint is_square(self, modn_element op):
+    cdef bint is_square(self, modn_element op) except -2:
         cdef int i
         cdef ResidueRing_abstract R
         for i in range(self.r):

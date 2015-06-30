@@ -5,7 +5,7 @@ include "sage/ext/cdefs.pxi"
 from psage.rings.mpfr_nogil cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from sage.matrix.matrix_dense cimport Matrix_dense
-from sage.structure.element cimport Vector
+from sage.structure.element cimport Vector,Element
 from sage.rings.complex_mpc cimport MPComplexField_class,MPComplexNumber
 from sage.rings.real_mpfr cimport RealNumber
 from sage.matrix.matrix_complex_double_dense cimport Matrix_complex_double_dense
@@ -38,6 +38,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     cdef Matrix_complex_double_dense _double_matrix
     #cdef MPComplexField_class _base_ring
     #cdef object _base_ring
+    cdef int _cmp_c_impl(self, Element right) except -2
 
     cdef mpc_t* _transformation_to_hessenberg
     #cpdef Matrix_complex_dense transformation_to_hessenberg(self)

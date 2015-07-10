@@ -1970,6 +1970,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         # pullback
         if use_cj==-1:
             if use_pb == 1:
+                #print "Gp=",G.pullback(x,y,version=version)
                 x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
             else:
                 x1 = x; y1 = y
@@ -2050,6 +2051,16 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
     def plot(self,xlim=None,ylim=(0,2),num_pts=100,**kwds):
         r"""
         Make a plot of self.
+
+
+        OPTIONAL KEYWORDS:
+
+        - ''version'' --  decide which coset representatives to use. '1' for the default, '2' for hte one given form the farey symbol and '3' for a user supplied set.
+        - ''clip'' -- clip to fundamental domain, set ot False to draw outside the domain (i.e. the entire square)
+        - ''model' -- 'H' or 'D' for upper half plane or disc model
+        - ''add_contour'' -- set to False if you do not want to include the contour of the domain
+        --'axis' -- set to False if you do not want to show the axis
+        --'do_pullback'' -- set to False if you want to 
         """
         from sage.all import xsrange,Infinity
         from sage.plot.all import Graphics
@@ -2061,11 +2072,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         w = G.cusp_width(Infinity)
         if xlim is None:
             xlim = (-0.5*w,0.5*w)
-
+        add_contour = kwds.pop('add_contour',True) # add the contour of a fundamental domain
         version = kwds.pop('version',0)
         model = kwds.pop('model','H')
         show_axis = kwds.pop('axis',False)
-        clip = kwds.pop('clip',True)
+        clip = kwds.pop('clip',True) 
         eps = 1e-10
         def fun(x,y):
             z = CC(x,y)
@@ -2077,10 +2088,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             if y <= 0.005:
                 return 0.0
             xx,yy,a,b,c,d = G.pullback(x,y,version=version)
+            #print "x,y    =",x,y
+            #print "xpb,ypb=",xx,yy,a,b,c,d
             zpb = CC(xx,yy)
-            if abs(z-zpb)>eps:
+            if clip is True and abs(z-zpb)>eps:
                 return 0.0
             w = self.eval(xx,yy,version=version)
+            #print "f=",w
             #abs(f.eval(xx,yy))**2
             return abs(w)**2
 
@@ -2092,14 +2106,16 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         xrange,yrange=[r[:2] for r in ranges]
         xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
         xsize = (xlim[1]-xlim[0]); ysize = (ylim[1]-ylim[0])
+        #print "size=",xsize,ysize
         g = plt.figure(figsize=(xsize,ysize))
         ax = g.add_subplot(111)
         x0,x1 = xlim
         y0,y1 = ylim
         im = ax.imshow(xy_data_array, origin='lower', cmap='jet', extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
-        fdom = get_contour(G,version=version,model=model,color='red',as_patch=True,thickness=3)
-
-        ax.add_patch(fdom)
+        if add_contour or clip:
+            fdom = get_contour(G,version=version,model=model,color='red',as_patch=True,thickness=3)
+        if add_contour:
+            ax.add_patch(fdom)
         if clip:
             im.set_clip_path(fdom)
         if not show_axis:

@@ -1898,16 +1898,29 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     self._coset_reps_v1.append(SL2Z_elt(A.a(),A.b(),A.c(),A.d()))
    
             return self._coset_reps_v1
-        elif version==2:
+        elif version == 2:
             if self._coset_reps_v2==None:
                 self._coset_reps_v2 = []
                 for A in self.farey_symbol().coset_reps():
                     self._coset_reps_v2.append(SL2Z_elt(A.d(),-A.b(),-A.c(),A.a()))
             return self._coset_reps_v2
+        elif version == 3: # these should have been set manually.
+            return self._coset_reps_v3
         else:
-            raise NotImplementedError
+            raise NotImplementedError,"Only versions 0,1 and 2,3 are implemented!"
 
-    
+
+    def set_coset_reps_manually(self,reps,check=True):
+        r"""
+        Give a user-specified set of reps of the right cosets G \ PSL(2,Z)
+        """
+        self._coset_reps_v3 = []
+        for A in reps:
+            self._coset_reps_v3.append(SL2Z_elt(A.a(),A.b(),A.c(),A.d()))
+        ### we might also need to check them...
+        if check:
+           self.test_coset_reps(version=3) 
+        
     def _get_perms_from_coset_reps(self):
         r""" Get permutations of order 2 and 3 from the coset representatives
 
@@ -2748,7 +2761,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
          - ''**kwds''-- additional arguments to matplotlib 
          - ''axes''  -- set geometry of output
              =[x0,x1,y0,y1] -- restrict figure to [x0,x1]x[y0,y1]
-
+        - ''version'' -- decide which coset representatives to use. '1' for the default, '2' for hte one given form the farey symbol and '3' for a user supplied set.
+        
         EXAMPLES::
 
             sage: G=MySubgroup(Gamma0(3))
@@ -3365,16 +3379,16 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         use_dp = False; use_mpfr = False; use_mat = False
         # First get the input point
-        if isinstance(x_in,float):
+        if isinstance(y_in,float):
             x = RR(x_in); y = RR(y_in); use_dp=True
-        elif isinstance(x_in,RealNumber_class):
-            RF = x_in.parent(); prec = RF.prec()
+        elif isinstance(y_in,RealNumber_class):
+            RF = y_in.parent(); prec = RF.prec()
             x = RF(x_in); y = RF(y_in)
             if prec<=53:
                 use_dp = True
             else:
                 use_mpfr = True
-        else:
+        else: # if y == None, an integer or is symbolic then we apply the matrix to get a point of the same type
             try:
                 if y_in==None:
                     z = x_in
@@ -3384,7 +3398,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     x = x_in; y = y_in
 
                 x = RR(x); y = RR(y)
-                use_mat = True
+                if y_in is None or isinstance(y_in,Expression) or (isinstance(y_in,Integer) and isinstance(x_in,Integer)):
+                    use_mat = True
                 if y_in < 0.1:
                     prec = max(53,3*log_b(1.0/y,2))
                     RF = RealField(prec)

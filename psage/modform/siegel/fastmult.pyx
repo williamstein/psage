@@ -13,7 +13,7 @@ Low level functions for coefficients of Siegel modular forms
 
 from sage.structure.element cimport Element
 import operator
-include 'sage/structure/coerce.pxi'
+#include 'sage/structure/coerce.pxi'
 from sage.rings.integer_ring import ZZ
 from sage.rings.integer cimport Integer
 

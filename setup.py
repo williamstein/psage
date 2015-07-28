@@ -39,7 +39,7 @@ INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
             ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
-             ('include/csage', 'include', 'include/python',
+             ('include', 'include/python',
               'include/python2.7')]
 print "INCLUDES=",INCLUDES
 
@@ -66,7 +66,6 @@ def Extension(*args, **kwds):
         kwds['extra_compile_args'].append('-w')
 
     E = build_system.Extension(*args, **kwds)
-    E.libraries = ['csage'] + E.libraries
     return E
 
 
@@ -325,7 +324,6 @@ my_extensions = [
 
     Extension("psage.groups.dirichlet_conrey",
               ['psage/groups/dirichlet_conrey.pyx'],
-              libraries=['csage'],
               extra_compile_args = ['-w','-O2'])
 ]
 

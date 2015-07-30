@@ -7,23 +7,16 @@ Dense matrices over the complex field.
 
 EXAMPLES
 """
-include "../ext/interrupt.pxi"
-include "../ext/cdefs.pxi"
-include "../ext/gmp.pxi"
-include "../ext/random.pxi"
+from psage.rings.mp_cimports cimport *
+
 
 # set rounding to be nearest integer
 # TODO: make t possible to change rounding
-cdef mpc_rnd_t rnd
-rnd = MPC_RNDNN
 
 
-
-from sage.rings.complex_mpc cimport MPComplexNumber
-from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField as RFF
 from sage.matrix.matrix cimport Matrix
+from sage.rings.complex_mpc import MPComplexField
 
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.matrix.linalg_complex_dense cimport _eigenvalues,qr_decomp,_norm,_hessenberg_reduction,init_QR,QR_set

@@ -154,14 +154,14 @@ EXAMPLES::
 import mpmath
 from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,PolynomialRing,CyclotomicField,dimension_cusp_forms,dimension_modular_forms,CuspForms
 from mpmath import mpf
-from mysubgroup import *
+from psage.modform.arithgroup.mysubgroup import *
 from automorphic_forms_alg import *
 from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing
 
 
 from multiplier_systems import *
 from psage.matrix.matrix_complex_dense import *
-
+from psage.modform.arithgroup.all import MySubgroup,MySubgroup_class
 from sage.all import magma
 
 from vv_harmonic_weak_maass_forms_alg import vv_harmonic_wmwf_setupV_mpc2,vv_holomorphic_setupV_mpc
@@ -2831,7 +2831,7 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
     def __init__(self,G,weight=0,multiplier=None,holomorphic=False,weak=True,cuspidal=False,verbose=0,**kwds):
         r""" Initialize the space of automorphic forms.
         """
-        if(isinstance(G,MySubgroup)):
+        if(isinstance(G,MySubgroup_class)):
             self._group=G
             self._from_group=G._G
         else:

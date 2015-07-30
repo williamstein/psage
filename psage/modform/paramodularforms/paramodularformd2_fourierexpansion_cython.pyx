@@ -30,7 +30,7 @@ include "interrupt.pxi"
 include "stdsage.pxi"
 include "cdefs.pxi"
 
-include 'sage/ext/gmp.pxi'
+#include 'sage/ext/gmp.pxi'
 
 from sage.rings.arith import gcd
 from sage.rings.integer cimport Integer

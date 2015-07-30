@@ -44,7 +44,7 @@ EXAMPLES::
 from sage.all import Integer,RR,CC,QQ,ZZ,sgn,cached_method,copy,CyclotomicField,lcm,is_square,matrix,SL2Z,MatrixSpace,floor,ceil,is_odd,is_even,hilbert_symbol,sqrt,inverse_mod
 from sage.structure.formal_sum import FormalSums
 from sage.structure.formal_sum import FormalSum
-from psage.modform.maass.mysubgroups_alg import factor_matrix_in_sl2z
+from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z
 from sage.modules.vector_integer_dense import Vector_integer_dense
 from weil_module_alg import *
 from finite_quadratic_module import FiniteQuadraticModuleElement,FiniteQuadraticModule

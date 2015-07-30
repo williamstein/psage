@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 r"""
 Pullback algorithms optimized  for various settings.
 
@@ -6,30 +6,21 @@ Pullback algorithms optimized  for various settings.
 
 """
 
-#include 'sage/ext/stdsage.pxi'
-#include "sage/ext/cdefs.pxi"
-#include 'sage/ext/interrupt.pxi'
-#include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
+from psage.rings.mp_cimports cimport *
 
-from sage.libs.mpfr cimport *
 
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
-from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
+from sage.rings.complex_field import ComplexField
 from sage.rings.real_mpfr import RealField
-from sage.rings.complex_number cimport ComplexNumber
-from sage.all import ComplexField,vector,matrix,Integer
+
+from sage.modules.all import vector
+from sage.matrix.all import matrix
+from sage.rings.integer import Integer
+from sage.rings.real_mpfr import RR
 import sage.structure.element
-cimport sage.structure.element
-from sage.structure.element cimport Element, ModuleElement, RingElement
-from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
-from sage.all import copy,RR
-from mysubgroup import is_Hecke_triangle_group
+from sage.all import copy
+from psage.modform.arithgroup.mysubgroup import is_Hecke_triangle_group,MySubgroup
+
 import cython
 cdef extern from "math.h":
     double fabs(double)
@@ -60,13 +51,14 @@ cdef double complex CMPLX(double x,double y):
 
     
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
-from mysubgroup import MySubgroup
-from mysubgroups_alg import apply_sl2z_map,pullback_general_group_dp,pullback_general_group
-from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp,normalize_point_to_cusp_mpmath
-from mysubgroups_alg cimport _apply_sl2z_map_dp,_apply_sl2z_map_mpfr,_pullback_to_Gamma0N_dp,pullback_to_hecke_triangle_mat_c_mpfr
+
+from psage.modform.arithgroup.mysubgroups_alg import apply_sl2z_map,pullback_general_group_dp,pullback_general_group
+from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp,normalize_point_to_cusp_mpmath
+from psage.modform.arithgroup.mysubgroups_alg cimport _apply_sl2z_map_dp,_apply_sl2z_map_mpfr,_pullback_to_Gamma0N_dp,pullback_to_hecke_triangle_mat_c_mpfr,pullback_to_Gamma0N_mpfr_c,normalize_point_to_cusp_mpfr_c,_normalize_point_to_cusp_dp,_normalize_point_to_cusp_real_dp,SL2Z_elt,_normalize_point_to_cusp_mpfr,closest_vertex_dp_c
+
 from sage.all import CC,save
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense 
-from mysubgroups_alg cimport pullback_to_Gamma0N_mpfr_c,normalize_point_to_cusp_mpfr_c,_normalize_point_to_cusp_dp,_normalize_point_to_cusp_real_dp,SL2Z_elt,_normalize_point_to_cusp_mpfr,closest_vertex_dp_c
+
 
 import mpmath
 
@@ -154,6 +146,439 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
                 sage_free(Cvec_t[i])
         sage_free(Cvec_t)
     return pb
+@cython.cdivision(True)
+#cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec):
+cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec):
+    r""" Computes a whole array of pullbacked points using double precision
+
+    INPUT:
+
+    - ``S``  -- AutomorphicFormSpace
+    - ``Qs`` -- integer
+    - ``Qf`` -- integer
+    - ``Y``  -- real >0
+    - ``weight`` -- (optional) real
+    - ``holo``   -- (False) logical
+
+    
+    OUTPUT:
+
+    
+    - ``pb`` -- dictonary with entries:
+       - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
+       - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
+       - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
+       - 'cvec' -- complex[0:nc,0:nc,Qf-Qs+1] : mult. factor
+
+    RETURNS::
+
+
+    - 0 -- if everything is ok
+    - 1 -- if Y is too large
+
+    EXAMPLES::
+
+
+        sage: G=MySubgroup(Gamma0(2))
+        sage: [Xm,Xpb,Ypb,Cv]=pullback_pts(G,1,3,0.1)
+
+    Note that we need to have $Y<Y_{0}$ so that all pullbacked points
+    are higher up than Y.
+
+        sage: pullback_pts(G,1,10,0.44)
+        Traceback (most recent call last):
+        ...
+        ArithmeticError: Need smaller value of Y
+
+    
+    """
+#    sig_on()
+    G = S.group()
+    multiplier = S.multiplier()
+    #character = S.character
+    holo = S.is_holomorphic()
+    cdef double weight
+    weight = S.weight()
+    if weight<>0 or not multiplier.is_trivial():
+        non_trivial=True
+    else:
+        non_trivial=False
+    trivial_mult = multiplier.is_trivial()
+    cdef double pi=3.1415926535897932384626433
+    cdef double twopi,twoQl
+    cdef double complex twopii,mp_i,m1,m2,m3,tmp,v
+    cdef double ep0=1E-10
+    cdef double tmpabs,tmparg,tmparg1,tmparg2,tmparg3
+    twopi=2.0*pi
+    twopii = twopi* _Complex_I
+    #=complex(0,twopi)
+    if(holo and weight==0):
+        raise Exception,"Must support a weight for holomorphic forms!"
+    cdef double fourQ
+    cdef int wi,wj
+    cdef int A[4]
+    cdef int pba,pbb,pbc,pbd
+    cdef list U
+    #    AA=[1,0,0,1]
+#    Tj=[1,0,0,1]
+    cdef double swi,swj,ar,br,cr,dr
+    cdef int ci,cj
+    cdef int verbose=S._verbose-1
+    cdef double x,y,x1,y1,x2,y2,x3,y3,xx,yy
+    cdef int** normalizers=NULL
+    cdef int** cusp_maps=NULL
+    cdef int** vertex_maps=NULL
+    cdef int* vertex_cusp=NULL
+    cdef double *vertex_widths=NULL
+    cdef int a,b,c,d,i,j,Ql,vi,vj
+    cdef double wi_d,wj_d
+    cdef ComplexNumber ctmp
+    cdef int nc=G._ncusps
+    cdef int nv=G._nvertices
+    cdef int use_int=1
+    cdef int is_Gamma0,nreps
+    is_Gamma0=<int>G._is_Gamma0
+    cdef int*** reps=NULL
+    cdef int N
+    cdef double xmm
+    if verbose>0:
+        print "In pullback_pts_cplx_dp_sym!"
+    if is_Gamma0==1:
+        nreps=G._index
+        N=G._level
+        reps= <int ***> sage_malloc(sizeof(int**) * nreps)
+        for j from 0 <=j<nreps:
+            reps[j]=NULL
+            reps[j]=<int **> sage_malloc(sizeof(int*) * 2)
+            if reps[j]==NULL:
+                raise MemoryError
+            reps[j][0]=NULL;reps[j][1]=NULL
+            reps[j][0]=<int *> sage_malloc(sizeof(int) * 2)
+            if reps[j][0]==NULL:
+                raise MemoryError
+            reps[j][1]=<int *> sage_malloc(sizeof(int) * 2)
+            if reps[j][1]==NULL:
+                raise MemoryError
+            reps[j][0][0]=G.coset_reps()[j][0]
+            reps[j][0][1]=G.coset_reps()[j][1]
+            reps[j][1][0]=G.coset_reps()[j][2]
+            reps[j][1][1]=G.coset_reps()[j][3]
+#            reps[j][0][0]=G._coset_reps_v0[j][0]
+#            reps[j][0][1]=G._coset_reps_v0[j][1]
+#            reps[j][1][0]=G._coset_reps_v0[j][2]
+#            reps[j][1][1]=G._coset_reps_v0[j][3]
+
+            
+    if verbose>0:
+        print "nc=",nc
+    if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
+        use_int=0
+    normalizers=<int**>sage_malloc(sizeof(int*)*nc)
+    if normalizers==NULL: raise MemoryError
+    for i from 0<=i<nc:
+        normalizers[i]=<int*>sage_malloc(sizeof(int)*4)
+        a,b,c,d=G._cusp_data[i]['normalizer']
+        normalizers[i][0]=a
+        normalizers[i][1]=b
+        normalizers[i][2]=c
+        normalizers[i][3]=d
+        if verbose>2:
+            print "Normalizer[",i,"]=",a,b,c,d
+    vertex_maps=<int**>sage_malloc(sizeof(int*)*nv)
+    if vertex_maps==NULL: raise MemoryError
+    cusp_maps=<int**>sage_malloc(sizeof(int*)*nv)
+    if cusp_maps==NULL: raise MemoryError
+    vertex_widths=<double*>sage_malloc(sizeof(double)*nv)
+    if vertex_widths==NULL: raise MemoryError
+    vertex_cusp=<int*>sage_malloc(sizeof(int)*nv)    
+    if vertex_cusp==NULL: raise MemoryError
+    for i from 0<=i<nv:
+        cusp_maps[i]=<int*>sage_malloc(sizeof(int)*4)
+        cusp_maps[i][0]=<int>G._cusp_maps[i][0]
+        cusp_maps[i][1]=<int>G._cusp_maps[i][1]
+        cusp_maps[i][2]=<int>G._cusp_maps[i][2]
+        cusp_maps[i][3]=<int>G._cusp_maps[i][3]
+        vertex_maps[i]=<int*>sage_malloc(sizeof(int)*4)
+        vertex_maps[i][0]=<int>G._vertex_maps[i].a()
+        vertex_maps[i][1]=<int>G._vertex_maps[i].b()
+        vertex_maps[i][2]=<int>G._vertex_maps[i].c()
+        vertex_maps[i][3]=<int>G._vertex_maps[i].d()
+        vertex_widths[i]=<double>G._vertex_widths[i]
+        vertex_cusp[i]=<int>G._vertex_data[i]['cusp']
+    cdef double* widths
+    widths=<double*>sage_malloc(sizeof(double)*nc)
+    for i from 0<=i<nc:
+        if verbose>3:
+            print "width[",i,"]=",G._cusp_data[i]['width'],type(G._cusp_data[i]['width'])
+        widths[i]=<double>G._cusp_data[i]['width']
+    cdef int dir_char=0
+    cdef double complex *charvec=NULL
+    cdef int modulus
+    #if verbose>0:
+    #    print "Here1.5"
+    if not multiplier.is_trivial():
+        dir_char=1
+        modulus = multiplier._character.modulus()
+        charvec=<double complex*>sage_malloc(sizeof(double complex)*modulus)
+        for i from 0<=i<modulus:
+            mc = multiplier._character(i)
+            if hasattr(mc,"complex_embedding"):
+                charvec[i]=<double complex> multiplier._character(i).complex_embedding()
+            else:
+                charvec[i]=<double complex>CC(multiplier._character(i))
+            if verbose>1:
+                print "chi(",i,")=",charvec[i]
+    #if verbose>0:
+    #    print "Here2"
+    Ql = 0
+#    cdef int some_nonsymmetric_cusp = 0
+    for ci in range(nc):
+        if Qv[ci][2]>Ql:
+            Ql = Qv[ci][2]
+#                Ql=Qf-Qs+1
+#    if Qs<0:
+#        fourQ=<double>2*(Qf-Qs+1)
+#    else:
+#        fourQ=<double>(4*Qf)
+    cdef int Q = Qv[0][1]
+    fourQ = <double> (4*Q)
+    for j in range(Qv[0][1]): #from Qs<= j <= Qf:
+        Xm[j]=<double>(2*(j+1)-1)/fourQ        
+    if verbose>2:
+        print "use_int=",use_int
+        print "Q=",Q
+        print "fourQ=",fourQ
+    res={}
+                
+    for ci in range(nc): #in G._cusps:
+        # if ci==0:
+        #     verbose=3
+        # else:
+        #     verbose=0
+        #ci = G._cusps[i]
+        if verbose>2:
+            print "------------------------------------------"
+            print "ci=",ci
+        #cii=G._cusps.index(ci)
+        if use_int==1:
+            wi = <int>widths[ci] #G._cusp_data[ci]['width'] #(ci)
+            swi=sqrt(<double>wi)
+        else:
+            wi_d=widths[ci] #<double>G._cusp_data[ci]['width'] #(ci)
+            swi=sqrt(wi_d)
+        for j in range(Qv[ci][2]): #Ql, 1-Q,Q):
+            if j < Q:
+                xmm = Xm[j]
+            else:
+                xmm = -Xm[2*Q-1-j]
+            if verbose>1:
+                print "Xm[{0}]={1}".format(j,xmm)
+            x = xmm
+            y=Y
+            a=normalizers[ci][0]; b=normalizers[ci][1]
+            c=normalizers[ci][2]; d=normalizers[ci][3]
+            if verbose>2:
+                print "normalizer[",ci,"]=",a,b,c,d
+                print "width = ",wi
+                print "x0,y0=",x,y
+            if use_int==1:
+                _normalize_point_to_cusp_dp(&x,&y,a,b,c,d,wi)
+            else:
+                _normalize_point_to_cusp_real_dp(&x,&y,a,b,c,d,wi_d)
+            #[x,y]   = normalize_point_to_cusp_dp(G,ci,Xm[j],Y)
+            if verbose>2:
+                print "N(z0)=",x,y
+            if is_Gamma0 == 1:
+                #x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
+                _pullback_to_Gamma0N_dp(reps,nreps,N,&x,&y,
+                                        &pba,&pbb,&pbc,&pbd,0)
+                x1=x; y1=y
+            else:
+#                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
+                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1,verbose=verbose)
+                if verbose>2:
+                    print "Pbz=",x1,y1
+            ## Want to replace this with a cpdef'd function
+            #cj,vj= G.closest_cusp(x1,y1,vertex=1)
+            vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&x1,&y1)
+            cj = vertex_cusp[vj]
+            if pba<=0 and pbb<=0 and pbc<=0 and pbd<=0:
+                pba=-pba; pbb=-pbb; pbc=-pbc; pbd=-pbd
+            if verbose>2:
+                print "x0,y0=",x,y
+                print "Q=",Q
+                print "j=",j+Qv[ci][0]
+                print "Xm[{0}],Y={1},{2}".format(j,xmm,Y)
+                print "x,y=",x,y
+                print "Pbmap=",pba,pbb,pbc,pbd
+                print "x1,y1=",x1,y1
+                print "cj,vj=",cj,vj
+            #cjj=G._cusps.index(cj)
+            if use_int==1:
+                wj=<int>widths[cj] #G._cusp_data[cj]['width']
+                swj=sqrt(<double>wj) 
+            else:
+                wj_d=widths[cj] #G._cusp_data[cj]['width']
+                swj=sqrt(wj_d)
+            a = cusp_maps[vj][0]   #a,b,c,d=G._vertex_data[cj]['cusp_map'] #[v]
+            b = cusp_maps[vj][1]
+            c = cusp_maps[vj][2]
+            d = cusp_maps[vj][3]
+            if verbose>2:
+                if cj==1:
+                    print ">>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<"
+                print "cj=",cj
+                print "U1(",vj,")=",a,b,c,d
+                print "x00,y00=",x1,y1
+            x2=x1; y2=y1
+            if a<>1 or b<>0 or c<>0 or d<>1:
+                #if verbose>2:
+                #    print "here1 type=",type(a)
+                #[x2,y2]=_apply_sl2z_map_dp(x1,y1,U[0],U[1],U[2],U[3])
+                _apply_sl2z_map_dp(&x2,&y2,a,b,c,d)
+            if verbose>2:
+                print "x01,y01=",x2,y2
+            #    print "cj=",cj
+            #x2=x1; y2=y1
+            x3=x2; y3=y2
+            a=normalizers[cj][3]; b=-normalizers[cj][1]
+            c=-normalizers[cj][2]; d=normalizers[cj][0]
+            if verbose>2:
+                print "Normalizer: a,b,c,d=",a,b,c,d
+            #_normalize_point_to_cusp_dp(&x3,&y3,a,b,c,d,wj,1)
+            if use_int==1:
+                _normalize_point_to_cusp_dp(&x3,&y3,a,b,c,d,wj,1)
+            else:
+                _normalize_point_to_cusp_real_dp(&x3,&y3,a,b,c,d,wj_d,1)
+            if verbose>2:
+                print "width=",wj
+                print "x02,y02=",x3,y3
+            #[x3,y3] = normalize_point_to_cusp_dp(G,cj,x2,y2,inv=1)
+            Xpb[ci][cj][j]=x3*twopi
+            # Recall that Ypb must be greater than Y otherwise we need a better Y
+            if y3>=Y+ep0:
+                Ypb[ci][cj][j]=y3
+            else:
+                if verbose>0:
+                    print "ci,cj=",ci,cj
+                    print "Tj=",pba,pbb,pbc,pbd
+                    print "wj=",wj
+                    print "wj_d=",wj_d
+                    print "x,y=",x,y
+                    print "x1,y1=",x1,y1
+                    print "x2,y2=",x2,y2
+                    print "x3,y3=",x3,y3
+                    print "Normalizer=",a,b,c,d
+                    print "ep0=",ep0
+                return 1
+                #raise ArithmeticError,"Need smaller value of Y. Got:{0}".format(Y) 
+            if verbose>2:
+                print "ci,cj=",ci,cj
+                print "Tj=",pba,pbb,pbc,pbd
+                print "Xm=",xmm
+                print "x,y=",x,"\n",y
+                print "x1,y1=",x1,"\n",y1
+                print "x2,y2=",x2,"\n",y2
+                print "x3,y3=",x3,"\n",y3
+                print "Xpb=",Xpb[ci][cj][j]
+                print "Ypb=",Ypb[ci][cj][j]
+            # We also get the multiplier if we need it
+            if non_trivial:
+                if weight<>0:
+                    if verbose>2:
+                        print "here holo=",holo," weight=",weight
+                        print "A=",A[0],A[1],A[2],A[3]
+                    cr = <double>(normalizers[ci][2])*swi
+                    dr = <double>(normalizers[ci][3])/swi
+                    if verbose>2:
+                        print "cr,dr=",cr,dr
+                    j_fak_dp_c(cr,dr,xmm,Y,weight,holo,&tmpabs,&tmparg1)
+                    m1=cexp(-_Complex_I*tmparg1)
+                    if verbose>2:
+                        print "-tmparg1=",-tmparg1
+                        print "m1=",m1
+                    cr = <double>(normalizers[cj][2])*swj
+                    dr = <double>(normalizers[cj][3])/swj
+                    j_fak_dp_c(cr,dr,x3,y3,weight,holo,&tmpabs,&tmparg2)
+                    m2=cexp(_Complex_I*tmparg2)
+                    if verbose>2:
+                        print "tmparg2=",tmparg2
+                    #l=mat_mul_lit(cusp_maps[vj],Tj)
+                    #A[0]=l[0]; A[1]=l[1]; A[2]=l[2]; A[3]=l[3]
+                    _mat_mul_list(cusp_maps[vj][0],cusp_maps[vj][1],cusp_maps[vj][2],cusp_maps[vj][3],pba,pbb,pbc,pbd,A)
+                    #A=A**-1
+                    cr=<double>(-A[2]); dr=<double>(A[0])
+                    j_fak_dp_c(cr,dr,x2,y2,weight,holo,&tmpabs,&tmparg3)
+                    m3=cexp(_Complex_I*tmparg3)
+                    tmp=cexp(_Complex_I*(tmparg2-tmparg1+tmparg3))
+                    if verbose>2:
+                        print "tmparg3=",tmparg3
+                        print "A[2],A[3]=",A[2],A[3]
+                        print "A[3]=",A[3],"% modulus:",vi
+                        print "m1,m2,m3=",m1,m2,m3
+                else:
+                    _mat_mul_list(cusp_maps[vj][0],cusp_maps[vj][1],cusp_maps[vj][2],cusp_maps[vj][3],pba,pbb,pbc,pbd,A)
+                    tmp=CMPLX(1.0,0.0) #<double complex>1.0
+                if dir_char:
+                    vi=A[3] % modulus
+                    if vi<0:
+                        vi=vi+modulus
+                    v=charvec[vi]
+                    if verbose>2:
+                        print "A[3]=",A[3],"% modulus:",vi
+                        print "m1,m2,m3=",m1,m2,m3
+                        print "tmp=",tmp
+                        print "mult=",v 
+
+                    #v = <double complex> ctmp.real()+_Complex_I*ctmp.imag() #CC(multiplier(AA)) #character(AA[1,1])a
+                    tmp = tmp/v
+                elif not trivial_mult:
+                    if verbose>1:
+                        print "mult=",multiplier([A[0],A[1],A[2],A[3]])
+                    ctmp=multiplier([A[0],A[1],A[2],A[3]]).complex_embedding()
+                    v = <double complex> ctmp.real()+_Complex_I*ctmp.imag() #CC(multiplier(AA)) #character(AA[1,1])a
+                    tmp = tmp/v
+                Cvec[ci][cj][j]=tmp # mp_ctx.mpc(0,tmp)
+            else:
+                Cvec[ci][cj][j]=CMPLX(1.0,0.0) #<double complex>1.0   #mp_ctx.mpc(0,tmp)
+    #for j from 0<=j<Ql:
+    for j in range(Qv[0][1]): 
+        Xm[j]=Xm[j]*twopi
+    if charvec<>NULL:
+        sage_free(charvec)
+    if normalizers<>NULL:
+        for i from 0<=i<nc:
+            if normalizers[i]<>NULL:
+                sage_free(normalizers[i])
+        sage_free(normalizers)
+    if cusp_maps<>NULL:
+        for i from 0<=i<nv:
+            if cusp_maps[i]<>NULL:
+                sage_free(cusp_maps[i])
+        sage_free(cusp_maps)
+    if vertex_maps<>NULL:
+        for i from 0<=i<nv:
+            if vertex_maps[i]<>NULL:
+                sage_free(vertex_maps[i])
+        sage_free(vertex_maps)
+    if vertex_widths<>NULL:
+        sage_free(vertex_widths)
+    if vertex_cusp<>NULL:
+        sage_free(vertex_cusp)
+    if widths<>NULL:
+        sage_free(widths)
+    if is_Gamma0==1:
+        if reps<>NULL:
+            for j from 0 <=j<nreps:
+                if reps[j]<>NULL:
+                    if reps[j][0]<>NULL:
+                        sage_free(reps[j][0])
+                    if reps[j][1]<>NULL:
+                        sage_free(reps[j][1])
+                    sage_free(reps[j])
+            sage_free(reps)
+    return 0
+#    sig_off()
 @cython.cdivision(True)
 cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double complex ***Cvec):
     r""" Computes a whole array of pullbacked points using double precision
@@ -247,7 +672,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
     is_Gamma0=<int>G._is_Gamma0
     cdef int*** reps=NULL
     cdef int N
-    if verbose>0:
+    if verbose>1:
         print "In pullback_pts_cplx_dp!"
     if is_Gamma0==1:
         nreps=G._index
@@ -275,7 +700,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
 #            reps[j][1][1]=G._coset_reps_v0[j][3]
 
             
-    if verbose>0:
+    if verbose>1:
         print "nc=",nc
     if not isinstance(G._cusp_data[0]['width'],(int,Integer)):
         use_int=0
@@ -320,8 +745,8 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
     cdef int dir_char=0
     cdef double complex *charvec=NULL
     cdef int modulus
-    #if verbose>0:
-    #    print "Here1.5"
+    if verbose>0:
+        print "Here1.5"
     if not multiplier.is_trivial():
         dir_char=1
         modulus = multiplier._character.modulus()
@@ -343,7 +768,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         fourQ=<double>(4*Qf)
     for j from Qs<= j <= Qf: 
         Xm[j-Qs]=<double>(2*j-1)/fourQ        
-    if verbose>2:
+    if verbose>0:
         print "use_int=",use_int
     res={}
                 
@@ -363,8 +788,11 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         else:
             wi_d=widths[ci] #<double>G._cusp_data[ci]['width'] #(ci)
             swi=sqrt(wi_d)
-        for j in range(Ql): #1-Q,Q):
+        for j in range(Ql): #Ql, 1-Q,Q):
+            if verbose>0:
+                print "j=",j
             x=Xm[j]; y=Y
+            
             a=normalizers[ci][0]; b=normalizers[ci][1]
             c=normalizers[ci][2]; d=normalizers[ci][3]
             if verbose>2:
@@ -385,12 +813,16 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                 x1=x; y1=y
             else:
 #                x1,y1,pba,pbb,pbc,pbd =  G.pullback(x,y,ret_mat=0)
-                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1,verbose=verbose)
+                x1,y1,pba,pbb,pbc,pbd =  pullback_general_group_dp(G,x,y,ret_mat=1)
                 if verbose>2:
                     print "Pbz=",x1,y1
             ## Want to replace this with a cpdef'd function
             #cj,vj= G.closest_cusp(x1,y1,vertex=1)
+            if verbose>2:
+                print "x1,y1=",x1,y1
             vj = closest_vertex_dp_c(nv,vertex_maps,vertex_widths,&x1,&y1)
+            if verbose>2:
+                print "vj=",vj
             cj = vertex_cusp[vj]
             if pba<=0 and pbb<=0 and pbc<=0 and pbd<=0:
                 pba=-pba; pbb=-pbb; pbc=-pbc; pbd=-pbd
@@ -442,11 +874,16 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
             if verbose>2:
                 print "width=",wj
                 print "x02,y02=",x3,y3
+                print "ci,cj,j=",ci,cj,j
             #[x3,y3] = normalize_point_to_cusp_dp(G,cj,x2,y2,inv=1)
             Xpb[ci][cj][j]=x3*twopi
+            if verbose>2:
+                print "Xpb[{0}][{1}][{2}]={3}".format(ci,cj,j,Xpb[ci][cj][j])
             # Recall that Ypb must be greater than Y otherwise we need a better Y
             if y3>=Y+ep0:
                 Ypb[ci][cj][j]=y3
+                if verbose>2:
+                    print "Ypb[{0}][{1}][{2}]={3}".format(ci,cj,j,Ypb[ci][cj][j])                
             else:
                 if verbose>0:
                     print "ci,cj=",ci,cj
@@ -501,7 +938,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                     m3=cexp(_Complex_I*tmparg3)
                     tmp=cexp(_Complex_I*(tmparg2-tmparg1+tmparg3))
                     if verbose>2:
-                        print "tmparg3=",tmparg
+                        print "tmparg3=",tmparg3
                         print "A[2],A[3]=",A[2],A[3]
                         print "A[3]=",A[3],"% modulus:",vi
                         print "m1,m2,m3=",m1,m2,m3
@@ -567,6 +1004,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
             sage_free(reps)
     return 0
 #    sig_off()
+
 
 @cython.cdivision(True)
 cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb,double*** Ypb,double ***Cvec):

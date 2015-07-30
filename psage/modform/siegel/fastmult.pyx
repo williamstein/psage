@@ -9,7 +9,7 @@ Low level functions for coefficients of Siegel modular forms
 # (0,A)x(0,B)x(0,C) or else of all reduced triples (a,b,c) with 4ac-b^2 below
 # a given bound (and c <=  if 4ac-b^2=0).
 
-include 'gmp.pxi'
+#include 'gmp.pxi'
 
 from sage.structure.element cimport Element
 import operator

@@ -52,7 +52,7 @@ import tempfile,os
 from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign,Newforms
 from sage.rings.complex_mpc import MPComplexField,MPComplexNumber
 
-from mysubgroup import *
+from psage.modform.arithgroup.mysubgroup import *
 from automorphic_forms import *
 from weil_rep_simple import *
 from vv_harmonic_weak_maass_forms_alg import *

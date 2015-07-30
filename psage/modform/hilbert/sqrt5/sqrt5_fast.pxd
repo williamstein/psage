@@ -29,7 +29,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
     cdef int set_element_from_tuple(self, residue_element rop, x) except -1
     cdef int cmp_element(self, residue_element left, residue_element right)
     cdef int pow(self, residue_element rop, residue_element op, long e) except -1
-    cdef bint is_square(self, residue_element op)
+    cdef bint is_square(self, residue_element op) except -2
     cdef int sqrt(self, residue_element rop, residue_element op) except -1
     cdef int ith_element(self, residue_element rop, long i) except -1
     cpdef long cardinality(self)

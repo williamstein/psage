@@ -555,32 +555,35 @@ cdef extern from "stdio.h" nogil:
     
 
 
-## standard sage
-cdef extern from "stdsage.h" nogil:
-    ctypedef void PyObject
+# ## standard sage: note this is not a .h file anymore.... 
+# cdef extern from "stdsage.h" nogil:
+#     cdef inline PY_NEW(type t)
+#     cdef inline void PY_SET_TP_NEW(type dst, type src)
+#     cdef inline bint HAS_DICTIONARY(obj)
+#     # ctypedef void PyObject
     
-    # Global tuple -- useful optimization
-    void init_global_empty_tuple()
-    object PY_NEW(object t)
-    object PY_NEW_SAME_TYPE(object t)
+#     # # Global tuple -- useful optimization
+#     # void init_global_empty_tuple()
+#     # object PY_NEW(object t)
+#     # object PY_NEW_SAME_TYPE(object t)
     
-    void* PY_TYPE(object o)
-    bint PY_TYPE_CHECK(object o, object t)
-    bint PY_TYPE_CHECK_EXACT(object o, object t)
+#     # void* PY_TYPE(object o)
+#     # bint PY_TYPE_CHECK(object o, object t)
+#     # bint PY_TYPE_CHECK_EXACT(object o, object t)
     
-    object IS_INSTANCE(object o, object t)
-    void PY_SET_TP_NEW(object t1, object t2)
-    bint HAS_DICTIONARY(object o)
-    bint PY_IS_NUMERIC(object o)
+#     # object IS_INSTANCE(object o, object t)
+#     # void PY_SET_TP_NEW(object t1, object t2)
+#     # bint HAS_DICTIONARY(object o)
+#     # bint PY_IS_NUMERIC(object o)
     
 
-# Memory management
-cdef extern from "stdsage.h" nogil:
-    void  sage_free(void *p)
-    void* sage_realloc(void *p, size_t n)
-    void* sage_malloc(size_t)
-    void* sage_calloc(size_t nmemb, size_t size)
-    void  init_csage()
-    void  init_csage_module()
-    void  init_memory_functions()
+# # Memory management
+# cdef extern from "stdsage.h" nogil:
+#     void  sage_free(void *p)
+#     void* sage_realloc(void *p, size_t n)
+#     void* sage_malloc(size_t)
+#     void* sage_calloc(size_t nmemb, size_t size)
+#     void  init_csage()
+#     void  init_csage_module()
+#     void  init_memory_functions()
 

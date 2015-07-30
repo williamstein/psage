@@ -55,12 +55,12 @@ import sys
 #from sys.stdout import.flush
 from psage.rings.mpc_extras cimport *
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
-from mysubgroups_alg cimport pullback_to_psl2z_mat_c,pullback_to_psl2z_mat,_apply_sl2z_map_mpfr
+from psage.modform.arithgroup.mysubgroups_alg cimport pullback_to_psl2z_mat_c,pullback_to_psl2z_mat,_apply_sl2z_map_mpfr
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 #from inc_gamma cimport incgamma_hint_c
-from inc_gamma import incgamma_hint  ## gamma(n+1/2,x)
-from psage.modform.maass.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
+from psage.functions.inc_gamma import incgamma_hint  ## gamma(n+1/2,x)
+from psage.functions.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
 import mpmath
 #from vv_harmonic_weak_maass_forms import rn_from_D
 #from sage.all import cached_method,cached_function

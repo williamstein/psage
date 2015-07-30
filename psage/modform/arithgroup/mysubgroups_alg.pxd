@@ -1,11 +1,10 @@
 include "sage/ext/interrupt.pxi" 
-include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
-include "sage/rings/mpc.pxi"
+from sage.libs.mpfr cimport *
+#include "sage/rings/mpc.pxi"
 #include "sage/ext/gmp.pxi"
 
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
-from sage.matrix.matrix_integer_2x2 cimport Matrix_integer_2x2
 
 cdef class GL2Z_elt(object):
     cdef int* ent
@@ -20,7 +19,7 @@ cdef class GL2Z_elt(object):
     cpdef acton(self,z)
     cpdef _mul(self,GL2Z_elt other,int inv=?)
     cpdef _mul_mat_id(self,Matrix_integer_dense other,int inv=?)
-    cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=?)
+    #cpdef _mul_mat_i_2x2(self,Matrix_integer_2x2 other,int inv=?)
     cdef _mul_c(self,int* other,int *res,int inv=?)
     cdef _mul_c_mpz(self,mpz_t* other,int *res,int inv=?)
     cpdef inverse(self)
@@ -70,3 +69,5 @@ cdef void _normalize_point_to_cusp_dp(double *x,double *y,int a,int b,int c,int 
 cdef void _normalize_point_to_cusp_real_dp(double *x,double *y,int a,int b,int c,int d, double wi, int inv=?)    
 
 cdef void pullback_to_hecke_triangle_mat_c_mpfr(mpfr_t x,mpfr_t y,mpfr_t lambdaq,mpfr_t a,mpfr_t b,mpfr_t c,mpfr_t d)
+
+cdef tuple fast_sl2z_factor(int a,int b,int c,int d,int verbose=?)

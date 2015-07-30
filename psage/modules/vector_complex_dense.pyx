@@ -43,21 +43,11 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
-include '../ext/interrupt.pxi'
-include '../ext/stdsage.pxi'
+from psage.rings.mp_cimports cimport *
 
-# set rounding to be nearest integer
-# TODO: make t possible to change rounding 
-cdef mpc_rnd_t rnd
-rnd = MPC_RNDNN
-
-from sage.structure.element cimport Element, ModuleElement, RingElement, Vector
-from sage.all import FreeModule
-from sage.rings.integer cimport Integer
-from sage.rings.complex_mpc cimport MPComplexNumber
-from sage.rings.complex_mpc cimport MPComplexField_class
+from sage.all import FreeModule #,FreeModuleElement,ModuleElement
+from sage.structure.element cimport Element,ModuleElement,RingElement
 from sage.modules.free_module_element cimport FreeModuleElement
-from sage.rings.real_mpfr cimport RealNumber
 
 cdef class Vector_complex_dense(FreeModuleElement):
     cdef bint is_dense_c(self):

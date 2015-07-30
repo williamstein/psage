@@ -36,12 +36,12 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-#             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
             ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
              ('include/csage', 'include', 'include/python',
               'include/python2.7')]
+print "INCLUDES=",INCLUDES
 
 if '-ba' in sys.argv:
     print "Rebuilding all Cython extensions."
@@ -107,8 +107,8 @@ ext_modules = [
     Extension("psage.modform.siegel.fastmult",
               ["psage/modform/siegel/fastmult.pyx"]),
 
-    Extension('psage.modform.maass.mysubgroups_alg',
-              ['psage/modform/maass/mysubgroups_alg.pyx'],
+    Extension('psage.modform.arithgroup.mysubgroups_alg',
+              ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs),
 
@@ -130,7 +130,8 @@ ext_modules = [
 
     Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
               ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
-              libraries = ['ntl', 'gmp'],
+#              libraries = ['ntl', 'gmp'],
+              libraries = ['gmp'],
               language = 'c++'),
 
     Extension("psage.ellcurve.lseries.sqrt5",
@@ -194,29 +195,38 @@ for g in [1, 2]:
     ext_modules.append(e)
 ## Fredrik Stroemberg: my additional modules.
 my_extensions = [
+    Extension('psage.groups.permutation_alg',
+              ['psage/groups/permutation_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc']),
+    Extension('psage.rings.mp_cimports',
+              sources= ['psage/rings/mp_cimports.pyx'],
+              libraries = ['gmp','mpfr','mpc']),
     Extension('psage.rings.mpc_extras',
               sources = ['psage/rings/mpc_extras.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 
-    Extension('psage.modform.maass.inc_gamma',
-              ['psage/modform/maass/inc_gamma.pyx'],
+    Extension('psage.modform.periods.period_polynomials_algs',
+              ['psage/modform/periods/period_polynomials_algs.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
-    Extension('psage.modform.maass.mysubgroups_alg',
-              ['psage/modform/maass/mysubgroups_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
 
-    Extension('psage.modform.maass.sl2z_subgroups_alg',
-              ['psage/modform/maass/sl2z_subgroups_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-
-    Extension('psage.modform.maass.permutation_alg',
-              ['psage/modform/maass/permutation_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
+    Extension('psage.functions.inc_gamma',
+              ['psage/functions/inc_gamma.pyx'],
+              libraries = ['m','gmp','mpfr','mpc'],
+              extra_compile_args=['-fopenmp'],
+              extra_link_args=['-fopenmp']),
     
+    Extension('psage.modform.arithgroup.mysubgroups_alg',
+              ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc']),
+
+    Extension('psage.modform.arithgroup.sl2z_subgroups_alg',
+              ['psage/modform/arithgroup/sl2z_subgroups_alg.pyx'],
+              libraries = ['m','gmp','mpfr','mpc']),
+
     Extension('psage.modform.maass.maass_forms_parallel_alg',
               ['psage/modform/maass/maass_forms_parallel_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
@@ -249,7 +259,6 @@ my_extensions = [
               ['psage/modform/hilbert/hilbert_modular_group_alg.pyx'],
               libraries = ["flint", "gmp", "gmpxx", "m","ntl"],
               language="c"),
-
 
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],
@@ -311,7 +320,13 @@ my_extensions = [
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']) 
+              extra_link_args=['-fopenmp']),
+
+
+    Extension("psage.groups.dirichlet_conrey",
+              ['psage/groups/dirichlet_conrey.pyx'],
+              libraries=['csage'],
+              extra_compile_args = ['-w','-O2'])
 ]
 
 ext_modules.extend(my_extensions)
@@ -340,7 +355,7 @@ build_system.cythonize(ext_modules)
 
 build_system.setup(
     name = 'psage',
-    version = "2013.x.x",
+    version = "2015.1.0",
     description = "PSAGE: Software for Arithmetic Geometry",
     author = 'William Stein',
     author_email = 'wstein@gmail.com',
@@ -349,11 +364,13 @@ build_system.setup(
     packages = ['psage',
                 'psage.ellcurve',
                 'psage.ellcurve.lseries',
-
+                'psage.functions',
 #                'psage.ellff',
 
                 'psage.function_fields',
-
+                'psage.groups',
+                
+                
                 'psage.lmfdb',
                 'psage.lmfdb.ellcurves',
                 'psage.lmfdb.ellcurves.sqrt5',
@@ -361,6 +378,7 @@ build_system.setup(
          		'psage.matrix',
 
                 'psage.modform',
+                'psage.modform.arithgroup',
 
                 'psage.modform.fourier_expansion_framework',
                 'psage.modform.fourier_expansion_framework.gradedexpansions',
@@ -378,6 +396,7 @@ build_system.setup(
                 'psage.modform.jacobiforms',
                 'psage.modform.weilrep_tools',
                 'psage.modform.maass',
+                'psage.modform.periods',
 
         		'psage.modules',
 

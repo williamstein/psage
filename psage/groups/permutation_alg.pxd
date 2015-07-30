@@ -1,9 +1,5 @@
-include "sage/ext/interrupt.pxi" 
-include "sage/ext/stdsage.pxi"  
-include "sage/ext/cdefs.pxi"
-include "sage/rings/mpc.pxi"
-#include "../ext/gmp.pxi"
-#include "sage/ext/python_int.pxi"
+from psage.rings.mp_cimports cimport *
+
 from sage.structure.sage_object cimport SageObject
 from sage.structure.parent cimport Parent
 from sage.rings.integer cimport Integer
@@ -134,3 +130,6 @@ cdef int perm_to_cycle_c(int N,int *perm,int* cycle,int* cycle_lens)
 cdef print_vec(int n,int *list)
 cdef int num_cycles_c(int N,int *perm)
 cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl)
+cdef int _is_in_list(int *lista,int y,int num)
+cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,int verbose=?)
+cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* pres,int verbose=?,int check=?)

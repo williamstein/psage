@@ -60,6 +60,7 @@ cdef double complex cexpi(double x):
     return cexp(x*_Complex_I)
 
 
+cdef double complex _I2 = _Complex_I + _Complex_I
 
 
 
@@ -190,9 +191,9 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
             for j in range(Qv[jcusp][2]):
                 argm=nvec[jcusp][n]*Xm[j]
                 if symmetric_cusps[jcusp]==0:
-                    ef2_c[jcusp][n][j]=cos(argm)
+                    ef2_c[jcusp][n][j]=2.0*cos(argm)
                 elif symmetric_cusps[jcusp]==1:
-                    ef2_c[jcusp][n][j]=_Complex_I*sin(-argm)
+                    ef2_c[jcusp][n][j]=_I2*sin(-argm)
                 else:
                     ef2_c[jcusp][n][j]=cexpi(-argm)
     cdef double argpb1
@@ -204,9 +205,9 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
                         continue
                     argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
                     if symmetric_cusps[jcusp]==0:
-                        ef1[icusp][jcusp][n][j]=cos(argpb)
+                        ef1[icusp][jcusp][n][j]=2.0*cos(argpb)
                     elif symmetric_cusps[jcusp]==1:
-                        ef1[icusp][jcusp][n][j]=_Complex_I*sin(argpb)
+                        ef1[icusp][jcusp][n][j]=_I2*sin(argpb)
                     else:
                         ef1[icusp][jcusp][n][j]=cexpi(argpb)
                     ctmp = Cvec[icusp][jcusp][j]
@@ -470,9 +471,9 @@ cdef int compute_V_cplx_dp_par(double complex **V,
             for j in range(Qv[jcusp][2]):
                 argm=nvec[jcusp][n]*Xm[j]
                 if symmetric_cusps[jcusp]==0:
-                    ef2_c[jcusp][n][j]=cos(argm)
+                    ef2_c[jcusp][n][j]=2.0*cos(argm)
                 elif symmetric_cusps[jcusp]==1:
-                    ef2_c[jcusp][n][j]=_Complex_I*sin(-argm)
+                    ef2_c[jcusp][n][j]=_I2*sin(-argm)
                 else:
                     ef2_c[jcusp][n][j]=cexpi(-argm)
     cdef double argpb1
@@ -484,9 +485,9 @@ cdef int compute_V_cplx_dp_par(double complex **V,
                         continue
                     argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
                     if symmetric_cusps[jcusp]==0:
-                        ef1[icusp][jcusp][n][j]=cos(argpb)
+                        ef1[icusp][jcusp][n][j]=2.0*cos(argpb)
                     elif symmetric_cusps[jcusp]==1:
-                        ef1[icusp][jcusp][n][j]=_Complex_I*sin(argpb)
+                        ef1[icusp][jcusp][n][j]=_I2*sin(argpb)
                     else:
                         ef1[icusp][jcusp][n][j]=cexpi(argpb)
                     ctmp = Cvec[icusp][jcusp][j]

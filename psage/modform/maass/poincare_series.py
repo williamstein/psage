@@ -6,7 +6,7 @@ Algorithms for holomorphic and non-holomorphic Poincare series.
 
 from sage.all import ComplexField,inverse_mod
 from multiplier_systems import *
-from mysubgroup import *
+from psage.modform.arithgroup.mysubgroup import *
 from poincare_series_alg import *
 
 class PoincareSeries(SageObject):

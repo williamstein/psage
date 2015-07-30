@@ -30,7 +30,7 @@ include "interrupt.pxi"
 include "stdsage.pxi"
 include "cdefs.pxi"
 
-include 'sage/ext/gmp.pxi'
+#include 'sage/ext/gmp.pxi'
 
 from sage.rings.integer cimport Integer
 from sage.rings.ring cimport Ring
@@ -355,4 +355,4 @@ cdef inline get_coeff_generic(int n, int r, int ch, coeffs_dict, int m):
     
     except KeyError :
         return None
-g
+

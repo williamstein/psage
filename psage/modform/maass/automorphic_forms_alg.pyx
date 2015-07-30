@@ -45,7 +45,7 @@ import sage.structure.element
 from sage.libs.pari.gen cimport GEN
 #cimport sage.structure.element
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
-from psage.modform.maass.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
+from psage.functions.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c
 from psage.rings.mpc_extras cimport _mpc_div,_mpc_mul,_mpc_set,_mpc_sub,_mpc_mul_fr,_mpc_add
 
 from sage.structure.element cimport Element, ModuleElement, RingElement
@@ -61,9 +61,9 @@ from sage.functions.all import floor
 from maass_forms_alg import *
 #from maass_forms_alg cimport *
 
-from mysubgroups_alg import normalize_point_to_cusp_mpfr as normalize_point_to_cusp
-from mysubgroups_alg cimport _apply_sl2z_map_mpfr
-from mysubgroups_alg import apply_sl2z_map,pullback_to_psl2z_mat #,pullback_to_G
+from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr as normalize_point_to_cusp
+from psage.modform.arithgroup.mysubgroups_alg cimport _apply_sl2z_map_mpfr
+from psage.modform.arithgroup.mysubgroups_alg import apply_sl2z_map,pullback_to_psl2z_mat #,pullback_to_G
 #from maass_forms_alg import smallest_inf_norm
 from sage.modular.arithgroup.congroup_sl2z import SL2Z
 import mpmath
@@ -1621,15 +1621,16 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     ## Test if the weight is integral
     if floor(kint)==pceil(kint):
         kinti = int(kint); is_int = 1
-    if verbose>0:
-        print "is_int=",is_int
-        print "kint=",kint
-        print "kinti=",kinti
     if is_int==0:
         ## Check if kint is half-integral.
         if floor(2*kint)==pceil(2*kint):
             is_half_int = 1
             kinti = int(kint-RF(0.5))
+    if verbose>0:
+        print "is_int=",is_int
+        print "kint=",kint
+        print "kinti=",kinti
+            
     cdef MPComplexNumber ckint
     ckint = CF(kint)
     #print "kint=",kint
@@ -1652,7 +1653,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     Qfaki=2*Q
     # Pullpack points
     if verbose>0:
-        print "In setup_matrix_for_harmonic_Maass_waveforms_sv"
+        print "In setup_matrix_for_harmonic_Maass_waveforms_nosym"
         print "Qs,Qf=",Qs,Qf
     cdef mpfr_t tmpr_t
     cdef mpc_t iargpb_t,tmpc_t
@@ -1867,18 +1868,14 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                     #iargpb=iargpb.exp()
 
                     if mpfr_cmp_d(nr.value,eps)>0:
-                        mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd)
+                        ## ef1 = e(2pi*i*n(-xpb+i*ypb))
+                        mpc_set(ef1[icusp][jcusp][n][j],iargpb.value,rnd) 
                         #ef1[j,icusp,jcusp,n]=one*iargpb
                     #elif mpfr_cmp_d(nr,-eps)<0 and (not H._holomorphic) and H._weak:
                     elif mpfr_cmp_d(nr.value,-eps)<0 and not_holom==1 and is_weak==1:
+                        ## ef1 = gamma(1-k,4*pi*|n|)*e(2pi*n*i*(-x+i*ypb))
                         mpfr_abs(tmpr.value,nrfourpi.value,rnd_re)
                         mpfr_mul(tmpr.value,tmpr.value,ypb.value,rnd_re)
-                        #tmpr=abs(nrfourpi)*ypb
-                        #tmp2=iargpb
-                        # pari: iargpb=iargpb*ckint.gamma_inc(tmpr)
-                        #iargpb=iargpb*ckint.gamma_inc(tmpr)
-                        #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
-                        #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)
                         if (is_int==1 or is_half_int==1) and do_mpmath==0:
                             #print "tmpr=",tmpr                            
                             try:
@@ -1909,6 +1906,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                     elif mpfr_cmp_d(nr.value,-eps)<0:
                         mpc_set_si(ef1[icusp][jcusp][n][j],0,rnd)
                     else:
+                        ## This is the constant terms.
                         ## Note that principal parts have to be determined
                         ## and will appear in the right hand side
                         #print "n+alpha=0 (jcusp,n)=",jcusp,n
@@ -2190,7 +2188,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         mpfr_swap(mpc_realref(iargm.value),mpc_imagref(iargm.value))
                         mpc_exp(iargm.value,iargm.value,rnd)
                         mpc_mul(tmpc.value,tmpc_t,iargm.value,rnd)
-                        #tmpc=tmpc_minus*CF(0,-nr*Xm[j]).exp()
+                        #tmpc= tmpc_minus*CF(0,-nr*Xm[j]).exp()
+                        # tmpc = ypb^{k}e(-2*pi*i*Xm[j])
                         mpc_mul(tmpc.value,tmpc.value,ch.value,rnd)
                         mpc_add(summa_minus.value,summa_minus.value,tmpc.value,rnd)
                         #summa_minus=summa_minus+ch*tmpc

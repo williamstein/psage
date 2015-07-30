@@ -19,28 +19,17 @@ Cython algorithms for Eisenstein series.
 Used by routines in maass_forms.py
 
 """
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
-#include "sage/ext/gmp.pxi"
-include "sage/rings/mpc.pxi"
+
+from psage.rings.mp_cimports cimport *
+
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
 import mpmath    
-from sage.libs.mpfr cimport *
 
-cdef mpc_rnd_t rnd
-cdef mpfr_rnd_t rnd_re
-rnd = MPC_RNDNN
-rnd_re = GMP_RNDN
-from sage.rings.complex_mpc cimport MPComplexNumber
 from sage.rings.complex_mpc import MPComplexField
-from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
-from sage.rings.complex_number cimport ComplexNumber
 from sage.rings.complex_field import ComplexField
 import sage.structure.element
 cimport sage.structure.element
-from sage.structure.element cimport Element, ModuleElement, RingElement
 from sage.modular.cusps import Cusp
 #xfrom sage.modular.cusps cimport Cusp
 from sage.rings.infinity import infinity
@@ -101,7 +90,7 @@ from psage.rings.mpc_extras cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
-from mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
+from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpfr,pullback_to_Gamma0N_mpfr,apply_sl2z_map_mpfr,normalize_point_to_cusp_dp,apply_sl2z_map_dp
 from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mpc_new
 from pullback_algorithms cimport pullback_pts_cplx_dp
 

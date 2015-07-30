@@ -29,6 +29,7 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
+from psage.rings.mp_cimports cimport *
 
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0
@@ -47,8 +48,8 @@ from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
 import cython
-from psage.modform.maass.mysubgroup import MySubgroup
-from psage.modform.maass.mysubgroups_alg cimport SL2Z_elt
+#from psage.modform.maass.arithgroup.mysubgroup import MySubgroup
+#from psage.modform.maass.arithgroup.mysubgroups_alg cimport SL2Z_elt
 
 from libc.stdlib cimport malloc, free
 
@@ -61,12 +62,12 @@ cdef extern from "math.h":
     double M_LN10
     double log(double)
     
+from sage.libs.gmp.pylong cimport mpz_get_pylong,mpz_get_pyintlong,mpz_set_pylong
 
-
-cdef extern from "mpz_pylong.h":
-    cdef mpz_get_pylong(mpz_t src)
-    cdef mpz_get_pyintlong(mpz_t src)
-    cdef int mpz_set_pylong(mpz_t dst, src) except -1
+#cdef extern from "mpz_pylong.h":
+#    cdef mpz_get_pylong(mpz_t src)
+#    cdef mpz_get_pyintlong(mpz_t src)
+#    cdef int mpz_set_pylong(mpz_t dst, src) except -1
 
     
 cdef class MyPermutation(SageObject):
@@ -2869,7 +2870,9 @@ cpdef conjugate_perm(perma,permb):
 
     """
     cdef int N = len(perma)
-    cdef int *a, *b, *c
+    cdef int *a
+    cdef int *b
+    cdef int *c
     cdef int i
     a = <int*> sage_malloc(sizeof(int)*N)
     if not a: raise MemoryError
@@ -3128,179 +3131,7 @@ cpdef are_transitive_permutations(MyPermutation pS,MyPermutation pR,int ret_maps
     return res
 
 
-cpdef are_transitive_permutations_wmaps(MyPermutation pS,MyPermutation pR,int verbose=0):
-    r""" Check that E,R are transitive permutations, i.e. that <E,R>=S_N
 
-    INPUT:
-
-         - ``E`` -- permutation on N letters 
-         - ``R`` -- permutation on N letters
-
-             - E and R can be in any of the following formats:
-
-                 - list [a1,a2,...,aN]
-                 - member of Permutations(N)
-                 - member of SymmetricGroup(N)
-
-     OUTPUT:
-
-     - bool  
-
-
-     EXAMPLES::
-
-         sage: E=Permutations(4)([1,2,4,3]); E.cycles()
-         [(1,), (2,), (3, 4)]
-         sage: R=Permutations(4)([2,1,3,4]); R.cycles()
-         [(1, 2), (3,), (4,)]
-         sage: are_transitive_permutations(E,R)
-         False
-         sage: R=Permutations(4)([2,3,1,4]); R.cycles()
-         [(1, 2, 3), (4,)]
-         sage: are_transitive_permutations(E,R)
-         True
-         sage: ES=SymmetricGroup(4)([1,2,4,3]);ES
-         (3,4)
-         sage: ER=SymmetricGroup(4)([2,3,1,4]);ER
-         (1,2,3)
-         sage: are_transitive_permutations(ES,RS)
-         True
-
-    """
-    cdef int *gotten
-    cdef int N=pS.N()
-    cdef int *maps=NULL
-    cdef int nmaps
-    cdef MyPermutation pT=pS*pR
-    if pS.order()<>2 or pR.order()<>3:
-        raise ValueError,"Need pS of order 2 and pR of order 3"
-    gotten = <int *>sage_malloc(sizeof(int)*N)
-    if not gotten: raise MemoryError
-    cdef int num,num_old
-    cdef int i,j,k,x
-    cdef dict maps_list={}
-    cdef int* cycle_lens=NULL
-    pT.cycles(order=0)  ## make sure we have the cycle containing 1 first
-    cdef int numc = pT.num_cycles()
-#    cdef list cycle_lens = pT.cycle_lens() #<int*>sage_malloc(sizeof(int)*numc)
-    if cycle_lens==NULL:
-        raise MemoryError
-    for i in range(numc):
-        cycle_lens[i]=pT.cycle_lens()[i]
-    for i in range(N):
-        gotten[i]=0
-    cdef SL2Z_elt A,R,S,T
-    A = SL2Z_elt(1,0,0,1)
-    R = SL2Z_elt(0,-1,1,1)
-    S = SL2Z_elt(0,-1,1,0)
-    T = SL2Z_elt(1,1,0,1)
-    x = 1
-    maps_list[1]=A
-    gotten[0]=1
-    for i in range(1,cycle_lens[0]):
-        x = pT._entries[x-1]
-        gotten[x-1]=x
-        if verbose>0:
-            print "gotten[{0}]={1}".format(x-1,x)
-        maps_list[x]=SL2Z_elt(1,i,0,1)
-        #print "maps{0}={1}".format(x,maps_list[x])
-    num = cycle_lens[0]
-
-    if verbose>0:
-        print "gotten=",print_vec(N,gotten)
-        for i in range(N):
-            print "gotten[{0}]={1}".format(i,gotten[i])
-    cdef int cycle_bd=cycle_lens[0]
-    for j in range(1,numc):
-        if verbose>0:
-            print "cycle[{0}]={1}".format(j,pT.cycles()[j])
-        ## want to connect with the next cycle of pT
-        num_old = num
-        for i in range(N):
-            if gotten[i]==0:
-                continue
-            if verbose>0:
-                print "Checking {0}".format(i+1)
-                print "S({0})={1}".format(i+1,pS._entries[i])
-                print "R({0})={1}".format(i+1,pR._entries[i])
-                print "R^2({0})={1}".format(i+1,pR._entries[pR._entries[i]-1])                
-            if _is_in_list(pT._cycles+cycle_bd,pS._entries[i],cycle_lens[j]):
-                x = pS._entries[i]
-                A = maps_list[i+1]*S
-            elif _is_in_list(pT._cycles+cycle_bd,pR._entries[i],cycle_lens[j]):
-                x = pS._entries[i]
-                A = maps_list[i+1]*R
-            elif _is_in_list(pT._cycles+cycle_bd,pR._entries[pR._entries[i]-1],cycle_lens[j]):
-                x =  pR._entries[pR._entries[i]-1]
-                A = maps_list[i+1]*R*R
-            else:
-                continue
-            if verbose>0:
-                print "Here A=",A
-            gotten[x-1]=x
-            maps_list[x]=A
-            num+=1
-            for k in range(1,cycle_lens[j]):
-                A = A*T
-                x = pT._entries[x-1]
-                gotten[x-1]=x
-                maps_list[x]=A
-                num+=1
-            if num==N:
-                break
-        if num==N:
-            break
-        if num_old==num:
-            # we didn't get to the next cycle so we are not transitive
-            if cycle_lens<>NULL:
-                sage_free(cycle_lens)
-            return 0,{}
-        cycle_bd+=cycle_lens[j]
-    if cycle_lens<>NULL:
-        sage_free(cycle_lens)
-    return 1,maps_list
-                
-    #     num_old = num
-        
-    #     for k in range(num_old):
-    #         x = gotten[k]
-    #         if verbose>0:
-    #             print "gotten[{0}]={1}".format(k,x)
-    #             print "Sl[x-1]=",pS._entries[x-1]
-    #         A = S*A #tmp_list.append('S')
-    #         if _is_in_list(gotten,pS._entries[x-1],num)==0:
-    #             gotten[num]=pS._entries[x-1];  num+=1
-    #             maps_list[pS._entries[x-1]]=A #copy(tmp_list)
-    #         x = pS._entries[x-1]
-    #         if verbose>0:
-    #             print "gotten=",print_vec(N,gotten)
-    #             print "x=",x
-    #             print "Rl[x-1]=",pR._entries[x-1]
-    #         A = R*A #tmp_list.append('R')
-    #         if _is_in_list(gotten,pR._entries[x-1],num)==0:
-    #             gotten[num]=pR._entries[x-1];  num+=1
-    #             maps_list[pR._entries[x-1]]=A #copy(tmp_list)
-    #             #tmp_list.append('R')
-    #         A = R*R*A
-    #         x=pR._entries[x-1]
-    #         if verbose>0:
-    #             print "x1=",x
-    #         if _is_in_list(gotten,pR._entries[x-1],num)==0:
-    #             gotten[num]=pR._entries[x-1];  num+=1
-    #             maps_list[pR._entries[x-1]]=A #copy(tmp_list)
-    #         if verbose>0:
-    #             print "num=",num
-    #             print "gotten[end]=",print_vec(N,gotten)
-    #             print "maps_list = ",maps_list
-    #     if num == num_old:
-    #         if num<>N:
-    #             sage_free(gotten)
-    #             return 0,{}
-    #         else:
-    #             sage_free(gotten)
-    #             return 1,maps_list
-    # sage_free(gotten)
-    # return 0,{}
 
 
 cdef int are_transitive_perm_c(int *Rl,int *Sl,int *gotten, int n,int verbose=0):
@@ -3607,3 +3438,165 @@ cdef int gcd(int m, int n):
 
 cdef int lcm(int m, int n):
     return m / gcd(m, n) * n
+cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,MyPermutation S2,int verbose=0):
+    cdef MyPermutation p
+    cdef int* pres=NULL
+    cdef int res
+    cdef int N=R1._N
+    assert S1._N==N and R2._N==N and S2._N==N
+    pres = <int*>sage_malloc(sizeof(int)*N)
+    p=MyPermutation(length=N)
+    #DEB sig_on()
+    res = are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,pres,verbose)
+    #DEB sig_off()
+    p.set_entries(pres)
+    if verbose>0:
+        print "res=",res
+        print "pres=",print_vec(N,pres)
+        print "p=",p
+    if pres<>NULL:
+        sage_free(pres)
+    return res,p
+
+
+cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* pres,int verbose=0,int check=0):
+    r"""
+    Check if S1 ~_1 S2 and R1 ~_1 R2 (i.e. equiv. mod 1)
+
+
+    If check=0 we assume that the cycles are compatible (as in the case if we call this from routine above)
+    """
+    
+    cdef int i,j,ii,cont
+    cdef MyPermutationIterator PONEI
+    cdef int *epp, *rpp
+    cdef int fixS,fixR,res
+    epp = NULL
+    rpp=NULL
+    for i in range(N):
+        pres[i]=i+1
+    #pres = MyPermutation(length=N)._entries
+    res=1
+    if _are_eq_vec(N,S1._entries,S2._entries) and _are_eq_vec(N,R1._entries,R2._entries):
+        return res
+        #return True,MyPermutation(range(1,N+1))
+    # Then check if they are compatble at all:
+    fixS=0; fixR=0
+    if check:
+        cl1=map(len,S1.cycles())
+        cl2=map(len,S2.cycles())
+        cl1.sort(); cl2.sort()
+        if cl1<>cl2:
+            res=0
+        else:
+            if verbose>0:
+                #print "S1cyc=",S1.to_cycles()
+                print "cl1=",cl1
+            fixS=cl1.count(1)
+            cl1=map(len,R1.cycles())
+            cl2=map(len,R2.cycles())
+            cl1.sort(); cl2.sort()
+            if cl1<>cl2:
+                res=0
+            else:
+                if verbose>0:
+                    #print "R2cyc=",R2.to_cycles()
+                    print "cl2=",cl2
+                fixR=cl2.count(1)
+    else:
+        fixS=S1.num_fixed_c()
+        fixR=R1.num_fixed_c()
+    if res==0:
+        return res
+    res=0
+    if verbose>0:
+        print "testing G1:={0}:{1}".format(S1,R1)
+        print "testing G2:={0}:{1}".format(S2,R2)
+    epp =  <int *>sage_malloc(sizeof(int)*N)
+    if not epp:  raise MemoryError
+    rpp =  <int *> sage_malloc(sizeof(int)*N)
+    if not rpp:  raise MemoryError
+    res = 0
+    if verbose>0:
+        print "HERE 0!"
+    #pres = MyPermutation(length=N)
+    cdef list thisset,fixptsets,listRout
+    cdef list fixptsS1=S1.fixed_elements()
+    cdef list fixptsR1=R1.fixed_elements()
+    cdef list fixptsS2=S2.fixed_elements()
+    cdef list fixptsR2=R2.fixed_elements()
+    if verbose>0:
+        print "HERE 1!"
+    cdef MyPermutation p,p0
+#    p0=transposition(12,5,7)*transposition(12,6,8)*transposition(12,10,7)*transposition(12,9,8)*transposition(12,10,12)*transposition(12,9,11)*transposition(12,11,12)
+    #print "pres._entries=",printf("%p ",pres._entries)
+    # Check which sets are allowed:
+    cdef list iteratorlist=[]
+    #print "fixS1=",fixptsS1
+    #print "fixS2=",fixptsS1
+    #print "fixR1=",fixptsR1
+    #print "fixR2=",fixptsR2
+    for thisset in subsets(range(1,N+1)):
+        if len(thisset)>=N-1:  # Then all pts are fixed and we have a trivial permutation only
+            continue
+        if 1 not in thisset:
+            continue
+        if verbose>1:
+            print "fixset test.:",thisset
+        cont=False
+        for a in thisset:
+            if ((a in fixptsS1) and (a not in fixptsS2)) or ((a in fixptsS2) and (a not in fixptsS1)):
+                cont=True
+                if verbose>2:
+                    print "a"
+                break
+            if ((a in fixptsR1) and (a not in fixptsR2)) or ((a in fixptsR2) and (a not in fixptsR1)):
+                cont=True
+                if verbose>2:
+                    print "b"
+                break
+        if cont:
+            continue # fixptsets.remove(thisset)
+        if verbose>1:
+            print "fixset ok.:",thisset
+        PONEI = MyPermutationIterator(N,fixed_pts=thisset,num_fixed=len(thisset))
+        iteratorlist.append(PONEI)
+    #sig_on()
+    if verbose>0:
+        print "HERE!"
+    for PONEI in iteratorlist:      
+        #if verbose>1:
+        #    print "Checking perms in ",PONEI
+        for p in PONEI:
+            if verbose>2:
+                print "p=",p
+            #if p==p0:
+            #    print "p0 is here!"
+            _conjugate_perm(N,epp,S1._entries,p._entries) # epp=p*E*p.inverse()
+            #if p==p0:
+            #    print "epp=",print_vec(N,epp)
+            if not _are_eq_vec(N,epp,S2._entries):
+                continue
+            _conjugate_perm(N,rpp,R1._entries,p._entries) # rpp=p*R*p.inverse()
+            #if p==p0:
+            #    print "rpp=",print_vec(N,rpp)
+            if _are_eq_vec(N,rpp,R2._entries):
+                res = 1
+                for i in range(N):
+                    pres[i]=p._entries[i]
+                break
+        if res==1:
+            break
+        #PONEI._c_dealloc()
+    #print "end pres cur=",pres
+    #print "pres._entries=",printf("%p ",pres._entries)
+    if verbose>0:
+        print "Are mod 1 equivalent:",res
+        print "pres=",print_vec(N,pres)
+    if epp<>NULL:
+        sage_free(epp)
+    if rpp<>NULL:
+        sage_free(rpp)
+    #sig_off()
+
+    return res

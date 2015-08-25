@@ -20,7 +20,7 @@
 #################################################################################
 
 
-include "stdsage.pxi"
+from stdsage cimport PY_NEW
 
 from sage.structure.element cimport FieldElement, RingElement, ModuleElement, Element
 

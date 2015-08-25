@@ -26,11 +26,13 @@ AUTHORS:
 #
 #===============================================================================
 
-include "interrupt.pxi"
-include "stdsage.pxi"
+include 'sage/ext/signals.pxi'
+include 'sage/ext/interrupt.pxi'
+#include "interrupt.pxi"
+#include "stdsage.pxi"
 include "cdefs.pxi"
+from stdsage cimport PY_NEW
 
-#include 'sage/ext/gmp.pxi'
 
 from sage.rings.integer cimport Integer
 from sage.rings.ring cimport Ring

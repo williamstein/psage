@@ -36,7 +36,8 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
+            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src',
+             ' local/lib/python2.7/site-packages/sage/ext/'
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
              ('include', 'include/python',

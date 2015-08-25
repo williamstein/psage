@@ -36,8 +36,8 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src',
-             ' local/lib/python2.7/site-packages/sage/ext/'
+            ( 'src/sage', 'src/sage/gsl', 'src',
+              'local/lib/python2.7/site-packages/sage/ext/','src/sage/ext'
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
              ('include', 'include/python',
@@ -247,7 +247,8 @@ my_extensions = [
     Extension('psage.modform.maass.automorphic_forms_alg',
               ['psage/modform/maass/automorphic_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs,
+              include_dirs = numpy_include_dirs +
+              ['local/lib/python2.7/site-packages/sage/ext/interrupt'],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 

@@ -20,12 +20,14 @@ Used by routines in atomorphic_forms.py
 
 """
 
-include "stdsage.pxi"  
+#include "stdsage.pxi"  
 include "cdefs.pxi"
 #include "sage/rings/mpc.pxi"
 #include "../../rings/mpfr_loc.pxi"
 from psage.rings.mpfr_nogil cimport *
-
+#include "sage/ext/interrupt.pxi"  
+#include "sage/ext/stdsage.pxi" 
+from sage.ext.memory cimport check_allocarray,sage_free
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
     
@@ -724,22 +726,22 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef mpfr_t*** Ypb=NULL
     cdef mpfr_t**** RCvec=NULL
     cdef int*** CSvec=NULL
-    Xm = <mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ql )
+    Xm = <mpfr_t*> check_allocarray( sizeof(mpfr_t), Ql )
     if Xm==NULL: raise MemoryError
     for n in range(Ql):
         mpfr_init2(Xm[n],prec)
-    Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    Xpb = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     if Xpb==NULL: raise MemoryError
-    Ypb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    Ypb = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     if Ypb==NULL: raise MemoryError
     for i in range(nc):
-        Xpb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
-        Ypb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
+        Xpb[i] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), nc )
+        Ypb[i] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), nc )
         if Ypb[i]==NULL or Xpb[i]==NULL:
             raise MemoryError
         for j in range(nc):
-            Xpb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
-            Ypb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
+            Xpb[i][j] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), Ql )
+            Ypb[i][j] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), Ql )
             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
@@ -748,27 +750,27 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
                 #Ypb[i][j][n]=<double>0
-    CSvec = <int***>sage_malloc(sizeof(int**) * nc )
+    CSvec = <int***>check_allocarray(sizeof(int**), nc )
     if CSvec==NULL: raise MemoryError
     for i from 0<=i<nc:
-        CSvec[i] = <int**>sage_malloc(sizeof(int*) * nc )
+        CSvec[i] = <int**>check_allocarray(sizeof(int*), nc )
         if CSvec[i]==NULL:
             raise MemoryError
         for j from 0<=j<nc:
-            CSvec[i][j] = <int*>sage_malloc(sizeof(int) * Ql )
+            CSvec[i][j] = <int*>check_allocarray(sizeof(int), Ql )
             if CSvec[i][j]==NULL: raise MemoryError
-    RCvec = <mpfr_t****>sage_malloc(sizeof(Xpb) * nc )
+    RCvec = <mpfr_t****>check_allocarray(sizeof(Xpb),nc )
     if RCvec==NULL: raise MemoryError
     for i from 0<=i<nc:
-        RCvec[i] = <mpfr_t***>sage_malloc(sizeof(mpfr_t**) * nc )
+        RCvec[i] = <mpfr_t***>check_allocarray(sizeof(mpfr_t**),nc )
         if RCvec[i]==NULL:
             raise MemoryError
         for j from 0<=j<nc:
-            RCvec[i][j] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * Ql )
+            RCvec[i][j] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*),Ql )
             if RCvec[i][j]==NULL:
                 raise MemoryError
             for n from 0<=n<Ql:
-                RCvec[i][j][n] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * 3 )
+                RCvec[i][j][n] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), 3 )
                 mpfr_init2(RCvec[i][j][n][0],prec)
                 mpfr_init2(RCvec[i][j][n][1],prec)
                 mpfr_init2(RCvec[i][j][n][2],prec)
@@ -796,11 +798,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
     cdef int d = len(PPplus)
     cdef int **variable_a0_plus,**variable_a0_minus
-    variable_a0_plus = <int**> sage_malloc(d*sizeof(int*))
-    variable_a0_minus = <int**> sage_malloc(d*sizeof(int*))
+    variable_a0_plus = <int**> check_allocarray(sizeof(int*),d)
+    variable_a0_minus = <int**> check_allocarray(sizeof(int*),d)
     for j in range(d):
-        variable_a0_plus[j] = <int*> sage_malloc(nc*sizeof(int))
-        variable_a0_minus[j] = <int*> sage_malloc(nc*sizeof(int))
+        variable_a0_plus[j] = <int*> check_allocarray(sizeof(int),nc)
+        variable_a0_minus[j] = <int*> check_allocarray(sizeof(int),nc)
         for l in range(nc):
             variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
             variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
@@ -813,36 +815,36 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef mpfr_t **PPplus_lal=NULL
     cdef int num_ppplus = len(pp_info['PPplus'][0])
     cdef int num_ppminus = len(pp_info['PPminus'][0])
-    PPplus_cusp = <int **>sage_malloc(d*sizeof(int*))
+    PPplus_cusp = <int **>check_allocarray(sizeof(int*),d)
     if PPplus_cusp==NULL: raise MemoryError
-    PPplus_n = <int **>sage_malloc(d*sizeof(int*))
+    PPplus_n = <int **>check_allocarray(sizeof(int*),d)
     if PPplus_n==NULL: raise MemoryError
-    PPminus_cusp = <int **>sage_malloc(d*sizeof(int*))
+    PPminus_cusp = <int **>check_allocarray(sizeof(int*),d)
     if PPminus_cusp==NULL: raise MemoryError
-    PPminus_n = <int **>sage_malloc(d*sizeof(int*))
+    PPminus_n = <int **>check_allocarray(sizeof(int*),d)
     if PPminus_n==NULL: raise MemoryError
-    PPminus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+    PPminus_values = <mpc_t**>check_allocarray(sizeof(mpc_t*),d)
     if PPminus_values==NULL: raise MemoryError
-    PPplus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+    PPplus_values = <mpc_t**>check_allocarray(sizeof(mpc_t*),d)
     if PPplus_values==NULL: raise MemoryError
-    PPplus_lal = <mpfr_t**>sage_malloc(d*sizeof(mpfr_t*))
+    PPplus_lal = <mpfr_t**>check_allocarray(sizeof(mpfr_t*),d)
     if PPplus_lal==NULL: raise MemoryError
     for j in range(d):
         PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
         PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
-        PPplus_cusp[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+        PPplus_cusp[j] = <int *>check_allocarray(sizeof(int),num_ppplus)
         if PPplus_cusp[j]==NULL: raise MemoryError
-        PPplus_n[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+        PPplus_n[j] = <int *>check_allocarray(sizeof(int),num_ppplus)
         if PPplus_n[j]==NULL: raise MemoryError
-        PPminus_cusp[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+        PPminus_cusp[j] = <int *>check_allocarray(sizeof(int),num_ppminus)
         if PPminus_cusp[j]==NULL: raise MemoryError
-        PPminus_n[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+        PPminus_n[j] = <int *>check_allocarray(sizeof(int),num_ppminus)
         if PPplus_n[j]==NULL: raise MemoryError
-        PPminus_values[j] = <mpc_t*>sage_malloc(num_ppminus*sizeof(mpc_t))
+        PPminus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t),num_ppminus)
         if PPminus_values[j]==NULL: raise MemoryError
-        PPplus_values[j] = <mpc_t*>sage_malloc(num_ppplus*sizeof(mpc_t))
+        PPplus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t),num_ppplusl)
         if PPplus_values[j]==NULL: raise MemoryError
-        PPplus_lal[j] =  <mpfr_t*>sage_malloc(num_ppplus*sizeof(mpfr_t))
+        PPplus_lal[j] =  <mpfr_t*>check_allocarray(sizeof(mpfr_t),num_ppplus)
         if PPplus_lal[j]==NULL: raise MemoryError
         l = 0
         for i,jj in pp_info['PPplus'][j].keys():
@@ -873,11 +875,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     RHS = Matrix_complex_dense(MSRHS,0,True,True)
 
     cdef mpfr_t **nvec=NULL
-    nvec = <mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * nc )
+    nvec = <mpfr_t**> check_allocarray( sizeof(mpfr_t* ), nc )
     cdef RealNumber alpha_tmp
     alpha_tmp = RF(0)
     for icusp in range(nc):
-        nvec[icusp]=<mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ml )
+        nvec[icusp]=<mpfr_t*> check_allocarray( sizeof(mpfr_t), Ml )
         alpha_tmp = RF(H.alpha(icusp)[0])
         for l in range(Ml):
             mpfr_init2(nvec[icusp][l],prec)
@@ -886,55 +888,55 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr,rnd_re)
     cdef mpfr_t ***ef2cosv=NULL
     cdef mpfr_t ***ef2sinv=NULL
-    ef2cosv = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    ef2cosv = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     for icusp in range(nc):
-        ef2cosv[icusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+        ef2cosv[icusp]=<mpfr_t**> check_allocarray( sizeof(mpfr_t* ), Ml )
         for n in range(Ml):
-            ef2cosv[icusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
-    ef2sinv = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+            ef2cosv[icusp][n]=<mpfr_t*> check_allocarray( sizeof(mpfr_t ), Ql )
+    ef2sinv = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     for icusp in range(nc):
-        ef2sinv[icusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+        ef2sinv[icusp]=<mpfr_t**> check_allocarray( sizeof(mpfr_t* ), Ml )
         for n in range(Ml):
-            ef2sinv[icusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+            ef2sinv[icusp][n]=<mpfr_t*> check_allocarray( sizeof(mpfr_t ), Ql )
             
     # cdef mpfr_t ****ef1=NULL
-    # ef1 = <mpfr_t****> sage_malloc( sizeof(ef2) * nc )
+    # ef1 = <mpfr_t****> check_allocarray( sizeof(ef2), nc )
     # for icusp in range(nc):
-    #     ef1[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    #     ef1[icusp]=<mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     #     for jcusp in range(nc):
-    #         ef1[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+    #         ef1[icusp][jcusp]=<mpfr_t**> check_allocarray( sizeof(mpfr_t* ), Ml )
     #         for n in range(Ml):
-    #             ef1[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+    #             ef1[icusp][jcusp][n]=<mpfr_t*> check_allocarray( sizeof(mpfr_t ), Ql )
     #             for j in range(Ql):
     #                 mpfr_init2(ef1[icusp][jcusp][n][j],prec)
     cdef mpfr_t **** besv=NULL
-    besv = <mpfr_t****> sage_malloc( sizeof(ef2cosv) * nc )
+    besv = <mpfr_t****> check_allocarray( sizeof(ef2cosv), nc )
     for icusp in range(nc):
-        besv[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+        besv[icusp]=<mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
         for jcusp in range(nc):
-            besv[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+            besv[icusp][jcusp]=<mpfr_t**> check_allocarray( sizeof(mpfr_t* ), Ml )
             for n in range(Ml):
-                besv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+                besv[icusp][jcusp][n]=<mpfr_t*> check_allocarray( sizeof(mpfr_t ), Ql )
                 for j in range(Ql):
                     mpfr_init2(besv[icusp][jcusp][n][j],prec)
     cdef mpfr_t **** ef1cosv=NULL
     cdef mpfr_t **** ef1sinv=NULL
-    ef1cosv = <mpfr_t****> sage_malloc( sizeof(ef2cosv) * nc )
+    ef1cosv = <mpfr_t****> check_allocarray( sizeof(ef2cosv), nc )
     for icusp in range(nc):
-        ef1cosv[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+        ef1cosv[icusp]=<mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
         for jcusp in range(nc):
-            ef1cosv[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+            ef1cosv[icusp][jcusp]=<mpfr_t**> check_allocarray( sizeof(mpfr_t* ), Ml )
             for n in range(Ml):
-                ef1cosv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+                ef1cosv[icusp][jcusp][n]=<mpfr_t*> check_allocarray( sizeof(mpfr_t ), Ql )
                 for j in range(Ql):
                     mpfr_init2(ef1cosv[icusp][jcusp][n][j],prec)
-    ef1sinv = <mpfr_t****> sage_malloc( sizeof(ef2cosv) * nc )
+    ef1sinv = <mpfr_t****> check_allocarray( sizeof(ef2cosv), nc )
     for icusp in range(nc):
-        ef1sinv[icusp]=<mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+        ef1sinv[icusp]=<mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
         for jcusp in range(nc):
-            ef1sinv[icusp][jcusp]=<mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * Ml )
+            ef1sinv[icusp][jcusp]=<mpfr_t**> check_allocarray( sizeof(mpfr_t* ), Ml )
             for n in range(Ml):
-                ef1sinv[icusp][jcusp][n]=<mpfr_t*> sage_malloc( sizeof(mpfr_t ) * Ql )
+                ef1sinv[icusp][jcusp][n]=<mpfr_t*> check_allocarray( sizeof(mpfr_t ), Ql )
                 for j in range(Ql):
                     mpfr_init2(ef1sinv[icusp][jcusp][n][j],prec)
     cdef double eps
@@ -1664,21 +1666,21 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     cdef mpfr_t*** Xpb=NULL
     cdef mpfr_t*** Ypb=NULL
     cdef mpc_t*** Cvec=NULL
-    Xm = <mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ql )
+    Xm = <mpfr_t*> check_allocarray( sizeof(mpfr_t), Ql )
     for n in range(Ql):
         mpfr_init2(Xm[n],prec)
-    Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    Xpb = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     if Xpb==NULL: raise MemoryError
-    Ypb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+    Ypb = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
     if Ypb==NULL: raise MemoryError
     for i in range(nc):
-        Xpb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
-        Ypb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
+        Xpb[i] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), nc )
+        Ypb[i] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), nc )
         if Ypb[i]==NULL or Xpb[i]==NULL:
             raise MemoryError
         for j in range(nc):
-            Xpb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
-            Ypb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
+            Xpb[i][j] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), Ql )
+            Ypb[i][j] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), Ql )
             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
@@ -1687,7 +1689,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
                 #Ypb[i][j][n]=<double>0
-    Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
+    Cvec = <mpc_t***>check_allocarray(sizeof(mpc_t**), nc )
     if Cvec==NULL: raise MemoryError
     for i from 0<=i<nc:                        #if verbose>1:
                         #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
@@ -1695,11 +1697,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                         #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
                         #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
 
-        Cvec[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
+        Cvec[i] = <mpc_t**>check_allocarray(sizeof(mpc_t*), nc )
         if Cvec[i]==NULL:
             raise MemoryError
         for j from 0<=j<nc:
-            Cvec[i][j] = <mpc_t*>sage_malloc(sizeof(mpc_t) * Ql )
+            Cvec[i][j] = <mpc_t*>check_allocarray(sizeof(mpc_t), Ql )
             if Cvec[i][j]==NULL:
                 raise MemoryError
             for n from 0<=n<Ql:
@@ -1726,11 +1728,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
     cdef int d = len(PPplus)
     cdef int **variable_a0_plus,**variable_a0_minus
-    variable_a0_plus = <int**> sage_malloc(d*sizeof(int*))
-    variable_a0_minus = <int**> sage_malloc(d*sizeof(int*))
+    variable_a0_plus = <int**> check_allocarray(sizeof(int*),d)
+    variable_a0_minus = <int**> check_allocarray(sizeof(int*),d)
     for j in range(d):
-        variable_a0_plus[j] = <int*> sage_malloc(nc*sizeof(int))
-        variable_a0_minus[j] = <int*> sage_malloc(nc*sizeof(int))
+        variable_a0_plus[j] = <int*> check_allocarray(sizeof(int), nc)
+        variable_a0_minus[j] = <int*> check_allocarray(sizeof(int), nc)
         for l in range(nc):
             variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
             variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
@@ -1739,37 +1741,37 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     cdef mpfr_t **PPplus_lal=NULL
     cdef int num_ppplus = len(pp_info['PPplus'][0])
     cdef int num_ppminus = len(pp_info['PPminus'][0])
-    PPplus_cusp = <int **>sage_malloc(d*sizeof(int*))
+    PPplus_cusp = <int **>check_allocarray(sizeof(int*), d)
     if PPplus_cusp==NULL: raise MemoryError
-    PPplus_n = <int **>sage_malloc(d*sizeof(int*))
+    PPplus_n = <int **>check_allocarray(sizeof(int*), d)
     if PPplus_n==NULL: raise MemoryError
-    PPminus_cusp = <int **>sage_malloc(d*sizeof(int*))
+    PPminus_cusp = <int **>check_allocarray(sizeof(int*), d)
     if PPminus_cusp==NULL: raise MemoryError
-    PPminus_n = <int **>sage_malloc(d*sizeof(int*))
+    PPminus_n = <int **>check_allocarray(sizeof(int*), d)
     if PPminus_n==NULL: raise MemoryError
-    PPminus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+    PPminus_values = <mpc_t**>check_allocarray(sizeof(mpc_t*), d)
     if PPminus_values==NULL: raise MemoryError
-    PPplus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+    PPplus_values = <mpc_t**>check_allocarray(sizeof(mpc_t*), d)
     if PPplus_values==NULL: raise MemoryError
-    PPplus_lal = <mpfr_t**>sage_malloc(d*sizeof(mpfr_t*))
+    PPplus_lal = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), d)
     if PPplus_lal==NULL: raise MemoryError
     cdef int jj
     for j in range(d):
         PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
         PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
-        PPplus_cusp[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+        PPplus_cusp[j] = <int *>check_allocarray(sizeof(int), num_ppplus)
         if PPplus_cusp[j]==NULL: raise MemoryError
-        PPplus_n[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+        PPplus_n[j] = <int *>check_allocarray(sizeof(int), num_ppplus)
         if PPplus_n[j]==NULL: raise MemoryError
-        PPminus_cusp[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+        PPminus_cusp[j] = <int *>check_allocarray(sizeof(int), num_ppminus)
         if PPminus_cusp[j]==NULL: raise MemoryError
-        PPminus_n[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+        PPminus_n[j] = <int *>check_allocarray(sizeof(int), num_ppminus)
         if PPplus_n[j]==NULL: raise MemoryError
-        PPminus_values[j] = <mpc_t*>sage_malloc(num_ppminus*sizeof(mpc_t))
+        PPminus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t), num_ppminus)
         if PPminus_values[j]==NULL: raise MemoryError
-        PPplus_values[j] = <mpc_t*>sage_malloc(num_ppplus*sizeof(mpc_t))
+        PPplus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t), num_ppplus)
         if PPplus_values[j]==NULL: raise MemoryError
-        PPplus_lal[j] =  <mpfr_t*>sage_malloc(num_ppplus*sizeof(mpfr_t))
+        PPplus_lal[j] =  <mpfr_t*>check_allocarray(sizeof(mpfr_t), num_ppplus)
         if PPplus_lal[j]==NULL: raise MemoryError
         l = 0
         for i,jj in pp_info['PPplus'][j].keys():
@@ -1799,11 +1801,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     RHS = Matrix_complex_dense(MSRHS,0,True,True)
 
     cdef mpfr_t **nvec=NULL
-    nvec = <mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * nc )
+    nvec = <mpfr_t**> check_allocarray( sizeof(mpfr_t* ), nc )
     cdef RealNumber alpha_tmp
     alpha_tmp = RF(0)
     for icusp in range(nc):
-        nvec[icusp]=<mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ml )
+        nvec[icusp]=<mpfr_t*> check_allocarray( sizeof(mpfr_t), Ml )
         for l in range(Ml):
             mpfr_init2(nvec[icusp][l],prec)
             alpha_tmp = RF(H.alpha(icusp)[0])
@@ -1811,21 +1813,21 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
             mpfr_set_si(nvec[icusp][l],l+Ms,rnd_re)
             mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr.value,rnd_re)
     cdef mpc_t ***ef2=NULL
-    ef2 = <mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
+    ef2 = <mpc_t***> check_allocarray( sizeof(mpc_t** ), nc )
     for icusp in range(nc):
-        ef2[icusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
+        ef2[icusp]=<mpc_t**> check_allocarray( sizeof(mpc_t* ), Ml )
         for n in range(Ml):
-            ef2[icusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
+            ef2[icusp][n]=<mpc_t*> check_allocarray( sizeof(mpc_t ), Ql )
             
     cdef mpc_t ****ef1=NULL
-    #ef1 = <mpc_t****> sage_malloc( sizeof(mpc_t*** ) * nc )
-    ef1 = <mpc_t****> sage_malloc( sizeof(ef2) * nc )
+    #ef1 = <mpc_t****> check_allocarray( sizeof(mpc_t*** ), nc )
+    ef1 = <mpc_t****> check_allocarray( sizeof(ef2), nc )
     for icusp in range(nc):
-        ef1[icusp]=<mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
+        ef1[icusp]=<mpc_t***> check_allocarray( sizeof(mpc_t** ), nc )
         for jcusp in range(nc):
-            ef1[icusp][jcusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
+            ef1[icusp][jcusp]=<mpc_t**> check_allocarray( sizeof(mpc_t* ), Ml )
             for n in range(Ml):
-                ef1[icusp][jcusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
+                ef1[icusp][jcusp][n]=<mpc_t*> check_allocarray( sizeof(mpc_t ), Ql )
                 
     cdef double eps
     eps = 2.0**float(1-H._dprec)
@@ -2455,18 +2457,18 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     cdef mpfr_t*** Ypb=NULL
 ##     cdef mpc_t*** Cvec=NULL
 ##     Xm=Vector_real_mpfr_dense(vector(RF,Ql).parent(),0)
-##     Xpb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+##     Xpb = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ) * nc )
 ##     if Xpb==NULL: raise MemoryError
-##     Ypb = <mpfr_t***> sage_malloc( sizeof(mpfr_t** ) * nc )
+##     Ypb = <mpfr_t***> check_allocarray( sizeof(mpfr_t** ), nc )
 ##     if Ypb==NULL: raise MemoryError
 ##     for i in range(nc):
-##         Xpb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
-##         Ypb[i] = <mpfr_t**>sage_malloc(sizeof(mpfr_t*) * nc )
+##         Xpb[i] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), nc )
+##         Ypb[i] = <mpfr_t**>check_allocarray(sizeof(mpfr_t*), nc )
 ##         if Ypb[i]==NULL or Xpb[i]==NULL:
 ##             raise MemoryError
 ##         for j in range(nc):
-##             Xpb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
-##             Ypb[i][j] = <mpfr_t*>sage_malloc(sizeof(mpfr_t) * Ql )
+##             Xpb[i][j] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), Ql )
+##             Ypb[i][j] = <mpfr_t*>check_allocarray(sizeof(mpfr_t), Ql )
 ##             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
 ##                 raise MemoryError
 ##             for n in range(Ql):
@@ -2475,7 +2477,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                 mpfr_set_si(Xpb[i][j][n],0,rnd_re)
 ##                 mpfr_set_si(Ypb[i][j][n],0,rnd_re)
 ##                 #Ypb[i][j][n]=<double>0
-##     Cvec = <mpc_t***>sage_malloc(sizeof(mpc_t**) * nc )
+##     Cvec = <mpc_t***>check_allocarray(sizeof(mpc_t**), nc )
 ##     if Cvec==NULL: raise MemoryError
 ##     for i from 0<=i<nc:                        #if verbose>1:
 ##                         #    mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
@@ -2483,11 +2485,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                         #    mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
 ##                         #    print "ch[{0}][{1}{2}={3}".format(icusp,jcusp,j,ch)
 
-##         Cvec[i] = <mpc_t**>sage_malloc(sizeof(mpc_t*) * nc )
+##         Cvec[i] = <mpc_t**>check_allocarray(sizeof(mpc_t*), nc )
 ##         if Cvec[i]==NULL:
 ##             raise MemoryError
 ##         for j from 0<=j<nc:
-##             Cvec[i][j] = <mpc_t*>sage_malloc(sizeof(mpc_t) * Ql )
+##             Cvec[i][j] = <mpc_t*>check_allocarray(sizeof(mpc_t), Ql )
 ##             if Cvec[i][j]==NULL:
 ##                 raise MemoryError
 ##             for n from 0<=n<Ql:
@@ -2508,11 +2510,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
 ##     cdef int d = len(PPplus)
 ##     cdef int **variable_a0_plus,**variable_a0_minus
-##     variable_a0_plus = <int**> sage_malloc(d*sizeof(int*))
-##     variable_a0_minus = <int**> sage_malloc(d*sizeof(int*))
+##     variable_a0_plus = <int**> check_allocarray(d*sizeof(int*))
+##     variable_a0_minus = <int**> check_allocarray(d*sizeof(int*))
 ##     for j in range(d):
-##         variable_a0_plus[j] = <int*> sage_malloc(nc*sizeof(int))
-##         variable_a0_minus[j] = <int*> sage_malloc(nc*sizeof(int))
+##         variable_a0_plus[j] = <int*> check_allocarray(nc*sizeof(int))
+##         variable_a0_minus[j] = <int*> check_allocarray(nc*sizeof(int))
 ##         for l in range(nc):
 ##             variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'][j][l])
 ##             variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'][j][l])
@@ -2521,37 +2523,37 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     cdef mpfr_t **PPplus_lal=NULL
 ##     cdef int num_ppplus = len(pp_info['PPplus'][0])
 ##     cdef int num_ppminus = len(pp_info['PPminus'][0])
-##     PPplus_cusp = <int **>sage_malloc(d*sizeof(int*))
+##     PPplus_cusp = <int **>check_allocarray(d*sizeof(int*))
 ##     if PPplus_cusp==NULL: raise MemoryError
-##     PPplus_n = <int **>sage_malloc(d*sizeof(int*))
+##     PPplus_n = <int **>check_allocarray(d*sizeof(int*))
 ##     if PPplus_n==NULL: raise MemoryError
-##     PPminus_cusp = <int **>sage_malloc(d*sizeof(int*))
+##     PPminus_cusp = <int **>check_allocarray(d*sizeof(int*))
 ##     if PPminus_cusp==NULL: raise MemoryError
-##     PPminus_n = <int **>sage_malloc(d*sizeof(int*))
+##     PPminus_n = <int **>check_allocarray(d*sizeof(int*))
 ##     if PPminus_n==NULL: raise MemoryError
-##     PPminus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+##     PPminus_values = <mpc_t**>check_allocarray(d*sizeof(mpc_t*))
 ##     if PPminus_values==NULL: raise MemoryError
-##     PPplus_values = <mpc_t**>sage_malloc(d*sizeof(mpc_t*))
+##     PPplus_values = <mpc_t**>check_allocarray(d*sizeof(mpc_t*))
 ##     if PPplus_values==NULL: raise MemoryError
-##     PPplus_lal = <mpfr_t**>sage_malloc(d*sizeof(mpfr_t*))
+##     PPplus_lal = <mpfr_t**>check_allocarray(d*sizeof(mpfr_t*))
 ##     if PPplus_lal==NULL: raise MemoryError
 ##     cdef int jj
 ##     for j in range(d):
 ##         PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
 ##         PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
-##         PPplus_cusp[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+##         PPplus_cusp[j] = <int *>check_allocarray(num_ppplus*sizeof(int))
 ##         if PPplus_cusp[j]==NULL: raise MemoryError
-##         PPplus_n[j] = <int *>sage_malloc(num_ppplus*sizeof(int))
+##         PPplus_n[j] = <int *>check_allocarray(num_ppplus*sizeof(int))
 ##         if PPplus_n[j]==NULL: raise MemoryError
-##         PPminus_cusp[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+##         PPminus_cusp[j] = <int *>check_allocarray(num_ppminus*sizeof(int))
 ##         if PPminus_cusp[j]==NULL: raise MemoryError
-##         PPminus_n[j] = <int *>sage_malloc(num_ppminus*sizeof(int))
+##         PPminus_n[j] = <int *>check_allocarray(num_ppminus*sizeof(int))
 ##         if PPplus_n[j]==NULL: raise MemoryError
-##         PPminus_values[j] = <mpc_t*>sage_malloc(num_ppminus*sizeof(mpc_t))
+##         PPminus_values[j] = <mpc_t*>check_allocarray(num_ppminus*sizeof(mpc_t))
 ##         if PPminus_values[j]==NULL: raise MemoryError
-##         PPplus_values[j] = <mpc_t*>sage_malloc(num_ppplus*sizeof(mpc_t))
+##         PPplus_values[j] = <mpc_t*>check_allocarray(num_ppplus*sizeof(mpc_t))
 ##         if PPplus_values[j]==NULL: raise MemoryError
-##         PPplus_lal[j] =  <mpfr_t*>sage_malloc(num_ppplus*sizeof(mpfr_t))
+##         PPplus_lal[j] =  <mpfr_t*>check_allocarray(num_ppplus*sizeof(mpfr_t))
 ##         if PPplus_lal[j]==NULL: raise MemoryError
 ##         l = 0
 ##         for i,jj in pp_info['PPplus'][j].keys():
@@ -2581,11 +2583,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     RHS = Matrix_complex_dense(MSRHS,0,True,True)
 
 ##     cdef mpfr_t **nvec=NULL
-##     nvec = <mpfr_t**> sage_malloc( sizeof(mpfr_t* ) * nc )
+##     nvec = <mpfr_t**> check_allocarray( sizeof(mpfr_t* ), nc )
 ##     cdef RealNumber alpha_tmp
 ##     alpha_tmp = RF(0)
 ##     for icusp in range(nc):
-##         nvec[icusp]=<mpfr_t*> sage_malloc( sizeof(mpfr_t) * Ml )
+##         nvec[icusp]=<mpfr_t*> check_allocarray( sizeof(mpfr_t), Ml )
 ##         for l in range(Ml):
 ##             mpfr_init2(nvec[icusp][l],prec)
 ##             alpha_tmp = RF(H.alpha(icusp)[0])
@@ -2593,21 +2595,21 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##             mpfr_set_si(nvec[icusp][l],l+Ms,rnd_re)
 ##             mpfr_add(nvec[icusp][l],nvec[icusp][l],tmpr.value,rnd_re)
 ##     cdef mpc_t ***ef2=NULL
-##     ef2 = <mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
+##     ef2 = <mpc_t***> check_allocarray( sizeof(mpc_t** ), nc )
 ##     for icusp in range(nc):
-##         ef2[icusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
+##         ef2[icusp]=<mpc_t**> check_allocarray( sizeof(mpc_t* ), Ml )
 ##         for n in range(Ml):
-##             ef2[icusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
+##             ef2[icusp][n]=<mpc_t*> check_allocarray( sizeof(mpc_t ), Ql )
             
 ##     cdef mpc_t ****ef1=NULL
-##     #ef1 = <mpc_t****> sage_malloc( sizeof(mpc_t*** ) * nc )
-##     ef1 = <mpc_t****> sage_malloc( sizeof(ef2) * nc )
+##     #ef1 = <mpc_t****> check_allocarray( sizeof(mpc_t*** ), nc )
+##     ef1 = <mpc_t****> check_allocarray( sizeof(ef2), nc )
 ##     for icusp in range(nc):
-##         ef1[icusp]=<mpc_t***> sage_malloc( sizeof(mpc_t** ) * nc )
+##         ef1[icusp]=<mpc_t***> check_allocarray( sizeof(mpc_t** ), nc )
 ##         for jcusp in range(nc):
-##             ef1[icusp][jcusp]=<mpc_t**> sage_malloc( sizeof(mpc_t* ) * Ml )
+##             ef1[icusp][jcusp]=<mpc_t**> check_allocarray( sizeof(mpc_t* ), Ml )
 ##             for n in range(Ml):
-##                 ef1[icusp][jcusp][n]=<mpc_t*> sage_malloc( sizeof(mpc_t ) * Ql )
+##                 ef1[icusp][jcusp][n]=<mpc_t*> check_allocarray( sizeof(mpc_t ), Ql )
                 
 ##     cdef double eps
 ##     eps = 2.0**float(1-H._dprec)
@@ -4225,16 +4227,16 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
     tmpc = CF(0)
     cdef mpc_t ** setc_values=NULL
     cdef int** setc_n=NULL
-    setc_values = <mpc_t**>sage_malloc(sizeof(mpc_t*)*comp_dim)
-    setc_n =<int**>sage_malloc(sizeof(int*)*comp_dim)
+    setc_values = <mpc_t**>check_allocarray(sizeof(mpc_t*), comp_dim)
+    setc_n =<int**>check_allocarray(sizeof(int*), comp_dim)
     if setc_values==NULL: raise MemoryError
     if setc_n==NULL: raise MemoryError        
     for r in range(comp_dim):
         setc_values[r]=NULL
-        setc_values[r] = <mpc_t*>sage_malloc(sizeof(mpc_t)*num_set)
+        setc_values[r] = <mpc_t*>check_allocarray(sizeof(mpc_t), num_set)
         if setc_values[r]==NULL: raise MemoryError
         setc_n[r]=NULL
-        setc_n[r] = <int*>sage_malloc(sizeof(int)*num_set)
+        setc_n[r] = <int*>check_allocarray(sizeof(int), num_set)
         if setc_n[r]==NULL: raise MemoryError        
         i = 0
         for j in SetClist[r].keys():

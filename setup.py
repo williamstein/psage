@@ -72,7 +72,8 @@ def Extension(*args, **kwds):
 
 numpy_include_dirs = [os.path.join(SAGE_LOCAL,
                                    'lib/python/site-packages/numpy/core/include')]
-
+numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
+                                   'local/lib/python2.7/site-packages/sage/ext/interrupt')]
 ext_modules = [
 # Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
 #    Extension("psage.ellff.ellff",
@@ -247,8 +248,7 @@ my_extensions = [
     Extension('psage.modform.maass.automorphic_forms_alg',
               ['psage/modform/maass/automorphic_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs +
-              ['local/lib/python2.7/site-packages/sage/ext/interrupt'],
+              include_dirs = numpy_include_dirs,
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp']),
 

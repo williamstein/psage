@@ -67,7 +67,7 @@ class WeilModule (FormalSums):
     Implements the Weil representation of the metaplectic
     cover $Mp(2,Z)$ or $SL(2,Z)$ of associated to a finite
     quadratic module $A$.
-    More pecisely, it implements the $K$-vector space $K[A]$
+    More precisely, it implements the $K$-vector space $K[A]$
     as $Mp(2,Z)$-module, where $K$ is the $lcm(l,8)$-th cyclotomic field
     if $l$ denotes the level of $A$.
     """
@@ -1249,7 +1249,7 @@ ss    Describes an element of a Weil module $K[A]$.
                     chi=1 
             chi = chi*kronecker(d,self._n*2**signature)
         else:
-            chi = kronecker(d,self._n*2**signature)
+            chi = kronecker(d,self._n)
         r=r*chi
         return [r,1 ]
         

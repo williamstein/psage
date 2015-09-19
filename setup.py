@@ -73,7 +73,7 @@ def Extension(*args, **kwds):
 numpy_include_dirs = [os.path.join(SAGE_LOCAL,
                                    'lib/python/site-packages/numpy/core/include')]
 numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
-                                   'local/lib/python2.7/site-packages/sage/ext/interrupt')]
+                                   'lib/python2.7/site-packages/sage/ext/interrupt')]
 ext_modules = [
 # Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
 #    Extension("psage.ellff.ellff",

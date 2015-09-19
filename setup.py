@@ -74,6 +74,9 @@ numpy_include_dirs = [os.path.join(SAGE_LOCAL,
                                    'lib/python/site-packages/numpy/core/include')]
 numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
                                    'lib/python2.7/site-packages/sage/ext/interrupt')]
+#numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
+#                                   'include/csage/')]
+
 ext_modules = [
 # Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
 #    Extension("psage.ellff.ellff",
@@ -115,7 +118,7 @@ ext_modules = [
 
     Extension('psage.modform.maass.maass_forms_alg',
               ['psage/modform/maass/maass_forms_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
+              libraries = ['m','gmp','mpfr','mpc','ntl'],
               include_dirs = numpy_include_dirs),
 
     Extension('psage.modform.maass.lpkbessel',

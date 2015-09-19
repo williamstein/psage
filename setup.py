@@ -75,7 +75,7 @@ numpy_include_dirs = [os.path.join(SAGE_LOCAL,
 numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
                                    'lib/python2.7/site-packages/sage/ext/interrupt')]
 numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
-                                   'include/csage/')]
+                                   'lib/python2.7/site-packages/sage/libs/ntl')]
 
 ext_modules = [
 # Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)

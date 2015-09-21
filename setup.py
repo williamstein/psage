@@ -123,7 +123,7 @@ ext_modules = [
 
     Extension('psage.modform.maass.lpkbessel',
               ['psage/modform/maass/lpkbessel.pyx'],
-              libraries = ['m', 'gmp','mpfr','mpc'],
+              libraries = ['m', 'gmp','mpfr','mpc','ntl'],
               include_dirs = numpy_include_dirs),
 
     Extension("psage.modform.rational.modular_symbol_map",

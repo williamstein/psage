@@ -6,6 +6,8 @@ Pullback algorithms optimized  for various settings.
 
 """
 
+include "interrupt.pxi"
+
 from psage.rings.mp_cimports cimport *
 
 

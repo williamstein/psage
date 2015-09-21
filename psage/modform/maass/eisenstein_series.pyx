@@ -19,7 +19,7 @@ Cython algorithms for Eisenstein series.
 Used by routines in maass_forms.py
 
 """
-
+include "interrupt.pxi"
 from psage.rings.mp_cimports cimport *
 
 from sage.all import save,incomplete_gamma,load,bessel_K,vector

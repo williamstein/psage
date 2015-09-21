@@ -21,7 +21,7 @@ Used by routines in development.
 """
 
 
-
+input "interrupt.pxi"
 
 from sage.rings.number_field.number_field_element import is_NumberFieldElement
 from sage.matrix.matrix2 import Matrix

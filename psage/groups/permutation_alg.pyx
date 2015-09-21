@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding: utf-8 -*-
 r"""
 Algorithms and classes for permutations representing subgroups of the modular group, as implemented in 'MySubgroup'.
@@ -30,15 +30,12 @@ AUTHOR:
 #****************************************************************************
 
 from psage.rings.mp_cimports cimport *
-
+include 'interrupt.pxi'
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0
 
-
-#cdef extern from "convert.h":
-#    cdef void t_INT_to_ZZ( mpz_t value, long *g )
 import cProfile; import profile
-
+import sys
 
 from sage.modules.vector_integer_dense cimport Vector_integer_dense
 from sage.rings.integer cimport Integer
@@ -48,11 +45,9 @@ from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
 import cython
-#from psage.modform.maass.arithgroup.mysubgroup import MySubgroup
-#from psage.modform.maass.arithgroup.mysubgroups_alg cimport SL2Z_elt
 
-from libc.stdlib cimport malloc, free
-
+from sage.ext.memory cimport check_allocarray,sage_free
+    
 #from Cython.Utils import cached_function, cached_method
 #from sage.all import cached_method
 cdef extern from "math.h":
@@ -120,11 +115,15 @@ cdef class MyPermutation(SageObject):
         cdef list entries_list=[]
         if verbose>0:
             print "entries={0} of type {1}".format(entries,type(entries))
+            
         if entries==[]:
+            print "l=",length
             if length>0:
                 self._N = length
             else:
-                raise ValueError,"Invalid Input for permutation! entries: {0} and length:{1}".format(entries,length)           
+                raise ValueError,"Invalid Input for permutation! entries: {0} and length:{1}".format(entries,length)
+            if verbose>0:
+                print "N=",length
         else:
             if isinstance(entries,basestring):
                 # if the string represents a list
@@ -150,37 +149,53 @@ cdef class MyPermutation(SageObject):
                     except:
                         pass
             if len(entries_list)==0 or (length>0 and length<>len(entries_list)):
-                raise ValueError,"Invalid Input for permutation!! entries: {0}".format(entries)           
+                raise ValueError,"Invalid Input for permutation!! entries: {0}".format(entries)
+
             if length>0:
                 self._N=length
             else:
                 self._N = len(entries_list)
-        self._init = 1        
+        self._init = 1
+        print "testing! N=",self._N
         if self._N>0:
             if check==1:
-                #print "N=",self._N
-                used=<int*>malloc(sizeof(int)*self._N)
+                print "N=",self._N
+                sys.stdout.flush()
+                used=<int*>check_allocarray(sizeof(int),self._N)
+                printf("1ptr=%p \n",used)
+                #used=<int*>malloc(sizeof(int)*self._N)
+                print "malloced!"
+                sys.stdout.flush()
                 if used==NULL:
                     raise MemoryError
                 for i in range(self._N):
                     used[i]=0
                 ok=1
-            self._entries = <int*> sage_malloc(sizeof(int)*self._N)
+            print "mallocing N=",self._N
+            sys.stdout.flush()            
+            self._entries = <int*>check_allocarray(sizeof(int),self._N)
+            #self._entries = <int*>sage_malloc(sizeof(int)*self._N)
+            print "did it"
+            sys.stdout.flush()
             if self._entries==NULL:
                 raise MemoryError
             if len(entries_list)>0:
                 # Check consistency: we need every element 1,2,...,N exactly once.
+                print "and here"
                 if check==1 and used<>NULL:
                     for i in range(self._N):
                         ei = <int>entries_list[i]
                         self._entries[i]=ei
                         if ei>self._N or ei<1:
-                            free(self._entries); self._entries=NULL                            
-                            free(used)
+                            print "removing1 "
+                            sage_free(self._entries); self._entries=NULL                            
+                            sage_free(used)
                             raise ValueError,"Invalid Input for permutation!!!!! entries: {0}".format(entries)
                         if used[ei-1]>0:
-                            free(self._entries); self._entries=NULL
-                            free(used)
+                            print "removing2 "
+                            sage_free(self._entries); self._entries=NULL
+
+                            sage_free(used)
                             raise ValueError,"Invalid Input for permutation!!!!!! entries:{0}".format(entries)
                         else:
                             used[ei-1]=1
@@ -196,9 +211,12 @@ cdef class MyPermutation(SageObject):
                 self._list = range(1,self._N+1)
             else:
                 self._init = 0
-        self._hash = 0  
+        self._hash = 0
         if check==1 and used<>NULL and self._N>0:
-            free(used)
+            printf("ptr=%p \n",used)
+            print "free used"
+            sage_free(used)
+            print "did free!"
 
     def __init__(self,entries=[],int length=0,int init=0,int verbose=0,int check=1,int rep=0):
         r"""
@@ -360,7 +378,7 @@ cdef class MyPermutation(SageObject):
 
         if self._entries<>NULL:
             sage_free(self._entries)
-        self._entries = <int*> sage_malloc(sizeof(int)*self._N)
+        self._entries = <int*> check_allocarray(sizeof(int),self._N)
         #self.set_entries(entries)
         for i from 0<=i<self._N:
             self._entries[i]=entries[i]
@@ -734,7 +752,7 @@ cdef class MyPermutation(SageObject):
     cpdef _inverse(self):
         cdef int* res_ent=NULL
         cdef MyPermutation res
-        res_ent=<int*> sage_malloc(sizeof(int)*self._N)
+        res_ent=<int*> check_allocarray(sizeof(int),self._N)
         if res_ent==NULL:
             raise MemoryError
         res = MyPermutation(length=self._N)
@@ -782,7 +800,7 @@ cdef class MyPermutation(SageObject):
         cdef int i,num
         cdef list res=[]
         cdef int* non_fixed=NULL
-        non_fixed = <int*>sage_malloc(sizeof(int)*self._N)
+        non_fixed = <int*>check_allocarray(sizeof(int),self._N)
         num = 0
         for i in range(self._N):
             if self._entries[i]<>i+1:
@@ -820,11 +838,11 @@ cdef class MyPermutation(SageObject):
         N = len(other)
         if N<>self._N:
             raise NotImplementedError,"Can not multiply permutation on {0} letters with list of length {1}".format(self._N,N)             
-        entries = <int*>sage_malloc(sizeof(int)*N)
+        entries = <int*>check_allocarray(sizeof(int),N)
         if entries==NULL: raise MemoryError
         for i from 0 <= i < N:
             entries[i]=<int>other[i]
-        res_ent = <int*>sage_malloc(sizeof(int)*N)
+        res_ent = <int*>check_allocarray(sizeof(int),N)
         if entries==NULL: raise MemoryError
         _mult_perm_unsafe(N,self._entries,entries,res_ent)
         res = MyPermutation(length=N,init=0,check=0)
@@ -841,13 +859,13 @@ cdef class MyPermutation(SageObject):
         cdef MyPermutation res
         cdef int *res_ent=NULL
         cdef int N = self._N
-        res_ent = <int*>malloc(sizeof(int)*N)
+        res_ent = <int*>check_allocarray(sizeof(int),N)
         if res_ent==NULL: raise MemoryError
         _mult_perm_unsafe(N,self._entries,other._entries,res_ent)
         res = MyPermutation(length=N,init=0,check=0)
         res.set_entries(res_ent)
         if res_ent<>NULL:
-            free(res_ent)
+            sage_free(res_ent)
             res_ent=NULL
         return res
 
@@ -858,7 +876,7 @@ cdef class MyPermutation(SageObject):
         cdef int i
         res = MyPermutation(length=self._N,init=0)
         cdef int* ent
-        ent = <int*>sage_malloc(sizeof(int)*self._N)
+        ent = <int*>check_allocarray(sizeof(int),self._N)
         for i from 0 <= i < self._N:
             #print "i=",i
             #print "j=",self._entries[i]-1
@@ -909,7 +927,7 @@ cdef class MyPermutation(SageObject):
         if l<>self._N:
             raise TypeError,"Conjugate with permutation of same length!"
         res = MyPermutation(length=l)
-        entries = <int *>sage_malloc(sizeof(int)*self._N)
+        entries = <int *>check_allocarray(sizeof(int),self._N)
         if isinstance(other,MyPermutation):
             _conjugate_perm(self._N,entries,self._entries,<int *>(<MyPermutation>other)._entries)
         elif isinstance(other,list):        
@@ -932,7 +950,7 @@ cdef class MyPermutation(SageObject):
         """
         cdef int* entries=NULL
         cdef MyPermutation res
-        entries = <int *>sage_malloc(sizeof(int)*self._N)
+        entries = <int *>check_allocarray(sizeof(int),self._N)
         _conjugate_perm(self._N,entries,self._entries,other._entries)  
         res = MyPermutation(length=self._N)
         if entries<>NULL:
@@ -959,7 +977,7 @@ cdef class MyPermutation(SageObject):
         """
         cdef int* entries=NULL
         cdef MyPermutation res
-        entries = <int *>sage_malloc(sizeof(int)*self._N)
+        entries = <int *>check_allocarray(sizeof(int),self._N)
         _conjugate_perm_list(self._N,entries,self._entries,other)
         #_conjugate_perm(self._N,entries,self._entries,other._entries)  
         res = MyPermutation(length=self._N)
@@ -976,7 +994,7 @@ cdef class MyPermutation(SageObject):
         """
         cdef int* entries=NULL
         cdef MyPermutation res
-        entries = <int *>sage_malloc(sizeof(int)*self._N)
+        entries = <int *>check_allocarray(sizeof(int),self._N)
         #_conjugate_perm_list(self._N,entries,self._entries,other)
         _conjugate_perm(self._N,entries,self._entries,other)  
         res = MyPermutation(length=self._N)
@@ -1271,13 +1289,13 @@ cdef class MyPermutation(SageObject):
     cdef int set_cycle_info_c(self):       
         cdef int i,j,bd_old,ii,cycle_bd,tmp
         self._cycles = NULL
-        self._cycles = <int*>sage_malloc(sizeof(int)*(self._N))
+        self._cycles = <int*>check_allocarray(sizeof(int),(self._N))
         if self._cycles == NULL:
             raise MemoryError
         for i in range(self._N):
             self._cycles[i]=0        
         self._num_cycles = 0
-        self._cycle_lens = <int*>sage_malloc(sizeof(int)*(self._N))
+        self._cycle_lens = <int*>check_allocarray(sizeof(int),(self._N))
         if self._cycle_lens == NULL:
             raise MemoryError
         for i in range(self._N):
@@ -1456,7 +1474,7 @@ cdef class MyPermutationIterator(SageObject):
         self._c_alloc_list_of_perms(1)
         self._current_perm = self._list_of_perms[0]   # the identity perm. used later to store current perm
         self._current_state_c = NULL
-        self._current_state_c= <int *> sage_malloc(2*sizeof(int)*self._N) # used for swap
+        self._current_state_c= <int *> check_allocarray(sizeof(int),2*self._N) # used for swap
         if self._current_state_c == NULL: raise MemoryError
         self._current_state_o=   self._current_state_c + self._N # used for swap
         self._fixed_pt_free_iterator_labels = NULL
@@ -1470,7 +1488,7 @@ cdef class MyPermutationIterator(SageObject):
             print "in cinit!"
             print "num_fixedpts=",self._num_fixed
         if self._num_fixed>=0:
-            self._fixed_pts=<int*>sage_malloc(sizeof(int)*self._num_fixed)
+            self._fixed_pts=<int*>check_allocarray(sizeof(int),self._num_fixed)
             if self._fixed_pts==NULL: raise MemoryError
             
         
@@ -1545,7 +1563,7 @@ cdef class MyPermutationIterator(SageObject):
         #self._fpfree_labels=list()
         self._has_fixed_pt_free_iterator=1
         if self._fixed_pt_free_iterator_labels==NULL:
-            self._fixed_pt_free_iterator_labels=<int*>sage_malloc(self._N*sizeof(int))
+            self._fixed_pt_free_iterator_labels=<int*>check_allocarray(self._N,sizeof(int))
         if self._fixed_pt_free_iterator_labels==NULL:
             raise MemoryError
         #self._fixed_pt_free_iterator_labels=list()
@@ -1667,13 +1685,13 @@ cdef class MyPermutationIterator(SageObject):
                 print "Set to maxnum:",self._max_num
         else:
             self._num=num
-        self._list_of_perms = <int**> sage_malloc(sizeof(int*)*self._num)
+        self._list_of_perms = <int**> check_allocarray(sizeof(int*),self._num)
         if not self._list_of_perms: raise MemoryError
         if self._verbose>2:
             print "we will allocate list at address:",printf("%p ", self._list_of_perms)
         for i in range(self._num):
             self._list_of_perms[i]=NULL
-            self._list_of_perms[i] = <int*> sage_malloc(sizeof(int)*self._N)
+            self._list_of_perms[i] = <int*> check_allocarray(sizeof(int),self._N)
             if not self._list_of_perms[i]: raise MemoryError
             if self._verbose>2:
                 print " allocated l_o_p[",i,"]=",printf("%p ", self._list_of_perms[i])
@@ -2221,7 +2239,7 @@ cdef class MyPermutationIterator(SageObject):
         self._c_alloc_list_of_perms(factorial(self._N))
         if self._verbose > 1:
             print "allocated num=",self._num
-        lista = <int*> sage_malloc(sizeof(int)*self._N)
+        lista = <int*> check_allocarray(sizeof(int),self._N)
         if not lista: raise MemoryError
         for i in range(self._N): 
             lista[i]=i+1
@@ -2450,7 +2468,7 @@ cdef class CycleCombinationIterator(Parent):
         """
         if self._cycle_types<>NULL:
             sage_free(self._cycle_types)
-        self._cycle_types = <int*>sage_malloc(sizeof(int)*self._N)
+        self._cycle_types = <int*>check_allocarray(sizeof(int),self._N)
         if self._cycle_types == NULL:
             raise MemoryError
                 
@@ -2663,7 +2681,7 @@ cdef MyPermutation  get_conjugating_perm_ptr_unsafe(int mu, int* Al,int* Bl):
     cdef int* cperm=NULL
     cdef MyPermutation res
     cdef int i
-    cperm = <int*> sage_malloc(sizeof(int)*mu)
+    cperm = <int*> check_allocarray(sizeof(int),mu)
     if cperm==NULL:
         raise MemoryError
     for i in range(mu):
@@ -2688,11 +2706,11 @@ cpdef perm_to_cycle(perm):
     cdef int *cycle=NULL
     cdef int *permv=NULL
     N = len(perm)
-    cycle = <int*> sage_malloc(sizeof(int)*N)
+    cycle = <int*> check_allocarray(sizeof(int),N)
     if cycle==NULL: raise MemoryError
-    cycle_lens = <int*> sage_malloc(sizeof(int)*N)
+    cycle_lens = <int*> check_allocarray(sizeof(int),N)
     if cycle_lens==NULL: raise MemoryError
-    permv = <int*> sage_malloc(sizeof(int)*N)
+    permv = <int*> check_allocarray(sizeof(int),N)
     if permv==NULL: raise MemoryError
     for i  in range(N):
         permv[i]=perm[i]
@@ -2728,11 +2746,11 @@ cpdef perm_to_cycle(perm):
 #     cdef int *cycle=NULL
 #     #cdef int *permv=NULL
 #     #N = len(perm)
-#     cycle = <int*> sage_malloc(sizeof(int)*N)
+#     cycle = <int*> check_allocarray(sizeof(int),N)
 #     if cycle==NULL: raise MemoryError
-#     cycle_lens = <int*> sage_malloc(sizeof(int)*N)
+#     cycle_lens = <int*> check_allocarray(sizeof(int),N)
 #     if cycle_lens==NULL: raise MemoryError
-#     #permv = <int*> sage_malloc(sizeof(int)*N)
+#     #permv = <int*> check_allocarray(sizeof(int),N)
 #     if permv==NULL: raise MemoryError
 #     for i  in range(N):
 #         #permv[i]=perm[i]
@@ -2764,7 +2782,7 @@ cpdef perm_to_cycle(perm):
 cdef int num_cycles_c(int N,int *perm):
     cdef int i,n,t0,t1
     cdef int* used = NULL
-    used = <int*> sage_malloc(sizeof(int)*N)
+    used = <int*> check_allocarray(sizeof(int),N)
     if used==NULL: raise MemoryError
     for i in range(N):
         used[i]=0
@@ -2790,7 +2808,7 @@ cdef int perm_to_cycle_c(int N,int *perm,int *cycle,int *cycle_lens):
     cdef int *permv=NULL
     cdef list res,cy
     cdef int i,j,k,last,l
-    permv = <int*> sage_malloc(sizeof(int)*N)
+    permv = <int*> check_allocarray(sizeof(int),N)
     if permv==NULL: raise MemoryError
     for i in range(N):
         permv[i]=perm[i]
@@ -2874,11 +2892,11 @@ cpdef conjugate_perm(perma,permb):
     cdef int *b
     cdef int *c
     cdef int i
-    a = <int*> sage_malloc(sizeof(int)*N)
+    a = <int*> check_allocarray(sizeof(int),N)
     if not a: raise MemoryError
-    b = <int*> sage_malloc(sizeof(int)*N)
+    b = <int*> check_allocarray(sizeof(int),N)
     if not b: raise MemoryError
-    c = <int*> sage_malloc(sizeof(int)*N)
+    c = <int*> check_allocarray(sizeof(int),N)
     if not c: raise MemoryError    
     for i from 0 <= i <N:
         a[i]=perma[i]
@@ -3066,7 +3084,7 @@ cpdef num_cycles_of_T_equal_to(MyPermutation S,MyPermutation R,int h):
     """
     cdef int mu=S._N
     cdef int* Tptr
-    Tptr = <int*>sage_malloc(sizeof(int)*mu)
+    Tptr = <int*>check_allocarray(sizeof(int),mu)
     _mult_perm_unsafe(mu,<int *>S._entries,<int *>R._entries,Tptr)    
     return num_cycles_c(mu,Tptr) == h
     
@@ -3115,11 +3133,11 @@ cpdef are_transitive_permutations(MyPermutation pS,MyPermutation pR,int ret_maps
     cdef int N = pS.N()
     cdef int *maps=NULL
     cdef int nmaps
-    gotten = <int *>sage_malloc(sizeof(int)*N)
+    gotten = <int *>check_allocarray(sizeof(int),N)
     if gotten==NULL: raise MemoryError
-    #Sl = <int *>sage_malloc(sizeof(int)*N)
+    #Sl = <int *>check_allocarray(sizeof(int),N)
     #if not Sl: raise MemoryError
-    #Rl = <int *>sage_malloc(sizeof(int)*N)
+    #Rl = <int *>check_allocarray(sizeof(int),N)
     #if not Rl: raise MemoryError    
     #for i in range(N):
     #    Sl[i]=pS._entries[i]; Rl[i]=pR._entries[i]        
@@ -3371,7 +3389,7 @@ cpdef test_is_of_order(perml,o):
     cdef int* perm
     cdef int i,N,r
     N = len(perml)
-    perm=<int*>sage_malloc(sizeof(int)*N)
+    perm=<int*>check_allocarray(sizeof(int),N)
     for i from 0 <= i <N:
         perm[i]=perml[i]
     r=_is_of_order(N,perm, o)
@@ -3444,7 +3462,7 @@ cpdef are_mod1_equivalent(MyPermutation R1,MyPermutation S1, MyPermutation R2,My
     cdef int res
     cdef int N=R1._N
     assert S1._N==N and R2._N==N and S2._N==N
-    pres = <int*>sage_malloc(sizeof(int)*N)
+    pres = <int*>check_allocarray(sizeof(int),N)
     p=MyPermutation(length=N)
     #DEB sig_on()
     res = are_mod1_equivalent_c(R1._N,S1,R1,S2,R2,pres,verbose)
@@ -3512,9 +3530,9 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
     if verbose>0:
         print "testing G1:={0}:{1}".format(S1,R1)
         print "testing G2:={0}:{1}".format(S2,R2)
-    epp =  <int *>sage_malloc(sizeof(int)*N)
+    epp =  <int *>check_allocarray(sizeof(int),N)
     if not epp:  raise MemoryError
-    rpp =  <int *> sage_malloc(sizeof(int)*N)
+    rpp =  <int *> check_allocarray(sizeof(int),N)
     if not rpp:  raise MemoryError
     res = 0
     if verbose>0:

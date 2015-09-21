@@ -22,6 +22,7 @@ Used by routines in atomorphic_forms.py
 
 #include "stdsage.pxi"  
 include "cdefs.pxi"
+include 'interrupt.pxi'
 #include "sage/rings/mpc.pxi"
 #include "../../rings/mpfr_loc.pxi"
 from psage.rings.mpfr_nogil cimport *

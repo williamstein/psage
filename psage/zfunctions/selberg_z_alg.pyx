@@ -1,26 +1,21 @@
 # cython: profile=True
 #clib mpc gmp
-#include "/home/fredrik/install/sage/devel/sage-mpc_test/sage/ext/interrupt.pxi"
-#import cython
+include "interrupt.pxi"
 
-
+import sys
+import mpmath    
+import cython
 
 from psage.rings.mp_cimports cimport *
 
-
-#include "sage/rings/mpc.pxi"
 from psage.rings.mpfr_nogil cimport *
 from sage.all import save,incomplete_gamma,load
-import mpmath    
-import cython
+
 from libc.stdlib cimport abort, malloc, free
 from sage.libs.flint.fmpz_mat cimport *
 from sage.libs.flint.fmpz cimport *
 
 from cython.parallel cimport parallel, prange
-
-#from sage.libs.mpfr cimport *
-import sys
 
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField
@@ -36,6 +31,9 @@ from psage.rings.mpc_extras cimport _mpc_mul,_mpc_mul_fr,_mpc_add,_mpc_set
 #from sage.all import cos as scos
 #from libc.math cimport sin as dsin
 #from libc.math cimport cos as dcos
+
+from sage.ext.memory cimport check_allocarray,sage_free
+
 import numpy as np
 cimport numpy as cnp
 #cimport cython
@@ -178,8 +176,8 @@ cpdef trop_approximation(Matrix_complex_dense A, Matrix_integer_dense B, int M0,
 
         assert len(alphas)==dim
         assert len(rhos)==dim
-        alphas_t=<mpfr_t*>sage_malloc(sizeof(mpfr_t)*dim)
-        rhos_t=<mpfr_t*>sage_malloc(sizeof(mpfr_t)*dim)
+        alphas_t=<mpfr_t*>check_allocarray(sizeof(mpfr_t),dim)
+        rhos_t=<mpfr_t*>check_allocarray(sizeof(mpfr_t),dim)
         for i in range(dim):
             mpfr_init2(alphas_t[i],prec)
             mpfr_init2(rhos_t[i],prec)
@@ -227,31 +225,31 @@ cdef setup_approximation(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, int 
     z = CF(0)
     twoz = MPComplexField(prec+20)(0)
     mpc_set(twoz.value,twos,rnd)
-    Z  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+    Z  =  <mpc_t *> check_allocarray(sizeof(mpc_t),(2*M+1))
     if Z==NULL: raise MemoryError
-    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+    twozn  =  <mpc_t *> check_allocarray(sizeof(mpc_t),(2*M+1))
     if twozn==NULL: raise MemoryError
     # Try to evaluate all powers outside the double loop
-    lsum=<mpc_t ***> sage_malloc(sizeof(mpc_t**)*(2*M+1))
+    lsum=<mpc_t ***> check_allocarray(sizeof(mpc_t**),(2*M+1))
     if lsum==NULL: raise MemoryError
     if q > 3:
-        lpow = <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+        lpow = <mpc_t *> check_allocarray(sizeof(mpc_t),(2*M+1))
         if lpow==NULL: raise MemoryError
-        npow = <mpc_t **> sage_malloc(sizeof(mpc_t*)*(Nmax-1))
+        npow = <mpc_t **> check_allocarray(sizeof(mpc_t*),Nmax-1)
         if npow==NULL: raise MemoryError
         for i in range(Nmax):
             npow[i] = NULL
-            npow[i] = <mpc_t*> sage_malloc(sizeof(mpc_t)*(2*M+1))
+            npow[i] = <mpc_t*> check_allocarray(sizeof(mpc_t),2*M+1)
             if npow[i]==NULL: raise MemoryError
             for n in range(2*M+1):
                 mpc_init2(npow[i][n],prec)
                 mpc_set_ui(npow[i][n],0,rnd)
                 
-    abN = <int **>sage_malloc(sizeof(int*)*(dim))
+    abN = <int **>check_allocarray(sizeof(int*),dim)
     if abN==NULL: raise MemoryError
     for i in range(dim):
         abN[i]==NULL
-        abN[i] = <int *> sage_malloc(sizeof(int)*(dim))
+        abN[i] = <int *> check_allocarray(sizeof(int),dim)
         if abN[i]==NULL: raise MemoryError
         for j in range(dim):
             fmpz_get_mpz(tmp_mpz,fmpz_mat_entry(Nij,i,j))
@@ -261,7 +259,7 @@ cdef setup_approximation(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, int 
             abN[i][j]=abs(abN[i][j])
 
     for n in range(2*M+1):
-        lsum[n]=<mpc_t **> sage_malloc(sizeof(mpc_t*)*(dim))
+        lsum[n]=<mpc_t **> check_allocarray(sizeof(mpc_t*),dim)
         mpc_init2(twozn[n],prec)
         mpc_add_ui(twozn[n],twos,n,rnd)
         #_mpc_set(&twozn[i],tmpprec)
@@ -281,7 +279,7 @@ cdef setup_approximation(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, int 
                 mpfr_set_ui(tmp1.im,0,rnd_re)
                 mpc_pow(npow[i-2][n],tmp1,tmp,rnd)
         for i from 0<= i < dim:
-            lsum[n][i]=<mpc_t *> sage_malloc(sizeof(mpc_t)*(dim))
+            lsum[n][i]=<mpc_t *> check_allocarray(sizeof(mpc_t),dim)
             for j from 0<= j < dim:
                 mpc_init2(lsum[n][i][j],prec)
                 mpc_set_ui(lsum[n][i][j],0,rnd)
@@ -423,7 +421,7 @@ cdef setup_approximation_sym(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, 
     #B[0]=RF(0); B[1]=RF(0)
     mpz_init(binc)
     #print "in setup_approx!"
-    AA =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2))
+    AA =  <mpc_t *> check_allocarray(sizeof(mpc_t),2)
     mpc_init2(AA[0],prec);mpc_init2(AA[1],prec)
     mpc_init2(poc,prec)
     mpc_init2(tmp,prec); mpc_init2(tmp1,prec)
@@ -439,33 +437,33 @@ cdef setup_approximation_sym(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, 
     twoz = MPComplexField(prec+20)(0)
     mpc_set(twoz.value,twos,rnd)
     ## Recall that sizeof(mpc_t ***) does not work
-    Z  =  <mpc_t ****> sage_malloc(sizeof(dummy)*(sym_dim))
+    Z  =  <mpc_t ****> check_allocarray(sizeof(dummy),sym_dim)
     if Z==NULL: raise MemoryError
     for i in range(sym_dim):
-        Z[i] = <mpc_t ***> sage_malloc(sizeof(mpc_t**)*(sym_dim))
+        Z[i] = <mpc_t ***> check_allocarray(sizeof(mpc_t**),(sym_dim))
         if Z[i]==NULL: raise MemoryError
         for j in range(sym_dim):
-            Z[i][j]  =  <mpc_t **> sage_malloc(sizeof(mpc_t*)*(2*M+1))
+            Z[i][j]  =  <mpc_t **> check_allocarray(sizeof(mpc_t*),(2*M+1))
             if Z[i][j]==NULL: raise MemoryError
             for n in range(2*M+1):
-                Z[i][j][n]  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2))
+                Z[i][j][n]  =  <mpc_t *> check_allocarray(sizeof(mpc_t),(2))
                 if Z[i][j][n]==NULL: raise MemoryError
                 mpc_init2(Z[i][j][n][0],prec)
                 mpc_init2(Z[i][j][n][1],prec)
-    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+    twozn  =  <mpc_t *> check_allocarray(sizeof(mpc_t),(2*M+1))
     if twozn==NULL: raise MemoryError
     # Try to evaluate all powers outside the double loop
-    ajpow=<mpfr_t **> sage_malloc(sizeof(mpfr_t*)*(sym_dim))
+    ajpow=<mpfr_t **> check_allocarray(sizeof(mpfr_t*),(sym_dim))
     if ajpow==NULL: raise MemoryError
     for i in range(sym_dim):        
-        ajpow[i]=<mpfr_t *> sage_malloc(sizeof(mpfr_t)*(M+1))
+        ajpow[i]=<mpfr_t *> check_allocarray(sizeof(mpfr_t),(M+1))
         if ajpow[i]==NULL: raise MemoryError
         for n in range(M+1):
             mpfr_init2(ajpow[i][n],prec)
             mpfr_pow_si(ajpow[i][n],alphas[i],n,rnd_re)
 
     if q > 3:
-        lpow = <mpc_t *> sage_malloc(sizeof(mpc_t)*(2*M+1))
+        lpow = <mpc_t *> check_allocarray(sizeof(mpc_t),(2*M+1))
         if lpow==NULL: raise MemoryError
     cdef RealNumber xarg
     cdef mpc_t zarg,minus_twoz
@@ -473,7 +471,7 @@ cdef setup_approximation_sym(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, 
     mpc_init2(minus_twoz,prec)    
     xarg = RF(0)
     for n in range(2*M+1):
-        #lsum[n]=<mpc_t **> sage_malloc(sizeof(mpc_t*)*(dim))
+        #lsum[n]=<mpc_t **> check_allocarray(sizeof(mpc_t*)*(dim))
         mpc_init2(twozn[n],prec)
         mpc_add_ui(twozn[n],twos,n,rnd)
         #_mpc_set(&twoz.value,twozn[n],rnd_re)
@@ -709,9 +707,9 @@ cpdef Gauss_transfer_operator_mpc(RealNumber s,RealNumber t, int r1=0,int r2=0,i
     if k2==0 and r2==0 and r1>0:
         k2 = r1; r2=r1; k1=0
         r1=0
-    A = <mpc_t**> sage_malloc(sizeof(mpc_t*)*(r2-r1))
+    A = <mpc_t**> check_allocarray(sizeof(mpc_t*),(r2-r1))
     for r in range(0,r2-r1):
-        A[r] = <mpc_t*> sage_malloc(sizeof(mpc_t)*(k2-k1))
+        A[r] = <mpc_t*> check_allocarray(sizeof(mpc_t),(k2-k1))
         for k in range(0,k2-k1):
             mpc_init2(A[r][k],prec)
     setup_Gauss_c(A,s.value,t.value,alpha.value,rho.value,r1,r2,k1,k2,verbose)
@@ -779,7 +777,7 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     mpc_set(twoz.value,twos,rnd)
     ## Recall that sizeof(mpc_t ***) does not work
     # ajpow[n]=(-alpha)**n
-    ajpow=<mpfr_t *> sage_malloc(sizeof(mpfr_t)*(k2))
+    ajpow=<mpfr_t *> check_allocarray(sizeof(mpfr_t),k2)
     if ajpow==NULL: raise MemoryError
     for n in range(k2):
         mpfr_init2(ajpow[n],prec)
@@ -792,9 +790,9 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     mpc_init2(minus_twoz,prec)    
     xarg = RF(0)
     mpfr_add_ui(xarg.value,alpha,1,rnd_re)
-    Z  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
+    Z  =  <mpc_t *> check_allocarray(sizeof(mpc_t),(lmax-lmin+2))
     if Z==NULL: raise MemoryError
-    twozn  =  <mpc_t *> sage_malloc(sizeof(mpc_t)*(lmax-lmin+2))
+    twozn  =  <mpc_t *> check_allocarray(sizeof(mpc_t),(lmax-lmin+2))
     if twozn==NULL: raise MemoryError
     if mpfr_cmp_ui(xarg.value,2)==0:
         if verbose>1:
@@ -841,9 +839,9 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     cdef int ni,kj,ii
     #for n in range(r1,r2+1):
     cdef mpc_t **pochammer_vec=NULL
-    pochammer_vec = <mpc_t**>sage_malloc(sizeof(mpc_t*)*(k2-k1))
+    pochammer_vec = <mpc_t**>check_allocarray(sizeof(mpc_t*),(k2-k1))
     for k in range(k2-k1):
-        pochammer_vec[k] = <mpc_t*>sage_malloc(sizeof(mpc_t)*(r2-r1))
+        pochammer_vec[k] = <mpc_t*>check_allocarray(sizeof(mpc_t),(r2-r1))
     for k in prange(k2-k1,nogil=True):
         for n in range(r2-r1):
             mpc_init2(pochammer_vec[k][n],prec)            

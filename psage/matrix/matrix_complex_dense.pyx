@@ -7,6 +7,9 @@ Dense matrices over the complex field.
 
 EXAMPLES
 """
+
+include "interrupt.pxi"
+
 from psage.rings.mp_cimports cimport *
 
 

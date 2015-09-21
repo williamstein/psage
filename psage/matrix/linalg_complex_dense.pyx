@@ -19,7 +19,8 @@ The main idea is to use QR-reduction computed by Givens rotations for complex ma
 #mpfr_set_default_prec(103)
 
 #include "sage/ext/gmp.pxi"
-include "sage/ext/random.pxi"
+include "random.pxi"
+include "interrupt.pxi"
 #include "sage/rings/mpc.pxi"
 from psage.rings.mpfr_nogil cimport *
 from psage.rings.mpc_extras cimport *

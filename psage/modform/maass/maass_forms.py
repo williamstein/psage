@@ -85,6 +85,7 @@ maass_logger.propagate = False
 #maass_logger.setLevel(logging.WARNING)
 #logger2.setLevel(logging.WARNING)
 
+_example_eigenvalue = 9.53369526135355755434423523592877032382125639510725198237579046413534
 
 class MaassWaveForms (AutomorphicFormSpace):
     r"""

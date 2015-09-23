@@ -29,8 +29,19 @@ AUTHOR:
 #                  http://www.gnu.org/licenses/
 #****************************************************************************
 
-from psage.rings.mp_cimports cimport *
-include 'interrupt.pxi'
+
+
+
+#include 'sage/ext/stdsage.pxi'
+#include 'sage/ext/interrupt.pxi'
+#cdef extern from 'sage/ext/interrupt/pxi.h':
+#    int import_sage__ext__interrupt__interrupt() except -1
+#import_sage__ext__interrupt__interrupt()
+include 'sage/ext/interrupt.pxi'
+from sage.ext.interrupt cimport *
+from psage.rings.mp_cimports cimport *    
+from sage.ext.memory cimport check_allocarray,sage_free
+
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0
 
@@ -46,7 +57,7 @@ from sage.all import deepcopy,copy,ZZ,vector,subsets
 from sage.all import binomial #,lcm
 import cython
 
-from sage.ext.memory cimport check_allocarray,sage_free
+from libc.stdlib cimport malloc
     
 #from Cython.Utils import cached_function, cached_method
 #from sage.all import cached_method
@@ -117,7 +128,7 @@ cdef class MyPermutation(SageObject):
             print "entries={0} of type {1}".format(entries,type(entries))
             
         if entries==[]:
-            print "l=",length
+            #print "l=",length
             if length>0:
                 self._N = length
             else:
@@ -156,26 +167,28 @@ cdef class MyPermutation(SageObject):
             else:
                 self._N = len(entries_list)
         self._init = 1
-        print "testing! N=",self._N
         if self._N>0:
             if check==1:
-                print "N=",self._N
+                if verbose>0:
+                    print "N=",self._N
                 sys.stdout.flush()
                 used=<int*>check_allocarray(sizeof(int),self._N)
-                printf("1ptr=%p \n",used)
-                #used=<int*>malloc(sizeof(int)*self._N)
-                print "malloced!"
+                if verbose>0:
+                    printf("1ptr=%p \n",used)
+                    #used=<int*>malloc(sizeof(int)*self._N)
+                    print "malloced!"
                 sys.stdout.flush()
                 if used==NULL:
                     raise MemoryError
                 for i in range(self._N):
                     used[i]=0
                 ok=1
-            print "mallocing N=",self._N
+            if verbose>0:
+                print "mallocing N2=",self._N
             sys.stdout.flush()            
             self._entries = <int*>check_allocarray(sizeof(int),self._N)
-            #self._entries = <int*>sage_malloc(sizeof(int)*self._N)
-            print "did it"
+#            self._entries = <int*>sage_malloc(sizeof(int)*self._N)
+#            self._entries = <int*>malloc(sizeof(int)*self._N)
             sys.stdout.flush()
             if self._entries==NULL:
                 raise MemoryError
@@ -213,10 +226,12 @@ cdef class MyPermutation(SageObject):
                 self._init = 0
         self._hash = 0
         if check==1 and used<>NULL and self._N>0:
-            printf("ptr=%p \n",used)
-            print "free used"
+            if verbose>0:
+                printf("ptr=%p \n",used)
+                print "free used"
             sage_free(used)
-            print "did free!"
+            if verbose>0:
+                print "did free!"
 
     def __init__(self,entries=[],int length=0,int init=0,int verbose=0,int check=1,int rep=0):
         r"""

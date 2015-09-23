@@ -72,7 +72,7 @@ class MultiplierSystem(SageObject):
         self._character = None
         self._level = group.generalised_level()
         if kwargs.has_key('character'):
-            if str(type(kwargs['character'])).find('DirichletCharacter')>=0:
+            if str(type(kwargs['character'])).find('Dirichlet')>=0:
                 self._character = kwargs['character']
                 self._conductor=self._character.conductor()
                 self._char_nr=list((self._character).parent()).index(self._character)

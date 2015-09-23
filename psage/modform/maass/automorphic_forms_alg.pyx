@@ -19,10 +19,11 @@ Cython algorithms for Harmoic weak Maass forms.
 Used by routines in atomorphic_forms.py
 
 """
+from libc.stdint cimport uint64_t
 
-#include "stdsage.pxi"  
-include "cdefs.pxi"
-include 'interrupt.pxi'
+#include "cdefs.pxi"
+#include 'sage/ext/interrupt.pxi'
+#include "sage/ext/stdsage.pxi"
 #include "sage/rings/mpc.pxi"
 #include "../../rings/mpfr_loc.pxi"
 from psage.rings.mpfr_nogil cimport *

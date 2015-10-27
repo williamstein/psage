@@ -73,6 +73,7 @@ from pullback_algorithms cimport pullback_pts_mpc_new_c
 from pullback_algorithms cimport pullback_pts_mpc_new_c_sym
 
 cimport openmp
+
 openmp.omp_set_dynamic(1)
 #openmp.omp_set_num_threads(2)
 
@@ -679,6 +680,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     mpfr_mul_ui(fourpiY,twopiY,2,rnd_re)
     p=(weight-one)/two
     cdef RealNumber kint=(one-weight)
+    cdef RealNumber tmpreal1,tmpreal2
     cdef int is_int=0
     cdef int is_half_int=0
     ## Test if the weight is integral
@@ -973,7 +975,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re)
                             mpfr_neg(tmpr_t,tmpr_t,rnd_re)
                             if verbose>2:
-                                printf("arg=%f",mpfr_get_d(tmpr_t,rnd_re))
+                                printf("arg=%f \n n=%d",mpfr_get_d(tmpr_t,rnd_re),mpfr_get_d(nr,rnd_re))
                             mpfr_exp(besv[icusp][jcusp][n][j],tmpr_t,rnd_re)
                             #if verbose>1:
                             #    mpfr_set(tmpr,besv[icusp][jcusp][n][j],rnd_re)
@@ -990,13 +992,22 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                         if kinti>0:
                                             ok = incgamma_pint_c(tmpr2,kinti,tmpr,verbose)
                                         else:
-                                            ok = incgamma_nint_c(tmpr2,kinti,tmpr,verbose)
+                                            if verbose>2:
+                                                print "doing incgamma_nint_c"
+                                            if kinti <>0:
+                                                tmpreal1 = RF(0)
+                                                mpfr_set(tmpreal1.value,tmpr,rnd_re)
+                                                tmpreal2 = RF(mpmath.mp.gammainc(kint,tmpreal1).real)
+                                                mpfr_set(tmpr2,tmpreal2.value,rnd_re)
+                                                ok = 0
+                                            else:
+                                                ok = incgamma_nint_c(tmpr2,kinti,tmpr,verbose)
                                     elif is_half_int==1:
                                         ok = incgamma_hint_c(tmpr2,kinti,tmpr)                                
                                         #except ArithmeticError: ## In case we can not achieve the required error
                                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                                #if (verbose>0 and ok<>0) or verbose>2:
-                                #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath)
+                                if (verbose>0 and ok<>0) or verbose>2:
+                                    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath)
                                 if ok <> 0:
                                     #tmpr2 = RF(mpmath.mp.gammainc(kint,mpfr_get_d(tmpr,rnd_re)).real).value
                                     if verbose>0:

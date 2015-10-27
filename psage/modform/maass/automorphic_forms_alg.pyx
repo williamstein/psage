@@ -1030,6 +1030,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                         mpfr_log(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],rnd_re)
                                     else:
                                         mpfr_pow(besv[icusp][jcusp][n][j],besv[icusp][jcusp][n][j],kint_t,rnd_re)
+                                        if verbose>2:
+                                            mpfr_set(tmpreal1.value,besv[icusp][jcusp][n][j],rnd_re)
+                                            print "set besv[",icusp,jcusp,n,j,"=",tmpreal1
+
                                 else:
                                     ## If none of them are variables this means
                                     ## that they are both set in the principal parts

@@ -4017,7 +4017,7 @@ cpdef check_principal_parts(H,principal_parts):
                 raise ValueError,"Principal parts are in wrong format! PP+={0}".format(PPplus)
     for pp in PPminus:
         for icusp,n in pp:
-            if((icusp not in range(nc)) or n>0):
+            if((icusp not in range(nc)) or n<0):
                 raise ValueError,"Principal parts are in wrong format! PP-={0}".format(PPminus)            
 
     # if we have a holomorphic function we  don't want any non-holomorphic principal parts

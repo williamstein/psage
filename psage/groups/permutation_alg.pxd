@@ -1,3 +1,4 @@
+include "sage/ext/stdsage.pxi"
 from psage.rings.mp_cimports cimport *
 
 from sage.structure.sage_object cimport SageObject

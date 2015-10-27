@@ -21,15 +21,9 @@ Used by routines in atomorphic_forms.py
 """
 from libc.stdint cimport uint64_t
 
-#include "cdefs.pxi"
-#include 'sage/ext/interrupt.pxi'
-#include "sage/ext/stdsage.pxi"
-#include "sage/rings/mpc.pxi"
-#include "../../rings/mpfr_loc.pxi"
 from psage.rings.mpfr_nogil cimport *
-#include "sage/ext/interrupt.pxi"  
-#include "sage/ext/stdsage.pxi" 
-from sage.ext.memory cimport check_allocarray,sage_free
+include "sage/ext/stdsage.pxi" 
+
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
     
@@ -844,7 +838,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         if PPplus_n[j]==NULL: raise MemoryError
         PPminus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t),num_ppminus)
         if PPminus_values[j]==NULL: raise MemoryError
-        PPplus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t),num_ppplusl)
+        PPplus_values[j] = <mpc_t*>check_allocarray(sizeof(mpc_t),num_ppplus)
         if PPplus_values[j]==NULL: raise MemoryError
         PPplus_lal[j] =  <mpfr_t*>check_allocarray(sizeof(mpfr_t),num_ppplus)
         if PPplus_lal[j]==NULL: raise MemoryError
@@ -1302,6 +1296,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             # Clearing up allocated variables
 
     for j in range(d):
+        #printf("a0jm=%p",variable_a0_minus[j])
         sage_free(variable_a0_minus[j])
         sage_free(variable_a0_plus[j])        
         sage_free(PPplus_cusp[j])

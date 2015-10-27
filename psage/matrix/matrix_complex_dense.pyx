@@ -7,7 +7,7 @@ Dense matrices over the complex field.
 
 EXAMPLES
 """
-
+include "stdsage.pxi"
 include "interrupt.pxi"
 
 from psage.rings.mp_cimports cimport *

@@ -194,20 +194,16 @@ cdef class MyPermutation(SageObject):
                 raise MemoryError
             if len(entries_list)>0:
                 # Check consistency: we need every element 1,2,...,N exactly once.
-                print "and here"
                 if check==1 and used<>NULL:
                     for i in range(self._N):
                         ei = <int>entries_list[i]
                         self._entries[i]=ei
                         if ei>self._N or ei<1:
-                            print "removing1 "
-                            sage_free(self._entries); self._entries=NULL                            
+                            sage_free(self._entries); self._entries=NULL
                             sage_free(used)
                             raise ValueError,"Invalid Input for permutation!!!!! entries: {0}".format(entries)
                         if used[ei-1]>0:
-                            print "removing2 "
                             sage_free(self._entries); self._entries=NULL
-
                             sage_free(used)
                             raise ValueError,"Invalid Input for permutation!!!!!! entries:{0}".format(entries)
                         else:

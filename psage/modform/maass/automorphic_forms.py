@@ -955,7 +955,13 @@ class AutomorphicFormSpace(Parent):
         r"""
         INPUT:
         
-        - `principal_part`   -- list of principal part
+        - `principal_part`   -- list of principal parts of the form:
+                 RR = { '+' : {(j,n) : c^+(j,n)}     # j is a cusp and n>=0 an index
+                        '-' : {(j,n) : c^-(j,n)}     # j is a cusp and n<=0 an index
+                     }
+                corresponding to principal parts (in notation of Bruinier-Funke):
+                    \( \Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
+        
                     PP[c,m]=a if the principal at cusp c contains a*q^m
         - `digs` -- integer (default 10): the number of requested digits
         - `dbase_prec` -- integer (default None): if set, use this number of digits for precision in all mpmath calculations
@@ -2824,12 +2830,28 @@ class HarmonicWeakMaassFormElement(AutomorphicFormElement):
         
 
         
-class HarmonicWeakMaassForms(AutomorphicFormSpace):
+
+
+# class AlmostHolomorphicModularForms(AutomorphicFormSpace):
+#     r"""
+#     Space of Harmonic weak Maass forms
+
+#     """
+#     def __init__(self,G,weight,multiplier=None,holomorphic=False,cuspidal=False):
+#         holomorphic=False # otherwise we have a holomorphic modular form
+        
+        
+class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace)
     r"""
     Space of Harmonic weak Maass forms.
     """
     def __init__(self,G,weight=0,multiplier=None,holomorphic=False,weak=True,cuspidal=False,verbose=0,**kwds):
-        r""" Initialize the space of automorphic forms.
+        r"""
+        Initialize the space of Harmonic weak Maass forms, that is the space of weakly modular
+        functions with q-expansions of the form:
+        f(x+iy) = c/y^{k-1} + P(q^-1) + Sum_{n} c(n) W_n(y)q^n
+        where W_n(y)=1 for n>0 and Gamma(k-1,4piy) for n<0 
+        (n - alpha(i)) is an integer where v(T_i)=e(alpha(i)) as usual.
         """
         if(isinstance(G,MySubgroup_class)):
             self._group=G
@@ -2901,14 +2923,18 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
         
         INPUT:
         
-        - ''principal_part''   -- list of principal parts
-                    PP[c,m]=a if the principal at cusp c contains a*q^m
+         - `principal_part`   -- list of principal parts of the form:
+                 RR = { '+' : {(j,n) : c^+(j,n)}     # j is a cusp and n>=0 an index
+                        '-' : {(j,n) : c^-(j,n)}     # j is a cusp and n<=0 an index
+                     }
+                corresponding to principal parts (in notation of Bruinier-Funke):
+                    \( \Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
         - ''ndig'' -- integer (default 10): the number of requested digits
         - ''dbase_prec'' -- integer (default None): if set, use this number of digits for precision in all mpmath calculations
         - ''SetC'' -- dictionary containing fourier coefficients to keep fixed (and their values)
                       of the form SetC[n][i]=c_i(n)
+
         """
-  
         pp = principal_part
         if not isinstance(pp,list):
             pp = [pp]

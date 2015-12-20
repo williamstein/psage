@@ -20,6 +20,7 @@ Used by routines in maass_forms.py
 
 """
 from psage.rings.mp_cimports cimport *
+include "stdsage.pxi"
 include 'interrupt.pxi'
 from sage.all import save,incomplete_gamma,load,bessel_K
 import mpmath

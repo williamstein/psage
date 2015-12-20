@@ -2077,7 +2077,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         version = kwds.pop('version',0)
         model = kwds.pop('model','H')
         show_axis = kwds.pop('axis',False)
-        clip = kwds.pop('clip',True) 
+        clip = kwds.pop('clip',True)
+        type= kwds.pop('type','density')
         eps = 1e-10
         def fun(x,y):
             z = CC(x,y)
@@ -2097,7 +2098,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             w = self.eval(xx,yy,version=version)
             #print "f=",w
             #abs(f.eval(xx,yy))**2
-            return abs(w)**2
+            if type=='density':
+                return abs(w)**2
+            else:
+                return w.real()
 
         xrange = xlim
         yrange = ylim
@@ -2112,7 +2116,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         ax = g.add_subplot(111)
         x0,x1 = xlim
         y0,y1 = ylim
-        im = ax.imshow(xy_data_array, origin='lower', cmap='jet', extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
+        if type=='density':
+            im = ax.imshow(xy_data_array, origin='lower', cmap='jet', extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
+        else:
+            X = xsrange(*ranges[0]); Y = xsrange(*ranges[1])
+            Z = np.ma.array(xy_data_array)
+            return X,Y,Z
+            levels=kwds.get('levels',[-1,1,0.1])
+            levels = [x for x in xsrange(*levels)]
+            im = ax.contourf(X,Y,Z,levels,cmap='bone')
         if add_contour or clip:
             fdom = get_contour(G,version=version,model=model,color='red',as_patch=True,thickness=3)
         if add_contour:

@@ -986,8 +986,10 @@ class AutomorphicFormSpace(Parent):
             #print "pp=",pp
             if isinstance(pp.keys()[0],(list,tuple)):
                 d['+']=pp # If only one is given we assume it holomorphic
-            if self._holomorphic: # Make sure no non-holom. ppart is given for a holom. form
-                d['-']={}
+            # If self._holomorphic is True and we have a negative principal part we assume
+            # that the only non-holomorphic part is the principal part
+            #if self._holomorphic: # Make sure no non-holom. ppart is given for a holom. form
+            #    d['-']={}
             ppart1.append(d)
         if self._verbose>0:
             print "PP1=",ppart1
@@ -1012,9 +1014,11 @@ class AutomorphicFormSpace(Parent):
         if self._verbose>0:
             print "setc0=",setc
             #print "group=",self.group()
-        for i in range(len(setc)):
+        for i in range(len(ppart)):
             for j in range(self.group().ncusps()):
                 if ppart[i]['+'].has_key((j,0)):
+                    for ii in range(len(setc),i+1):
+                        setc.append({})
                     setc[i][(j,0)]=ppart[i]['+'][(j,0)]
         if self._verbose>0:
             print "setc1=",setc
@@ -1140,7 +1144,7 @@ class AutomorphicFormSpace(Parent):
                 except:
                     return C.append((V,N))
         #mpmath.mp.dps=dpold
-        if verbose>0:
+        if self._verbose>0:
             print "C[0][-1]=",C.get(0,{}).get(0,{}).get(-1,None)
 
         res=list()

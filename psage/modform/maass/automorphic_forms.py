@@ -30,7 +30,7 @@ EXAMPLES::
     #       sage -i mpc
 
     
-    sage: H=HarmonicWeakMaassForms(Gamma0(8),3/2)
+    sage: H=HarmonicWeakMaassFormSpace(Gamma0(8),3/2)
     sage: PP=[{'+': {(1,0):0,(3,0):0}, '-': { (0, 0): 1}}]
     sage: setc={(0,-1):0,(0,-2):0}
     sage: F=H.get_element(PP,SetM=15,SetC=setc)
@@ -97,7 +97,7 @@ EXAMPLES::
 
     sage: M=HalfIntegralWeightForms(Gamma0(8),3/2);M
     Space of Modular Forms of weight = 3/2  with theta multiplier on Congruence Subgroup Gamma0(8)
-    sage: H=HarmonicWeakMaassForms(M);H             
+    sage: H=HarmonicWeakMaassFormSpace(M);H             
     Space of Harmonic Weak Maass Forms of weight = 1/2  with theta multiplier on Congruence Subgroup Gamma0(8)
     # magma dependent method
     sage: M.basis() 
@@ -288,7 +288,7 @@ class AutomorphicFormSpace(Parent):
                 s+="Cusp Forms "
             else:
                 s+="Modular Forms "
-        elif str(type(self)).find("HarmonicWeakMaassForms")>0:
+        elif str(type(self)).find("HarmonicWeakMaassFormSpace")>0:
             s+="Harmonic Weak Maass Forms "
         else:
             s+="Automorphic Forms "
@@ -1161,7 +1161,7 @@ class AutomorphicFormSpace(Parent):
                     print "type=",type(self)
                 if str(type(self)).find("HalfIntegralWeightForms")>0:
                     F=HalfIntegralWeightFormElement(self,C[i],principal_part=ppf)
-                elif str(type(self)).find("HarmonicWeakMaassForms")>0:
+                elif str(type(self)).find("HarmonicWeakMaassFormSpace")>0:
                     if self._verbose>1:
                         print "Constructing a Harmonic Weak Maassform"
                         print "pp=",ppf
@@ -1729,7 +1729,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         B=self.basis_numerical(digs=digs,**kwds)
         #if(not self.assert_triangular_basis()):
         #    raise ArithmeticError,"Basis is not upper triangular!"
-        H = HarmonicWeakMaassForms(self)
+        H = HarmonicWeakMaassFormSpace(self)
         M = H.modular_forms_subspace()
         M._weight = H.weight()
         BB = M.basis_numerical() ## we want to "project away" these 
@@ -1872,7 +1872,7 @@ class AutomorphicFormElement(SageObject):
         EXAMPLES:
 
             sage: WR=WeilRepDiscriminantForm(11,dual=True)
-            sage: M=VVHarmonicWeakMaassForms(WR,0.5,100)
+            sage: M=VVHarmonicWeakMaassFormSpace(WR,0.5,100)
             sage: PP={(7/22,0):1}
             sage: F=M.get_element(PP,12);F
             Element of Space of Vector-Valued harmonic weak Maass forms on Modular Group SL(2,Z) of weight 1/2  and dimension 10.
@@ -2749,7 +2749,7 @@ class AutomorphicFormElement(SageObject):
         """
         M = self._space
         pp = [M.xi_k_inverse_pp(self)]
-        H = HarmonicWeakMaassForms(M) 
+        H = HarmonicWeakMaassFormSpace(M) 
         F = H.get_element(pp,prec)
         eps = 2.0*10.0**(-self.space().prec()*ln(2.0)/ln(10.0))
         if(pp_in):
@@ -2843,9 +2843,10 @@ class HarmonicWeakMaassFormElement(AutomorphicFormElement):
 #     """
 #     def __init__(self,G,weight,multiplier=None,holomorphic=False,cuspidal=False):
 #         holomorphic=False # otherwise we have a holomorphic modular form
+class AlmostHolomorphicModularFormSpace(AutomorphicFormSpace):
+    pass
         
-        
-class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace)
+class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace):
     r"""
     Space of Harmonic weak Maass forms.
     """
@@ -2901,7 +2902,7 @@ class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace)
                 multiplier=ThetaMultiplier(self._group,weight=weight)
                 #else:
                 #    multiplier=ThetaMultiplier(self._group,dual=True)
-        self._class_name ="HarmonicWeakMaassForms"
+        self._class_name ="HarmonicWeakMaassFormSpace"
         #AutomorphicFormSpace.__init__(self,GG,weight=weight,multiplier=multiplier,character=character,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,dprec=dprec,verbose=verbose)
         AutomorphicFormSpace.__init__(self,self._group,weight=weight,multiplier=multiplier,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,verbose=verbose,**kwds)
 
@@ -2923,7 +2924,7 @@ class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace)
 
     def get_element(self,principal_part=None,prec=53,dbase_prec=None,ndig=10,SetC=None,SetY=None,SetM=None,**kwds):
         r"""
-        Get an element of the space of HarmonicWeakMaassForms.
+        Get an element of the space of HarmonicWeakMaassFormSpace.
         
         INPUT:
         
@@ -3208,7 +3209,7 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
     """
     M = extract_hwmf_space(G,weight,**kwds)
     print "M=",M
-    #M = HarmonicWeakMaassForms(G,weight=weight,weak=True,verbose=verbose)
+    #M = HarmonicWeakMaassFormSpace(G,weight=weight,weak=True,verbose=verbose)
     pp = extract_princial_part(M,principal_part)
     F = M.get_element(principal_part=pp,**kwds)
     return F
@@ -3216,9 +3217,9 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
 def extract_hwmf_space(X,weight=0,**kwds):
     multiplier = extract_multiplier(X,weight,**kwds)
     if vv==1:
-        return VVHarmonicWeakMaassForms(multiplier,weight,**kwds)
+        return VVHarmonicWeakMaassFormSpace(multiplier,weight,**kwds)
     else:
-        return HarmonicWeakMaassForms(multiplier,weight,**kwds)
+        return HarmonicWeakMaassFormSpace(multiplier,weight,**kwds)
 
 def extract_multiplier(X,weight=0,**kwds):
     vv = 0    
@@ -4155,7 +4156,7 @@ def real_from_nearest_integer_continued_fraction(ncf):
 ## needed for pickling
 import __main__
 __main__.AutomorphicFormSpace=AutomorphicFormSpace
-__main__.HarmonicWeakMaassForms=HarmonicWeakMaassForms
+__main__.HarmonicWeakMaassFormSpace=HarmonicWeakMaassFormSpace
 __main__.AutomorphicFormElement=AutomorphicFormElement
 __main__.HalfIntegralWeightForms=HalfIntegralWeightForms
 #__main__.

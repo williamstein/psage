@@ -30,7 +30,7 @@ EXAMPLES::
     #       sage -i mpc
 
     
-    sage: H=HarmonicWeakMaassForms(Gamma0(8),3/2)
+    sage: H=HarmonicWeakMaassFormSpace(Gamma0(8),3/2)
     sage: PP=[{'+': {(1,0):0,(3,0):0}, '-': { (0, 0): 1}}]
     sage: setc={(0,-1):0,(0,-2):0}
     sage: F=H.get_element(PP,SetM=15,SetC=setc)
@@ -97,7 +97,7 @@ EXAMPLES::
 
     sage: M=HalfIntegralWeightForms(Gamma0(8),3/2);M
     Space of Modular Forms of weight = 3/2  with theta multiplier on Congruence Subgroup Gamma0(8)
-    sage: H=HarmonicWeakMaassForms(M);H             
+    sage: H=HarmonicWeakMaassFormSpace(M);H             
     Space of Harmonic Weak Maass Forms of weight = 1/2  with theta multiplier on Congruence Subgroup Gamma0(8)
     # magma dependent method
     sage: M.basis() 
@@ -288,7 +288,7 @@ class AutomorphicFormSpace(Parent):
                 s+="Cusp Forms "
             else:
                 s+="Modular Forms "
-        elif str(type(self)).find("HarmonicWeakMaassForms")>0:
+        elif str(type(self)).find("HarmonicWeakMaassFormSpace")>0:
             s+="Harmonic Weak Maass Forms "
         else:
             s+="Automorphic Forms "
@@ -955,7 +955,13 @@ class AutomorphicFormSpace(Parent):
         r"""
         INPUT:
         
-        - `principal_part`   -- list of principal part
+        - `principal_part`   -- list of principal parts of the form:
+                 RR = { '+' : {(j,n) : c^+(j,n)}     # j is a cusp and n>=0 an index
+                        '-' : {(j,n) : c^-(j,n)}     # j is a cusp and n<=0 an index
+                     }
+                corresponding to principal parts (in notation of Bruinier-Funke):
+                    \( \Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
+        
                     PP[c,m]=a if the principal at cusp c contains a*q^m
         - `digs` -- integer (default 10): the number of requested digits
         - `dbase_prec` -- integer (default None): if set, use this number of digits for precision in all mpmath calculations
@@ -980,8 +986,10 @@ class AutomorphicFormSpace(Parent):
             #print "pp=",pp
             if isinstance(pp.keys()[0],(list,tuple)):
                 d['+']=pp # If only one is given we assume it holomorphic
-            if self._holomorphic: # Make sure no non-holom. ppart is given for a holom. form
-                d['-']={}
+            # If self._holomorphic is True and we have a negative principal part we assume
+            # that the only non-holomorphic part is the principal part
+            #if self._holomorphic: # Make sure no non-holom. ppart is given for a holom. form
+            #    d['-']={}
             ppart1.append(d)
         if self._verbose>0:
             print "PP1=",ppart1
@@ -1006,9 +1014,11 @@ class AutomorphicFormSpace(Parent):
         if self._verbose>0:
             print "setc0=",setc
             #print "group=",self.group()
-        for i in range(len(setc)):
+        for i in range(len(ppart)):
             for j in range(self.group().ncusps()):
                 if ppart[i]['+'].has_key((j,0)):
+                    for ii in range(len(setc),i+1):
+                        setc.append({})
                     setc[i][(j,0)]=ppart[i]['+'][(j,0)]
         if self._verbose>0:
             print "setc1=",setc
@@ -1134,7 +1144,7 @@ class AutomorphicFormSpace(Parent):
                 except:
                     return C.append((V,N))
         #mpmath.mp.dps=dpold
-        if verbose>0:
+        if self._verbose>0:
             print "C[0][-1]=",C.get(0,{}).get(0,{}).get(-1,None)
 
         res=list()
@@ -1151,7 +1161,7 @@ class AutomorphicFormSpace(Parent):
                     print "type=",type(self)
                 if str(type(self)).find("HalfIntegralWeightForms")>0:
                     F=HalfIntegralWeightFormElement(self,C[i],principal_part=ppf)
-                elif str(type(self)).find("HarmonicWeakMaassForms")>0:
+                elif str(type(self)).find("HarmonicWeakMaassFormSpace")>0:
                     if self._verbose>1:
                         print "Constructing a Harmonic Weak Maassform"
                         print "pp=",ppf
@@ -1719,7 +1729,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         B=self.basis_numerical(digs=digs,**kwds)
         #if(not self.assert_triangular_basis()):
         #    raise ArithmeticError,"Basis is not upper triangular!"
-        H = HarmonicWeakMaassForms(self)
+        H = HarmonicWeakMaassFormSpace(self)
         M = H.modular_forms_subspace()
         M._weight = H.weight()
         BB = M.basis_numerical() ## we want to "project away" these 
@@ -1862,7 +1872,7 @@ class AutomorphicFormElement(SageObject):
         EXAMPLES:
 
             sage: WR=WeilRepDiscriminantForm(11,dual=True)
-            sage: M=VVHarmonicWeakMaassForms(WR,0.5,100)
+            sage: M=VVHarmonicWeakMaassFormSpace(WR,0.5,100)
             sage: PP={(7/22,0):1}
             sage: F=M.get_element(PP,12);F
             Element of Space of Vector-Valued harmonic weak Maass forms on Modular Group SL(2,Z) of weight 1/2  and dimension 10.
@@ -2739,7 +2749,7 @@ class AutomorphicFormElement(SageObject):
         """
         M = self._space
         pp = [M.xi_k_inverse_pp(self)]
-        H = HarmonicWeakMaassForms(M) 
+        H = HarmonicWeakMaassFormSpace(M) 
         F = H.get_element(pp,prec)
         eps = 2.0*10.0**(-self.space().prec()*ln(2.0)/ln(10.0))
         if(pp_in):
@@ -2824,12 +2834,29 @@ class HarmonicWeakMaassFormElement(AutomorphicFormElement):
         
 
         
-class HarmonicWeakMaassForms(AutomorphicFormSpace):
+
+
+# class AlmostHolomorphicModularForms(AutomorphicFormSpace):
+#     r"""
+#     Space of Harmonic weak Maass forms
+
+#     """
+#     def __init__(self,G,weight,multiplier=None,holomorphic=False,cuspidal=False):
+#         holomorphic=False # otherwise we have a holomorphic modular form
+class AlmostHolomorphicModularFormSpace(AutomorphicFormSpace):
+    pass
+        
+class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace):
     r"""
     Space of Harmonic weak Maass forms.
     """
     def __init__(self,G,weight=0,multiplier=None,holomorphic=False,weak=True,cuspidal=False,verbose=0,**kwds):
-        r""" Initialize the space of automorphic forms.
+        r"""
+        Initialize the space of Harmonic weak Maass forms, that is the space of weakly modular
+        functions with q-expansions of the form:
+        f(x+iy) = c/y^{k-1} + P(q^-1) + Sum_{n} c(n) W_n(y)q^n
+        where W_n(y)=1 for n>0 and Gamma(k-1,4piy) for n<0 
+        (n - alpha(i)) is an integer where v(T_i)=e(alpha(i)) as usual.
         """
         if(isinstance(G,MySubgroup_class)):
             self._group=G
@@ -2875,7 +2902,7 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
                 multiplier=ThetaMultiplier(self._group,weight=weight)
                 #else:
                 #    multiplier=ThetaMultiplier(self._group,dual=True)
-        self._class_name ="HarmonicWeakMaassForms"
+        self._class_name ="HarmonicWeakMaassFormSpace"
         #AutomorphicFormSpace.__init__(self,GG,weight=weight,multiplier=multiplier,character=character,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,dprec=dprec,verbose=verbose)
         AutomorphicFormSpace.__init__(self,self._group,weight=weight,multiplier=multiplier,holomorphic=holomorphic,weak=weak,cuspidal=cuspidal,verbose=verbose,**kwds)
 
@@ -2897,18 +2924,22 @@ class HarmonicWeakMaassForms(AutomorphicFormSpace):
 
     def get_element(self,principal_part=None,prec=53,dbase_prec=None,ndig=10,SetC=None,SetY=None,SetM=None,**kwds):
         r"""
-        Get an element of the space of HarmonicWeakMaassForms.
+        Get an element of the space of HarmonicWeakMaassFormSpace.
         
         INPUT:
         
-        - ''principal_part''   -- list of principal parts
-                    PP[c,m]=a if the principal at cusp c contains a*q^m
+         - `principal_part`   -- list of principal parts of the form:
+                 RR = { '+' : {(j,n) : c^+(j,n)}     # j is a cusp and n>=0 an index
+                        '-' : {(j,n) : c^-(j,n)}     # j is a cusp and n<=0 an index
+                     }
+                corresponding to principal parts (in notation of Bruinier-Funke):
+                    \( \Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
         - ''ndig'' -- integer (default 10): the number of requested digits
         - ''dbase_prec'' -- integer (default None): if set, use this number of digits for precision in all mpmath calculations
         - ''SetC'' -- dictionary containing fourier coefficients to keep fixed (and their values)
                       of the form SetC[n][i]=c_i(n)
+
         """
-  
         pp = principal_part
         if not isinstance(pp,list):
             pp = [pp]
@@ -3178,7 +3209,7 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
     """
     M = extract_hwmf_space(G,weight,**kwds)
     print "M=",M
-    #M = HarmonicWeakMaassForms(G,weight=weight,weak=True,verbose=verbose)
+    #M = HarmonicWeakMaassFormSpace(G,weight=weight,weak=True,verbose=verbose)
     pp = extract_princial_part(M,principal_part)
     F = M.get_element(principal_part=pp,**kwds)
     return F
@@ -3186,9 +3217,9 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
 def extract_hwmf_space(X,weight=0,**kwds):
     multiplier = extract_multiplier(X,weight,**kwds)
     if vv==1:
-        return VVHarmonicWeakMaassForms(multiplier,weight,**kwds)
+        return VVHarmonicWeakMaassFormSpace(multiplier,weight,**kwds)
     else:
-        return HarmonicWeakMaassForms(multiplier,weight,**kwds)
+        return HarmonicWeakMaassFormSpace(multiplier,weight,**kwds)
 
 def extract_multiplier(X,weight=0,**kwds):
     vv = 0    
@@ -4125,7 +4156,7 @@ def real_from_nearest_integer_continued_fraction(ncf):
 ## needed for pickling
 import __main__
 __main__.AutomorphicFormSpace=AutomorphicFormSpace
-__main__.HarmonicWeakMaassForms=HarmonicWeakMaassForms
+__main__.HarmonicWeakMaassFormSpace=HarmonicWeakMaassFormSpace
 __main__.AutomorphicFormElement=AutomorphicFormElement
 __main__.HalfIntegralWeightForms=HalfIntegralWeightForms
 #__main__.

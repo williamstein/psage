@@ -43,6 +43,7 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
+include "stdsage.pxi"
 include "interrupt.pxi"
 from psage.rings.mp_cimports cimport *
 

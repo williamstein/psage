@@ -10,7 +10,7 @@ import maass_forms_phase2
 # import specific functionality that we think the end user wants
 
 # spaces 
-from automorphic_forms import AutomorphicFormSpace,HalfIntegralWeightForms,HarmonicWeakMaassForms,HolomorphicModularForms,WeakModularForm
+from automorphic_forms import AutomorphicFormSpace,HalfIntegralWeightForms,HarmonicWeakMaassFormSpace,HolomorphicModularForms,WeakModularForm
 
 # instances
 from automorphic_forms import HarmonicWeakMaassForm

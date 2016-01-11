@@ -2162,6 +2162,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                     #RHS[ni,k]=RHS[ni,k]-ppc*(-nrY2pi).exp()
                 if verbose>2:
                     print "RHS1[",ni,k,"]=",RHS[ni][k]
+                ## Dealing with the negative principal parts
                 for i in range(num_ppminus):
                     #for (jcusp,l) in PPminus[k].keys():
                     jcusp = PPminus_cusp[k][i]
@@ -2182,10 +2183,13 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                             continue
                         mpc_set(ch.value,Cvec[icusp][jcusp][j],rnd)
                         mpfr_set(ypb.value,Ypb[icusp][jcusp][j],rnd_re)
-                        if kint==0:
-                            mpfr_log(tmpr.value,ypb.value,rnd_re)
+                        if l == 0:
+                            if kint==0:
+                                mpfr_log(tmpr.value,ypb.value,rnd_re)
+                            else:
+                                mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
                         else:
-                            mpfr_pow(tmpr.value,ypb.value,kint.value,rnd_re)
+                            raise ValueError,"TODO"
                         mpc_set_fr(tmpc_t,tmpr.value,rnd) #ypb**kint
 
                         mpfr_mul(tmpr.value,nr.value,Xm[j],rnd_re)

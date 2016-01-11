@@ -26,7 +26,6 @@ AUTHORS:
 #
 #===============================================================================
 
-include 'sage/ext/signals.pxi'
 include 'sage/ext/interrupt.pxi'
 #include "interrupt.pxi"
 #include "stdsage.pxi"

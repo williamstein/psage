@@ -979,7 +979,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re)
                             mpfr_neg(tmpr_t,tmpr_t,rnd_re)
                             if verbose>2:
-                                printf("arg=%f",mpfr_get_d(tmpr_t,rnd_re))
+                                printf("arg=%f nr=%f",mpfr_get_d(tmpr_t,rnd_re),mpfr_get_d(nr,rnd_re))
                             mpfr_exp(besv[icusp][jcusp][n][j],tmpr_t,rnd_re)
                             #if verbose>1:
                             #    mpfr_set(tmpr,besv[icusp][jcusp][n][j],rnd_re)
@@ -996,17 +996,19 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                         if kinti>0:
                                             ok = incgamma_pint_c(tmpr2,kinti,tmpr,verbose)
                                         else:
+                                            if verbose>2:
+                                                print "Here"
                                             ok = incgamma_nint_c(tmpr2,kinti,tmpr,verbose)
                                     elif is_half_int==1:
                                         ok = incgamma_hint_c(tmpr2,kinti,tmpr)                                
                                         #except ArithmeticError: ## In case we can not achieve the required error
                                         #tmpr2 = RF(mpmath.mp.gammainc(kint,tmpr).real)                    
-                                #if (verbose>0 and ok<>0) or verbose>2:
-                                #    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath)
+                                if (verbose>0 and ok<>0) or verbose>2:
+                                    print "ok={0}, tmpr={1} Gamma={2} do_mpmath={3}, kint={4}".format(ok,mpfr_get_d(tmpr,rnd_re),mpfr_get_d(tmpr2,rnd_re),do_mpmath,kinti)
                                 if ok <> 0:
                                     #tmpr2 = RF(mpmath.mp.gammainc(kint,mpfr_get_d(tmpr,rnd_re)).real).value
                                     if verbose>0:
-                                        printf('return value not good')
+                                        printf('return value from incomplete gamma not good')
                                         return -1
                                 #if verbose>1 and icusp==1 and n==0:
                                     #print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,n,j,iargpb)

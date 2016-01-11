@@ -3721,8 +3721,9 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
     ## Use low precision
     try:
         for m in range(minm+1,10000,3):
-            erest=err_est_Maasswf(Y,m,R,1)            
-            #print "erest=",erest
+            erest=err_est_Maasswf(Y,m,R,1)
+            if verbose>2:
+                print "erest({0},{1},{2},1)={3}".format(Y,m,R,erest)
             if erest<eps:
                 raise StopIteration()
     except StopIteration:
@@ -3924,15 +3925,16 @@ def err_est_Maasswf(Y,M,R=0,pref=1):
 
     """
     import mpmath
-    YY = mpmath.fp.mpf(Y)
+    mpmath.mp.pres=103
+    YY = mpmath.mp.mpf(Y)
     #arg=sqrt(2*mpmath.fp.pi*YY*M)
-    gamma_arg=2*mpmath.fp.pi*YY*M
+    gamma_arg=2*mpmath.mp.pi*YY*M
     if pref==1:
-        f = exp(mpmath.fp.pi*R/2.0)*sqrt(2.0/YY)
+        f = exp(mpmath.mp.pi*R/2.0)*mpmath.mp.sqrt(2.0/YY)
     else:
-        f = sqrt(2.0/YY) 
+        f = mpmath.mp.sqrt(2.0/YY) 
 #    r = f*mpmath.fp.erfc(arg)
-    r = f*mpmath.fp.gammainc(0.75,gamma_arg)
+    r = f*mpmath.mp.gammainc(0.75,gamma_arg)
     return r
 
 # cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):

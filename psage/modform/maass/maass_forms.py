@@ -1505,7 +1505,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         if self._test==1 and self._errest<>0:
             self._errest = self.test()
-
+        if kwds.get('M0',0) > 0:
+            self._M0 = int(kwds.get('M0'))
+        if kwds.get('Y',0)>0:
+            self._Y = float(kwds.get('Y'))
         #self._M0 = max(self._coeffs.values().values().keys())
         dprec=10.**(-self._nd)
         #if self._M0 == None or self._M0 <= 0:

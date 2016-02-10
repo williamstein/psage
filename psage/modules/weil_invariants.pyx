@@ -227,7 +227,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 z8 = L.zeta(8)
                 sl = z8**(-FQM.signature())
             else:
-	        sl = 1
+                sl = 1
             # print sl
             wl = L(FQM.order()).sqrt()
             table0 = [sl*(zl**p)/wl for p in range(l)]

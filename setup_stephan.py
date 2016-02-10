@@ -36,12 +36,14 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-#             ('devel/sage/sage/ext', 'devel/sage', 'devel/sage/sage/gsl',
-            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
+            ( 'src/sage', 'src/sage/gsl', 'src',
+              'local/lib/python2.7/site-packages/sage/ext/','src/sage/ext',
+              'src/build/cythonized/','src/build/cythonized/sage/ext',
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
-             ('include/csage', 'include', 'include/python',
+             ('include', 'include/python',
               'include/python2.7')]
+print "INCLUDES=",INCLUDES
 
 if '-ba' in sys.argv:
     print "Rebuilding all Cython extensions."
@@ -66,7 +68,6 @@ def Extension(*args, **kwds):
         kwds['extra_compile_args'].append('-w')
 
     E = build_system.Extension(*args, **kwds)
-    E.libraries = ['csage'] + E.libraries
     return E
 
 

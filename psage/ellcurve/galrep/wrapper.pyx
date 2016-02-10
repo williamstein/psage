@@ -31,7 +31,7 @@ AUTHOR:
 
 include "stdsage.pxi"
 include "cdefs.pxi"
-
+include 'interrupt.pxi'
 from sage.rings.integer cimport Integer
 
 cdef extern from "galrep.h":

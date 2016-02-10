@@ -36,10 +36,12 @@ SAGE_ROOT = os.environ['SAGE_ROOT']
 SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-            ('src/sage/ext', 'src/sage', 'src/sage/gsl', 'src'
+            ( 'src/sage', 'src/sage/gsl', 'src',
+              'local/lib/python2.7/site-packages/sage/ext/','src/sage/ext',
+              'src/build/cythonized/','src/build/cythonized/sage/ext',
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
-             ('include/csage', 'include', 'include/python',
+             ('include', 'include/python',
               'include/python2.7')]
 print "INCLUDES=",INCLUDES
 
@@ -66,12 +68,15 @@ def Extension(*args, **kwds):
         kwds['extra_compile_args'].append('-w')
 
     E = build_system.Extension(*args, **kwds)
-    E.libraries = ['csage'] + E.libraries
     return E
 
 
 numpy_include_dirs = [os.path.join(SAGE_LOCAL,
                                    'lib/python/site-packages/numpy/core/include')]
+numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
+                                   'lib/python2.7/site-packages/sage/ext/interrupt')]
+numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
+                                   'lib/python2.7/site-packages/sage/libs/ntl')]
 
 ext_modules = [
 # Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
@@ -114,12 +119,12 @@ ext_modules = [
 
     Extension('psage.modform.maass.maass_forms_alg',
               ['psage/modform/maass/maass_forms_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
+              libraries = ['m','gmp','mpfr','mpc','ntl'],
               include_dirs = numpy_include_dirs),
 
     Extension('psage.modform.maass.lpkbessel',
               ['psage/modform/maass/lpkbessel.pyx'],
-              libraries = ['m', 'gmp','mpfr','mpc'],
+              libraries = ['m', 'gmp','mpfr','mpc','ntl'],
               include_dirs = numpy_include_dirs),
 
     Extension("psage.modform.rational.modular_symbol_map",
@@ -325,7 +330,6 @@ my_extensions = [
 
     Extension("psage.groups.dirichlet_conrey",
               ['psage/groups/dirichlet_conrey.pyx'],
-              libraries=['csage'],
               extra_compile_args = ['-w','-O2'])
 ]
 

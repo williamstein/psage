@@ -40,7 +40,7 @@ from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
 from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z,SL2Z_elt
 from psage.modform.arithgroup.mysubgroup import MySubgroup
 from psage.modules.weil_module import WeilModule
-
+from psage.groups.dirichlet_conrey import DirichletGroup_conrey,DirichletCharacter_conrey
 class MultiplierSystem(SageObject):
     r"""
     Base class for multiplier systems.
@@ -49,12 +49,13 @@ class MultiplierSystem(SageObject):
     s.t. there exists a merom. function of weight k f:H->C^dim
     with f|A=v(A)f
     """
-    def __init__(self,group,dchar=(0,0),dual=False,is_trivial=False,dimension=1,**kwargs):
+    def __init__(self,group,dchar=(1,1),dual=False,is_trivial=False,dimension=1,**kwargs):
         r"""
         if dual is set to true we use the complex conjugate of the representation (we assume the representation is unitary)
 
 
-        The pair dchar = (conductor,char_nr) gives the character.
+        
+        The pair dchar = (conductor,number) gives the character in conrey numbering
         If char_nr = -1  = > kronecker_character
         If char_nr = -2  = > kronecker_character_upside_down
         """
@@ -72,17 +73,22 @@ class MultiplierSystem(SageObject):
         self._character = None
         self._level = group.generalised_level()
         if kwargs.has_key('character'):
-            if str(type(kwargs['character'])).find('DirichletCharacter')>=0:
+            if str(type(kwargs['character'])).find('Dirichlet')>=0:
                 self._character = kwargs['character']
                 self._conductor=self._character.conductor()
-                self._char_nr=list((self._character).parent()).index(self._character)
+                try:
+                    self._char_nr=self._character.number()
+                except:
+                    for x in DirichletGroup_conrey(self._conductor):
+                        if x.sage_character() ==  self._character:
+                            self._char_nr=x.number()
         elif group.is_congruence():
             if conductor<=0:
-                    self._conductor=group.level(); self._char_nr=0
+                    self._conductor=group.level(); self._char_nr=1
             if char_nr>=0:
                 self._char_nr=char_nr
             
-            if self._char_nr==0:
+            if self._char_nr==0 or self._char_nr==1:
                 self._character = trivial_character(self._conductor)
             elif self._char_nr==-1:                
                 if self._conductor % 4 == 3:
@@ -93,10 +99,7 @@ class MultiplierSystem(SageObject):
             elif self._char_nr<=-2:
                 self._character = kronecker_character_upside_down(self._conductor)    
             else:
-                D = list(DirichletGroup(self._conductor))
-                if self._char_nr <0 or self._char_nr>len(D):
-                    self._char_nr=0
-                self._character = D[self._char_nr]
+                self._character = DirichletCharacter_conrey(DirichletGroup_conrey(self._conductor),self._char_nr).sage_character()
         else:
             self._conductor = 1
             self._character = trivial_character(1)

@@ -262,9 +262,12 @@ class PeriodPolynomial(SageObject):
 
         ALGORITHM:
 
-        Uses (f,f) = < rho_{f}^{+} | T - T^-1 , rho_f^{-}>
-
-        
+        Uses
+        (f,f) = < rho_{f}^{+} | T - T^-1 , rho_f^{-}>
+        for k even and 
+        (f,f) = < rho_{f}^{+} | T - T^-1 , rho_f^{+}>
+        for k odd.
+        See e.g. Thm 3.3. in Pasol - Popa "Modular forms and period polynomials"
         """
         if self._peterson_norm<>0:
             return self._peterson_norm
@@ -273,19 +276,26 @@ class PeriodPolynomial(SageObject):
         norm = 0
         for n in range(self._dim):
             if type==1:
-                p1 = self.slash_action(n,T,sym=1)
-                p2 = self.slash_action(n,Ti,sym=1)
+                p1 = self.slash_action(n,T,sym='plus')
+                p2 = self.slash_action(n,Ti,sym='plus')
             else:
-                p1 = self.slash_action(n,T,sym=-1)
-                p2 = self.slash_action(n,Ti,sym=-1)
+                p1 = self.slash_action(n,T,sym='minus')
+                p2 = self.slash_action(n,Ti,sym='minus')
             pL = p1 - p2
             #print "Pl=",pL
-            if type==1:
-                pR = self.polynomial_minus(n)
+            if self.function().weight() % 2 == 1:
+                if type==1:
+                    pR = self.polynomial_plus(n)
+                else:
+                    pR = self.polynomial_minus(n)
             else:
-                pR = self.polynomial_plus(n)
+                if type==1:
+                    pR = self.polynomial_minus(n)
+                else:
+                    pR = self.polynomial_plus(n)
             #print "PR=",pR
             t = self.pair_two_pols(pL,pR)
+           
             #print "t=",t
             norm+=t
         CF=ComplexField(self._prec)
@@ -293,6 +303,9 @@ class PeriodPolynomial(SageObject):
         self._peterson_norm = -norm/c2
         return self._peterson_norm
 
+
+
+    
     def omega_plus_minus(self):
         r"""
         Compute two  periods $\omega_+$ and $\omega_{-}$
@@ -315,8 +328,8 @@ class PeriodPolynomial(SageObject):
     
     def pair_two_pols(self,p1,p2):
         res = 0
-        cp1 = p1.coeffs()
-        cp2 = p2.coeffs()
+        cp1 = p1.coefficients(sparse=False)
+        cp2 = p2.coefficients(sparse=False)
         for n in range(self._w+1):
             if n < len(cp1):
                 c1 = cp1[n]
@@ -418,23 +431,23 @@ class PeriodPolynomial(SageObject):
             raise ValueError,"Call with SL2Z element or [-1,0,1,0]. Got:{0}".format(E)
         return m
         
-    def slash_action(self,n,gamma,sym=0):
+    def slash_action(self,n,gamma,sym='none'):
         r"""
-        Act of P(f|A_n) with an element of SL2Z
+        Act of P^{+/-}(f|A_n) with an element of SL2Z
         """        
         # First shift the coset
         m = self._get_shifted_coset_m(n,gamma)
         #print "m=",m
-        if sym==1:
+        if sym=='plus':
             P0 = self.polynomial_plus(m)
-        elif sym==-1:
+        elif sym=='minus':
             P0 = self.polynomial_minus(m)
         else:
             P0 = self.polynomial(m)
         if P0==None:
             return
         X = P0.parent().gens()[0]
-        coeffs = P0.coeffs()
+        coeffs = P0.coefficients(sparse=False)
         p = P0.parent().zero()
         if hasattr(gamma,"matrix"):
             a,b,c,d=gamma
@@ -739,8 +752,8 @@ class PeriodPolynomial(SageObject):
             print "pU=",pU
         for p in pS.values():
             if hasattr(p,"coeffs"):
-                if p.coeffs()<>[]:
-                    tmp = max(map(abs,p.coeffs()))
+                if p.coefficients(sparse=False)<>[]:
+                    tmp = max(map(abs,p.coefficients(sparse=False)))
                 else:
                     tmp = 0
             else:
@@ -748,9 +761,9 @@ class PeriodPolynomial(SageObject):
             if tmp>maxS:
                 maxS = tmp
         for p in pU.values():
-            if hasattr(p,"coeffs"):
-                if p.coeffs()<>[]:
-                    tmp = max(map(abs,p.coeffs()))
+            if hasattr(p,"coefficients"):
+                if p.coefficients(sparse=False)<>[]:
+                    tmp = max(map(abs,p.coefficients(sparse=False)))
                 else:
                     tmp = 0
             else:
@@ -784,8 +797,8 @@ class PeriodPolynomial(SageObject):
             maxv=0
             for p in pp.values():
                 if hasattr(p,"coeffs"):
-                    if p.coeffs()<>[]:
-                        tmp = max(map(abs,p.coeffs()))
+                    if p.coefficients(sparse=False)<>[]:
+                        tmp = max(map(abs,p.coefficients(sparse=False)))
                     else:
                         tmp = 0
                 else:

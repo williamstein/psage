@@ -14,13 +14,7 @@ The main idea is to use QR-reduction computed by Givens rotations for complex ma
 ###
 ###  efficient subroutines for complex dense linear algebra
 ### 
-
-
-#mpfr_set_default_prec(103)
-
-#include "sage/ext/gmp.pxi"
-include "sage/ext/random.pxi"
-#include "sage/rings/mpc.pxi"
+include 'sage/ext/stdsage.pxi'
 from psage.rings.mpfr_nogil cimport *
 from psage.rings.mpc_extras cimport *
 from sage.rings.complex_mpc cimport MPComplexNumber
@@ -28,7 +22,6 @@ from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes
-
 
 import cython
 from cython.parallel import parallel, prange

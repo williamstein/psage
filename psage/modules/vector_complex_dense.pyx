@@ -43,6 +43,8 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
+include "stdsage.pxi"
+include "interrupt.pxi"
 from psage.rings.mp_cimports cimport *
 
 from sage.all import FreeModule #,FreeModuleElement,ModuleElement

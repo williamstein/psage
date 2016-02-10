@@ -21,6 +21,7 @@ Parallel routines for computing Maass forms.
 """
 include "stdsage.pxi"  
 include "cdefs.pxi"
+include 'interrupt.pxi'
 
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil

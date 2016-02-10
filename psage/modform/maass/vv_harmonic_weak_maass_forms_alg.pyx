@@ -14,11 +14,9 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-#include "interrupt.pxi"  # ctrl-c interrupt block support
-#include "stdsage.pxi"  # ctrl-c interrupt block support
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
+include "interrupt.pxi"  
+include "stdsage.pxi"  
+include "cdefs.pxi"
 #include "sage/ext/gmp.pxi"
 #include "sage/rings/mpc.pxi"
 from psage.rings.mpfr_nogil cimport *

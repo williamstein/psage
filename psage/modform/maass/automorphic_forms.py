@@ -173,7 +173,7 @@ class AutomorphicFormSpace(Parent):
     Subclasses shoul
     d specialize to various types. 
     """
-    def __init__(self,G,weight=0,multiplier="",character=0,holomorphic=False,weak=True,cuspidal=False,unitary_action=0,dprec=15,prec=53,verbose=0,**kwds):
+    def __init__(self,G,weight=0,multiplier="",character=0,holomorphic=False,weak=True,almost_holomorphic=False,cuspidal=False,unitary_action=0,dprec=15,prec=53,verbose=0,**kwds):
         r""" Initialize the space of automorphic forms.
         """
         self._from_group = None # try to keep the group used to construct the MyGroup instance
@@ -241,6 +241,7 @@ class AutomorphicFormSpace(Parent):
             self._mp_ctx=mpmath.fp
         #self._weight=mpmath.mpf(weight)
         self._holomorphic=holomorphic
+        self._almost_holomorphic=almost_holomorphic
         self._weak=weak
         self._verbose=verbose
         self._cuspidal=cuspidal
@@ -328,7 +329,7 @@ class AutomorphicFormSpace(Parent):
             G = self._from_group
         else:
             G = self._group
-        return(AutomorphicFormSpace,(G,self._weight,self.multiplier(),self._holomorphic,self._weak,self._cuspidal,self._dprec,self._verbose))
+        return(AutomorphicFormSpace,(G,self._weight,self.multiplier(),self._holomorphic,self._almost_holomorphic,self._weak,self._cuspidal,self._dprec,self._verbose))
 
     def __eq__(self,other):
         r"""
@@ -408,6 +409,12 @@ class AutomorphicFormSpace(Parent):
         Return True if self is holomorphic, otherwise False. 
         """
         return self._holomorphic
+
+    def is_almost_holomorphic(self):
+        r"""
+        Return True if self is almost holomorphic, otherwise False. 
+        """
+        return self._almost_holomorphic            
 
     def is_cuspidal(self):
         r"""
@@ -951,7 +958,7 @@ class AutomorphicFormSpace(Parent):
     ##     D=solve_system_for_harmonic_weak_Maass_waveforms(V,N,deb=True)
     ##     F._coeffs=D
     ##     return F
-    def _get_element(self,principal_part,digs=10,dbase_prec=None,SetC=None,SetY=None,SetM=None,SetQ=None,do_mpmath=0,get_mat=False,use_sym=1,get_c=False,gr=0,version=0,threads=1):
+    def _get_element(self,principal_part,digs=10,dbase_prec=None,SetC=None,SetY=None,SetM=None,SetQ=None,do_mpmath=0,get_mat=False,use_sym=1,get_c=False,gr=0,version=0,threads=1,**kwds):
         r"""
         INPUT:
         
@@ -3207,19 +3214,32 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
     NOTE: can not specify 
     
     """
+    print "kwds=",kwds
     M = extract_hwmf_space(G,weight,**kwds)
-    print "M=",M
-    #M = HarmonicWeakMaassFormSpace(G,weight=weight,weak=True,verbose=verbose)
+    print "kwds=",kwds
     pp = extract_princial_part(M,principal_part)
+    M._verbose = verbose
+    if pp.get('-',{})<>{}:
+        M._almost_holomorphic = True
+    #M = HarmonicWeakMaassFormSpace(G,weight=weight,weak=True,verbose=verbose)
+    
     F = M.get_element(principal_part=pp,**kwds)
     return F
 
 def extract_hwmf_space(X,weight=0,**kwds):
     multiplier = extract_multiplier(X,weight,**kwds)
-    if vv==1:
-        return VVHarmonicWeakMaassFormSpace(multiplier,weight,**kwds)
+    if kwds.get('vv',0)==1:
+        return VVHarmonicWeakMaassFormSpace(G=multiplier.group(),weight=weight,multiplier=multiplier,**kwds)
     else:
-        return HarmonicWeakMaassFormSpace(multiplier,weight,**kwds)
+        character=kwds.pop('character',0)
+        holomorphic=kwds.pop('holomorphic',False)
+        weak=kwds.pop('weak',True)
+        almost_holomorphic=kwds.pop('almost_holomorphic',False)
+        cuspidal=kwds.pop('cuspidal',False)
+        unitary_action=kwds.pop('unitary_action',0)
+        dprec=kwds.pop('dprec',15)
+        prec=kwds.pop('prec',53)
+        return HarmonicWeakMaassFormSpace(G=multiplier.group(),weight=weight,multiplier=multiplier,character=character,holomorphic=holomorphic,weak=weak,almost_holomorphic=almost_holomorphic,cuspidal=cuspidal,unitary_action=unitary_action,dprec=dprec,prec=prec,**kwds)
 
 def extract_multiplier(X,weight=0,**kwds):
     vv = 0    
@@ -3232,18 +3252,18 @@ def extract_multiplier(X,weight=0,**kwds):
         ## Try to construct an appropriate multiplier
         try:
             if isinstance(X,WeilModule):
-                multiplier = WeilRepMultiplier(X,weight)
+                multiplier = WeilRepMultiplier(X,weight=weight)
             elif vv == 0:
                 if isinstance(X,(int,Integer)):
                     G = MySubgroup(Gamma0(X))                
                 elif not isinstance(X,MySubgroup_class):
                     G = MySubgroup(X)
                 if is_int(weight):
-                    multiplier = TrivialMultiplier(X,weight)
+                    multiplier = TrivialMultiplier(X,weight=weight)
                 elif is_int(2*weight):
                     multiplier = ThetaMultiplier(G,weight=weight)
             else:
-                multiplier = WeilRepMultiplier(X,weight) ## Weil rep. of Z, x-> X*x^2
+                multiplier = WeilRepMultiplier(X,weight=weight) ## Weil rep. of Z, x-> X*x^2
         except ArithmeticError:
             raise ValueError,"Could not construct space from {0}".format(X)
     return multiplier

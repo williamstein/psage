@@ -3212,11 +3212,27 @@ def HarmonicWeakMaassForm(G,weight=0,principal_part="q^-1",verbose=0,**kwds):
     NOTE: If a vector of principal series is given the entries correspond to the cusps in G (with the same order)
 
     NOTE: can not specify 
-    
+
+    EXAMPLE:
+    # To compute E2 -- the non-holomorphic weight 2 Eisenstein series for SL(2,Z)
+    sage: pp={'-':{(0,0):RR(-3)/RR.pi()},'+':{(0,0):RR(1)}}
+    sage: F=psage.modform.maass.automorphic_forms.HarmonicWeakMaassForm(Gamma0(1),weight=2,principal_part=pp,almost_holomorphic=True,SetM=10,SetY=0.4)
+    sage: F.coeffs()[0][0]
+{0: 1.00000000000000,
+ 1: -24.0000000000000,
+ 2: -72.0000000000000,
+ 3: -95.9999999999992,
+ 4: -168.000000000001,
+ 5: -143.999999999936,
+ 6: -288.000000000510,
+ 7: -191.999999986893,
+ 8: -360.000000118637,
+ 9: -311.999997918382,
+ 10: -431.999999938662}
     """
-    print "kwds=",kwds
+    #print "kwds=",kwds
     M = extract_hwmf_space(G,weight,**kwds)
-    print "kwds=",kwds
+    #print "kwds=",kwds
     pp = extract_princial_part(M,principal_part)
     M._verbose = verbose
     if pp.get('-',{})<>{}:

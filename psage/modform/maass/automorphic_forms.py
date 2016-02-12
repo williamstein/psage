@@ -329,7 +329,7 @@ class AutomorphicFormSpace(Parent):
             G = self._from_group
         else:
             G = self._group
-        return(AutomorphicFormSpace,(G,self._weight,self.multiplier(),self._holomorphic,self._almost_holomorphic,self._weak,self._cuspidal,self._dprec,self._verbose))
+        return(AutomorphicFormSpace,(G,self._weight,self.multiplier(),self._holomorphic,self._weak,self._almost_holomorphic,self._cuspidal,self._dprec,self._verbose))
 
     def __eq__(self,other):
         r"""

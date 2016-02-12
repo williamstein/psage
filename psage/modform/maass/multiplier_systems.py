@@ -249,7 +249,7 @@ class TrivialMultiplier(MultiplierSystem):
     r"""
     The trivial multiplier.
     """
-    def __init__(self,group,dchar=(0,0),dual=False,is_trivial=True,dimension=1,**kwargs):
+    def __init__(self,group,weight=0,dchar=(0,0),dual=False,is_trivial=True,dimension=1,**kwargs):
         #print "kwargs0=",kwargs
         MultiplierSystem.__init__(self,group,dchar=dchar,dual=dual,is_trivial=True,dimension=dimension,**kwargs)
 

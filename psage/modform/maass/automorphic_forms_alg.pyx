@@ -704,7 +704,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     #print "kint=",kint
     if Q<M:
         Q=M+20
-    if H._holomorphic:
+    if H._holomorphic or H._almost_holomorphic:
         Ms=0; Mf=M; Ml=Mf-Ms+1
     else:
         Ms=-M; Mf=M; Ml=Mf-Ms+1
@@ -1756,7 +1756,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     nc=int(H._group.ncusps())
     if Q<M:
         Q=M+20
-    if H._holomorphic:
+    if H._holomorphic or H._almost_holomorphic:
         Ms=0; Mf=M; Ml=Mf-Ms+1
     else:
         Ms=-M; Mf=M; Ml=Mf-Ms+1

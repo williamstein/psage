@@ -2912,7 +2912,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         d = g.get_minmax_data()
         if model=='H':
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
-            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
+            if options.get('ticks'):
+                g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
+            else:
+                g.SHOW_OPTIONS['ticks']=[[],[]]
         else:
             if not ret_domain and draw_circle:
                 g+=circle((0,0),1,edgecolor=circle_color)

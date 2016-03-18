@@ -2052,6 +2052,38 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 #        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
 
 
+    def plot_pullback(self,xlim=(-0.5,0.5),ylim=(0,2),Q=0,**kwds):
+        r"""
+        Mke a plot of the horocycle and pullback points used to compute self
+        or if a Q is specified of that many points.
+
+        """
+        from psage.modform.arithgroup.plot_dom import get_contour
+        import matplotlib.pyplot as plt
+        from sage.all import list_plot
+        version = kwds.pop('version',0)
+        model = kwds.pop('model','H')
+        cmap=kwds.pop('cmap','jet')
+        ccolor=kwds.pop('contour_color','black')
+        pcolor=kwds.pop('pcolor','black')        
+        if Q<=0 :
+            Q = self.M0()+10
+        xsize = (xlim[1]-xlim[0]); ysize = (ylim[1]-ylim[0])
+        print "size=",xsize,ysize
+        Y = self.Y()
+        pb = pullback_pts_dp(self.space(),1-Q,Q,Y,0.0,holo=False)
+        twopi = RR(2)*RR.pi()
+        Ql = len(pb['xpb'][0][0])
+        zm = [(pb['xm'][i]/twopi,Y) for i in range(Ql)]
+        #im = ax.scatter(xm,ym)
+        zpb = [(pb['xpb'][0][0][i]/twopi,pb['ypb'][0][0][i]) for i in range(Ql)]
+        g = self.group().draw_fundamental_domain(method='0',show_tesselation=False,ticks=kwds.get('ticks',False))
+        p1 = list_plot(zm,color=pcolor)
+        p2 = list_plot(zpb,color=pcolor)
+        gg = g+p1+p2
+        gg.set_axes_range(xlim[0],xlim[1],ylim[0],ylim[1])
+        return gg
+            
     def plot(self,xlim=None,ylim=(0,2),num_pts=100,**kwds):
         r"""
         Make a plot of self.

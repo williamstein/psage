@@ -20,7 +20,7 @@ from sage.structure.element import Element
 from sage.structure.parent import Parent
 from sage.structure.sage_object import SageObject,cPickle
 from sage.functions.all import ln,sqrt,floor
-from sage.rings.arith import divisors,gcd,inverse_mod
+from sage.arith.all import divisors,gcd,inverse_mod
 from sage.modular.dirichlet import DirichletGroup
 from sage.rings.all import RR
 from sage.modular.arithgroup.all import Gamma0

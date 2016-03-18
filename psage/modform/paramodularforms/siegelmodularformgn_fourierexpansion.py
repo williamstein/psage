@@ -35,7 +35,7 @@ from sage.matrix.matrix import is_Matrix
 from sage.misc.flatten import flatten
 from sage.misc.functional import isqrt
 from sage.misc.latex import latex
-from sage.rings.arith import gcd
+from sage.arith.all import gcd
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ

@@ -1,4 +1,4 @@
-#################################################################################
+################################################################################
 #
 # (c) Copyright 2010 William Stein
 #
@@ -494,7 +494,7 @@ class FunctionField_polymod(FunctionField):
             f = f / c
 
         # find lcm of denominators
-        from sage.rings.arith import lcm
+        from sage.arith.all import lcm
         # would be good to replace this by minimal...
         d = lcm([b.denominator() for b in f.list() if b])
         if d != 1:

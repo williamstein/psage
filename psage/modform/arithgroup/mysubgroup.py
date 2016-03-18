@@ -56,7 +56,7 @@ Gamma^3
 
 #from sage.all_cmdline import *   # import sage library
 
-from sage.rings.arith    import xgcd
+from sage.arith.all    import xgcd
 from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational,gcd
 from sage.rings.real_mpfr import RealNumber as RealNumber_class
 #from sage.combinat.permutation import (Permutations,PermutationOptions)
@@ -73,7 +73,7 @@ from sage.modular.arithgroup.arithgroup_perm import EvenArithmeticSubgroup_Permu
 from sage.modular.arithgroup.congroup_gamma0 import Gamma0_class
 from sage.rings.integer import is_Integer
 from sage.groups.all import SymmetricGroup
-from sage.rings.arith import lcm
+from sage.arith.all import lcm
 from copy import deepcopy
 from psage.modform.arithgroup.mysubgroups_alg import * 
 from psage.groups.permutation_alg import MyPermutation,are_transitive_permutations,num_fixed 
@@ -202,7 +202,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             Note:
               The usual permutation group has two parabolic permutations L,R
               L=permT, R=permP
-
+              ## since the assignment between matrices and permutations is an
+              ## anti-homomorphism we have permT = permR*permS
           EXAMPLES::
 
           
@@ -444,7 +445,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self.permS=MyPermutation([x+1 for x in self._S2])
             self.permR=MyPermutation([x+1 for x in self._S3])
             ## Relabel the rest as well
-            self.permT = self.permS*self.permR
+            self.permT = self.permR*self.permS
             self.permP = self.permT*self.permS*self.permT
         else:
             if label_on=='S':
@@ -469,7 +470,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 print "p=",p
             self.permS = self.permS.conjugate(p)
             self.permR = self.permR.conjugate(p)
-            self.permT = self.permS*self.permR
+            self.permT = self.permR*self.permS
             self.permP = self.permT*self.permS*self.permT            
         if self._verbose>0:
             print "Snew=",self.permS
@@ -523,7 +524,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         ## The generators of EvenArithmeticSubgroup_Permutation is corresponding to
         ## S2 = S, S3 = ZST^-1, L=T, R=Z*ST^-1*S where Z = S^2 = [-1,0,0,-1]
         ## Recall that I assume my input is o3 = S*T
-        self.permT = self.permS*self.permR
+        self.permT = self.permR*self.permS
         self.permP = self.permT*self.permS*self.permT
         s2 = [i-1 for i in self.permS.list()]
         s3 = [i-1 for i in self.permR.inverse().conjugate(self.permS).list()]

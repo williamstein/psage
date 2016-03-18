@@ -28,7 +28,7 @@ from psage.modform.paramodularforms.paramodularformd2_fourierexpansion_cython im
 from sage.misc.cachefunc import cached_method
 from sage.misc.latex import latex
 from sage.modular.modsym.p1list import P1List
-from sage.rings.arith import gcd
+from sage.arith.all import gcd
 from sage.rings.integer import Integer
 from sage.structure.sage_object import SageObject
 from psage.modform.paramodularforms import siegelmodularformg2_misc_cython

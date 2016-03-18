@@ -37,8 +37,8 @@ from psage.modform.paramodularforms.siegelmodularformg2_types import SiegelModul
 from sage.matrix.constructor import matrix
 from sage.misc.cachefunc import cached_function
 from sage.misc.cachefunc import cached_method
-from sage.rings.arith import bernoulli, sigma
-from sage.rings.arith import random_prime
+from sage.arith.all import bernoulli, sigma
+from sage.arith.all import random_prime
 from sage.rings.all import GF
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ

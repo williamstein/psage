@@ -28,7 +28,7 @@ AUTHORS:
 
 from sage.matrix.constructor import matrix
 from sage.misc.misc import prod
-from sage.rings.arith import random_prime
+from sage.arith.all import random_prime
 from sage.rings.integer_ring import ZZ
 from sage.rings.padics.factory import Qp
 from sage.rings.rational_field import QQ

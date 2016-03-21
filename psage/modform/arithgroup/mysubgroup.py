@@ -111,8 +111,13 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         return MySubgroup_class(data=A.__dict__,**kwds)
     if isinstance(A,ArithmeticSubgroup):
         ## If A is not a subgroup of PSL(2,Z) so we have projectivize with .to_even_subgroup
-        s2 = MyPermutation(A.as_permutation_group().to_even_subgroup().S2().domain())
-        s3 = MyPermutation(A.as_permutation_group().to_even_subgroup().S3().domain())
+        s = A.as_permutation_group().to_even_subgroup().S2()
+        s2 = MyPermutation(s.domain())
+        # We have to be more careful with the order 3 element since the permutation group
+        # in sage corresopnds to a homomorphism wnd not anti-homomorphism...
+        t = A.as_permutation_group().to_even_subgroup().permutation_action([1,1,0,1])
+        r = t*s
+        s3 = MyPermutation(r.domain())
         if A.is_congruence():
             level = A.level()
         if isinstance(A,Gamma0_class):

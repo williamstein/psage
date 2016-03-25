@@ -32,7 +32,7 @@ from sage.matrix.all import matrix
 from sage.rings.all import QQ, ZZ, Integer
 
 include 'stdsage.pxi'
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 def test_contfrac_q(a, b):
     """

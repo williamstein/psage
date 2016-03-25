@@ -20,7 +20,7 @@
 #################################################################################
 
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 def mult_parities(int bound, bint verbose=False):
     """

@@ -19,7 +19,7 @@
 #
 #################################################################################
 
-include 'interrupt.pxi'
+include 'cysignals/signals.pxi'
 
 from sage.finance.time_series cimport TimeSeries
 from sage.stats.intlist cimport IntList

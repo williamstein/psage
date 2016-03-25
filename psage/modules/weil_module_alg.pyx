@@ -29,7 +29,7 @@ AUTHOR:
 
 """
 
-#include "interrupt.pxi"
+#include "cysignals/signals.pxi"
 from sage.modules.vector_integer_dense import *
 from sage.misc.functional import is_even
 from sage.rings.arith import kronecker,odd_part,gcd,valuation,is_prime

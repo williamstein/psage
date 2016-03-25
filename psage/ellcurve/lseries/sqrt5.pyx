@@ -116,7 +116,7 @@ from psage.libs.smalljac.wrapper1 import elliptic_curve_ap
 import aplist
 
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 cdef long UNKNOWN = 2**31 - 1
 

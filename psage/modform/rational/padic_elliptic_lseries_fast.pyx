@@ -21,7 +21,7 @@
 
 
 include 'stdsage.pxi'
-include 'interrupt.pxi'
+include 'cysignals/signals.pxi'
 
 from sage.rings.all import ZZ, Zp, Qp, Integers, infinity, binomial, Mod, O
 

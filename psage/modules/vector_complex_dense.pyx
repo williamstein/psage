@@ -44,7 +44,7 @@ TESTS:
 ###############################################################################
 
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 from psage.rings.mp_cimports cimport *
 
 from sage.all import FreeModule #,FreeModuleElement,ModuleElement

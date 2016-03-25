@@ -45,7 +45,7 @@ AUTHOR:
 
 
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 cdef extern from "pari/pari.h":
     unsigned long Fl_sqrt(unsigned long, unsigned long)

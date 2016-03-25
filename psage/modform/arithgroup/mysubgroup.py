@@ -56,8 +56,8 @@ Gamma^3
 
 #from sage.all_cmdline import *   # import sage library
 
-from sage.arith.all    import xgcd
-from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational,gcd
+from sage.arith.all    import xgcd,gcd
+from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational
 from sage.rings.real_mpfr import RealNumber as RealNumber_class
 #from sage.combinat.permutation import (Permutations,PermutationOptions)
 from sage.modular.cusps import Cusp

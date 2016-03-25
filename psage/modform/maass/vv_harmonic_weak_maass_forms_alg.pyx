@@ -14,7 +14,7 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-include "interrupt.pxi"  
+include "cysignals/signals.pxi"  
 include "stdsage.pxi"  
 include "cdefs.pxi"
 #include "sage/ext/gmp.pxi"

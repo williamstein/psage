@@ -24,7 +24,7 @@ AUTHOR:
 """
 #from sage.rings.complex_mpc import MPComplexField
 #from psage.matrix import *
-include "sage/ext/interrupt.pxi"  # ctrl-c interrupt block support
+include "cysignals/signals.pxi"  # ctrl-c interrupt block support
 include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
 include "sage/ext/cdefs.pxi"
 #include "sage/ext/gmp.pxi"

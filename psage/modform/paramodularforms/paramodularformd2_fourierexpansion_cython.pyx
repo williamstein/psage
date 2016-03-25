@@ -26,7 +26,7 @@ AUTHORS:
 #
 #===============================================================================
 
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 include "stdsage.pxi"
 include "cdefs.pxi"
 

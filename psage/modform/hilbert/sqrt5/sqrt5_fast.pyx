@@ -28,7 +28,7 @@ All the code in this file is meant to be highly optimized.
 include 'stdsage.pxi'
 include 'cdefs.pxi'
 include 'python.pxi'
-include 'interrupt.pxi'
+include 'cysignals/signals.pxi'
 
 from sqrt5_fast cimport residue_element
 

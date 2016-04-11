@@ -61,6 +61,7 @@ class MultiplierSystem(SageObject):
         """
         #print "kwargs0=",kwargs
         self._group = group
+        self._weight = None
         self._dim = dimension
         self._ambient_rank=kwargs.get('ambient_rank',None)
         self._kwargs = kwargs
@@ -138,7 +139,7 @@ class MultiplierSystem(SageObject):
         m._is_dual = int(not self._is_dual)
         o = self._character.order()
         m._character = self._character**(o-1)
-        m._weight = QQ(2) - QQ(self._weight)
+        m._weight = QQ(2) - QQ(self.weight())
         return m
     
     def __repr__(self):
@@ -155,6 +156,26 @@ class MultiplierSystem(SageObject):
     def level(self):
         return self._level
     def weight(self):
+        r"""
+        Return (modulo 2) whish weight self is a multiplier system consistent with
+        """
+        if self._is_trivial:
+            self._weight = 0
+            return self._weight
+        if self._dim == 1:
+            if self._weight is None:
+                Z=SL2Z([-1,0,0,-1])
+                v = self._action(Z)
+                if v == 1:
+                    self._weight = QQ(0)
+                if v == -1:
+                    self._weight = QQ(1)
+                elif v == -I:
+                    self._weight  = QQ(1)/QQ(2)
+                elif v == I:
+                    self._weight = QQ(1)/QQ(2)
+                else:
+                    raise NotImplementedError
         return self._weight
     
     def __call__(self,A):
@@ -249,7 +270,7 @@ class TrivialMultiplier(MultiplierSystem):
     r"""
     The trivial multiplier.
     """
-    def __init__(self,group,weight=0,dchar=(0,0),dual=False,is_trivial=True,dimension=1,**kwargs):
+    def __init__(self,group,dchar=(0,0),dual=False,is_trivial=True,dimension=1,**kwargs):
         #print "kwargs0=",kwargs
         MultiplierSystem.__init__(self,group,dchar=dchar,dual=dual,is_trivial=True,dimension=dimension,**kwargs)
 
@@ -259,7 +280,10 @@ class TrivialMultiplier(MultiplierSystem):
         else:
             s="Trivial multiplier!"
         return s
-
+    def __getinitargs__(self):
+        #print "get initargs"
+        return (self._group,(self._conductor,self._char_nr),self._is_dual,self._is_trivial,self._dim)
+        
     
     def _action(self,A):
         if self._character<>None:

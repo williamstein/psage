@@ -2,7 +2,7 @@
 # A new implementation of Dirichlet characters based on the numbering scheme
 # devised by Brian Conrey.
 #
-include "interrupt.pxi"  # ctrl-c interrupt block support
+include "cysignals/signals.pxi"  # ctrl-c interrupt block support
 include "stdsage.pxi"  # ctrl-c interrupt block support
 include "cdefs.pxi"
 

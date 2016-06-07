@@ -27,7 +27,7 @@ AUTHOR:
 
 """
 
-include "sage/ext/interrupt.pxi" 
+include "cysignals/signals.pxi" 
 include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
 

@@ -11,15 +11,15 @@ import periods
 
 from arithgroup.all import MySubgroup,HeckeTriangleGroup,SL2Z_elt
     
-from maass.all import (AutomorphicFormSpace,
-                   MaassWaveForms,
-                   EisensteinSeries,
-                   HalfIntegralWeightForms,
-                   HarmonicWeakMaassFormSpace,
-                   HolomorphicModularForms,
-                   WeakModularForm,
-                   HarmonicWeakMaassForm,
-                   ThetaMultiplier,
-                   EtaQuotientMultiplier,
-                   WeilRepMultiplier,
-                   PoincareSeries)
+from psage.modform.maass.all import (AutomorphicFormSpace,
+                                     MaassWaveForms,
+                                     EisensteinSeries,
+                                     HalfIntegralWeightForms,
+                                     HarmonicWeakMaassForm,
+                                     HarmonicWeakMaassFormSpace,
+                                     HolomorphicModularForms,
+                                     #WeakModularForm,
+                                     ThetaMultiplier,
+                                     EtaQuotientMultiplier,
+                                     WeilRepMultiplier,
+                                     PoincareSeries)

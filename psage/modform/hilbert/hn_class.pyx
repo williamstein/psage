@@ -21,7 +21,7 @@ Cython class for for working with H^n, i.e. n copies of upper half-plane.
 """
 include 'sage/ext/stdsage.pxi'
 #include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
+include 'cysignals/signals.pxi'
 include "../../rings/double_prec_math.pxi"
 
 

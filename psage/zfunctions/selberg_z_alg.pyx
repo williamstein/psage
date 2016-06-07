@@ -1,7 +1,7 @@
 # cython: profile=True
 #clib mpc gmp
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 import sys
 import mpmath    

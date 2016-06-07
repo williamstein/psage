@@ -44,7 +44,7 @@ from sage.misc.functional import isqrt
 from sage.misc.latex import latex 
 from sage.modular.modform.constructor import ModularForms
 from sage.modular.modform.element import ModularFormElement
-from sage.rings.arith import bernoulli, sigma
+from sage.arith.all import bernoulli, sigma
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
 from sage.rings.power_series_ring import PowerSeriesRing

@@ -26,8 +26,8 @@ AUTHORS:
 #
 #===============================================================================
 
-include 'sage/ext/interrupt.pxi'
-#include "interrupt.pxi"
+include 'cysignals/signals.pxi'
+#include "cysignals/signals.pxi"
 #include "stdsage.pxi"
 include "cdefs.pxi"
 from stdsage cimport PY_NEW

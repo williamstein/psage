@@ -5,7 +5,7 @@ Standard cimports for working with multiprecision numbers.
 """
 include 'sage/ext/stdsage.pxi' 
 include "sage/ext/cdefs.pxi"
-include 'sage/ext/interrupt.pxi'
+include 'cysignals/signals.pxi'
 from sage.libs.mpfr cimport *
 
 from sage.rings.complex_mpc cimport * 

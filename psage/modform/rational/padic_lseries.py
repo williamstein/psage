@@ -40,7 +40,7 @@ from sage.rings.infinity import infinity
 from sage.rings.all import LaurentSeriesRing, PowerSeriesRing, PolynomialRing, Integers
 
 from sage.rings.integer import Integer
-from sage.rings.arith import valuation, binomial, kronecker_symbol, gcd, prime_divisors, valuation
+from sage.arith.all import valuation, binomial, kronecker_symbol, gcd, prime_divisors, valuation
 
 from sage.structure.sage_object import SageObject
 

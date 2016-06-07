@@ -40,7 +40,7 @@ from sage.libs.ntl.ntl_lzz_pContext import ntl_zz_pContext
 from sage.rings.all import PolynomialRing, GF, ZZ
 from sage.rings.ring import is_Field
 from sage.rings.integer import is_Integer
-from sage.rings.arith import is_prime
+from sage.arith.all import is_prime
 from sage.rings.integer cimport Integer
 #from sage.rings.fraction_field_element import FractionFieldElement, is_FractionFieldElement
 from sage.rings.polynomial.polynomial_element import is_Polynomial

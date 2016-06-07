@@ -43,7 +43,7 @@ from sage.modules.free_module import FreeModule, FreeModule_generic, \
 from sage.modules.free_module import is_FreeModule
 from sage.modules.free_module_element import FreeModuleElement_generic_dense
 from sage.modules.free_module_element import vector
-from sage.rings.arith import random_prime
+from sage.arith.all import random_prime
 from sage.rings.integer_ring import ZZ
 from sage.rings.number_field.order import Order as NumberFieldOrder
 from sage.rings.padics.factory import Qp

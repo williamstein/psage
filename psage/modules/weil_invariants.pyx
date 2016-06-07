@@ -52,7 +52,7 @@ r"""
 #from psage.modules.finite_quadratic_module import *
 
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix

@@ -87,7 +87,7 @@ TODO: Lots and lots of examples.
 """
 
 from sage.functions.other                 import floor
-from sage.rings.arith                     import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
+from sage.arith.all                       import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
 from sage.groups.group                    import AbelianGroup 
 from sage.modules.free_module_element     import vector

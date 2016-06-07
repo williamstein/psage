@@ -33,7 +33,7 @@ from sage.functions.other import floor
 from sage.functions.other import sqrt
 from sage.misc.functional import isqrt
 from sage.misc.latex import latex
-from sage.rings.arith import gcd
+from sage.arith.all import gcd
 from sage.rings.infinity import infinity
 from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing

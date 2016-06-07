@@ -26,13 +26,13 @@ AUTHORS:
 #
 #===============================================================================
 
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 include "stdsage.pxi"
 include "cdefs.pxi"
 
 #include 'sage/ext/gmp.pxi'
 
-from sage.rings.arith import gcd
+from sage.arith.all import gcd
 from sage.rings.integer cimport Integer
 
 ## [a,b,c] a quadratic form; (u,x) an element of P1(ZZ/pZZ)

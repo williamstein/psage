@@ -22,7 +22,7 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
-include '../ext/interrupt.pxi'
+include 'cysignals/signals.pxi'
 include '../ext/stdsage.pxi'
 
 

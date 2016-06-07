@@ -37,7 +37,9 @@ SAGE_LOCAL = os.environ['SAGE_LOCAL']
 
 INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
             ( 'src/sage', 'src/sage/gsl', 'src',
-              'local/lib/python2.7/site-packages/sage/ext/','src/sage/ext',
+              'local/lib/python2.7/site-packages/sage/ext/',
+              'local/lib/python2.7/site-packages/cysignals/',
+              'src/sage/ext',
               'src/build/cythonized/','src/build/cythonized/sage/ext',
               )] \
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in

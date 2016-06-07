@@ -37,8 +37,8 @@ from sage.misc.functional import isqrt
 from sage.misc.latex import latex
 from sage.modular.modsym.p1list import P1List
 from sage.rings.all import Mod
-from sage.rings.arith import gcd, kronecker_symbol
-from sage.rings.arith import legendre_symbol
+from sage.arith.all import gcd, kronecker_symbol
+from sage.arith.all import legendre_symbol
 from sage.rings.infinity import infinity
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ

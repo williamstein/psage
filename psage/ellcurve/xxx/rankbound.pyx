@@ -1,4 +1,4 @@
-include 'interrupt.pxi'
+include 'cysignals/signals.pxi'
 
 cdef extern from "rankbound.h":
     double rankbound(char * curve_string,

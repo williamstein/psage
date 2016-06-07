@@ -33,7 +33,7 @@ from sage.misc.misc import prod
 from sage.modules.all import vector
 from sage.modules.free_module import FreeModule
 from sage.quadratic_forms.quadratic_form import QuadraticForm
-from sage.rings.arith import gcd, fundamental_discriminant
+from sage.arith.all import gcd, fundamental_discriminant
 from sage.rings.all import ZZ, Integer, GF
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.structure.sage_object import SageObject

@@ -8,7 +8,7 @@ Dense matrices over the complex field.
 EXAMPLES
 """
 include "stdsage.pxi"
-include "interrupt.pxi"
+include "cysignals/signals.pxi"
 
 from psage.rings.mp_cimports cimport *
 
@@ -36,7 +36,7 @@ from sage.functions.other import ceil
 from sage.rings.ring import is_Ring
 from sage.rings.rational_field import QQ
 from sage.rings.complex_double import CDF
-from sage.rings.arith import gcd,valuation
+from sage.arith.all import gcd,valuation
 from sage.matrix.matrix import is_Matrix
 from sage.structure.element import is_Vector
 import sage.ext.multi_modular

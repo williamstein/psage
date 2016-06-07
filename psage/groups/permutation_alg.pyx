@@ -33,12 +33,13 @@ AUTHOR:
 
 
 #include 'sage/ext/stdsage.pxi'
-#include 'sage/ext/interrupt.pxi'
+#include 'cysignals/signals.pxi'
 #cdef extern from 'sage/ext/interrupt/pxi.h':
 #    int import_sage__ext__interrupt__interrupt() except -1
 #import_sage__ext__interrupt__interrupt()
-include 'sage/ext/interrupt.pxi'
-from sage.ext.interrupt cimport *
+include "cysignals/signals.pxi"
+#include 'cysignals/signals.pxi'
+#from sage.ext.interrupt cimport *
 from psage.rings.mp_cimports cimport *    
 from sage.ext.memory cimport check_allocarray,sage_free
 

@@ -200,6 +200,8 @@ class VectorValuedModularForms(SageObject):
         else:
             dim = self.dimension(k, ignore, debug=debug) - self._alpha4
         if k == Integer(2) and not no_inv:
+            if test_positive and dim > 0:
+                return dim
             if self._M == None:
                 self._M = self._g.finite_quadratic_module()
             if self._M.level() == 1:

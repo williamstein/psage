@@ -98,7 +98,7 @@ from sage.structure.sage_object           import SageObject
 from sage.structure.element               import AdditiveGroupElement
 from sage.structure.sequence              import Sequence_generic
 from sage.structure.all                   import Sequence
-from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,CartesianProduct
+from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,cartesian_product
 from sage.graphs.graph import DiGraph
 from sage.rings.number_field.number_field_element import NumberFieldElement
 
@@ -2014,14 +2014,14 @@ def _FiniteQuadraticModule_from_string( S, **args ):
                 else:
                     raise ValueError
             if abs(k) > 1:
-                CP= eval( "CartesianProduct(" + "[1,3,5,7]," *(abs(k)-1) + ")" )
+                CP= eval( "cartesian_product(" + "[1,3,5,7]," *(abs(k)-1) + ")" )
                 # TODO: find better algorithm
                 e = 1 if k > 0 else -1
                 for x in CP: 
                     s = sum(x)%8
                     if kronecker( prod(x)*(t-s),2) == e:
-                        x.append(t-s)
-                        c = x
+                        c = list(x)
+                        c.append(t-s)
                         break
                 if not c:
                     raise ValueError

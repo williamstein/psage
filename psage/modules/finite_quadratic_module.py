@@ -99,6 +99,7 @@ from sage.structure.element               import AdditiveGroupElement
 from sage.structure.sequence              import Sequence_generic
 from sage.structure.all                   import Sequence
 from sage.all                             import copy,cached_method,is_even,is_odd,Sequence,prod,uniq,valuation,randrange,is_fundamental_discriminant,xmrange,QuadraticField,xgcd,cartesian_product
+from sage.structure.category_object import normalize_names
 from sage.graphs.graph import DiGraph
 from sage.rings.number_field.number_field_element import NumberFieldElement
 
@@ -238,7 +239,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         # define inerited ngens attribute 
         if None == names:
             names = "e"
-            names = self.normalize_names(self.ngens(),names)
+            names = normalize_names(self.ngens(),names)
         self._assign_names(names)
 
         ## Silly class identifier needed since our class does not keep its name in sage....

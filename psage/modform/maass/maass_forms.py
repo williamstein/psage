@@ -416,6 +416,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         """
         compute = kwds.get('compute',True)
         kwds['compute']=compute
+        kwds['phase2']=kwds.get('phase2',False)
         return Maasswaveform(self,R,**kwds)
 
     def get_Hecke_basis(self,R,p=None,Mset=None,Yset=None,dim=1,ndigs=12,set_c=[]):
@@ -836,7 +837,7 @@ class MaassWaveForms (AutomorphicFormSpace):
 
 
     #### Split an interv
-    def split_interval(self,R1,R2):
+    def split_interval(self,R1,R2,eps=1e-8):
         r"""
         Split an interval into pieces, each containing (on average) at most one
         eigenvalue as well as a 0<Y<Y0 s.t. K_IR(Y) has no zero here
@@ -863,7 +864,7 @@ class MaassWaveForms (AutomorphicFormSpace):
 
         """
         import mpmath
-
+        eps = min(eps,abs(R1-R2)/10000.0)
         # It is enough to work with double precision
         base=mpmath.fp
         pi=base.pi
@@ -882,19 +883,20 @@ class MaassWaveForms (AutomorphicFormSpace):
             rold=rnew
 
         # We now need to split these intervals into pieces with at most one zero of the K-Bessel function
-        Y00=base.mpf(0.995)*base.sqrt(base.mpf(3))/base.mpf(2 *self.level())
+        Y00=base.mpf(0.995)*self.group().minimal_height()
         new_ivs=list()
         for (r1,r2) in ivs:
-            if self._verbose>0:
-                print "r1,r2=",r1,r2
             Y0=Y00; r11=r1
             i=0
-            while(r11 < r2 and i<1000):
+            if self._verbose>0:
+                print "r11,r2=",r1,format(r11),format(r2),
+                print "r11 < r2:",r11 < r2
+            while(r11 < r2 - eps and i<1000):
                 t=self._next_kbessel_zero(r11,r2,Y0*pi);i=i+1
                 if self._verbose>0:
                     print "t=",t
 
-                    oiv=(r11,t,Y0); new_ivs.append(iv)
+                oiv=(r11,t,Y0)
                 # must find Y0 s.t. |besselk(it,Y0)| is large enough
                 Y1=Y0
                 #k=base.besselk(base.mpc(0,t),Y1).real*mpmath.exp(t*0.5*base.pi)
@@ -904,10 +906,12 @@ class MaassWaveForms (AutomorphicFormSpace):
                     Y1=Y1*0.999;j=j+1
                     #k=base.besselk(base.mpc(0,t),Y1).real*mpmath.exp(t*0.5*base.pi)
                     k=besselk_dp(RR(t),Y1)*exp(t*0.5*RR.pi())
-                Y0=Y1
+                    Y0=Y1
+                new_ivs.append((r11,r2,Y0))
                 r11=t+1E-08
         return new_ivs
 
+    
 
     def _next_kbessel_zero(self,r1,r2,y):
         r"""

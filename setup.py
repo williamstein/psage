@@ -125,8 +125,11 @@ import time
 t = time.time()
 run_cythonize()
 print("Finished Cythonizing, time: %.2f seconds." % (time.time() - t))
-
-from distutils.core import setup
+import distutils
+#for m in ext_modules:
+#    print m,isinstance(m,distutils.extension.Extension)
+#from distutils.core import setup
+from setuptools import setup
 code = setup(
     name = 'psage',
     version = "2016.1.0",

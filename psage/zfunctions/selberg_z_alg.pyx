@@ -1,7 +1,8 @@
 # cython: profile=True
 #clib mpc gmp
-include "stdsage.pxi"
 include "cysignals/signals.pxi"
+include "sage/ext/cdefs.pxi"
+include "sage/ext/stdsage.pxi"
 
 import sys
 import mpmath    
@@ -33,7 +34,7 @@ from psage.rings.mpc_extras cimport _mpc_mul,_mpc_mul_fr,_mpc_add,_mpc_set
 #from libc.math cimport sin as dsin
 #from libc.math cimport cos as dcos
 
-from sage.ext.memory cimport check_allocarray,sage_free
+#from sage.ext.memory cimport check_allocarray,sage_free
 
 import numpy as np
 cimport numpy as cnp

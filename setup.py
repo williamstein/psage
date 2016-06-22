@@ -2,6 +2,8 @@
 #
 # (c) Copyright 2010 William Stein
 #
+#   2016 - 06 - 22: Largely reqritten by Fredrik Stromberg to work with Sage 7.2 and make use of
+#                   more standard install routines (based on how Sage setup.py currently works)
 #  This file is part of PSAGE
 #
 #  PSAGE is free software: you can redistribute it and/or modify
@@ -21,31 +23,14 @@
 
 
 import os, sys
-
+from sage.env import sage_include_directories,SAGE_INC,SAGE_LIB,SAGE_LOCAL
+import subprocess 
 
 if sys.maxint != 2**63 - 1:
     print "*"*70
     print "The PSAGE library only works on 64-bit computers.  Terminating build."
     print "*"*70
     sys.exit(1)
-
-
-import build_system
-
-SAGE_ROOT = os.environ['SAGE_ROOT']
-SAGE_LOCAL = os.environ['SAGE_LOCAL']
-
-INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
-            ( 'src/sage', 'src/sage/gsl', 'src',
-              'local/lib/python2.7/site-packages/sage/ext/',
-              'local/lib/python2.7/site-packages/cysignals/',
-              'src/sage/ext',
-              'src/build/cythonized/','src/build/cythonized/sage/ext',
-              )] \
-         + ['%s/%s/'%(SAGE_LOCAL,x) for x in
-             ('include', 'include/python',
-              'include/python2.7')]
-print "INCLUDES=",INCLUDES
 
 if '-ba' in sys.argv:
     print "Rebuilding all Cython extensions."
@@ -54,314 +39,97 @@ if '-ba' in sys.argv:
 else:
     FORCE = False
 
-def Extension(*args, **kwds):
-    if not kwds.has_key('include_dirs'):
-        kwds['include_dirs'] = INCLUDES
-    else:
-        kwds['include_dirs'] += INCLUDES
-    if not kwds.has_key('force'):
-        kwds['force'] = FORCE
+from module_list import ext_modules,aliases
 
-    # Disable warnings when running GCC step -- cython has already parsed the code and
-    # generated any warnings; the GCC ones are noise.
-    if not kwds.has_key('extra_compile_args'):
-        kwds['extra_compile_args'] = ['-w']
-    else:
-        kwds['extra_compile_args'].append('-w')
+include_dirs = sage_include_directories(use_sources=True)
+include_dirs = include_dirs + [os.path.join(SAGE_LIB,"cysignals")]
+include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/ext/")]
 
-    E = build_system.Extension(*args, **kwds)
-    return E
+extra_compile_args = [ "-fno-strict-aliasing" ]
+extra_link_args = [ ]
 
+DEVEL = False
+if DEVEL:
+    extra_compile_args.append('-ggdb')
 
-numpy_include_dirs = [os.path.join(SAGE_LOCAL,
-                                   'lib/python/site-packages/numpy/core/include')]
-numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
-                                   'lib/python2.7/site-packages/sage/ext/interrupt')]
-numpy_include_dirs +=[os.path.join(SAGE_LOCAL,
-                                   'lib/python2.7/site-packages/sage/libs/ntl')]
+# Work around GCC-4.8.0 bug which miscompiles some sig_on() statements,
+# as witnessed by a doctest in sage/libs/gap/element.pyx if the
+# compiler flag -Og is used. See also
+# * http://trac.sagemath.org/sage_trac/ticket/14460
+# * http://gcc.gnu.org/bugzilla/show_bug.cgi?id=56982
+if subprocess.call("""$CC --version | grep -i 'gcc.* 4[.]8' >/dev/null """, shell=True) == 0:
+    extra_compile_args.append('-fno-tree-dominator-opts')
 
-ext_modules = [
-# Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
-#    Extension("psage.ellff.ellff",
-#              ["psage/ellff/ellff.pyx",
-#               "psage/ellff/ell.cpp",
-#               "psage/ellff/ell_surface.cpp",
-#               "psage/ellff/euler.cpp",
-#               "psage/ellff/helper.cpp",
-#               "psage/ellff/jacobi.cpp",
-#               "psage/ellff/lzz_pEExtra.cpp",
-#               "psage/ellff/lzz_pEratX.cpp"],
-#              language = 'c++'),
-
-    Extension("psage.function_fields.function_field_element",
-              ["psage/function_fields/function_field_element.pyx"]),
-
-    Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
-              ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),
     
-    Extension("psage.modform.paramodularforms.siegelmodularformg2_misc_cython",
-              ["psage/modform/paramodularforms/siegelmodularformg2_misc_cython.pyx"]),
+lib_headers = { "gmp":     [ os.path.join(SAGE_INC, 'gmp.h') ],   # cf. #8664, #9896
+                "gmpxx":   [ os.path.join(SAGE_INC, 'gmpxx.h') ],
+                "ntl":     [ os.path.join(SAGE_INC, 'NTL', 'config.h') ]
+            }
+for m in ext_modules:
+    m.depends = m.depends + [__file__]
 
-    Extension("psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion_cython",
-              ["psage/modform/paramodularforms/siegelmodularformg2_fourierexpansion_cython.pyx"]),
+    # Add dependencies for the libraries
+    for lib in lib_headers:
+        if lib in m.libraries:
+            m.depends += lib_headers[lib]
 
-    Extension("psage.modform.paramodularforms.siegelmodularformg2vv_fegenerators_cython",
-              ["psage/modform/paramodularforms/siegelmodularformg2vv_fegenerators_cython.pyx"]),
+    m.extra_compile_args = m.extra_compile_args + extra_compile_args
+    m.extra_link_args = m.extra_link_args + extra_link_args
+    m.library_dirs = m.library_dirs + [os.path.join(SAGE_LOCAL, "lib")]
+    m.include_dirs = m.include_dirs + include_dirs
 
-    Extension("psage.modform.paramodularforms.paramodularformd2_fourierexpansion_cython",
-              ["psage/modform/paramodularforms/paramodularformd2_fourierexpansion_cython.pyx"]),
+print "include_dirs=",include_dirs
 
-    Extension("psage.modform.siegel.fastmult",
-              ["psage/modform/siegel/fastmult.pyx"]),
-
-    Extension('psage.modform.arithgroup.mysubgroups_alg',
-              ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-
-    Extension('psage.modform.maass.maass_forms_alg',
-              ['psage/modform/maass/maass_forms_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc','ntl'],
-              include_dirs = numpy_include_dirs),
-
-    Extension('psage.modform.maass.lpkbessel',
-              ['psage/modform/maass/lpkbessel.pyx'],
-              libraries = ['m', 'gmp','mpfr','mpc','ntl'],
-              include_dirs = numpy_include_dirs),
-
-    Extension("psage.modform.rational.modular_symbol_map",
-              ["psage/modform/rational/modular_symbol_map.pyx"]),
-
-    Extension("psage.modform.rational.padic_elliptic_lseries_fast",
-              ["psage/modform/rational/padic_elliptic_lseries_fast.pyx"]),
-
-    Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
-              ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
-#              libraries = ['ntl', 'gmp'],
-              libraries = ['gmp'],
-              language = 'c++'),
-
-    Extension("psage.ellcurve.lseries.sqrt5",
-              ["psage/ellcurve/lseries/sqrt5.pyx"],
-              libraries = ['ntl', 'gmp'],
-              language = 'c++'),
-
-    Extension("psage.ellcurve.lseries.helper",
-              ["psage/ellcurve/lseries/helper.pyx"]),
-
-    Extension('psage.ellcurve.galrep.wrapper',
-              sources = ['psage/ellcurve/galrep/wrapper.pyx', 'psage/ellcurve/galrep/galrep.c'],
-              libraries = ['gmp']),
-
-    Extension('psage.ellcurve.minmodel.sqrt5',
-              sources = ['psage/ellcurve/minmodel/sqrt5.pyx'],
-              libraries = ['gmp']),
-
-    Extension('psage.rh.mazur_stein.game',
-              sources = ['psage/rh/mazur_stein/game.pyx']),
-
-    Extension('psage.rh.mazur_stein.book_cython',
-              sources = ['psage/rh/mazur_stein/book_cython.pyx']),
-
-    Extension("psage.ellcurve.lseries.fast_twist",
-              ["psage/ellcurve/lseries/fast_twist.pyx"],
-              libraries = ['gsl']),
-
-    Extension("psage.ellcurve.lseries.aplist_sqrt5",
-              ["psage/ellcurve/lseries/aplist_sqrt5.pyx"],
-              language = 'c++'),
-
-    Extension("psage.number_fields.sqrt5.prime",
-              ["psage/number_fields/sqrt5/prime.pyx"],
-              libraries = ['pari']),
-
-    Extension("psage.modform.rational.special_fast",
-#              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
-              ["psage/modform/rational/special_fast.pyx"],
-              libraries = ['gmp', 'flint'],
-              language = 'c++',
-              include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],
-              extra_compile_args = ['-std=c99']),
-
-    Extension("psage.ellcurve.xxx.rankbound",
-              sources = [   'psage/ellcurve/xxx/rankbound.pyx',
-                            'psage/ellcurve/xxx/rankbound_.cc',
-                            'psage/ellcurve/xxx/mathlib.cc',
-                            'psage/libs/smalljac/wrapper_g1.c'],
-              libraries = ['gmp', 'm'],
-              include_dirs = ['psage/libs/smalljac/'],
-              language = 'c'
-              )
-]
-
-for g in [1, 2]:
-    e = Extension('psage.libs.smalljac.wrapper%s'%g,
-                  sources = ['psage/libs/smalljac/wrapper%s.pyx'%g,
-                             'psage/libs/smalljac/wrapper_g%s.c'%g],
-                  libraries = ['gmp', 'm'])
-    ext_modules.append(e)
-## Fredrik Stroemberg: my additional modules.
-my_extensions = [
-    Extension('psage.groups.permutation_alg',
-              ['psage/groups/permutation_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-    Extension('psage.rings.mp_cimports',
-              sources= ['psage/rings/mp_cimports.pyx'],
-              libraries = ['gmp','mpfr','mpc']),
-    Extension('psage.rings.mpc_extras',
-              sources = ['psage/rings/mpc_extras.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-
-    Extension('psage.modform.periods.period_polynomials_algs',
-              ['psage/modform/periods/period_polynomials_algs.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-
-    Extension('psage.functions.inc_gamma',
-              ['psage/functions/inc_gamma.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-    
-    Extension('psage.modform.arithgroup.mysubgroups_alg',
-              ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-
-    Extension('psage.modform.arithgroup.sl2z_subgroups_alg',
-              ['psage/modform/arithgroup/sl2z_subgroups_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-
-    Extension('psage.modform.maass.maass_forms_parallel_alg',
-              ['psage/modform/maass/maass_forms_parallel_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-
-    Extension('psage.modform.maass.pullback_algorithms',
-              ['psage/modform/maass/pullback_algorithms.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              include_dirs = numpy_include_dirs,
-              extra_link_args=['-fopenmp']),
-
-    Extension('psage.modform.maass.linear_system',
-              ['psage/modform/maass/linear_system.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-    Extension('psage.modform.maass.automorphic_forms_alg',
-              ['psage/modform/maass/automorphic_forms_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs,
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-
-    Extension('psage.modform.hilbert.hn_class',
-              ['psage/modform/hilbert/hn_class.pyx'],
-              libraries = ['m']),
-    
-    Extension('psage.modform.hilbert.hilbert_modular_group_alg',
-              ['psage/modform/hilbert/hilbert_modular_group_alg.pyx'],
-              libraries = ["flint", "gmp", "gmpxx", "m","ntl"],
-              language="c"),
-
-    Extension('psage.zfunctions.selberg_z_alg',
-              ['psage/zfunctions/selberg_z_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs,
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-              
-    
-    Extension('psage.modform.maass.vv_harmonic_weak_maass_forms_alg',
-              ['psage/modform/maass/vv_harmonic_weak_maass_forms_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-    Extension('psage.modform.maass.maass_forms_phase2',
-                  sources=['psage/modform/maass/maass_forms_phase2.pyx'],
-                  libraries = ['m','gmp','mpfr','mpc'],
-                  include_dirs = numpy_include_dirs),
-    Extension('psage.modform.maass.lpkbessel',
-              ['psage/modform/maass/lpkbessel.pyx']),
-    Extension('psage.modules.vector_complex_dense',
-              sources = ['psage/modules/vector_complex_dense.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-    Extension('psage.modules.vector_real_mpfr_dense',
-              sources = ['psage/modules/vector_real_mpfr_dense.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-    
-    Extension('psage.modules.weil_module_alg',
-              sources = ['psage/modules/weil_module_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-    Extension('psage.matrix.matrix_complex_dense',
-              sources = ['psage/matrix/matrix_complex_dense.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp'],
-              include_dirs = numpy_include_dirs),
-
-    Extension('psage.matrix.linalg_complex_dense',
-              sources = ['psage/matrix/linalg_complex_dense.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
-    Extension('psage.modform.maass.poincare_series_alg',
-                  ['psage/modform/maass/poincare_series_alg.pyx'],
-              libraries = ['m','gmp','mpfr','mpc']),
-    
-    Extension('psage.modform.maass.poincare_series_alg_vv',
-          ['psage/modform/maass/poincare_series_alg_vv.pyx'],
-          libraries = ['m','gmp','mpfr','mpc']),
-        
-    Extension('psage.modform.maass.eisenstein_series',
-              ['psage/modform/maass/eisenstein_series.pyx'],
-              libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
-
-    Extension("psage.modform.maass.test_parallel",
-              sources = [ 'psage/modform/maass/test_parallel.pyx' ],
-              libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=['-fopenmp'],
-              extra_link_args=['-fopenmp']),
+def run_cythonize():
+    from Cython.Build import cythonize
+    import Cython.Compiler.Options
+    import Cython.Compiler.Main
+    debug = False
+    if os.environ.get('SAGE_DEBUG', None) == 'yes':
+        print('Enabling Cython debugging support')
+        debug = True
+        Cython.Compiler.Main.default_options['gdb_debug'] = True
+        Cython.Compiler.Main.default_options['output_dir'] = 'build'
 
 
-    Extension("psage.groups.dirichlet_conrey",
-              ['psage/groups/dirichlet_conrey.pyx'],
-              extra_compile_args = ['-w','-O2'])
-]
+    profile = False    
+    if os.environ.get('SAGE_PROFILE', None) == 'yes':
+        print('Enabling Cython profiling support')
+        profile = True
+   
+    # Sage uses these directives (mostly for historical reasons).
+    Cython.Compiler.Options.embed_pos_in_docstring = True
+    Cython.Compiler.Options.directive_defaults['autotestdict'] = False
+    Cython.Compiler.Options.directive_defaults['cdivision'] = True
+    Cython.Compiler.Options.directive_defaults['fast_getattr'] = True
+    # The globals() builtin in Cython was fixed to return to the current scope,
+    # but Sage relies on the broken behavior of returning to the nearest
+    # enclosing Python scope (e.g. to perform variable injection).
+    Cython.Compiler.Options.old_style_globals = True
+    Cython.Compiler.Main.default_options['cache'] = False
 
-ext_modules.extend(my_extensions)
+    global ext_modules
+    ext_modules = cythonize(
+        ext_modules,
+        nthreads=int(os.environ.get('SAGE_NUM_THREADS', 0)),
+        #    build_dir=SAGE_CYTHONIZED,
+        force=FORCE,
+        include_path = include_dirs,
+        aliases=aliases,
+        compiler_directives={
+            'embedsignature': True,
+            'profile': profile,
+        })
+print("Updating Cython code....")
+import time
+t = time.time()
+run_cythonize()
+print("Finished Cythonizing, time: %.2f seconds." % (time.time() - t))
 
-## Stephan Ehlen's additional modules
-
-sehlen_extensions = [
-      Extension('psage.modules.weil_invariants',
-              sources = ['psage/modules/weil_invariants.pyx'],
-              libraries = ['m']
-#              include_dirs = numpy_include_dirs),
-     )
-]
-
-ext_modules.extend(sehlen_extensions)
-
-# I just had a long chat with Robert Bradshaw (a Cython dev), and he
-# told me the following functionality -- turning an Extension with
-# Cython code into one without -- along with proper dependency
-# checking, is now included in the latest development version of
-# Cython (Nov 2, 2010).  It's supposed to be a rewrite he did of the
-# code in the Sage library.  Hence once that gets released, we should
-# switch to using it here.
-
-build_system.cythonize(ext_modules)
-
-build_system.setup(
+from distutils.core import setup
+code = setup(
     name = 'psage',
-    version = "2015.1.0",
+    version = "2016.1.0",
     description = "PSAGE: Software for Arithmetic Geometry",
     author = 'William Stein',
     author_email = 'wstein@gmail.com',
@@ -415,7 +183,7 @@ build_system.setup(
                 'psage.zfunctions'
                 ],
     platforms = ['any'],
-    download_url = 'NA',
+    download_url = 'N/A',
     ext_modules = ext_modules
 )
 

@@ -47,7 +47,7 @@ from sage.arith.all import random_prime
 from sage.rings.integer_ring import ZZ
 from sage.rings.number_field.order import Order as NumberFieldOrder
 from sage.rings.padics.factory import Qp
-from sage.rings.principal_ideal_domain import PrincipalIdealDomain
+from sage.rings.ring import PrincipalIdealDomain
 from sage.rings.rational_field import QQ
 from sage.rings.ring import Ring
 from sage.structure.element import Element

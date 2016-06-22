@@ -20,7 +20,7 @@
 #################################################################################
 
 
-from stdsage cimport PY_NEW
+from sage.ext.stdsage cimport PY_NEW
 
 from sage.structure.element cimport FieldElement, RingElement, ModuleElement, Element
 

@@ -34,7 +34,7 @@ from sage.modules.vector_integer_dense import *
 from sage.misc.functional import is_even
 from sage.rings.arith import kronecker,odd_part,gcd,valuation,is_prime
 from sage.rings.integer import Integer
-from sage.rings.finite_rings.constructor import FiniteField
+from sage.rings.finite_rings.finite_field_constructor import FiniteField
 from psage.matrix.matrix_complex_dense import Matrix_complex_dense
 from psage.matrix.matrix_complex_dense cimport Matrix_complex_dense
 from sage.all import MatrixSpace,is_odd

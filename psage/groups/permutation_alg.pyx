@@ -41,7 +41,9 @@ include "cysignals/signals.pxi"
 #include 'cysignals/signals.pxi'
 #from sage.ext.interrupt cimport *
 from psage.rings.mp_cimports cimport *    
-from sage.ext.memory cimport check_allocarray,sage_free
+include "sage/ext/cdefs.pxi"
+include "sage/ext/stdsage.pxi"  
+#from sage.ext.memory cimport check_allocarray,sage_free
 
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0

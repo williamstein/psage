@@ -27,9 +27,9 @@ AUTHOR:
 
 
 """
-include "cysignals/signals.pxi"  
+include "cysignals/signals.pxi"
+include "sage/ext/cdefs.pxi"
 include "sage/ext/stdsage.pxi"  
-from sage.ext.memory cimport check_allocarray
 
 from psage.rings.mp_cimports cimport *
 from sage.rings.complex_mpc cimport * #MPComplexNumber

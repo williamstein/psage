@@ -27,9 +27,9 @@ All the code in this file is meant to be highly optimized.
 
 include 'stdsage.pxi'
 include 'cdefs.pxi'
-include 'python.pxi'
 include 'cysignals/signals.pxi'
 
+from cpython cimport *
 from sqrt5_fast cimport residue_element
 
 from sage.rings.all import Integers, ZZ, QQ

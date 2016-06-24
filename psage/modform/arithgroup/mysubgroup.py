@@ -133,6 +133,12 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
                 s3 = MyPermutation(B.domain())
             except ValueError as ve:
                 raise ValueError,"Can not construct permutations! {0}".format(ve)
+            except AttributeError as ae:
+                try:
+                    s2 = MyPermutation(A)
+                    s3 = MyPermutation(B)
+                except Exception as e:
+                    raise ValueError,"Can not construct permutations! {0}".format(e)
     elif A<>None:
         if hasattr(A,"p2") and hasattr(A,"p3"):
             s2 = MyPermutation(A.p2); s3 = MyPermutation(A.p3)
@@ -450,8 +456,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self.permS=MyPermutation([x+1 for x in self._S2])
             self.permR=MyPermutation([x+1 for x in self._S3])
             ## Relabel the rest as well
-            self.permT = self.permR*self.permS
-            self.permP = self.permT*self.permS*self.permT
+            ## Note: we now use a group *homomorphism*.
+            self.permT = self.permS*self.permR            
+            self.permP = self.permR*self.permS
         else:
             if label_on=='S':
                 Pold = self.permS
@@ -475,8 +482,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 print "p=",p
             self.permS = self.permS.conjugate(p)
             self.permR = self.permR.conjugate(p)
-            self.permT = self.permR*self.permS
-            self.permP = self.permT*self.permS*self.permT            
+            self.permT = self.permS*self.permR
+            self.permP = self.permS*self.permT*self.permS
         if self._verbose>0:
             print "Snew=",self.permS
             print "Rnew=",self.permR
@@ -525,16 +532,23 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self.permR=o3
         else:
             self.permR=MyPermutation(o3)
+        assert self.permS.order()==2 and self.permR.order() in [1,3]
         self._index = self.permR.N()
         ## The generators of EvenArithmeticSubgroup_Permutation is corresponding to
         ## S2 = S, S3 = ZST^-1, L=T, R=Z*ST^-1*S where Z = S^2 = [-1,0,0,-1]
         ## Recall that I assume my input is o3 = S*T
-        self.permT = self.permR*self.permS
-        self.permP = self.permT*self.permS*self.permT
+        self.permT = self.permS*self.permR
+        self.permP = self.permS*self.permT*self.permS
         s2 = [i-1 for i in self.permS.list()]
-        s3 = [i-1 for i in self.permR.inverse().conjugate(self.permS).list()]
+        
+        s3 = self.permS*self.permT.inverse()
+        r   = s3*self.permS
+        s3 = [i-1 for i in s3.list()]
+        #        s3 = [i-1 for i in self.permR.inverse().conjugate(self.permS).list()]
         l  = [i-1 for i in self.permT.list()]
-        r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
+        #r = self.permS*self.permT.inverse()*self.permS
+        #r  = [i-1 for i in self.permT.conjugate(self.permS).inverse().list()]
+        r = [i-1 for i in r.list()]
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
         if self._is_congruence == None:
             self._is_congruence = super(MySubgroup_class,self).is_congruence()

@@ -25,6 +25,8 @@ AUTHOR:
  CONVENTION:
  internal functions, beginning with underscore might modify input variables, while other functions does (should) not.
 
+NOTE: We are (now) using a group *homomorphism* between permutations and subgroups
+  in particular s(S)s(R)=s(T)   where R=ST and S^2=1 in PSL(2,Z)
 
 """
 include "cysignals/signals.pxi"
@@ -86,6 +88,8 @@ cdef class SL2Z_elt(GL2Z_elt):
     Subclass for elements of SL(2,Z)
     """
     def __init__(self,a=1,b=0,c=0,d=1):
+        if isinstance(a,(list,tuple)):
+            a,b,c,d = a
         assert a*d-b*c == 1
     
 cdef class GL2Z_elt(object):
@@ -94,6 +98,9 @@ cdef class GL2Z_elt(object):
     """
     def __cinit__(self,a=1,b=0,c=0,d=1):
         if not isinstance(a,int):
+            if isinstance(a,(list,tuple)):
+                if len(a)==4:
+                    a,b,c,d = a
             try:
                 a = int(a); b=int(b); c=int(c); d=int(d)
             except TypeError: ## If a can not be converted to int it is probably a matrix               

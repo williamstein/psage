@@ -840,10 +840,12 @@ def nice_coset_reps(G):
 
 def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
     if G.index()>1:
-        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'))
+        print "Drawing here!"
+        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
+        #return P
     else:
         P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
-    l=build_connected_path(P,model=model)
+    l=build_connected_path(P) #,model=model)
     if standalone:
         fig=pyplot.Figure()
         canvas = FigureCanvas(fig)
@@ -854,8 +856,103 @@ def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
     if as_patch:
         return patches.PathPatch(l,facecolor='none')
     return l
-    
-def build_connected_path(P,verbose=0,model='H'):
+
+
+        
+def build_connected_path(P):
+    from sage.all import deepcopy,hyperbolic_arc
+    paths = []
+    ymax = P._axes_range['ymax']
+    for x in P:
+        if x.A.imag() >= 10000:
+            ### these have to be treated specially..
+            ### We truncate to the maximum y height
+            ### and set the x-coordinate to the same as the other endpoint.
+            A = CC(x.B.real(),ymax)
+            B = CC(x.B.real(),x.B.imag())
+            paths.append(hyperbolic_arc(A,B)[0])
+            xmin = x.B.real()
+        elif x.B.imag() >= 10000:
+            ### these have to be treated specially..
+            ### We truncate to the maximum y height
+            ### and set the x-coordinate to the same as the other endpoint.
+            A = CC(x.A.real(),x.A.imag())
+            B = CC(x.A.real(),ymax)
+            paths.append(hyperbolic_arc(A,B)[0])
+            xmax = x.A.real()
+        else:
+            paths.append(x)
+    ## Add a 'closing' path between the two vertical sides.
+    paths.append(hyperbolic_arc(CC(xmin,ymax),CC(xmax,ymax))[0])
+
+    new_paths = []
+    ## first find the left most:
+    ## an arc has a .A and .B
+    As = [x.A for x in P]
+    minA = min(As)
+    mini = As.index(minA)
+    new_paths = [P[mini]]
+    paths.remove(P[mini])
+
+
+
+    eps = 1e-15
+    current = P[mini].B
+#    print "paths=",paths
+#    print "paths=",dir(new_paths[-1])
+#    return new_paths
+    while paths != []:
+        current = new_paths[-1].B
+        #print "current=",current
+        try:
+            for p in paths:
+                #print "p.A=",p.A
+                #print "p.B=",p.B
+                if abs(p.A-current)<eps:
+                    #print "appending p"
+                    new_paths.append(p)
+                    paths.remove(p)
+                    raise StopIteration                    
+                elif abs(p.B-current)<eps: ## we reverse it 
+                    #print "appending p reversed"
+                    pnew = hyperbolic_arc(p.B,p.A)
+                    new_paths.append(pnew[0])
+                    paths.remove(p)
+                    raise StopIteration
+                else:
+                    continue
+
+            print paths
+            raise ArithmeticError("Could not connect from {0}".format(current))
+        except StopIteration:
+            pass
+    ### new paths is now a list of hyperbolic arcs
+    res = []
+    import matplotlib.patches as patches
+    from matplotlib.path import Path
+    import numpy
+    i = 0
+    vertices = []
+    codes = []
+    for p in new_paths:
+        new_codes = p.codes
+        if i > 0:
+            new_codes[0]=2
+        i+=1
+        if i==len(new_paths):
+            new_codes[-1] = 79
+        for v in p.vertices:
+            vertices.append(v)
+        codes = codes + new_codes
+        #pt = patches.Path(p.vertices,codes)
+        #res.append(pt)
+    vertices = numpy.array(vertices, float)
+    res = path = Path(vertices, codes)
+
+#    res = patches.Path.make_compound_path(*res)
+    return res
+        
+def build_connected_path2(P,verbose=0,model='H'):
     r"""
     Takes a path P consisting of a list of segments (not necessarily in correct order) and constructs a connected path.
     
@@ -864,7 +961,8 @@ def build_connected_path(P,verbose=0,model='H'):
     ## This is the only place where we allow for coddes to be = 1 (i.e. starting a path)
     if len(P)==0:
         return P
-    #print "P=",P #0=",P[0]
+    print "P=",P
+    print "P0=",P[0]
     ## Begin by locating left most path
     if model == 'H':
         xmin = P[0].vertices.min()
@@ -909,13 +1007,26 @@ def build_connected_path(P,verbose=0,model='H'):
     if verbose>0:
         print "left most path is nr. {0}".format(imin)
     ii = 0
-    x,y = P[imin].vertices[-1]
+    x,y = P[imin].A
     eps = 1e-12
     fc='orange'
     lw=2
     while len(res)<len(P) and ii<len(P):
         ii+=1
-#        print "x,y=",x,y
+        if verbose>0:
+            print "ii=",ii
+            print "current=",current
+        if ii == len(P):
+            x1,y1=P[current].A
+            if verbose > 0:
+                print "x,y=",x,y
+                print "x1,y1=",x1,y1
+            if x==x1 and y==y1:
+                x,y=P[current].B
+                ii = 0
+        if verbose>0:
+            print "x,y=",x,y
+            print "res=",res
         for j in range(len(P)):
             if verbose>0:
                 print "++++++++++++++++++++++++++++++++++++++j=",j
@@ -924,9 +1035,11 @@ def build_connected_path(P,verbose=0,model='H'):
             if not hasattr(P[j],"vertices"):
                 used.append(j)
                 continue
-            xx,yy = P[j].vertices[0]
+            xx,yy = P[j].A #vertices[0]
             #if verbose>0:p
             #    print "xx,yy(0)=",xx,yy
+            #if abs(xx-x) > eps or abs(yy-y) > eps:
+            #    xx,yy = P[j].B
             if abs(xx-x)<eps and abs(yy-y)<eps:
                 if verbose>0:
                     print "connect prevsious segment with {0}".format(j)
@@ -957,9 +1070,10 @@ def build_connected_path(P,verbose=0,model='H'):
                 res.append(pt)
                 used.append(j)
                 current = j
-                x,y = P[j].vertices[-1]
+                x,y = P[j].A #vertices[-1]
                 break
-            xx,yy = P[j].vertices[-1]
+            
+            xx,yy = P[j].B #vertices[-1]
             #if verbose>0:
             #    print "xx,yy(-1)=",xx,yy
             if abs(xx-x)<eps and abs(yy-y)<eps:

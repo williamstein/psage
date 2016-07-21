@@ -2790,6 +2790,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         """
         from plot_dom import HyperbolicTriangle
+        from sage.all import hyperbolic_arc
+        verbose = options.get('verbose',0)
+        if verbose>0:
+            print "options=",options
         draw_axes=options.pop('draw_axes',1)
         npts = options.pop('npts',10)
         if options['method']=='Farey' and options['model']=='H':
@@ -2804,9 +2808,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         #    version = 2
         #else:
         model = options['model']
-        verbose = options.get('verbose',0)
+
         ret_domain = options.pop('domain',False)
         contour_only= options.pop('contour',False)
+        as_arcs= options.pop('as_arcs',False)
+        if verbose>0:
+            print "as_arcs=",as_arcs
         version = options.pop('version',0)
         circle_color = options.pop('circle_color','black')
         conjugate_A = options.pop('conjugate_by',SL2Z_elt(1,0,0,1)) ## We draw a conjugated fundamental domain
@@ -2879,7 +2886,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     if verbose>0:
                             print "sides = ",sides
 
-                if sides<>[]:
+                if sides<>[] and not as_arcs:
                     t = my_hyperbolic_triangle(A, B, C, \
                                                color=options['rgbcolor'], \
                                                fill=False, \
@@ -2887,7 +2894,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                                thickness=options['thickness'], \
                                                model=model, verbose=verbose,npts=npts,sides=sides)
                     cntr += t
-                if model=='H' and options['show_tesselation'] and options.get('fill',True)==True:
+                if as_arcs and sides<>[]:
+                    if 3 in sides:
+                        cntr += hyperbolic_arc(C,A)
+                    if 2 in sides:
+                        cntr += hyperbolic_arc(B,C)
+                    if 1 in sides:
+                        cntr += hyperbolic_arc(A,B)
+                elif model=='H' and options['show_tesselation'] and options.get('fill',True)==True:
                     g += my_hyperbolic_triangle(A, B, C, color="lightgray",fill=True,
                                                 model=model)
             g+=cntr

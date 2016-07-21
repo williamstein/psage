@@ -2159,6 +2159,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         y0,y1 = ylim
         if type=='density':
             im = ax.imshow(xy_data_array, origin='lower', cmap=cmap, extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
+            #return xy_data_array,xlim,ylim
         else:
             X = xsrange(*ranges[0]); Y = xsrange(*ranges[1])
             Z = np.ma.array(xy_data_array)
@@ -2168,6 +2169,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             im = ax.contourf(X,Y,Z,levels,cmap=cmap)
         if add_contour or clip:
             fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2)
+            #return ax,im,fdom
         if add_contour:
             ax.add_patch(fdom)
         if clip:

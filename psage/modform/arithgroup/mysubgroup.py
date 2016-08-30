@@ -116,7 +116,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         # We have to be more careful with the order 3 element since the permutation group
         # in sage corresopnds to a homomorphism wnd not anti-homomorphism...
         t = A.as_permutation_group().to_even_subgroup().permutation_action([1,1,0,1])
-        r = t*s
+        r = s*t
         s3 = MyPermutation(r.domain())
         if A.is_congruence():
             level = A.level()
@@ -532,7 +532,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             self.permR=o3
         else:
             self.permR=MyPermutation(o3)
-        assert self.permS.order()==2 and self.permR.order() in [1,3]
+        assert self.permS.order() in [1,2] and self.permR.order() in [1,3]
         self._index = self.permR.N()
         ## The generators of EvenArithmeticSubgroup_Permutation is corresponding to
         ## S2 = S, S3 = ZST^-1, L=T, R=Z*ST^-1*S where Z = S^2 = [-1,0,0,-1]
@@ -2945,7 +2945,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 
         d = g.get_minmax_data()
         if model=='H':
-            g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],2))
+            g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],options.get('ymax')))
             if options.get('ticks'):
                 g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
             else:
@@ -3157,6 +3157,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     cusp_data[cii]['vertices'].append(j)
                 else:
                     cusp_data[cii]['vertices']=[j]
+                if self._verbose>0:
+                    print "set cusp_data[{0}]={1}".format(cii,cusp_data[cii])
                 continue
             # Check which "canonical cusp" v is equivalent to.
             W,U,p,q,l=self.get_equivalent_cusp(v[0],v[1])
@@ -3224,10 +3226,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     vertex_data[j]['cusp_map']=Id
             # Setting the normalizer    
             if W<>0:
-                if l==0:
-                    l = vertex_data[j]['width']
-                elif l<>vertex_data[j]['width']:
-                    raise ArithmeticError,"Could not calculate width"
+                #if l==0:
+                l = vertex_data[j]['width']
+                #elif l<>vertex_data[j]['width']:
+                #    raise ArithmeticError,"Could not calculate width"
                 if self._verbose>0:
                     print "3 setting cusp ",p,q
                     print "width=",l
@@ -3463,7 +3465,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     B=V*A
                     if B in self:
                         raise StopIteration
-            except StopIteration:            
+            except StopIteration:
+                if self._verbose > 1:
+                    print "Representative of A={0} is V={1} and VA={2}".format(A,V,B) 
                 pass
             else:
                 raise ArithmeticError,"Did not find coset rep. for A=%s" % A

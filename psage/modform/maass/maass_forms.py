@@ -56,33 +56,34 @@ TODO:
 """
 
 import logging
-try:
-    import colorlog
-    from colorlog import ColoredFormatter
-    maass_logger = logging.getLogger('Maass')
-    if not getattr(maass_logger, 'handler_set', None):
-        LOG_LEVEL = logging.DEBUG
-        #logging.root.setLevel(LOG_LEVEL)
-        LOGFORMAT = "  %(log_color)s%(levelname)-10s%(filename)s:%(lineno)d%(reset)s | %(log_color)s%(message)s%(reset)s"
-        formatter = ColoredFormatter(LOGFORMAT)
-        stream = logging.StreamHandler()
-        stream.setLevel(LOG_LEVEL)
-        stream.setFormatter(formatter)
-        logger2 = logging.getLogger('detailed log')
-        if not maass_logger.handlers:
-            maass_logger.addHandler(stream)
-        if not logger2.handlers:
-            logger2.addHandler(stream)
-        maass_logger.handler_set = True
+# try:
+#     import colorlog
+#     from colorlog import ColoredFormatter
+#     maass_logger = logging.getLogger(__name__)
+#     if not getattr(maass_logger, 'handler_set', None):
+#         LOG_LEVEL = logging.DEBUG
+#         #logging.root.setLevel(LOG_LEVEL)
+#         LOGFORMAT = "  %(log_color)s%(levelname)-10s%(filename)s:%(lineno)d%(reset)s | %(log_color)s%(message)s%(reset)s"
+#         formatter = ColoredFormatter(LOGFORMAT)
+#         stream = logging.StreamHandler()
+#         stream.setLevel(LOG_LEVEL)
+#         stream.setFormatter(formatter)
+#         logger2 = logging.getLogger('detailed log')
+#         if not maass_logger.handlers:
+#             maass_logger.addHandler(stream)
+#         if not logger2.handlers:
+#             logger2.addHandler(stream)
+#         maass_logger.handler_set = True
         
-except ImportError:
-    print "No module colorlog present!"
-    maass_logger = logging.getLogger('Maass')
-    if not getattr(maass_logger, 'handler_set', None):
-        logger2 = logging.getLogger('detailed log')
-        maass_logger.handler_set = True
-maass_logger.propagate = False
+# except ImportError:
+#     print "No module colorlog present!"
+#     maass_logger = logging.getLogger(__name__)
+#     if not getattr(maass_logger, 'handler_set', None):
+#         logger2 = logging.getLogger('detailed log')
+#         maass_logger.handler_set = True
+# maass_logger.propagate = False
 #maass_logger.setLevel(logging.WARNING)
+maass_logger = logging.getLogger(__name__)
 #logger2.setLevel(logging.WARNING)
 
 _example_eigenvalue = 9.53369526135355755434423523592877032382125639510725198237579046413534
@@ -1775,7 +1776,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
     
     
-    def test(self,method='eval',up_to_M0=0,format='digits',check_all=False,verbose=0):
+    def test(self,method='Hecke',up_to_M0=0,format='digits',check_all=False,verbose=0):
         r""" Return the number of digits we believe are correct (at least)
         INPUT:
         - method -- string: 'Hecke' or 'pcoeff' or 'TwoY'
@@ -1890,15 +1891,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 z = CC(x,y)
                 if verbose>0:
                     print "z=",z
-                f1 = self.eval(z)
+                f1 = self.eval(z,numc='max',use_pb=0)
                 for A in self.group().generators_as_slz_elts():
                     if A.c()==0:
                         continue
                     w = A.acton(z)
                     if verbose>0:
                         print "w=",w
-                    f2 = self.eval(w)
-                    err1 = abs(f2-f1)
+                    f2 = self.eval(w,numc='max',use_pb=0)
+                    err1 = abs(abs(f2-f1)/min(abs(f2),abs(f1))-1.0)
                     if verbose>0:
                         print "|f({0})-f({1})|={2}".format(z,w,err1)
                     if err1 > er:
@@ -1959,7 +1960,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 return er
             return d
 
-    def eval(self,x,y=None,version=1,fi=0,use_cj=-1,use_pb=1,verbose=0):
+    def eval(self,x,y=None,version=1,fi=0,use_cj=-1,use_pb=1,verbose=0,numc=0):
         r"""
         Evaluate self.
         """
@@ -2014,6 +2015,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
         res=0
         twopi=RF(2)*RF.pi()
+        maxc = max(self._coeffs[0][0])
+        if numc == 'max':
+            numc = maxc
+        elif numc == 0:
+            numc = self._M0
+        elif numc > maxc:
+            numc = maxc
         if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):
             f = 1.0
             if self._sym_type==0:
@@ -2025,11 +2033,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             arx=twopi*x3
             ary=twopi*y3
             if exceptional:
-                for n in range(1,self._M0):
+                for n in range(1,numc):
                     term=scipy.special.kv(R,ary*n)*fun(arx*n)
                     res=res+self._coeffs[fi][cj][n]*term
             else:
-                for n in range(1,self._M0):
+                for n in range(1,numc):
                     term=besselk_dp(R,ary*n)*fun(arx*n)
                     res=res+self._coeffs[fi][cj][n]*term
             res = res*sqrt(y3)
@@ -2038,13 +2046,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             arx=twopi*x3
             ary=twopi*y3
             if exceptional:
-                for n in range(-self._M0+1,self._M0):
+                for n in range(-numc+1,numc):
                     if n== 0:
                         continue
                     term=scipy.special.kv(R,ary*abs(n))*CC(0,arx*n).exp()
                     res=res+self._coeffs[fi][cj][n]*term
             else:
-                for n in range(-self._M0+1,self._M0):
+                for n in range(-numc+1,numc):
                     if n== 0:
                         continue
                     term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
@@ -2170,10 +2178,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         if add_contour or clip:
             fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2)
             #return ax,im,fdom
-        if add_contour:
-            ax.add_patch(fdom)
-        if clip:
-            im.set_clip_path(fdom)
+            if add_contour:
+                ax.add_patch(fdom)
+            if clip:
+                im.set_clip_path(fdom)
         if not show_axis:
             ax.set_frame_on(False)
             ax.get_xaxis().set_visible(False)
@@ -2299,15 +2307,18 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         t = self.test(format='float')
         if t >=1:
             raise ValueError,"We have too large error. This is probably not a Maassform!"
-        nd = floor(abs(log_b(t,10)))
+
         ## Check that the parameters are sufficiently good....
-        eps = 10.0**(-nd)
         ynmax=kwds.get('ynmax',1000)
-        eps = kwds.get('eps',eps)
+        eps = kwds.get('eps',t)
+        verbose=kwds.get('verbose',0)
+        if verbose>0:
+            maass_logger.debug("eps={0}".format(eps))
+        nd = floor(abs(log_b(eps,10)))            
         C = phase_2_cplx_dp_sym(self.space(),self.eigenvalue(),2,n,
                                 M0in=int(self._M0),ndig=int(nd-1),
                                 dim=int(self._dim),cuspstart=int(0),cuspstop=int(self.group().ncusps()),
-                                fnr=int(0),Cin=self._coeffs,Yin=float(self._Y),verbose=kwds.get('verbose',0),
+                                fnr=int(0),Cin=self._coeffs,Yin=float(self._Y),verbose=verbose,
                                 retf=int(0),n_step=int(kwds.get('n_step',50)),
                                 do_test=int(kwds.get('do_test',0)),method=kwds.get('method'),ynmax=ynmax)
         for r in C.keys():

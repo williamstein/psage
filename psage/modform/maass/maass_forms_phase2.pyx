@@ -25,7 +25,9 @@ from psage.rings.mp_cimports cimport *
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField
 from sage.all import CC
-from maass_forms import Maasswaveform,maass_logger
+from maass_forms import Maasswaveform
+import logging
+maass_logger = logging.getLogger(__name__)
 
 import cython
 cdef extern from "math.h":
@@ -111,7 +113,6 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     - ``NB`` -- integer
     - ``M0`` -- integer (default None) if set we only use this many coeffficients.
     - ``ndig`` -- integer (default 10) : want new coefficients with this many digits precision.
-    - ``ndig`` -- number of digits of precision
     - ``dim`` -- assumed dimension
     - ``cuspstart`` -- Compute coefficients between cusp cuspstart and cuspstop
     - ``cuspstop`` --
@@ -257,7 +258,6 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     ## Make sure that we have a real eigenvalue.
     S._verbose=old_v
     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N1,&Ml,&Ql,M0,Q,verbose)
-    maass_logger.debug("Get Q={0} for Y0={1}".format(Q,Y0))
     for i in range(nc):
         maass_logger.debug("Qv[{0}]={1}".format(i,(Qv[i][0],Qv[i][1],Qv[i][2])))
         maass_logger.debug("Qfak[{0}]={1}".format(i,(Qfak[i])))
@@ -517,7 +517,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                                 Ctmp[yi][fi][jcusp]=0.0
                     for yi in range(numy):
                         phase2_coefficient_sum_cplx_dp_sym(Ctmp[yi],V[yi],Cold,Mv,nc,cusp_evs,
-                                                           cusp_offsets,ncnt,cuspa,cuspbb,fstart,fstop,numy,verbose+1)
+                                                           cusp_offsets,ncnt,cuspa,cuspbb,fstart,fstop,numy,verbose)
                         if verbose>0:
                             for jcusp in range(2*nc):
                                 maass_logger.debug("Ctmp[{0}][{1}][{2}]={3}".format(yi,0,jcusp,Ctmp[yi][0][jcusp]))
@@ -540,13 +540,14 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     for fi in range(fstop-fstart):
                         if method=='TwoY':
                             diff=cabs(Ctmp[1][fi][0]-Ctmp[0][fi][0])
+                            maass_logger.debug("err2Y[diff][{0}]={1}\t diffmax={2}".format(n,diff,diffmax))                            
                         else:
                             if cusp_evs[1]<>0:
                                 diff=cabs(Ctmp[0][fi][1]-cusp_evs[1]*Ctmp[0][fi][0])
                             if diff>eps:
                                 diff=fabs(cabs(Ctmp[0][fi][1])-cabs(Ctmp[0][fi][0]))
 
-                            maass_logger.debug("err[diff][{0}]={1}".format(n,diff))
+                            maass_logger.debug("errC[diff][{0}]={1}\t diffmax={2}".format(n,diff,diffmax))
                             if fabs(cabs(Ctmp[0][fi][1])+cabs(Ctmp[0][fi][0]))< 2*eps and n<M0-10:
                                 ## This is to prevent Ctmp[1] and Ctmp[2]
                                 ## to be simultaneously close to zero by accident
@@ -915,16 +916,16 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
     if ef2==NULL: raise MemoryError
     cdef int n1
     cdef int iicusp
-
-    maass_logger.debug("here0")
+    if verbose>2:
+        maass_logger.debug("here0")
     for icusp in range(cuspB-cuspA):
         iicusp=icusp+cuspA
         if cusp_evs[iicusp]<>0.0 and iicusp>0 and (numy==2 or iicusp>1):
             continue
-        if verbose>=0:
+        if verbose>0:
             maass_logger.debug("icusp={0}".format(icusp))
         if Mv[icusp][0]>=0:
-            if verbose>=0:
+            if verbose>0:
                 maass_logger.debug("test1")
             ef2[icusp]=NULL
             ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*(NB-NA))
@@ -935,7 +936,7 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
                 ef2[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
         else:
-            if verbose>=0:
+            if verbose>0:
                 maass_logger.debug("test2")
             ef2[icusp]=NULL
             ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*2*(NB-NA))
@@ -969,13 +970,14 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
         for n in range(Mv[jcusp][2]):
             nvec[jcusp][n]=<double>(n+Mv[jcusp][0])+alphas[jcusp]
     cdef double argpb1,xmm
-    if verbose>=0:
+    if verbose>0:
         maass_logger.debug("here")
         for jcusp in range(nc):
             maass_logger.debug("symmetric_cusp[{0}]={1}".format(jcusp,symmetric_cusps[jcusp]))
     for jcusp in range(cuspB-cuspA):
         iicusp=jcusp+cuspA
-        maass_logger.debug("iicusp={0}".format(iicusp))                    
+        if verbose > 1:
+            maass_logger.debug("iicusp={0}".format(iicusp))                    
         if cusp_evs[iicusp]<>0.0 and iicusp>0 and (numy==2 or iicusp>1):
             continue
         for n in range(NB-NA):
@@ -993,7 +995,7 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
                         #xmm  = Xm[j-Qv[0][1]]
                     argm = nr*xmm
                     ef2[jcusp][n][j]=cexpi(-argm)
-                    if n==0 and jcusp==0 and (j==0 or j==Qv[iicusp][2]):
+                    if n==0 and jcusp==0 and (j==0 or j==Qv[iicusp][2]) and verbose>1:
                         maass_logger.debug("Xm[{0}]={1}".format(j,xmm))
                         maass_logger.debug("nr={0}".format(nr))
                         maass_logger.debug("argm={0}".format(argm))                                            
@@ -1001,7 +1003,7 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
             else:
                 for j in range(Qv[iicusp][2]):
                     xmm = Xm[j]
-                    if n==0 and jcusp==0 and (j==0 or j==Qv[iicusp][2]):
+                    if n==0 and jcusp==0 and (j==0 or j==Qv[iicusp][2]) and verbose>1:
                         maass_logger.debug("Xm[{0}]={1}".format(j,xmm))
                     argm = nr*xmm
                     if symmetric_cusps[jcusp]==0:
@@ -1142,9 +1144,10 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
                             #maass_logger.debug("kbes[{0}][{1}][{2}]={3}".format(icusp,l,j,kbesvec[icusp][l][j]))
                             maass_logger.debug("ef2[{0}][{1}][{2}]={3}".format(icusp,n,j,ef2[icusp][n][j]))
                             #maass_logger.debug("V[{0}][{1}][{2}]={3}".format(icusp,n,lj0,V[icusp][n][lj0]))
-    for n in range(NB-NA):
-        for l in range(Mv[jcusp][2]):
-            maass_logger.debug("V[{0}][{1}][{2}]={3}".format(icusp,n,l,V[icusp][n][l]))
+    if verbose > 0:
+        for n in range(NB-NA):
+            for l in range(Mv[jcusp][2]):
+                maass_logger.debug("V[{0}][{1}][{2}]={3}".format(icusp,n,l,V[icusp][n][l]))
 #    raise ArithmeticError
     if verbose>0:
         maass_logger.debug("V[0][0][0]={0}".format(V[0][0][0]))
@@ -1248,11 +1251,12 @@ cdef phase2_coefficient_sum_cplx_dp_sym(double complex **Cnew, double complex **
                     li=cusp_offsets[icusp]+l
                     vv = V[jcusp][n][li]
                     cc = Cold[fi][icusp][l]
-                    #]if verbose>1:
-                    maass_logger.debug("Cold[{0}][{1}][{2}]={3}".format(fi,icusp,l,cc))
-                    maass_logger.debug("V[{0}][{1}][{2}]\t={3}".format(jcusp+nc,n,li,vv))                
+                    if verbose>1:
+                        maass_logger.debug("Cold[{0}][{1}][{2}]={3}".format(fi,icusp,l,cc))
+                        maass_logger.debug("V[{0}][{1}][{2}]\t={3}".format(jcusp+nc,n,li,vv))                
                     Cnew[fi][jcusp] = Cnew[fi][jcusp] + vv*cc
-                    maass_logger.debug("Cnew[{0}][{1}]\t={2}".format(fi,icusp,Cnew[fi][jcusp]))
+                    if verbose > 1:
+                        maass_logger.debug("Cnew[{0}][{1}]\t={2}".format(fi,icusp,Cnew[fi][jcusp]))
             maass_logger.debug("")
                     
             if Mv[jcusp][0]<0:
@@ -1264,11 +1268,13 @@ cdef phase2_coefficient_sum_cplx_dp_sym(double complex **Cnew, double complex **
                         li=cusp_offsets[icusp]+l
                         vv = V[jcusp+nc][n][li]
                         cc = Cold[fi][icusp][l]
-                        maass_logger.debug("Cold[{0}][{1}][{2}]={3}".format(fi,icusp,l,cc))
-                        maass_logger.debug("V[{0}][{1}][{2}]\t={3}".format(jcusp+nc,n,li,vv))
+                        if verbose>1:
+                            maass_logger.debug("Cold[{0}][{1}][{2}]={3}".format(fi,icusp,l,cc))
+                            maass_logger.debug("V[{0}][{1}][{2}]\t={3}".format(jcusp+nc,n,li,vv))
                         
                         Cnew[fi][jcusp+nc] = Cnew[fi][jcusp+nc] + vv*cc
-                        maass_logger.debug("Cnew[{0}][{1}]\t={2}".format(fi,icusp,Cnew[fi][jcusp+nc]))
+                        if verbose>1:
+                            maass_logger.debug("Cnew[{0}][{1}]\t={2}".format(fi,icusp,Cnew[fi][jcusp+nc]))
                         #if verbose>1 and vv==0:
                         #    maass_logger.debug("V[{0}][{1}][{2}]=0".format(jcusp+nc,n,li))
                         #    maass_logger.debug("Cnew[{0}][{1}]+={2}*{3}={4}".format(fi,jcusp+nc,vv,cc,Cnew[fi][jcusp+nc]))
@@ -1406,16 +1412,16 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
     if ef2==NULL: raise MemoryError
     cdef int n1
     cdef int iicusp
-
-    maass_logger.debug("here0")
+    if verbose > 2:
+        maass_logger.debug("here0")
     for icusp in range(cuspB-cuspA):
         iicusp=icusp+cuspA
         if cusp_evs[iicusp]<>0.0 and iicusp>0 and (numy==2 or iicusp>1):
             continue
-        if verbose>=0:
+        if verbose>0:
             maass_logger.debug("icusp={0}".format(icusp))
         if Mv[icusp][0]>=0:
-            if verbose>=0:
+            if verbose>0:
                 maass_logger.debug("test1")
             ef2[icusp]=NULL
             ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*(NB-NA))
@@ -1426,7 +1432,7 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
                 ef2[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
         else:
-            if verbose>=0:
+            if verbose>0:
                 maass_logger.debug("test2")
             ef2[icusp]=NULL
             ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*2*(NB-NA))
@@ -1439,7 +1445,7 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
                 if ef2[icusp][n]==NULL: raise MemoryError
                 ef2[icusp][n1] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n1]==NULL: raise MemoryError
-    if verbose>=0:
+    if verbose>2:
         maass_logger.debug("here1")
     ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError
@@ -1459,7 +1465,7 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
         for n in range(Mv[jcusp][2]):
             nvec[jcusp][n]=<double>(n+Mv[jcusp][0])+alphas[jcusp]
     cdef double argpb1
-    if verbose>=0:
+    if verbose>2:
         maass_logger.debug("here")
     for jcusp in range(cuspB-cuspA):
         iicusp=jcusp+cuspA
@@ -2005,10 +2011,10 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     Cvec[yi][i][j][n]=0
     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs_cplx,cusp_offsets,&N1,&Ml,&Ql,M0,Q,verbose)
     if verbose>0:
-        print "in phase 2 (real) with eps=",eps
-        print "range: NA,NB=",NA,NB
-        print "N1=",N1
-        print "Ml,Ql=",Ml,Ql
+        maass_logger.debug("in phase 2 (real) with eps={0}".format(eps))
+        maass_logger.debug("range: NA,NB={0},{1}".format(NA,NB))
+        maass_logger.debug("N1={0}".format(N1))
+        maass_logger.debug("Ml,Ql={0},{1}".format(Ml,Ql))
     cdef double *alphas=NULL
     alphas=<double*>sage_malloc(sizeof(double)*nc)
     for i in range(nc):
@@ -2019,7 +2025,7 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     n_a = NA - Mv[0][0]
     n_b = n_a + n_step
     if verbose>0:
-        print "Compute coefficients at cusps from {0} to {1}".format(cuspstart,cuspstop)
+        maass_logger.debug("Compute coefficients at cusps from {0} to {1}".format(cuspstart,cuspstop))
 
     cdef int sym_fak
     V=<double****>sage_malloc(sizeof(double***)*(numy))
@@ -2472,8 +2478,8 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
     Y2pi=Y*pi*two
     twopi=two*pi
     if verbose>=0:
-        print "in compute Vnl with: R,Y",R,Y
-        print "NA,NB,cuspA,cuspB,verbose=",NA,NB,cuspA,cuspB,verbose
+        maass_logger.debug("in compute Vnl with: R,Y={0},{1}".format(R,Y))
+        maass_logger.debug("NA,NB,cuspA,cuspB,verbose={0},{1},{2},{3},{4}".format(NA,NB,cuspA,cuspB,verbose))
         Ml=0; Ql=0
     for i from 0<=i<nc:
         if Mv[i][2]>Ml:
@@ -2481,11 +2487,11 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
         if Qv[i][2]>Ql:
             Ql=Qv[i][2]
         if verbose>0:
-            print "Qv[",i,"]=(",Qv[i][0],",",Qv[i][1],",",Qv[i][2],")"
-            print "Mv[",i,"]=(",Mv[i][0],",",Mv[i][1],",",Mv[i][2],")"
+            maass_logger.debug("Qv[",i,"]=({0},{1},{2}".format(Qv[i][0],Qv[i][1],Qv[i][2]))
+            maass_logger.debug("Mv[",i,"]=({0},{1},{2}".format(Mv[i][0],Mv[i][1],Mv[i][2]))
     if verbose>2:
-        print "N1=",N1
-        print "Ql=",Ql
+        maass_logger.debug("N1={0}".format(N1))
+        maass_logger.debug("Ql={0}".format(Ql))
     ## This is the effective offset at the
     cdef int* cusp_offsets=NULL
     cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)

@@ -1193,10 +1193,10 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
         print "nreps=",nreps
     for j from 0<=j<nreps:
         if verbose>2:
-            print "reps[",j,",00=",reps[j][0][0]
-            print "reps[",j,",01=",reps[j][0][1]
-            print "reps[",j,",10=",reps[j][1][0]
-            print "reps[",j,",11=",reps[j][1][1]        
+            print "reps[",j,"],00=",reps[j][0][0]
+            print "reps[",j,"],01=",reps[j][0][1]
+            print "reps[",j,"],10=",reps[j][1][0]
+            print "reps[",j,"],11=",reps[j][1][1]        
         V[0][0]=reps[j][0][0]
         V[0][1]=reps[j][0][1]
         V[1][0]=reps[j][1][0]
@@ -1205,6 +1205,8 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
         # Check if A in Gamma_0(N)*V_j^-1
         # <=> A*V_j  in Gamma_0(N)
         # and we then apply VjA to the point
+        if verbose>2:
+            print "c1[{0}]={1}".format(j,c1)
         if c1 % N == 0:
             a1 = V[0][0]*a[0]+V[0][1]*c[0]
             b1 = V[0][0]*b[0]+V[0][1]*d[0]
@@ -1213,7 +1215,7 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
             a[0]=a1; b[0]=b1; c[0]=c1; d[0]=d1
             #_apply_sl2z_map_mpc(xout,yout,xin,yin,a,b,c,d)
             if verbose>2:
-                print "Coset rep nr. ",j,"=",a[0],b[0],c[0],d[0]
+                print "Coset rep nr. ",j,"=", a[0],b[0],c[0],d[0]
                 #_apply_sl2z_map_dp(x,y,a,b,c,d)
             _apply_sl2z_map_dp(x,y,V[0][0],V[0][1],V[1][0],V[1][1])
             #reps[0][0][0]=a; reps[0][0][1]=b; reps[0][1][0]=c; reps[0][1][1]=d; 

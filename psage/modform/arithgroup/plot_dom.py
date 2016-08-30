@@ -840,12 +840,11 @@ def nice_coset_reps(G):
 
 def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
     if G.index()>1:
-        print "Drawing here!"
         P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
         #return P
     else:
         P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
-    l=build_connected_path(P) #,model=model)
+    l=build_connected_path(P,**kwds) #,model=model)
     if standalone:
         fig=pyplot.Figure()
         canvas = FigureCanvas(fig)
@@ -859,73 +858,74 @@ def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
 
 
         
-def build_connected_path(P):
+def build_connected_path(P,**kwds):
     from sage.all import deepcopy,hyperbolic_arc
     paths = []
-    ymax = P._axes_range['ymax']
-    for x in P:
-        if x.A.imag() >= 10000:
-            ### these have to be treated specially..
-            ### We truncate to the maximum y height
-            ### and set the x-coordinate to the same as the other endpoint.
-            A = CC(x.B.real(),ymax)
-            B = CC(x.B.real(),x.B.imag())
-            paths.append(hyperbolic_arc(A,B)[0])
-            xmin = x.B.real()
-        elif x.B.imag() >= 10000:
-            ### these have to be treated specially..
-            ### We truncate to the maximum y height
-            ### and set the x-coordinate to the same as the other endpoint.
-            A = CC(x.A.real(),x.A.imag())
-            B = CC(x.A.real(),ymax)
-            paths.append(hyperbolic_arc(A,B)[0])
-            xmax = x.A.real()
-        else:
-            paths.append(x)
-    ## Add a 'closing' path between the two vertical sides.
-    paths.append(hyperbolic_arc(CC(xmin,ymax),CC(xmax,ymax))[0])
-
+    ymax = P._axes_range.get('ymax',kwds.get('ymax',10000))
+    xmax = P._axes_range.get('xmax',kwds.get('xmax',0))
+    xmin = P._axes_range.get('xmin',kwds.get('xmin',0))
     new_paths = []
-    ## first find the left most:
-    ## an arc has a .A and .B
-    As = [x.A for x in P]
-    minA = min(As)
-    mini = As.index(minA)
-    new_paths = [P[mini]]
-    paths.remove(P[mini])
+    if len(P)==1: ### SL2Z
+        A = P[0].A; B=P[0].B; C=P[0].C
+        new_paths =  [hyperbolic_arc(CC(A),CC(B))[0],
+                hyperbolic_arc(CC(B),CC(C))[0],
+                hyperbolic_arc(CC(C),CC(A))[0]]
+    else:
+        for x in P:
+            if x.A.imag() >= 10000:
+                ### these have to be treated specially..
+                ### We truncate to the maximum y height
+                ### and set the x-coordinate to the same as the other endpoint.
+                A = CC(x.B.real(),ymax)
+                B = CC(x.B.real(),x.B.imag())
+                paths.append(hyperbolic_arc(A,B)[0])
+                xmin = x.B.real()
+            elif x.B.imag() >= 10000:
+                ### these have to be treated specially..
+                ### We truncate to the maximum y height
+                ### and set the x-coordinate to the same as the other endpoint.
+                A = CC(x.A.real(),x.A.imag())
+                B = CC(x.A.real(),ymax)
+                paths.append(hyperbolic_arc(A,B)[0])
+                xmax = x.A.real()
+            else:
+                paths.append(x)
+        ## Add a 'closing' path between the two vertical sides.
+        paths.append(hyperbolic_arc(CC(xmin,ymax),CC(xmax,ymax))[0])
+        ## first find the left most:
+        ## an arc has a .A and .B
+        As = [x.A for x in P]
+        minA = min(As)
+        mini = As.index(minA)
+        new_paths = [P[mini]]
+        paths.remove(P[mini])
+        eps = 1e-15
+        current = P[mini].B
+        while paths != []:
+            current = new_paths[-1].B
+            #print "current=",current
+            try:
+                for p in paths:
+                    #print "p.A=",p.A
+                    #print "p.B=",p.B
+                    if abs(p.A-current)<eps:
+                        #print "appending p"
+                        new_paths.append(p)
+                        paths.remove(p)
+                        raise StopIteration                    
+                    elif abs(p.B-current)<eps: ## we reverse it 
+                        #print "appending p reversed"
+                        pnew = hyperbolic_arc(p.B,p.A)
+                        new_paths.append(pnew[0])
+                        paths.remove(p)
+                        raise StopIteration
+                    else:
+                        continue
 
-
-
-    eps = 1e-15
-    current = P[mini].B
-#    print "paths=",paths
-#    print "paths=",dir(new_paths[-1])
-#    return new_paths
-    while paths != []:
-        current = new_paths[-1].B
-        #print "current=",current
-        try:
-            for p in paths:
-                #print "p.A=",p.A
-                #print "p.B=",p.B
-                if abs(p.A-current)<eps:
-                    #print "appending p"
-                    new_paths.append(p)
-                    paths.remove(p)
-                    raise StopIteration                    
-                elif abs(p.B-current)<eps: ## we reverse it 
-                    #print "appending p reversed"
-                    pnew = hyperbolic_arc(p.B,p.A)
-                    new_paths.append(pnew[0])
-                    paths.remove(p)
-                    raise StopIteration
-                else:
-                    continue
-
-            print paths
-            raise ArithmeticError("Could not connect from {0}".format(current))
-        except StopIteration:
-            pass
+                print paths
+                raise ArithmeticError("Could not connect from {0}".format(current))
+            except StopIteration:
+                pass
     ### new paths is now a list of hyperbolic arcs
     res = []
     import matplotlib.patches as patches

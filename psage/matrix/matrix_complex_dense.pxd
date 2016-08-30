@@ -13,6 +13,7 @@ from sage.matrix.matrix_complex_double_dense cimport Matrix_complex_double_dense
 cdef class Matrix_complex_dense(Matrix_dense):
 
     #cdef mpc_t tmp
+    
     cdef mpc_t *_entries
     cdef int _entries_are_allocated
     cdef mpc_t ** _matrix

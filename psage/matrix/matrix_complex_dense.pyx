@@ -19,6 +19,7 @@ from psage.rings.mp_cimports cimport *
 
 from sage.rings.real_mpfr import RealField as RFF
 from sage.matrix.matrix cimport Matrix
+from sage.matrix.matrix_dense cimport Matrix_dense
 from sage.rings.complex_mpc import MPComplexField
 
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
@@ -94,14 +95,27 @@ cdef class Matrix_complex_dense(Matrix_dense):
         if self._verbose>0:
             print "in cinit"
         if self._verbose>1:
-            print "entries=",entries
+            print "entries=",entries,parent
         cdef double x
-        if not isinstance(parent,sage.matrix.matrix_space.MatrixSpace):
+#        if not isinstance(parent,sage.matrix.matrix_space.MatrixSpace):
+        if not hasattr(parent,'base_ring') or not hasattr(parent,'nrows'):
             if verbose>0:
                 print "no matrix space!"
             raise ValueError,"Need MatrixSpace as parent!" 
 
-        Matrix_dense.__init__(self, parent) #,entries=entries) #coerce=coerce,copy=copy)
+        #Matrix_dense.__init__(self, parent) #,None,copy,coerce) #,entries=entries) #coerce=coerce,copy=copy)
+        if self._verbose>0:
+            print "before base ring"
+        self._parent = parent
+        if self._verbose>0:
+            print "before base ring"
+        self._base_ring = parent.base_ring()
+        if self._verbose>0:
+            print "after base ring"
+        self._nrows = parent.nrows()
+        self._ncols = parent.ncols()
+        if self._verbose>0:
+            print "matrix dense inited!"
         cdef Py_ssize_t i, k
         self._entries = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
         if self._verbose>0:

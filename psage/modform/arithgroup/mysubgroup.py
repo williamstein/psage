@@ -2795,6 +2795,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if verbose>0:
             print "options=",options
         draw_axes=options.pop('draw_axes',1)
+        ymax = options.get('ymax',2.0)
+            
         npts = options.pop('npts',10)
         if options['method']=='Farey' and options['model']=='H':
             options.pop('model'); options.pop('method');
@@ -2904,6 +2906,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 elif model=='H' and options['show_tesselation'] and options.get('fill',True)==True:
                     g += my_hyperbolic_triangle(A, B, C, color="lightgray",fill=True,
                                                 model=model)
+                if options.get('show_tesselation'):
+                    g += my_hyperbolic_triangle(A, B, C, color="black",fill=False,
+                                                model=model)
             g+=cntr
         if False and contour_only==True:
             # Remove interior arcs from path...
@@ -2945,7 +2950,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 
         d = g.get_minmax_data()
         if model=='H':
-            g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],options.get('ymax')))
+            g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],ymax))
             if options.get('ticks'):
                 g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
             else:

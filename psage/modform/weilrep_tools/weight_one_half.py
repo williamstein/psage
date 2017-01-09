@@ -1,8 +1,9 @@
-from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree, lcm, Matrix
+from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree, lcm, Matrix, cached_function
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from psage.modules.weil_invariants import invariants
 from copy import copy
 
+@cached_function
 def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
     r"""
     Computes the invariants of a direct summand in the decomposition for weight
@@ -32,12 +33,13 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
     else:
         TMM = FQM
         eps = False
-    if debug > 1: print "FQM = {0}, TM = {1}, TMM = {2}".format(FQM, TM, TMM)
+    debug2 = 0
+    if debug > 1:
+        print "FQM = {0}, TM = {1}, TMM = {2}".format(FQM, TM, TMM)
+        debug2 = 1
     if debug > 2:
         debug2=debug
-    else:
-        debug2=0
-    inv = invariants(TMM, use_reduction, proof, debug2)
+    inv = invariants(TMM, use_reduction, proof=proof, debug=debug2)
     if debug > 1: print inv
     if type(inv) in [list,tuple]:
         V = inv[1]
@@ -50,15 +52,25 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
         if eps:
             f = 1 if TMM.signature() % 4 == 0 else -1
             for v in inv[0]:
+                #Get the coordinate of this isotropic element
                 vv = v.c_list()
+                #change the first coordinate to its negative (the eps-action)
                 vv[0] = -vv[0]
                 vv = TMM(vv,can_coords=True)
+                #since the isotropic elements are taken up to the action of +-1, we need to check
+                #if we have this element (vv) or its negative (-vv) in the list
+                #we append the index of the match, together with a sign to the list `el`,
+                #where the sign is -1 if -vv is in inv[0] and the signature is 2 mod 4
+                #(i.e. the std generator of the center acts as -1)
                 if inv[0].count(vv) > 0:
                     el.append((inv[0].index(vv),1))
                 else:
                     el.append((inv[0].index(-vv),f))
+            #We create the entries of the matrix M
+            #which acts as eps on the space spanned by the isotropic vectors (mod +-1)
             for i in range(len(el)):
                 M[el[i][0],i] = el[i][1]
+            #import pdb; pdb.set_trace()
             if debug > 1: print "M={0}, V={1}".format(M, V)
             try:
                 KM = (M-M.parent().one()).kernel_on(V)
@@ -67,13 +79,14 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
                 KM = (M+M.parent().one()).kernel_on(V)
                 if debug > 1: print "KM for ev -1 = {0}".format(KM)
                 d[1] = KM.dimension()
-            except:
-                raise RuntimeError("Error occured for {0}".format(FQM.jordan_decomposition().genus_symbol()), M, V)
+            except Exception as e:
+                raise RuntimeError("Error occured for {0}, {1}".format(FQM.jordan_decomposition().genus_symbol(), e), M, V)
         else:
             d = [V.dimension(), 0]
     if debug > 1: print d
     return d
 
+@cached_function
 def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, local=True):
     N = Integer(FQM.level())
     if not N % 4 == 0:

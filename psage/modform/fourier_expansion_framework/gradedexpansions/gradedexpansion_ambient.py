@@ -29,7 +29,7 @@ from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_
 from operator import xor
 from sage.misc.cachefunc import cached_method
 from sage.misc.flatten import flatten
-from sage.misc.misc import prod
+from sage.misc.misc_c import prod
 from sage.rings.all import Integer
 from sage.structure.element import Element
 from sage.structure.parent import Parent

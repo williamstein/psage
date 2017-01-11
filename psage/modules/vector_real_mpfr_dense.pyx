@@ -208,7 +208,7 @@ cdef class Vector_real_mpfr_dense(FreeModuleElement):
     def __reduce__(self):
         return (unpickle_v1, (self._parent, self.list(), self._degree, self._is_mutable))
 
-    cpdef ModuleElement _add_(self, ModuleElement right):
+    cpdef _add_(self,  right):
         cdef Vector_real_mpfr_dense z, r
         r = right
         #print "in add!"
@@ -221,7 +221,7 @@ cdef class Vector_real_mpfr_dense(FreeModuleElement):
         return z
         
 
-    cpdef ModuleElement _sub_(self, ModuleElement right):
+    cpdef _sub_(self, right):
         cdef Vector_real_mpfr_dense z, r
         r = right
         #print "in sub!"

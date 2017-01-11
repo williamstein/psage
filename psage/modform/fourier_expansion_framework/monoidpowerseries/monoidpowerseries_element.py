@@ -25,11 +25,10 @@ AUTHOR :
 #===============================================================================
 
 from copy import copy
-from sage.algebras.algebra_element import AlgebraElement
+from sage.structure.element import AlgebraElement,ModuleElement
 from sage.misc.latex import latex
 from sage.misc.misc import union
 from sage.modules.module import Module 
-from sage.modules.module_element import ModuleElement
 from sage.rings.ring import Ring
 
 #===============================================================================

@@ -43,7 +43,8 @@ from sage.structure.element import is_Vector
 from sage.matrix.matrix2 import cmp_pivots, decomp_seq
 from sage.matrix.matrix0 import Matrix as Matrix_base
 
-from sage.misc.misc import verbose, get_verbose, prod
+from sage.misc.misc import verbose, get_verbose
+from sage.misc.misc_c import prod
 
 ## #########################################################
 
@@ -766,7 +767,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpc_mul(M._entries[i], self._entries[i], _x.value,self._rnd)
         return M
     
-    cpdef ModuleElement _add_(self, ModuleElement right):
+    #cpdef ModuleElement _add_(self, ModuleElement right):
+    cpdef _add_(self, right):
         """
         Add two dense matrices over MPC.
         
@@ -801,7 +803,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         sig_off()
         return M
         
-    cpdef ModuleElement _sub_(self, ModuleElement right):
+    cpdef _sub_(self, right):
         """
         Subtract two dense matrices over MPC.
         
@@ -876,7 +878,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     #     return 0
     cdef Vector _vector_times_matrix_(self, Vector v):
         """
-        Returns the vector times matrix product.
+        Returns the vector times matrix prodct.
         
         INPUT:
         

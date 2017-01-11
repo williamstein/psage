@@ -29,7 +29,7 @@ from sage.matrix.constructor import diagonal_matrix
 from sage.matrix.constructor import matrix
 from sage.misc.cachefunc import cached_method
 from sage.misc.functional import isqrt
-from sage.misc.misc import prod
+from sage.misc.misc_c import prod
 from sage.modules.all import vector
 from sage.modules.free_module import FreeModule
 from sage.quadratic_forms.quadratic_form import QuadraticForm

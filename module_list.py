@@ -61,8 +61,8 @@ ext_modules = [
 #               "psage/ellff/lzz_pEratX.cpp"],
 #              language = 'c++'),
 
-    Extension("psage.function_fields.function_field_element",
-              ["psage/function_fields/function_field_element.pyx"]),
+#    Extension("psage.function_fields.function_field_element",
+#              ["psage/function_fields/function_field_element.pyx"]),
 
     Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
               ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),

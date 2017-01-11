@@ -64,9 +64,10 @@ from sage.structure.category_object import CategoryObject
 from sage.rings.ring import Field
 from sage.rings.integer_ring import ZZ
 from sage.structure.parent_gens import ParentWithGens
-import function_field_element
+#import function_field_element
 
 from category import FunctionFields
+from sage.rings.function_field import function_field_element
 CAT = FunctionFields()
 
 import maps

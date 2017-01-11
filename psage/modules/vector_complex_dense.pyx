@@ -208,7 +208,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
     def __reduce__(self):
         return (unpickle_v1, (self._parent, self.list(), self._degree, self._is_mutable))
 
-    cpdef ModuleElement _add_(self, ModuleElement right):
+    cpdef _add_(self, right):
         cdef Vector_complex_dense z, r
         cdef MPComplexNumber ztmp
         cdef Py_ssize_t i
@@ -230,7 +230,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
         return z
         
 
-    cpdef ModuleElement _sub_(self, ModuleElement right):
+    cpdef _sub_(self, right):
         cdef Vector_complex_dense z, r
         cdef MPComplexNumber ztmp
         cdef Py_ssize_t i

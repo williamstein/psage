@@ -27,7 +27,7 @@ Orders in Function Fields
 from sage.structure.parent_gens import ParentWithGens
 
 from sage.rings.ring import IntegralDomain, PrincipalIdealDomain
-
+from sage.rings.function_field import function_field_element
 from sage.rings.ideal import is_Ideal
 
 class FunctionFieldOrder(IntegralDomain):
@@ -252,7 +252,7 @@ class FunctionFieldOrder_basis(FunctionFieldOrder):
 ##         raise NotImplementedError
     
 
-import function_field_element    
+#import function_field_element    
         
 class FunctionFieldOrder_rational(PrincipalIdealDomain, FunctionFieldOrder):
     """

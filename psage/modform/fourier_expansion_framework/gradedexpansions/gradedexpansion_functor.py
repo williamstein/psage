@@ -29,7 +29,7 @@ from sage.algebras.algebra import Algebra
 from sage.categories.morphism import Morphism
 from sage.categories.pushout import ConstructionFunctor, pushout
 from sage.categories.rings import Rings
-from sage.misc.misc import prod
+from sage.misc.misc_c import prod
 from sage.modules.module import Module 
 from sage.rings.integer import Integer
 from sage.structure.sequence import Sequence

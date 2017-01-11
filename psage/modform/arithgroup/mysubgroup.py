@@ -93,8 +93,9 @@ import matplotlib.patches as patches
 import matplotlib.path as path
 
 from sage.modular.arithgroup.arithgroup_perm import *
-#from subgroups_alg import *
-#load "/home/stromberg/sage/subgroups/subgroups_alg.spyx"
+
+import logging
+log = logging.getLogger(__name__)
 
 def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},**kwds):
     r"""
@@ -1760,9 +1761,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         print "V(",j,")=Id"
         # By construction none of the coset-reps are in self and h(V_j)=j so they are all independent
         # But to make sure we got all we count the keys
-        if coset_reps.keys() <> range(1,self._index+1):
-            print "ix=",ix
-            print "cl=",coset_reps
+        if coset_reps.keys() != list(range(1,self._index+1)):
+            log.critical("ix={0}".format(ix))
+            log.critical("cl={0}".format(coset_reps))
+            log.critical("lhs={0}".format(coset_reps.keys()))
+            log.critical("rhs={0}".format(range(1,self._index+1)))
+                             
             raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(coset_reps))
         res  = list()
         for i in range(ix):

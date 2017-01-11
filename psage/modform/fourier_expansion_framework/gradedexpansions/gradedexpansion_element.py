@@ -26,10 +26,9 @@ AUTHOR :
 
 from psage.modform.fourier_expansion_framework.gradedexpansions.fourierexpansionwrapper import FourierExpansionWrapper
 from itertools import groupby
-from sage.algebras.algebra_element import AlgebraElement
+from sage.structure.element import AlgebraElement,ModuleElement
 from sage.misc.all import prod
 from sage.misc.latex import latex
-from sage.modules.module_element import ModuleElement
 from sage.rings.infinity import infinity
 import operator
 

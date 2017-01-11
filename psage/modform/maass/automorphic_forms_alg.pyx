@@ -23,7 +23,10 @@ from libc.stdint cimport uint64_t
 
 from psage.rings.mpfr_nogil cimport *
 include "sage/ext/stdsage.pxi" 
+include "cysignals/signals.pxi"
 
+import logging
+log = logging.getLogger(__name__)
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
     
@@ -251,8 +254,10 @@ cpdef err_est_hwmf_pos(RealNumber Y,int M,RealNumber k,int K0,RealNumber K1):
     cdef RealNumber YY,res
     cdef int prec = Y.parent().prec()
     #cdef mpfr_t pi,f1,sqM,sqK,B,Bsq,sqrt2pi,sqpiY,f2,f3
-    cdef mpfr_t f1,sqM,sqK,B,Bsq,sqrt2pi[1],sqpiY,f2,f3
+    cdef mpfr_t f1,sqM,sqK,B,Bsq,sqpiY,f2,f3
     cdef mpfr_t pi[1]
+    cdef mpfr_t sqrt2pi[1]
+    
     #mpfr_init2(t,prec);
     #mpfr_init2(c,prec)
     mpfr_init2(pi[0],prec); mpfr_init2(sqrt2pi[0],prec)
@@ -790,6 +795,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     pp_info = check_principal_parts(H,principal_parts)    
     if verbose>0:
         print "pp_info=",pp_info
+        log.debug("pp_info={0}".format(pp_info))
     #if verbose>1:
         print "Yin=",mpfr_get_d(Y,rnd_re)
         #mpc_set(ch.value,Cvec[0][1][0],rnd)
@@ -798,7 +804,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     #    print "Ypb[0,1,0]=",mpfr_get_d(tmpr,rnd_re)
     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
     cdef int d = len(PPplus)
-    cdef int **variable_a0_plus,**variable_a0_minus
+    cdef int **variable_a0_plus
+    cdef int **variable_a0_minus
     variable_a0_plus = <int**> check_allocarray(sizeof(int*),d)
     variable_a0_minus = <int**> check_allocarray(sizeof(int*),d)
     for j in range(d):
@@ -810,9 +817,15 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
 #        for l in range(nc):
 #            variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
 #            variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
-  
-    cdef int **PPplus_cusp=NULL , **PPplus_n=NULL,**PPminus_cusp=NULL , **PPminus_n=NULL
-    cdef mpc_t **PPplus_values=NULL,**PPminus_values=NULL
+
+
+    log.debug("HERE0")
+    cdef int **PPplus_cusp=NULL
+    cdef int **PPplus_n=NULL
+    cdef int **PPminus_cusp=NULL
+    cdef int **PPminus_n=NULL
+    cdef mpc_t **PPplus_values=NULL
+    cdef mpc_t **PPminus_values=NULL
     cdef mpfr_t **PPplus_lal=NULL
     cdef int num_ppplus = len(pp_info['PPplus'][0])
     cdef int num_ppminus = len(pp_info['PPminus'][0])
@@ -830,8 +843,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     if PPplus_values==NULL: raise MemoryError
     PPplus_lal = <mpfr_t**>check_allocarray(sizeof(mpfr_t*),d)
     if PPplus_lal==NULL: raise MemoryError
-    PPminus_lal = <mpfr_t**>check_allocarray(sizeof(mpfr_t*),d)    
+    PPminus_lal = <mpfr_t**>check_allocarray(sizeof(mpfr_t*),d)
+    log.debug("HERE1")    
     for j in range(d):
+        log.debug("HERE2 {0}".format(d))
         PPplus_cusp[j]=NULL;PPplus_n[j]=NULL;PPminus_cusp[j]=NULL;PPminus_n[j]=NULL
         PPplus_values[j]=NULL;PPminus_values[j]=NULL;PPplus_lal[j]=NULL
         PPplus_cusp[j] = <int *>check_allocarray(sizeof(int),num_ppplus)
@@ -848,10 +863,14 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
         if PPplus_values[j]==NULL: raise MemoryError
         PPplus_lal[j] =  <mpfr_t*>check_allocarray(sizeof(mpfr_t),num_ppplus)
         if PPplus_lal[j]==NULL: raise MemoryError
-        PPminus_lal[j] =  <mpfr_t*>check_allocarray(sizeof(mpfr_t),num_ppplus)
+        PPminus_lal[j] =  <mpfr_t*>check_allocarray(sizeof(mpfr_t),num_ppminus)
         if PPminus_lal[j]==NULL: raise MemoryError        
         l = 0
+        log.debug("HERE2a")
         for i,jj in pp_info['PPplus'][j].keys():
+            if l>=num_ppplus:
+                log.critical("Too large l={0} > num_ppplus={1}!".format(l,num_ppplus))
+            
             tmpc = CF(pp_info['PPplus'][j][(i,jj)])        
             PPplus_cusp[j][l]=int(i)
             PPplus_n[j][l]=int(jj)
@@ -865,7 +884,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             #print "tmpr=",tmpr
             l+=1
         l = 0
+        log.debug("HERE2b")        
         for i,jj in pp_info['PPminus'][j].keys():
+            if l>=num_ppminus:
+                log.critical("Too large l={0} > num_ppminus={1}!".format(l,num_ppminus))
             PPminus_cusp[j][l]=int(i)
             PPminus_n[j][l]=int(jj)
             tmpc = CF(pp_info['PPminus'][j][(i,jj)])
@@ -873,11 +895,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             mpc_set(PPminus_values[j][l],tmpc.value,rnd)
             trn = RF(jj)+RF(H.alpha(i)[0])
             mpfr_set(tmpr,trn.value,rnd_re)
-            #print "tmpr=",tmpr
             mpfr_init2(PPminus_lal[j][l],prec)
             mpfr_set(PPminus_lal[j][l],tmpr,rnd_re)
             l+=1
 
+    log.debug("HERE3")
 
     cdef int has_key = 0
     MSRHS = MatrixSpace(CF,s,d)
@@ -972,7 +994,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 mpfr_set(nr,nvec[jcusp][n],rnd_re)
                 setcossin2(ef2cosv[jcusp][n],ef2sinv[jcusp][n],Xm,nr,Ql,prec)
                 if verbose>2:
-                    printf("done with ef2cosv[%d][%d], ef2sinv[%d][%d]\n",jcusp,n)
+                    printf("done with ef2cosv[%d][%d], ef2sinv[%d][%d]\n",jcusp,n,jcusp,n)
                     printf("ef2cosv[%d][%d][0]=%f\n",jcusp,n,mpfr_get_d(ef2cosv[jcusp][n][0],rnd_re))
                 #mpfr_set(nr,nvec[jcusp][n],rnd_re)
                 #if verbose>0 and n==0:
@@ -1096,20 +1118,34 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                     mpc_set_fr(besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
                     if verbose>0:
                         mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][n-Ms][j],rnd)
-                        print "besv_minus[",icusp,jcusp,n,j,"]=",tmpcplx
+                        print "besv_minus0[",icusp,jcusp,n-Ms,j,"]=",tmpcplx
                        
                 else:
-                    # Gamma(1-k,-4piny)*e^(-2*pi*Ypb*n)
-                    mpfr_mul(tmpr_t,twopi,Ypb[icusp][jcusp][j],rnd_re)
-                    mpfr_neg(tmpr_t,tmpr_t,rnd_re)
-                    mpfr_exp(tmpr_t,tmpr_t,rnd_re)
+                    # Gamma(1-k,-4piny)+(-1)^{1-k}\pi i/Gamma(k)
+                    #  x e^(-2*pi*Ypb*n)
+                    ##
+                    mpfr_mul(tmpr_t,twopi,Ypb[icusp][jcusp][j],rnd_re) # 2pi y
+                    mpfr_neg(tmpr_t,tmpr_t,rnd_re)  # -2pi y
+                    mpfr_exp(tmpr_t,tmpr_t,rnd_re) # e^(-2pi y)
                     mpfr_mul(tmpr,nrfourpi,Ypb[icusp][jcusp][j],rnd_re)
+                    mpfr_neg(tmpr,tmpr,rnd_re)
                     mpfr_set(tmpreal1.value,tmpr,rnd_re)
                     mptmp = mpmath.mp.gammainc(kint,tmpreal1)
                     tmpcplx = CF(mptmp.real,mptmp.imag)
-                    mpc_set(besv_minus[icusp][jcusp][n-Ms][j],tmpcplx.value,rnd)
-                    mpc_mul_fr(besv_minus[icusp][jcusp][n-Ms][j],besv_minus[icusp][jcusp][n][j],tmpr_t,rnd)
+                    mptmp = mpmath.mp.gamma(weight)
+                    tmpcplx2 = CF(mptmp.real,mptmp.imag)
+                    
+                    tmpcplx = tmpcplx*CF(0,1)**(2-2*k)*pi/tmpcplx2
 
+                    mpc_set(besv_minus[icusp][jcusp][n-Ms][j],tmpcplx.value,rnd)
+                    mpc_mul_fr(besv_minus[icusp][jcusp][n-Ms][j],besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
+                    if verbose>0:
+                        print "tmpcplx=",tmpcplx
+                        print "tmpcplx2=",tmpcplx2
+                        
+                        mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][n-Ms][j],rnd)
+                        print "besv_minus1[",icusp,jcusp,n-Ms,j,"]=",tmpcplx
+            
                                     
     cdef int nrows,ncols
     nrows = int(V.nrows()); ncols = int(V.ncols())
@@ -1146,6 +1182,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     #verbose=3
     for n in range(Ml):
         for icusp in range(nc):
+            sig_check()
             mpfr_set(nr,nvec[icusp][n],rnd_re)
             mpfr_mul(nrY2pi,nr,twopiY,rnd_re)
             #nrY2pi=nr*twopiY
@@ -1323,12 +1360,13 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
 
                     mpc_set_ui(summa_minus,0,rnd) #=zero #summa_minus
                     for j in range(Ql):
+                        sig_check()
                         if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                             continue
                         # RCvec = [|v|, arg(v)]
                         if verbose>0:
                             mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][l][j],rnd)
-                            print "besv_minus[",icusp,jcusp,l,j,"]=",tmpcplx
+                            print "besv_minus2[",icusp,jcusp,l,j,"]=",tmpcplx
                             mpfr_set(tmpreal1.value,RCvec[icusp][jcusp][j][0],rnd_re)
                             print "Rcvec[",icusp,jcusp,j,0,"]=",tmpreal1
                             mpfr_set(tmpreal1.value,RCvec[icusp][jcusp][j][2],rnd_re)
@@ -1672,7 +1710,7 @@ cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mp
     mpfr_clear(tmpar)
     mpfr_clear(tmpar1)
     mpfr_clear(tmpab)   
-
+    
 ### Version to use when we can not use symmetry
 
 cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,principal_parts,version=1,threads=1):
@@ -1838,6 +1876,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
     pp_info = check_principal_parts(H,principal_parts)    
     if verbose>0:
         print "pp_info=",pp_info
+        log.debug("pp_info={0}".format(pp_info))
     if verbose>1:
         print "Yin=",Y
         mpc_set(ch.value,Cvec[0][0][0],rnd)
@@ -1846,7 +1885,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
         print "Ypb[0,0,0]=",tmpr
     PPplus = pp_info['PPplus']; PPminus = pp_info['PPminus']
     cdef int d = len(PPplus)
-    cdef int **variable_a0_plus,**variable_a0_minus
+    cdef int **variable_a0_plus
+    cdef int **variable_a0_minus
     variable_a0_plus = <int**> check_allocarray(sizeof(int*),d)
     variable_a0_minus = <int**> check_allocarray(sizeof(int*),d)
     for j in range(d):
@@ -1855,8 +1895,12 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
         for l in range(nc):
             variable_a0_minus[j][l]=int(pp_info['variable_a0_minus'].get(j,{}).get(l,0))
             variable_a0_plus[j][l]=int(pp_info['variable_a0_plus'].get(j,{}).get(l,0))
-    cdef int **PPplus_cusp=NULL , **PPplus_n=NULL,**PPminus_cusp=NULL , **PPminus_n=NULL
-    cdef mpc_t **PPplus_values=NULL,**PPminus_values=NULL
+    cdef int **PPplus_cusp=NULL
+    cdef int **PPplus_n=NULL
+    cdef int **PPminus_cusp=NULL
+    cdef int **PPminus_n=NULL
+    cdef mpc_t **PPplus_values=NULL
+    cdef mpc_t **PPminus_values=NULL
     cdef mpfr_t **PPplus_lal=NULL
     cdef int num_ppplus = len(pp_info['PPplus'][0])
     cdef int num_ppminus = len(pp_info['PPminus'][0])

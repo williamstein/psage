@@ -1587,6 +1587,8 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
             setc[i][(0,i+offset)]=1            
             #if(self.alpha(0)[1]==1):
             pp[i]['+'][(0,0)]=0
+            if self.is_holomorphic():
+                pp[i]['-'][(0,0)]=0
         if(not self.is_cuspidal()):
             if(len(pp)==0):
                 pp.append({'+':{(0,0):1},'-':{}})
@@ -1606,7 +1608,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         Q = M + 10
         if self._verbose>0:
             print "M,Q,Y=",M,Q,Y
-        V=setup_matrix_for_harmonic_Maass_waveforms(self,Y,M,Q,pp)
+        #V=setup_matrix_for_harmonic_Maass_waveforms(self,Y,M,Q,pp)
         # Fix normalizations
         if self._verbose>1:
             print "pp=",pp
@@ -3291,7 +3293,7 @@ def extract_princial_part(M,principal_part):
     """### Interpret the principal part .
     LP = LaurentPolynomialRing(QQ,name='q')
     q = LP.gens()[0]
-    YP = PolynomialRing(QQ,name='y')
+    YP = LaurentPolynomialRing(QQ,name='y')
     y = YP.gens()[0]
     ppdict={'-':{},'+':{}}
     ## We start by setting the constant terms to zero

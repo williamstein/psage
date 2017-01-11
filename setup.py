@@ -85,12 +85,13 @@ def run_cythonize():
     import Cython.Compiler.Options
     import Cython.Compiler.Main
     debug = False
+    gdb_debug = True
     if os.environ.get('SAGE_DEBUG', None) == 'yes':
         print('Enabling Cython debugging support')
         debug = True
         Cython.Compiler.Main.default_options['gdb_debug'] = True
         Cython.Compiler.Main.default_options['output_dir'] = 'build'
-
+        gdb_debug=True
 
     profile = False    
     if os.environ.get('SAGE_PROFILE', None) == 'yes':
@@ -111,6 +112,7 @@ def run_cythonize():
     global ext_modules
     ext_modules = cythonize(
         ext_modules,
+        gdb_debug=gdb_debug,
         nthreads=int(os.environ.get('SAGE_NUM_THREADS', 0)),
         #    build_dir=SAGE_CYTHONIZED,
         force=FORCE,

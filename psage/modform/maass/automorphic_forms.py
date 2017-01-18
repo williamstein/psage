@@ -1112,7 +1112,7 @@ class AutomorphicFormSpace(Parent):
                 if do_mpmath==0:
                     N = self.set_normalization(setc)
                 else:
-                    N = self.set_norm(setc)
+                    N = self.set_norm(ppart,setc)
             else:
                 N = self.set_normalization_vv(ppart,setc)
             #else:

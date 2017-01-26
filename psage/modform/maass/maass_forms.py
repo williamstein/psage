@@ -3651,7 +3651,7 @@ def my_kbes(r,x,mp_ctx=None):
 
     """
     import mpmath
-    if mp_ctx==None or mp_ctx==mpmath.fp or mpamth.dps<=15:
+    if mp_ctx==None or mp_ctx==mpmath.fp or mpmath.dps<=15:
         # use fast routine
         return besselk_dp(RR(r),RR(x))
     else:

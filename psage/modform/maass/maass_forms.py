@@ -901,12 +901,12 @@ class MaassWaveForms (AutomorphicFormSpace):
                 # must find Y0 s.t. |besselk(it,Y0)| is large enough
                 Y1=Y0
                 #k=base.besselk(base.mpc(0,t),Y1).real*mpmath.exp(t*0.5*base.pi)
-                k=besselk_dp(RR(t),Y1)*exp(t*0.5*RR.pi())
+                k=my_kbes(RR(t),Y1)*exp(t*0.5*RR.pi())
                 j=0
                 while(j<1000 and abs(k)<1e-3):
                     Y1=Y1*0.999;j=j+1
                     #k=base.besselk(base.mpc(0,t),Y1).real*mpmath.exp(t*0.5*base.pi)
-                    k=besselk_dp(RR(t),Y1)*exp(t*0.5*RR.pi())
+                    k=my_kbes(RR(t),Y1)*exp(t*0.5*RR.pi())
                     Y0=Y1
                 new_ivs.append((r11,r2,Y0))
                 r11=t+1E-08
@@ -2038,7 +2038,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     res=res+self._coeffs[fi][cj][n]*term
             else:
                 for n in range(1,numc):
-                    term=besselk_dp(R,ary*n)*fun(arx*n)
+                    term=my_kbes(R,ary*n)*fun(arx*n)
                     res=res+self._coeffs[fi][cj][n]*term
             res = res*sqrt(y3)
         else:
@@ -2055,7 +2055,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 for n in range(-numc+1,numc):
                     if n== 0:
                         continue
-                    term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
+                    #term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
+                    term=my_kbes(R,ary*abs(n))*CC(0,arx*n).exp()
                     res=res+self._coeffs[fi][cj][n]*term
             #if res == 0.0:
             #    continue #print "value = 0"
@@ -2224,6 +2225,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         """
         S=self._space
         eps = 10**(1-ndigs)
+        gr = kwds.get('gr',0)
         R=self._R
         G=S._group
         if S._verbose>1:
@@ -2255,12 +2257,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #    do_cplx=0
         if ndigs<=15:
             if do_cplx:
-                X = get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),0,norm,do_par=do_par,ncpus=ncpus)
+                X = get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),0,norm,do_par=do_par,ncpus=ncpus,gr=gr)
             else:
                 raise NotImplementedError,"This algorithm has some problems now...!"
                 #X=get_coeff_fast_real_dp(S,RR(R),RR(Y),int(M),int(Q),norm)
             ## We still want the variables to have Sage types and not primitive python types
-
+            if gr != 0:
+                return X
             for i in X.keys():
                 for j in X[i].keys():
                     if hasattr(X[i][j],"keys"):
@@ -2283,7 +2286,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         # And rearrange them later in the "get_element" routine.
         if overwrite==1 or dim>1:
             self._coeffs=X
-            return
+            return 
         if not isinstance(self._coeffs,dict):
             self._coeffs={i: {j:{} for j in range(self.group().ncusps())}  for u in range(self._dim)}
         if self._verbose>0:
@@ -3651,7 +3654,7 @@ def my_kbes(r,x,mp_ctx=None):
 
     """
     import mpmath
-    if mp_ctx==None or mp_ctx==mpmath.fp or mpmath.dps<=15:
+    if abs(r) < 500 and mp_ctx==None or mp_ctx==mpmath.fp or mpmath.mp.dps<=15:
         # use fast routine
         return besselk_dp(RR(r),RR(x))
     else:

@@ -1236,62 +1236,9 @@ class MaassWaveForms (AutomorphicFormSpace):
                 d=d*2
         return d
 
-    def get_primitive_p(self,p0=0,notone=1):
-        r"""
-        Gives a prime p to use for Hecke operator on M
-        p should be relative prime to the level of M._group
-        and to the modulus of M._multiplier._character
-
-        INPUT:
-
-        - 'p0' -- return prime greater than p0
-        - 'notone' -- if set to one we return a prime with chi(p)<>1
-        """
-        if not self._group._is_congruence:
-            return next_prime(p0)
-        m=self._multiplier
-        x=m._character
-        if hasattr(x,"modulus"):
-            modulus=x.modulus()
-        else:
-            modulus=1
-        prim_to=lcm(self.level(),modulus)
-        p00 = next_prime(p0)
-        p01 = p00 + prim_to
-        if notone:
-            if self.level() % 9 ==0 :
-                pq=3
-                # celif self._group._level % 4 ==0 :
-                #    pq=4
-            else:
-                pq=1
-
-        for p in prime_range(p00,p01+1):
-            if notone==1 and p%pq==1:
-                continue
-            if gcd(p,prim_to)==1:
-                return p
-        raise ArithmeticError," Could not find appropriate p rel. prime to {0}!".format(prim_to)
 
 
-    def smallest_M0(self):
-        r"""
-        Smallest M0 which we can use if we want to test using Hecke relations.
-        """
-        if is_Hecke_triangle_group(self._group):
-            if self._group.is_Gamma0():
-                self._smallest_M0=int(12)
-            else:
-                self._smallest_M0=int(12*self._group._lambdaq)
-        if self._smallest_M0>0:
-            return self._smallest_M0
-        a = self.get_primitive_p()
-        b = self.get_primitive_p(a)
-        c = a*b
-        self._smallest_M0=c+3
-        return self._smallest_M0
-
-
+   
    
 
     def scattering_determinant(self,s):
@@ -1732,46 +1679,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
         """
-        if a*b==0:
-            a = self.space().get_primitive_p()
-            b = self.space().get_primitive_p(a)
-        c=gcd(Integer(a),Integer(b))
-        if self._verbose>1:
-            print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)
-        C = self._coeffs[0][0]
-        if not C.has_key(0):
-            raise KeyError
-        if not hasattr(C[0],"has_key"):
-            C = {0:C}
-        if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b):
-            lhs=C[0][a]*C[0][b]
-            rhs=0
-            for d in divisors(c):
-                if not self.character().is_trivial():
-                    x = self.character()(d)
-                else:
-                    x = 1
-                m = Integer(a*b/d/d)
-                if self._verbose>1:
-                    print "rhs+=c*C[0][{0}]={1}".format(m,x*C[0][m])
-                rhs=rhs+x*C[0][m]
-
-
-            if self._verbose>1:
-                print "|rhs|=",abs(rhs)
-                print "|lhs|=",abs(lhs)
-                print "self._prec=",self._prec
-                print "rhs/lhs-1=",rhs/lhs-1.0
-            #if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
-            #    return -1
-            ## We have to return true also for the zero function
-            t = rhs-lhs
-            if signed:
-                return t #rhs/lhs-1
-            else:
-                return abs(t) #rhs/lhs-1)
-        return -1
-
+        coeffs = self._coeffs[0][0]
+        return self.space().test_Hecke_relation(coeffs=coeffs,a=a,b=b,signed=signed)
 
 
     

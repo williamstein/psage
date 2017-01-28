@@ -159,7 +159,7 @@ from automorphic_forms_alg import *
 from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing
 from sage.arith.misc import next_prime,lcm
 from sage.rings.fast_arith import prime_range
-from sage.functions.other inport real
+from sage.functions.other import real
 
 from multiplier_systems import *
 from psage.matrix.matrix_complex_dense import *

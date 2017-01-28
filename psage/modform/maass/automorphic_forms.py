@@ -1244,7 +1244,7 @@ class AutomorphicFormSpace(Parent):
         raise ArithmeticError," Could not find appropriate p rel. prime to {0}!".format(prim_to)
 
 
-    def test_Hecke_relation(self,coeffs,a=0,b=0,signed=False):
+    def test_Hecke_relation(self,C,a=0,b=0,signed=False):
         r"""Testing Hecke relations for the Fourier coefficients in C
 
         INPUT:
@@ -1277,7 +1277,7 @@ class AutomorphicFormSpace(Parent):
         c=gcd(Integer(a),Integer(b))
         if self._verbose>1:
             print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)
-        C = self._coeffs[0][0]
+        #C = self._coeffs[0][0]
         if not C.has_key(0):
             raise KeyError
         if not hasattr(C[0],"has_key"):

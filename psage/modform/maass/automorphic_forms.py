@@ -1271,8 +1271,8 @@ class AutomorphicFormSpace(Parent):
 
         """
         if a*b==0:
-            a = self.space().get_primitive_p()
-            b = self.space().get_primitive_p(a)
+            a = self.get_primitive_p()
+            b = self.get_primitive_p(a)
         c=gcd(Integer(a),Integer(b))
         if self._verbose>1:
             print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)

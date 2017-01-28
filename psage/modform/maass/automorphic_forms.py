@@ -157,7 +157,7 @@ from mpmath import mpf
 from psage.modform.arithgroup.mysubgroup import *
 from automorphic_forms_alg import *
 from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing
-
+from sage.arith.misc import next_prime,lcm
 
 from multiplier_systems import *
 from psage.matrix.matrix_complex_dense import *

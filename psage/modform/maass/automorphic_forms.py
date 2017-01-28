@@ -1306,7 +1306,7 @@ class AutomorphicFormSpace(Parent):
             ## We have to return true also for the zero function
             t = rhs-lhs
             if signed:
-                return t #rhs/lhs-1
+                return t.real() #rhs/lhs-1
             else:
                 return abs(t) #rhs/lhs-1)
         return -1

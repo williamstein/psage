@@ -159,6 +159,7 @@ from automorphic_forms_alg import *
 from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing
 from sage.arith.misc import next_prime,lcm
 from sage.rings.fast_arith import prime_range
+from sage.functions.other inport real
 
 from multiplier_systems import *
 from psage.matrix.matrix_complex_dense import *
@@ -1306,7 +1307,7 @@ class AutomorphicFormSpace(Parent):
             ## We have to return true also for the zero function
             t = rhs-lhs
             if signed:
-                return t.real() #rhs/lhs-1
+                return real(t) #rhs/lhs-1
             else:
                 return abs(t) #rhs/lhs-1)
         return -1

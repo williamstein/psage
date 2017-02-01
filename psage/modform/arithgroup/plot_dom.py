@@ -839,11 +839,11 @@ def nice_coset_reps(G):
         return cl
 
 def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
-    if G.index()>1:
-        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
-        #return P
-    else:
-        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
+    #if G.index()>1:
+    P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
+    #    #return P
+    #else:
+    #    P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
     l=build_connected_path(P,**kwds) #,model=model)
     if standalone:
         fig=pyplot.Figure()

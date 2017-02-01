@@ -1680,7 +1680,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         """
         coeffs = self._coeffs[0][0]
-        return self.space().test_Hecke_relation(coeffs=coeffs,a=a,b=b,signed=signed)
+        return self.space().test_Hecke_relation(C=coeffs,a=a,b=b,signed=signed)
 
 
     

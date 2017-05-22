@@ -16,8 +16,9 @@ cdef extern from "math.h":
     int ceil(double) 
     double sqrt(double)
     double exp(double)
-    #double sin(double)
-    #double cos(double)
+    double sin(double)
+    double cos(double)
+    double log(double)    
     double power(double,double)
 
 cdef extern from "complex.h":
@@ -37,7 +38,7 @@ cdef int nsamples= 320
 cdef int ntaylor = 16
 cdef int nasymp  = 14
 cdef int wdegree = 19
-cdef int cdegree = 27
+cdef cdegree = 27
 cdef float ymin = 0.5
 cdef float ymax
 ymax = (ymin+nsamples*ystep)
@@ -46,15 +47,15 @@ ymax = (ymin+nsamples*ystep)
 #       double re,im;
 #} complex;
 
-cdef complex C
-cdef double R,R2,asymp[nasymp],taylor[nsamples][ntaylor]
+cdef cdouble C
+cdef double R,R2,asymp[14],taylor[320][16]
 #if 0
 #extern struct { long double re,im; } Cdata[cdegree+1];
 #extern long double Wdata[nsamples][2][wdegree+1];
 #else
 #include "wdata"
 cdef extern from "wdata":
-#static struct {long double re,im} Cdata
+    #static struct {long double re,im} Cdata
     ctypedef struct ccomplex:  #double cdouble "double complex"
         pass
     cdef ccomplex Cdata[cdegree+1]
@@ -118,7 +119,7 @@ cdef void Winit(double r):
     #cdef long double lambda,s,t1,t2,temp[ntaylor],w[ntaylor]
     cdef long double xlambda,s,t1,t2,temp[ntaylor],w[ntaylor]
     cdef int i,j,l
-    if set_r == r:
+    if r == set_r:
         return # already inited
     set_r = r
     R=fabs(r); t1=<long double>(R*R);
@@ -133,7 +134,7 @@ cdef void Winit(double r):
     for i from 0<=i<nsamples: #(i=0;i<nsamples;i++):
         for l from 0<=l<2: #(l=0;l<2;l++):
             s = Wdata[i][l][wdegree]
-            for j from wdegre>=j>=0: #(j=wdegree-1;j>=0;j--):
+            for j from wdegree>=j>=0: #(j=wdegree-1;j>=0;j--):
                 s = s*<long double>R+Wdata[i][l][j]
                 j-=1
             w[l] = s;
@@ -187,3 +188,10 @@ cdef double kbessel2(r,y):
     ##         print "r=%.15f, y=%.15f, w=%g, error=%d\n".format(r,y,w,i)
     ##         imax = i
     ## return 0
+
+cpdef besselk2(r,y):
+      r = <double>r
+      if r <> set_r:
+            Winit(r)
+      return W(y)
+      

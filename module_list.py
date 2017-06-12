@@ -16,7 +16,7 @@ if os.path.exists('/usr/lib/libblas.dll.a'):
 # GNU Scientific Library
 # Note we replace the built-in gslcblas with the above cblas
 gsl_pc = pkgconfig.parse('gsl')
-gsl_libs = list(gsl_pc['libraries'].difference(['gslcblas']).union(cblas_libs))
+gsl_libs = list(set(gsl_pc['libraries']).difference(set(['gslcblas'])).union(set(cblas_libs)))
 gsl_library_dirs = list(gsl_pc['library_dirs'])
 gsl_include_dirs = list(gsl_pc['include_dirs'])
 
@@ -97,6 +97,7 @@ ext_modules = [
               libraries = ['m', 'gmp','mpfr','mpc','ntl'],
               include_dirs = numpy_include_dirs),
 
+              
     Extension("psage.modform.rational.modular_symbol_map",
               ["psage/modform/rational/modular_symbol_map.pyx"]),
 

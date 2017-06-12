@@ -99,9 +99,9 @@ def run_cythonize():
    
     # Sage uses these directives (mostly for historical reasons).
     Cython.Compiler.Options.embed_pos_in_docstring = True
-    Cython.Compiler.Options.directive_defaults['autotestdict'] = False
-    Cython.Compiler.Options.directive_defaults['cdivision'] = True
-    Cython.Compiler.Options.directive_defaults['fast_getattr'] = True
+    Cython.Compiler.Options.get_directive_defaults()['autotestdict'] = False
+    Cython.Compiler.Options.get_directive_defaults()['cdivision'] = True
+    Cython.Compiler.Options.get_directive_defaults()['fast_getattr'] = True
     # The globals() builtin in Cython was fixed to return to the current scope,
     # but Sage relies on the broken behavior of returning to the nearest
     # enclosing Python scope (e.g. to perform variable injection).

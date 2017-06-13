@@ -41,7 +41,6 @@ from sage.rings.real_mpfr import RealField
 from sage.modular.cusps import Cusp
 from sage.rings.infinity import infinity
 from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
-from sage.matrix.matrix_integer_dense cimport fmpz_mat_to_mpz_array
 from sage.matrix.matrix_integer_dense import Matrix_integer_dense
 from sage.matrix.matrix_rational_dense import Matrix_rational_dense
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement

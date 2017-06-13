@@ -40,7 +40,7 @@ from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
 from sage.modular.cusps import Cusp
 from sage.rings.infinity import infinity
-from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense
+from sage.matrix.matrix_integer_dense cimport Matrix_integer_dense, fmpz_mat_to_mpz_array
 from sage.matrix.matrix_integer_dense import Matrix_integer_dense
 from sage.matrix.matrix_rational_dense import Matrix_rational_dense
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
@@ -324,9 +324,11 @@ cdef class GL2Z_elt(object):
         """
         cdef GL2Z_elt res
         cdef int* resent=NULL
+        cdef mpz_t * entries = <mpz_t *> check_allocarray(4,sizeof(mpz_t))
+        entries = fmpz_mat_to_mpz_array(other)
         resent=<int*>check_allocarray(4,sizeof(int))
         if resent==NULL: raise MemoryError
-        self._mul_c_mpz(other._entries,resent,inv)
+        self._mul_c_mpz(entries,resent,inv)
         if resent[0]*resent[3]-resent[2]*resent[1] == 1:
             res=SL2Z_elt(resent[0],resent[1],resent[2],resent[3])
         else:

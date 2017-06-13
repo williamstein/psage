@@ -33,7 +33,9 @@ from psage.modform.hilbert.hn_class cimport Hn
 from psage.modform.hilbert.hn_class import is_Hn
 
 #from sage.libs.cypari2.gen import pari
-from sage.libs.cypari2.gen cimport Gen as gen
+#   from sage.libs.cypari2.gen cimport Gen as gen
+from cypari2.gen cimport Gen as gen
+   
 import cython
 
 #from psage.rings.double_prec_math cimport *

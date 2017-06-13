@@ -37,8 +37,9 @@ from sage.rings.polynomial.polynomial_rational_flint cimport Polynomial_rational
 from sage.libs.flint.fmpq_poly cimport (fmpq_poly_get_coeff_mpq, fmpq_poly_set_coeff_mpq,
                                         fmpq_poly_length)
 
-from sage.rings.polynomial.polynomial_integer_dense_flint cimport (Polynomial_integer_dense_flint,
-                                                                   fmpz_poly_set_coeff_mpz)
+from sage.libs.flint.fmpz_poly cimport fmpz_poly_set_coeff_mpz
+from sage.rings.polynomial.polynomial_integer_dense_flint cimport Polynomial_integer_dense_flint
+                                                                   
 
 from sage.libs.gmp.mpq cimport mpq_numref
 

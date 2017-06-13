@@ -208,8 +208,9 @@ cdef class Vector_complex_dense(FreeModuleElement):
     def __reduce__(self):
         return (unpickle_v1, (self._parent, self.list(), self._degree, self._is_mutable))
 
-    cpdef ModuleElement _add_(self, ModuleElement right):
-        cdef Vector_complex_dense z, r
+    cpdef _add_(self, right):
+        cdef Vector_complex_dense z
+        cdef Vector_complex_dense r
         cdef MPComplexNumber ztmp
         cdef Py_ssize_t i
         if isinstance(right,type(self)):
@@ -230,11 +231,12 @@ cdef class Vector_complex_dense(FreeModuleElement):
         return z
         
 
-    cpdef ModuleElement _sub_(self, ModuleElement right):
-        cdef Vector_complex_dense z, r
+    cpdef _sub_(self, right):
+        cdef Vector_complex_dense z
+        cdef Vector_complex_dense r 
         cdef MPComplexNumber ztmp
         cdef Py_ssize_t i
-        r = <Vector_complex_dense>right
+        #r = <Vector_complex_dense>right
         #print "in sub!"
         if isinstance(right,type(self)):
             r = right

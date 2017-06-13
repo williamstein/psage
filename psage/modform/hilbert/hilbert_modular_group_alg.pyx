@@ -32,13 +32,15 @@ from sage.all import real,NFCusp,copy,RR,CC,RealNumber,ComplexNumber,real,imag,v
 from psage.modform.hilbert.hn_class cimport Hn
 from psage.modform.hilbert.hn_class import is_Hn
 
-#from sage.libs.pari.gen import pari
-from sage.libs.pari.gen cimport gen
+#from sage.libs.cypari2.gen import pari
+from sage.libs.cypari2.gen cimport Gen as gen
 import cython
 
 #from psage.rings.double_prec_math cimport *
 #include "../../rings/double_prec_math.pxi"
 from libc.math cimport sqrt,fabs,fmax,ceil,floor,sin,cos,log
+
+import numpy as np
 
 
 cpdef cusp_coordinates_gen(G,cuspi,z,int verbose=0):
@@ -405,8 +407,8 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
                             rho_min+=G._K(rhot[0][i])*power_basis[i]
                         ### We only want 'relatively prime' elements
                         ctest = rho_min/sigma_min
-                        c_num = G._K(ctest.numerator())
-                        c_den = G._K(ctest.denominator())
+                        c_num = G._K(1) #ctest.numerator())
+                        c_den = G._K(ctest) #.denominator())
                         if verbose>0:
                             print "Possible min at c=",ctest
                             print "numerator=",c_num,type(c_num)
@@ -441,8 +443,8 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
     # Reduce:
     if sigma_min<>0:
         cc = rho_min / sigma_min
-        rho_min = cc.numerator()
-        sigma_min = cc.denominator()
+        rho_min = G._K(1) #cc.numerator()
+        sigma_min = cc #.denominator()
     ci = G._K.ideal(rho_min,sigma_min)
     if ci<>1:
         g = ci.gens_reduced()[0]
@@ -505,7 +507,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
     cdef double *c1=NULL,*c2=NULL,*c3=NULL
     cdef double *nsigmamax_loc
-    cdef int np,do_cont
+    cdef int num_pair,do_cont
     nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
     nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
     nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
@@ -621,7 +623,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "rho_min=",rho_min
         print "sigma_min=",sigma_min
         print "d=",d
-    np = 0
+    num_pair= 0
     nsigmamax = <int>ceil(cK**degree*d/ny**0.5)
     tmp = float(RR(cK)*RR(d)**(RR(1)/RR(degree)))
     delta_min = d #ny**-0.5
@@ -723,8 +725,8 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
             else:
                 inrhomin=<int>ceil(nrhomin)
             if verbose>0: # and ns==-1:
-                print "nrhomin({0})={1}".format(sigma,nrhomin)
-                print "nrhomax({0})={1}".format(sigma,nrhomax)
+                #print "nrhomin({0})={1}".format(sigma,nrhomin)
+                #print "nrhomax({0})={1}".format(sigma,nrhomax)
                 if verbose>1:
                     for i in range(degree):
                         print "nrhomin_loc({0})".format(nrhomin_loc[i])
@@ -781,7 +783,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                     for i in range(degree):
                         delta*=(-semb[i]*xv[i]+rhoemb[i])**2+s2y2[i]
                     delta=sqrt(delta/ny)
-                    np+=1
+                    num_pair+=1
                     if verbose>1:
                         print "delta=",delta
                     if delta < delta_min-delta0:
@@ -792,8 +794,8 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                             rho_min+=G._K(elements_of_F_with_norm[nr][jr][0][i])*power_basis[i]
                         ### We only want 'relatively prime' elements
                         ctest = rho_min/sigma_min
-                        c_num = G._K(ctest.numerator())
-                        c_den = G._K(ctest.denominator())
+                        c_num = G._K(1) #ctest.numerator())
+                        c_den = ctest #G._K(ctest.denominator())
                         if verbose>0:
                             print "Possible min at c=",ctest
                             print "numerator=",c_num,type(c_num)
@@ -806,7 +808,7 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                         if delta<GdeltaK:
                             ## WE don't have to search anymore...
                             if verbose>0:
-                                print "Tested {0} pairs!".format(np)
+                                print "Tested {0} pairs!".format(num_pair)
                                 print "We have distance smaller than delta_K={0}".format(G.deltaK())
                             #c = NFCusp(G._K,rho_min,sigma_min)
                             break_rho=1
@@ -840,21 +842,23 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
 
     #return sigma_min,rho_min,delta_min
     if verbose>0:
-        print "Tested {0} pairs!".format(np)
+        print "Tested {0} pairs!".format(num_pair)
         print "rho_min=",rho_min
         print "sigma_min=",sigma_min
         print "delta_min=",delta_min
     # Reduce:
-    if sigma_min<>0:
-        cc = rho_min / sigma_min
-        rho_min = cc.numerator()
-        sigma_min = cc.denominator()
-    ci = G._K.ideal(rho_min,sigma_min)
-    if ci<>1:
-        g = ci.gens_reduced()[0]
-        rho_min = rho_min/g
-        sigma_min = sigma_min/g
-    c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
+    if sigma_min==0:
+        c = NFCusp(G._K,1,0)
+    else:
+        #ci = G._K.ideal(rho_min)/G._K.ideal(sigma_min)
+        #rho_min = cc.numerator()
+        #sigma_min = cc.denominator()
+        #ci = G._K.ideal(rho_min,sigma_min)
+        #if ci<>1:
+        #g = ci.gens_reduced()[0]
+        #rho_min = rho_min/g
+        #sigma_min = sigma_min/g
+        c = NFCusp(G._K,G._K(rho_min),G._K(sigma_min))
     ### Check to see if we have a cusp representative
     for i in range(G.ncusps()):
         ctest = G.cusps()[i]
@@ -1272,53 +1276,64 @@ cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double 
 
 from sage.combinat.combination import IntegerVectors
 from sage.combinat.integer_list import IntegerListsLex
-cpdef get_vectors_integer_in_range(len,liml,limu,verbose=0):
+cpdef get_vectors_integer_in_range(length,liml,limu,verbose=0):
     r"""
     Gives a list of vectors of length len with components integers betweek liml and limu
     """
     cdef list l=[]
         ## Do the easy cases first
-    if len==1:
+    if length==1:
         for i in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
             l.append([i])
         return l
-    elif len==2:
+    elif length==2:
         for i1 in range(<int>floor(liml[0]),<int>ceil(limu[0])+1):
             for i2 in range(<int>floor(liml[1]),<int>ceil(limu[1])+1):
                 l.append([i1,i2])
         return l
     ## Brute-force like method. Not efficient
     maxlim = 0; minlim=liml[0]
-    for i in range(len):
+    for i in range(length):
         if limu[i]>maxlim: maxlim = limu[i]
         if liml[i]<minlim: minlim = liml[i]
     if verbose>0:
         print "maxlim={0}".format(maxlim)
         print "minlim={0}".format(minlim)
-    maxlim1 = abs(maxlim)
+    maxlim1 = int(abs(maxlim))
     ## Produce lists of 0/1 corresponding to signs...
     signs = []
-    for i in range(len):
-        signs.extend(IntegerListsLex(i,len,min_part=0,max_part=1).list())
+    for i in range(length):
+        signs.extend(IntegerListsLex(i,length=length,min_part=0,max_part=1).list())
     nsigns = len(signs)
     res=[]
+    npsigns = []
+    #for sign_vector in signs:
+    #    npsigns.append(np.array( map(lambda x: (-1)**x,sign_vector)))
     for sumv in range(maxlim1+1):
         ## Recall that integer vectors are all positive so we have to test
         ## combinations with negative elements as well...
-        IV = IntegerVectors(sumv,len)
+        IV = IntegerVectors(sumv,length)
         for v in IV:
+            #v = np.array(v)
             for i in range(nsigns):
-                vv = []
+                vv = [a*b for a,b in zip(v,signs[i])]
                 is_in = 1
-                for j in range(len):
-                    if signs[i][j]==1:
-                        vv[j]=-v[j]
-                    else:
-                        vv[j]=v[j]
-                    ## check if vv satisfies the conditions
+                for j in range(length):
                     if vv[j]<liml[j] or vv[j]>limu[j]:
-                        is_in=0
+                        is_in = 0
                         break
+                #vv = map(lambda x:x*(-1)**signs[i][j] for j in range(length)]
+                #
+                #is_in = 1
+                #for j in range(length):
+                #    if signs[i][j]==1:
+                #        vv.append(-v[j])
+                #    else:
+                #        vv.append(v[j])
+                #    ## check if vv satisfies the conditions
+                #    if vv[j]<liml[j] or vv[j]>limu[j]:
+                #        is_in=0
+                #        break
                 if is_in==1:
                     res.append(vv)
     return res

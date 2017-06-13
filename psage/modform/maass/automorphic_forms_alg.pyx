@@ -40,7 +40,7 @@ from sage.rings.real_mpfr cimport RealNumber,RealField_class
 from sage.rings.real_mpfr import RealField
 from sage.rings.complex_number cimport ComplexNumber
 import sage.structure.element
-from sage.libs.pari.gen cimport GEN
+#from sage.libs.pari.gen cimport GEN
 #cimport sage.structure.element
 from psage.modules.vector_real_mpfr_dense cimport Vector_real_mpfr_dense
 from psage.functions.inc_gamma cimport incgamma_hint_c,incgamma_nint_c,incgamma_pint_c

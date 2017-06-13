@@ -515,7 +515,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef Py_ssize_t i, j, len_so_far, m, n
         cdef mpfr_t x,y
         cdef char *a
-        cdef char *s, *t, *tmp
+        cdef char *s
+        cdef char *t
+        cdef char *tmp
         #print "exporting as string!"
         cdef int reqdigits
         cdef int p,k
@@ -766,7 +768,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpc_mul(M._entries[i], self._entries[i], _x.value,self._rnd)
         return M
     
-    cpdef ModuleElement _add_(self, ModuleElement right):
+    cpdef ModuleElement _add_(self, _right):
         """
         Add two dense matrices over MPC.
         
@@ -783,6 +785,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         """
         cdef Py_ssize_t i, j
         cdef Matrix_complex_dense M
+        cdef Matrix_complex_dense right = _right
         M = Matrix_complex_dense.__new__(Matrix_complex_dense, self._parent, None, None, None)
 
         cdef mpc_t *M_row
@@ -801,7 +804,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         sig_off()
         return M
         
-    cpdef ModuleElement _sub_(self, ModuleElement right):
+    cpdef ModuleElement _sub_(self, _right):
         """
         Subtract two dense matrices over MPC.
         
@@ -816,6 +819,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         """
         cdef Py_ssize_t i, j
         cdef Matrix_complex_dense M
+        cdef Matrix_complex_dense right = _right
         cdef MPComplexNumber z
         M = Matrix_complex_dense.__new__(Matrix_complex_dense, self._parent, None, None, None)
         cdef mpc_t *M_row
@@ -844,7 +848,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
         return M
 
     cdef int _cmp_c_impl(self, Element right) except -2:
-        cdef mpc_t *a, *b
+        cdef mpc_t *a
+        cdef mpc_t *b
         cdef Py_ssize_t i, j
         cdef int k
         for i from 0 <= i < self._nrows:
@@ -1305,7 +1310,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
         cdef int i,j,n,m
         cdef QR_set q = init_QR(self._prec)
         cdef Matrix_complex_dense Q
-        cdef mpc_t t,s,sc,tt[3]
+        cdef mpc_t t,s,sc
+        cdef mpc_t tt[3]
         cdef mpfr_t x,c
         m = self._nrows
         n = self._ncols
@@ -1564,7 +1570,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
         assert len(b)==n
         if num_threads>1: raise NotImplementedError,"Parallel linear algebra is not implemented!"
         cdef mpc_t s,sc
-        cdef mpc_t t[3],w[2]
+        cdef mpc_t t[3]
+        cdef mpc_t w[2]
         cdef mpfr_t c,x
         cdef mpc_t **A
         cdef mpc_t *v
@@ -1706,10 +1713,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
         assert self._is_square
         cdef Matrix_complex_dense res
         res = Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
-        cdef mpc_t **A, **BB
+        cdef mpc_t **A
+        cdef mpc_t **BB
         cdef int n = self._nrows
         cdef mpc_t s,sc
-        cdef mpc_t t[3],w[2]
+        cdef mpc_t t[3]
+        cdef mpc_t w[2]
         cdef mpfr_t c,x
         assert B._nrows == n
         #print "B=",B

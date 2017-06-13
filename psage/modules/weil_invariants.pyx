@@ -186,6 +186,7 @@ cpdef cython_invariants_dim(FQM, use_reduction = True, proof = True, debug=1):
 
 cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H = False):
     cdef long i, j = 0
+    cdef long p = 0
     cdef int l = long(FQM.level())
     cdef long n = long(FQM.order())
     cdef long ii,jj = 0
@@ -410,7 +411,6 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     #A = np.ndarray((n,ni), dtype=long)
     #cdef long[:,:] HH = A
     cdef H = Matrix(K,n,ni)
-    cdef long p = 0
     for j in xrange(ni):
         #print j, f
         for i in xrange(j, n):

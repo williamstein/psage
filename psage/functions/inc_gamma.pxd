@@ -1,10 +1,6 @@
 #include "sage/ext/interrupt.pxi" 
 include "sage/ext/stdsage.pxi"  
 include "sage/ext/cdefs.pxi"
-include "sage/ext/python.pxi"
-#include "sage/rings/mpc.pxi"
-#include "sage/ext/gmp.pxi"
-#from sage.libs.mpfr cimport *
 from psage.rings.mpfr_nogil cimport *
 
 cdef int incgamma_pint_c(mpfr_t res,int n,mpfr_t x,int verbose=*) nogil

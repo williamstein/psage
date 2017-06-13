@@ -325,7 +325,7 @@ cdef class GL2Z_elt(object):
         cdef GL2Z_elt res
         cdef int* resent=NULL
         cdef mpz_t * entries = <mpz_t *> check_allocarray(4,sizeof(mpz_t))
-        entries = fmpz_mat_to_mpz_array(other)
+        entries = fmpz_mat_to_mpz_array(other._matrix)
         resent=<int*>check_allocarray(4,sizeof(int))
         if resent==NULL: raise MemoryError
         self._mul_c_mpz(entries,resent,inv)

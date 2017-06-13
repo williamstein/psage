@@ -332,10 +332,10 @@ cdef class GL2Z_elt(object):
         cdef int i
         for i in range(4):
             mpz_init(entries[i])
-        fmpz_get_mpz(entries[0], fmpz_mat_entry(other, 0,0))
-        fmpz_get_mpz(entries[1], fmpz_mat_entry(other, 0,1))
-        fmpz_get_mpz(entries[2], fmpz_mat_entry(other, 1,0))
-        fmpz_get_mpz(entries[3], fmpz_mat_entry(other, 1,1))        
+        fmpz_get_mpz(entries[0], fmpz_mat_entry(other._matrix, 0,0))
+        fmpz_get_mpz(entries[1], fmpz_mat_entry(other._matrix, 0,1))
+        fmpz_get_mpz(entries[2], fmpz_mat_entry(other._matrix, 1,0))
+        fmpz_get_mpz(entries[3], fmpz_mat_entry(other._matrix, 1,1))        
         resent=<int*>check_allocarray(4,sizeof(int))
         if resent==NULL: raise MemoryError
         self._mul_c_mpz(entries,resent,inv)

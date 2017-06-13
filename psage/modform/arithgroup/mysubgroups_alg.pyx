@@ -54,6 +54,9 @@ from copy import deepcopy
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.functions.all import ceil as pceil
 
+from sage.libs.flint.fmpz cimport *
+from sage.libs.flint.fmpz_mat cimport *
+
 from psage.groups.permutation_alg cimport MyPermutation
 #from sage.rings.rational.Rational import floor as qq_floor
 import cython

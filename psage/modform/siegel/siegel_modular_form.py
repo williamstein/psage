@@ -55,7 +55,7 @@ import cPickle
 import urllib
 from siegel_modular_form_prec import SiegelModularFormPrecision
 from sage.rings.all import ZZ
-from sage.algebras.all import AlgebraElement
+from sage.structure.element import AlgebraElement
 
 SMF_DEFAULT_PREC = 101
 

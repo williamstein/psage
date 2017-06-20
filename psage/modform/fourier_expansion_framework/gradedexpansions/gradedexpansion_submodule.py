@@ -36,8 +36,8 @@ from sage.matrix.constructor import matrix
 from sage.misc.cachefunc import cached_method
 from sage.misc.flatten import flatten
 from sage.misc.latex import latex
-from sage.misc.misc import mul
-from sage.misc.misc import union
+from sage.misc.all import mul
+from sage.misc.all import union
 from sage.modules.free_module import FreeModule, FreeModule_generic, \
       FreeModule_ambient_pid, FreeModule_submodule_pid 
 from sage.modules.free_module import is_FreeModule

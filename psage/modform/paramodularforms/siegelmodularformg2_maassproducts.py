@@ -27,7 +27,7 @@ AUTHORS:
 #===============================================================================
 
 from sage.matrix.constructor import matrix
-from sage.misc.misc import prod
+from sage.misc.all import prod
 from sage.arith.all import random_prime
 from sage.rings.integer_ring import ZZ
 from sage.rings.padics.factory import Qp
@@ -132,7 +132,7 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
     for i in xrange(10) :
         Mp = matrix(Qp(random_prime(10**10), 10), M)
         pvs = Mp.pivots()
-        if pvs[:nmb_mls] == range(nmb_mls) and \
+        if pvs[:nmb_mls] == list(range(nmb_mls)) and \
            len(pvs) == dim :
             break
     else :

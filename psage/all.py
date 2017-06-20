@@ -14,4 +14,4 @@ from psage.groups.all import *
 from psage.modules.all import *
 from psage.modform.all import *
 from zfunctions import SelbergZeta,TransferOperator
-from function_fields import FunctionField
+#from function_fields import FunctionField

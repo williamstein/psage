@@ -43,7 +43,8 @@ from sage.structure.element import is_Vector
 from sage.matrix.matrix2 import cmp_pivots, decomp_seq
 from sage.matrix.matrix0 import Matrix as Matrix_base
 
-from sage.misc.misc import verbose, get_verbose, prod
+from sage.misc.misc import verbose, get_verbose
+from sage.misc.all import prod
 
 ## #########################################################
 

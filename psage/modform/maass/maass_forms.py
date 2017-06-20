@@ -1507,7 +1507,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #import mpmath
         self.__dict__.update(data)
         AutomorphicFormElement.__init__(self,self._space,self._coeffs,prec=self._prec,principal_part={},verbose=self._verbose)
-
+        if isinstance(self._coeffs,dict) and dict_depth(self._coeffs)!=3:
+            raise ValueError,"Please represent coefficients by a nested dict in three levels: component.cusp.index where component is just 0 for scalar-valued forms and cusp is the index of a cusp rep. and index is the index of the coefficient. "
         if self._test==1 and self._errest<>0:
             self._errest = self.test()
         if kwds.get('M0',0) > 0:
@@ -1738,25 +1739,21 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         c=gcd(Integer(a),Integer(b))
         if self._verbose>1:
             print "Test Hecke: a={0},b={1},gcd(a,b)={2}".format(a,b,c)
-        C = self._coeffs[0][0]
-        if not C.has_key(0):
+        #C = self._coeffs[0][0]
+        #if not C.has_key(0):
+        if self.C(a) is None or self.C(b) is None or self.C(a*b) is None:
             raise KeyError
-        if not hasattr(C[0],"has_key"):
-            C = {0:C}
-        if C[0].has_key(a) and C[0].has_key(b) and C[0].has_key(a*b):
-            lhs=C[0][a]*C[0][b]
-            rhs=0
-            for d in divisors(c):
-                if not self.character().is_trivial():
-                    x = self.character()(d)
-                else:
-                    x = 1
-                m = Integer(a*b/d/d)
-                if self._verbose>1:
-                    print "rhs+=c*C[0][{0}]={1}".format(m,x*C[0][m])
-                rhs=rhs+x*C[0][m]
-
-
+        lhs=self.C(a)*self.C(b)
+        rhs=0
+        for d in divisors(c):
+            if not self.character().is_trivial():
+                x = self.character()(d)
+            else:
+                x = 1
+            m = Integer(a*b/d/d)
+            if self._verbose>1:
+                print "rhs+=c*C[0][{0}]={1}".format(m,x*self.C(m))
+            rhs=rhs+x*self.C(m)
             if self._verbose>1:
                 print "|rhs|=",abs(rhs)
                 print "|lhs|=",abs(lhs)
@@ -1765,11 +1762,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             #if max(abs(rhs),abs(lhs))<max(1e-8,2.0**(-0.5*self._prec)):
             #    return -1
             ## We have to return true also for the zero function
-            t = rhs-lhs
-            if signed:
-                return t #rhs/lhs-1
-            else:
-                return abs(t) #rhs/lhs-1)
+        t = rhs-lhs
+        if signed:
+            return t #rhs/lhs-1
+        else:
+            return abs(t) #rhs/lhs-1)
         return -1
 
 
@@ -1843,7 +1840,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             self._errest = ermax
             if format=='float':
                 return ermax
-            d=floor(-log(ermax,10))
+            ermax = RR(ermax).log(10)
+            d=floor(-ermax)
             if verbose>0:
                 print "Hecke is ok up to ",d,"digits!"
             return d
@@ -3794,3 +3792,8 @@ def eisenstein_series_coefficient_sl2z(s,m,prec=0):
         summa+=RF(d)**(mp1-2*s)
         res = res * summa
     return res
+
+def dict_depth(d, depth=0):
+    if not isinstance(d, dict) or not d:
+        return depth
+    return max(dict_depth(v, depth+1) for k, v in d.iteritems())

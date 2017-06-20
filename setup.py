@@ -144,7 +144,7 @@ code = setup(
                 'psage.functions',
 #                'psage.ellff',
 
-                'psage.function_fields',
+#                'psage.function_fields',
                 'psage.groups',
                 
                 

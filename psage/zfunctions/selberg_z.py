@@ -2194,3 +2194,18 @@ def my_alg_sort(x,y):
     else:
         yy = y.real()
     return cmp(xx,yy)
+
+def Hausdorff_distance(l1,l2):
+    r"""
+    Calculates the Husdorff distance between the two lists l1 and l2.
+    """
+    d1max = 0; d2max=0
+    for x in l1:
+        t1 = min([ abs(x-y) for y in l2])
+        if t1 > d1max:
+            d1max = t1
+    for x in l2:
+        t2 = min([ abs(x-y) for y in l1])
+        if t2 > d2max:
+            d2max = t2
+    return max(d1max,d2max)

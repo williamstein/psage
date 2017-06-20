@@ -102,7 +102,7 @@ cdef double complex c_zero = CMPLX(0.0,0.0)
 #c_one = d_one #=<double complex> 1.0
 #c_zero = 0.0  #=<double complex> 0.0
 
-cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):  
+cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0,algorithm='default'):  
     r"""
     Modified K-Bessel function in double precision. Chooses the most appropriate algorithm.
 
@@ -121,6 +121,10 @@ cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):
                = 0 => computes K_iR(x)
 
                = -1 => computes K_R(x)
+        - `algorithm` -- use specific algorithm instead of "best"
+               = 'default' => use automatic choice
+               = 'pow' => use power series
+               = 'rec' => use recursion
     OUTPUT:
     
      - exp(Pi*R/2)*K_{i*R}(x)  -- double
@@ -150,6 +154,16 @@ cpdef besselk_dp(double R,double x,double prec=1e-14,int pref=0):
     cdef double kbes
     if (R*pihalf-xcral < -125.0):
         return 0.0
+    if algorithm != 'default':
+        if algorithm=='pow':
+            res=besselk_dp_pow(RR,x,&kbes,prec,pref)
+        elif algorithm == 'rec':
+            res=besselk_dp_rec(RR,x,&kbes,prec,pref)
+        if res == 1:
+            raise ValueError,'The K-bessel routine failed (k large) for x,R={0},{1}, value={2}'.format(x,RR,kbes)
+        elif res==2:
+            raise ValueError,'The K-bessel routine failed (too many iterations)  for x,R={0},{1}, value={2}'.format(x,RR,kbes)
+        return kbes
     if x<R*0.7:
         res=besselk_dp_pow(RR,x,&kbes,prec,pref)
         if res <> 0:

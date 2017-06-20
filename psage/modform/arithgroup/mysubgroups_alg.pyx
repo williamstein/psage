@@ -2039,13 +2039,13 @@ cpdef get_coset_reps_from_perms(MyPermutation pS,MyPermutation pR,MyPermutation 
         if verbose>0:
             print "in this step:"
             for j in coset_reps.keys():
-                if(coset_reps[j]<>Id):
+                if(coset_reps[j] != Id):
                     print "V(",j,")=",coset_reps[j] 
                 else:
                     print "V(",j,")=Id"
     # By construction none of the coset-reps are in self and h(V_j)=j so they are all independent
     # But to make sure we got all we count the keys
-    if coset_reps.keys() <> range(1,ix+1):
+    if coset_reps.keys() != list(range(1,ix+1)):
         print "ix=",ix
         print "cl=",coset_reps
         raise ValueError,"Problem getting coset reps! Need %s and got %s" %(ix,len(coset_reps))

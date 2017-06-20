@@ -516,6 +516,20 @@ cdef int compute_V_cplx_wt_dp(double complex **V,double R,double Y,double weight
         sage_free(nvec)
 
 
+cpdef my_kbes(double r,double x,double besprec = 1e-14,int pref=0):
+    cdef double kbes
+    if abs(r) < 500:
+        besselk_dp_c(&kbes,r,x,besprec,pref=pref)
+    else:
+        ir = mpmath.mp.mpc(0.5,r)
+        mpx = mpmath.mp.mpf(x)
+        if pref == 1:
+            arg = mpmath.mp.mpf(r)*mpmath.mp.pi*mpmath.mp.mpf(0.5)
+            res = mpmath.mp.besselk(ir,mpx).real*mpmath.mp.exp(arg)
+            kbes = <double> res
+        else:
+            kbes = <double> mpmath.mp.besselk(ir,mpx).real ## probably only going to be 0....
+    return kbes
 @cython.boundscheck(False)
 cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Qv,int nc, int cuspidal,int sym_type, int verbose,double *alphas, double *Xm,double ***Xpb,double ***Ypb, double complex ***Cvec,int is_exceptional=0):
     r"""
@@ -649,7 +663,8 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                         besarg=abs(lr)*Ypb[icusp][jcusp][j]
                         if lr<>0.0: 
                             if is_exceptional == 0:
-                                besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                                #besselk_dp_c(&tmpr,R,besarg,besprec,1)
+                                tmpr = my_kbes(R,besarg,besprec,1)
                             else:
                                 tmpr = scipy.special.kv(R,besarg)
                             #print "Ypb=",Ypb[icusp][jcusp][j],type(Ypb[icusp][jcusp][j])
@@ -676,7 +691,8 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                     if verbose>2:
                         if abs(lr)>0:
                             if is_exceptional == 0:
-                                kbes=besselk_dp(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                                #kbes=besselk_dp(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                                kbes=my_kbes(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
                             else:
                                 besarg = abs(lr)*Ypb[icusp][jcusp][j]
                                 kbes = scipy.special.kv(R,besarg)
@@ -687,7 +703,9 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                                 print "kbes1=",kbes
                     if verbose>3 and abs(l)<=2:
                         print "kbes:=",kbesvec[l][icusp][j]
-                        print "kbes1=",sqrt(Ypb[icusp][jcusp][j])*besselk_dp(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                        #besselk_dp(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                        kbes = my_kbes(R,abs(lr)*Ypb[icusp][jcusp][j],pref=1)
+                        print "kbes1=",sqrt(Ypb[icusp][jcusp][j])*kbes
                         print "ef1=",ef1[l][icusp][jcusp][j]
                     for n in range(Ml):
                         if n+Ms==0 and cuspidal==1:
@@ -733,7 +751,8 @@ cdef int compute_V_cplx_dp(double complex **V,double R,double Y,int** Mv,int** Q
                 kbes=<double>1.0
             else:
                 if is_exceptional == 0:
-                    kbes=sqrtY*besselk_dp(R,nrY2pi,pref=1)
+                    kbes=sqrtY*my_kbes(R,nrY2pi,pref=1)
+                    #besselk_dp(R,nrY2pi,pref=1)
                 else:
                     kbes = sqrtY*scipy.special.kv(R,nrY2pi)
             #if nrY2pi==0.0:
@@ -969,7 +988,8 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
                     Mf = Mv[icusp][1]
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
+                        #besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
+                        tmpr = my_kbes(R,besarg,besprec,pref=set_pref)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1057,7 +1077,8 @@ cdef int compute_V_cplx_dp_sym_wt(double complex **V,
             else:
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
+                #besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
+                kbes = my_kbes(R,nrY2pi,besprec,pref=set_pref)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1128,7 +1149,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                            double R,double Y,
                            int nc, int ncols,
                            int cuspidal,
-                           int verbose):
+                           int verbose) except -1:
 
 
     r"""
@@ -1299,7 +1320,8 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                     Mf = Mv[icusp][1]
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
+                        #besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
+                        tmpr = my_kbes(R,besarg,besprec,pref=set_pref)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1388,7 +1410,8 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
             else:
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
-                besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
+                #besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
+                kbes = my_kbes(R,nrY2pi,besprec,pref=set_pref)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1558,7 +1581,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     #ypb=Ypb[icusp][jcusp][j]
                     besarg=abs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
-                        kbes=sqrt(Ypb[icusp][jcusp][j])*besselk_dp(R,besarg,pref=set_pref)
+                        kbes=sqrt(Ypb[icusp][jcusp][j])*my_kbes(R,besarg,pref=set_pref)
                     else:
                         kbes=<double>1.0
                     ckbes=kbes*ef1[l][icusp][jcusp][j]
@@ -1591,7 +1614,7 @@ cdef compute_V_real_dp(double **V,double R,double Y,int Ms,int Mf,int Qs,int Qf,
                     kbes=<double>1.0
             else:
                 nrY2pi=nr*Y2pi
-                kbes=sqrtY*besselk_dp(R,nrY2pi,pref=set_pref)
+                kbes=sqrtY*my_kbes(R,nrY2pi,pref=set_pref)
             ni=Ml*icusp+n
             V[ni][ni]=V[ni][ni] - kbes
     if ef2<>NULL:
@@ -3245,7 +3268,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
                     ##     mpfr_set(tmpx1.value,besarg,rnd_re)
                     ##     print "besarg=",tmpx1
                     ##     print "dbesarg=",dbesarg
-                    dbes = besselk_dp(R,dbesarg,pref=1)
+                    dbes = my_kbes(R,dbesarg,pref=1)
                     mpfr_sqrt(kbes,tmpx1.value,rnd_re)
                     mpfr_mul_d(kbes,kbes,dbes,rnd_re)
                     #kbes=mp_ctx.sqrt(ypb)*
@@ -3274,7 +3297,7 @@ cpdef setup_matrix_for_Maass_waveforms_np_cplx2_without_sym(S,RealNumber R,RealN
                 mpfr_mul(nrY2pi,nvec[n-Ms],Y2pi,rnd_re)
                 mpfr_abs(nrY2pi,nrY2pi,rnd_re)
                 dbesarg = mpfr_get_d(nrY2pi,rnd_re)
-                dbes = besselk_dp(R,dbesarg,pref=1)
+                dbes = my_kbes(R,dbesarg,pref=1)
                 mpfr_mul_d(kbes,sqrtY,dbes,rnd_re)
                 mpc_sub_fr(VV._matrix[ni][ni],VV._matrix[ni][ni],kbes,rnd)
             #V[ni,ni]=V[ni,ni]-ckbes
@@ -4919,11 +4942,11 @@ cpdef split_interval(H,double R1,double R2):
                 iv=(r11,t,Y0); new_ivs.append(iv)
                 # must find Y0 s.t. |besselk(it,Y0)| is large enough
                 Y1=Y0
-                k=besselk_dp(t,Y1)
+                k=my_kbes(t,Y1)
                 j=0
                 while j<1000 and abs(k)<1e-3:
                     Y1=Y1*0.999;j=j+1
-                    k=besselk_dp(t,Y1)
+                    k=my_kbes(t,Y1)
                 Y0=Y1
                 r11=t+1E-08
         return new_ivs
@@ -4951,7 +4974,7 @@ def next_kbessel_zero(double r1,double r2,double y,int verbose=0):
             r0=r0+h
             my_kbes_diff_real_dp(r0,y,&kd)
             #t1=base.findroot(lambda x :  besselk_dp(x,y),r0)
-            t1=find_root(lambda x :  besselk_dp(x,y),r0-h,r0+h,xtol=xtol,rtol=rtol)
+            t1=find_root(lambda x :  my_kbes(x,y),r0-h,r0+h,xtol=xtol,rtol=rtol)
             r0=r0+h
             if verbose>0:
                 print "r0,y,t1=",r0,y,t1
@@ -4970,7 +4993,7 @@ def next_kbessel_zero(double r1,double r2,double y,int verbose=0):
                 my_kbes_diff_real_dp(r0,y,&kd)
                 #kd=my_kbes_diff_r(r0,y,base)
                 #t2=base.findroot(lambda x :
-                t2=find_root(lambda x :  besselk_dp(x,2.0*y),r0-h,r0+h,xtol=xtol,rtol=rtol)
+                t2=find_root(lambda x :  my_kbes(x,2.0*y),r0-h,r0+h,xtol=xtol,rtol=rtol)
             #t2=base.findroot(lambda x :  base.besselk(base.mpc(0,x),base.mpf(2*y),verbose=True).real,r0)
             r0=r0+h
         if r0>=r2 or t2>=r2:
@@ -4984,8 +5007,8 @@ cdef my_kbes_diff_real_dp(double r,double x,double *diff):
     cdef double h,f1,f2
     h=1e-8
     #print "r,x,h=",r,x,h
-    f1 = besselk_dp(r,x+h)
-    f2 = besselk_dp(r,x-h)
+    f1 = my_kbes(r,x+h)
+    f2 = my_kbes(r,x-h)
     diff[0]=0.5*(f2-f1)/h
 
 ### Algorithms for detecting eigenvalues by signchanges

@@ -93,8 +93,9 @@ import matplotlib.patches as patches
 import matplotlib.path as path
 
 from sage.modular.arithgroup.arithgroup_perm import *
-#from subgroups_alg import *
-#load "/home/stromberg/sage/subgroups/subgroups_alg.spyx"
+
+import logging
+log = logging.getLogger(__name__)
 
 def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},**kwds):
     r"""

@@ -35,8 +35,8 @@ include 'cysignals/signals.pxi'
 from psage.rings.mp_cimports cimport *
 
 from sage.modules.all import vector
-import sage.structure.element
-cimport sage.structure.element
+#import sage.structure.element
+#cimport sage.structure.element
 #from sage.structure.element cimport Element, ModuleElement, RingElement
 import operator
 
@@ -56,8 +56,8 @@ from sage.functions.other import gamma,ceil
 from sage.rings.arith import gcd,xgcd,kronecker,factor,odd_part,is_square,lcm
 from sage.misc.functional import is_even
 
-from sage.rings  cimport integer
-from sage.rings.ring cimport *
+from sage.rings.integer  cimport Integer
+#from sage.rings.ring cimport *
 from sage.rings.real_mpfr cimport *
 from sage.rings.complex_number cimport *
 from sage.libs.mpfr cimport *

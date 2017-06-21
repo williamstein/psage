@@ -26,10 +26,10 @@ AUTHOR :
 
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import EquivariantMonoidPowerSeriesAmbient_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import EquivariantMonoidPowerSeries_abstract
-from sage.algebras.algebra_element import AlgebraElement
+from sage.structure.element import AlgebraElement
 from sage.misc.misc import union
 from sage.modules.module import Module 
-from sage.modules.module_element import ModuleElement
+from sage.structure.element import ModuleElement
 from sage.rings.ring import Ring
 
 #===============================================================================

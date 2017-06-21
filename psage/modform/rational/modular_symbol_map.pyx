@@ -28,6 +28,7 @@ AUTHOR:
     - William Stein
 """
 
+
 from sage.matrix.all import matrix
 from sage.rings.all import QQ, ZZ, Integer
 

@@ -36,7 +36,7 @@ from sage.structure.element_wrapper import *
 from sage.categories.graded_modules_with_basis import *
 from sage.categories.commutative_rings import *
 from sage.modules.module import *
-from sage.modules.module_element import *
+from sage.structure.element import *
 from sage.modular.modform.element import ModularFormElement
 
 class ModularFormsForSL2Z(UniqueRepresentation, Parent):

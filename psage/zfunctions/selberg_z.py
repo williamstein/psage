@@ -2209,3 +2209,22 @@ def Hausdorff_distance(l1,l2):
         if t2 > d2max:
             d2max = t2
     return max(d1max,d2max)
+
+def image_of_interval(T,a,b,n):
+    r"""
+    Returns the tuple (f(a),f(b)) or (f(b),f(a)) depending on if f(a) <= f(b) or f(b)<f(a)
+    where f (z) = -1/(z + n*lambda)
+    and lambda is given by T.
+    We check that l-n*lambda is not in the interval. 
+    """
+    if a > b:
+        a,b = b,a  ## swap 
+    RF = a.base_ring()
+    nn = RF(n*T._lambda)
+    if a <= n and n <= b:
+        raise ValueError,"Apply to region not containing: {0}".format(n*T._lambda)
+    fa = -(a+nn)**-1
+    fb = -(b+nn)**-1
+    if fb < fa:
+        fa,fb = fb,fa
+    return fa,fb

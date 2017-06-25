@@ -1320,7 +1320,7 @@ class TransferOperator(Parent):
             print "r=",r1s
         for i in range(d):        
             for j in range(d):
-                n = Nij[i,j]
+                n = self._Nij[i,j]
                 aa = centers[i] - r1s[i]
                 bb = centers[i] + r1s[i]
                 phia,phib=image_of_interval(T,aa,bb,n)

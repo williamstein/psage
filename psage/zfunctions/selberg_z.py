@@ -947,6 +947,7 @@ class TransferOperator(Parent):
         if is_even(q):
             #R=mp1
             h=ZZ(QQ(q-2)/QQ(2))
+            self._kappa = h
             dim=ZZ(2*h)
             #            print "dim=",dim
             NIJ=matrix(ZZ,dim)
@@ -964,12 +965,14 @@ class TransferOperator(Parent):
         elif q==3:
             R=(RF(5).sqrt()-mp1)/mp2
             dim=ZZ(2)
+            self._kappa = 1
             h=ZZ(0)
             NIJ=matrix([[3,-2],[2,-3]])
         elif q>=5:
             #R=llambda/mp2-mp1
             #R+=mp1/mp2*((mp2-llambda**2)+mp4).sqrt()
             h=ZZ(QQ(q-3)/QQ(2))
+            self._kapps = 2*h+1
             dim=ZZ(4*h+2)
             NIJ=matrix(ZZ,dim)	
             NIJ[0,2*h-1]=2
@@ -1323,7 +1326,7 @@ class TransferOperator(Parent):
                 n = self._Nij[i,j]
                 aa = centers[i] - r1s[i]
                 bb = centers[i] + r1s[i]
-                phia,phib=image_of_interval(T,aa,bb,n)
+                phia,phib=image_of_interval(self._T,aa,bb,n)
                 if min(phia,phib) < mina[j]:
                     mina[j] = min(phia,phib)
                 if max(phia,phib) > maxb[j]:
@@ -1402,7 +1405,7 @@ class TransferOperator(Parent):
         return True
 
     
-    def cont_frac_to_pt(self,cf=[],prec=0,verbose=0):
+    def cont_frac_to_pt(self,cf=[],prec=0,format='float',verbose=0):
 
         r"""
         Compute the point corresponding to a nearest lambda continued fraction.
@@ -1422,14 +1425,20 @@ class TransferOperator(Parent):
             prec = self._prec 
         RF = RealField(prec)
         frac_part = cf[1:]; n = len(frac_part)
-        x = RF(0)
+        if format == 'float':
+            x = RF(0)
+        else:
+            x = 0
         verbose = max(verbose,self._verbose)
         for j in range(n):
             x1 = self.STn(x,frac_part[n-j-1])
             if verbose>1:
                 print "ST^{0}({1})={2}".format(frac_part[n-j-1],x,x1)
             x = x1
-        x = x+self.lambdaq_r(prec)*RF(cf[0])
+        if format == 'float':
+            x = x+self.lambdaq_r(prec)*RF(cf[0])
+        else:
+            x = x + self.lambdaq*cf[0]
         return x
 
     def nearest_lambda_code(self,x,N=0):

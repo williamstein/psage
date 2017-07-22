@@ -1,3 +1,7 @@
+For now, see
+
+   https://github.com/fredstro/psage
+
 This is the PSAGE library:
 
     http://code.google.com/p/purplesage/

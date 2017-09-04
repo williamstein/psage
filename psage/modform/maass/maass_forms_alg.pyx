@@ -1149,7 +1149,8 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                            double R,double Y,
                            int nc, int ncols,
                            int cuspidal,
-                           int verbose) except -1:
+                           int verbose,
+                           int is_exceptional=0) except -1:
 
 
     r"""
@@ -1321,7 +1322,10 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                     besarg=fabs(lr)*Ypb[icusp][jcusp][j]
                     if lr<>0.0:
                         #besselk_dp_c(&tmpr,R,besarg,besprec,pref=set_pref)
-                        tmpr = my_kbes(R,besarg,besprec,pref=set_pref)
+                        if is_exceptional==0:
+                            tmpr = my_kbes(R,besarg,besprec,pref=set_pref)
+                        else:
+                            tmpr = scipy.special.kv(R,besarg)
                         kbesvec[icusp][l][j]=sqrt(Ypb[icusp][jcusp][j])*tmpr
                     else:
                         kbesvec[icusp][l][j]=<double>1.0
@@ -1411,7 +1415,10 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                 #mpIR=mpmath.fp.mpc(0,R)
                 #                kbes=float(mpmath.fp.besselk(mpIR,nrY2pi).real*exp(mpmath.fp.pi*R*0.5))
                 #besselk_dp_c(&kbes,R,nrY2pi,besprec,pref=set_pref)
-                kbes = my_kbes(R,nrY2pi,besprec,pref=set_pref)
+                if is_exceptional==0:
+                    kbes = my_kbes(R,nrY2pi,besprec,pref=set_pref)
+                else:
+                    kbes = scipy.special.kv(R,nrY2pi)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
@@ -1878,6 +1885,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     cdef int cuspidal=1
     cdef int q
     cdef double complex *sqch=NULL
+    cdef int  is_exceptional = S._exceptional
     tmpr = <double>S._group.minimal_height()
     if Y<= 0 or Y >= tmpr:
         Y = 0.5 * tmpr
@@ -2031,12 +2039,14 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         compute_V_cplx_dp_sym_par(V1,N1,Xm,Xpb,Ypb,Cvec,
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,
-                              R,Y,nc,ncols,cuspidal,verbose,ncpus)
+                              R,Y,nc,ncols,cuspidal,verbose,ncpus,
+                                  is_exceptional=is_exceptional)
     else:
         compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,
-                              R,Y,nc,ncols,cuspidal,verbose)
+                              R,Y,nc,ncols,cuspidal,verbose,
+                              is_exceptional=is_exceptional)
 #    sig_off()
     cdef Matrix_complex_dense VV
     #Vtmp = load("A.sobj")

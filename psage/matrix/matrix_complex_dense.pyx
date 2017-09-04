@@ -732,7 +732,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     #   * _dict -- sparse dictionary of underlying elements (need not be a copy)
     ########################################################################
 
-    cpdef ModuleElement _lmul_(self, RingElement right):
+    cpdef _lmul_(self, Element right):
         """
         EXAMPLES::
         
@@ -751,7 +751,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         return M
 
     
-    cpdef ModuleElement _rmul_(self, RingElement left):
+    cpdef _rmul_(self, Element left):
         """
         EXAMPLES::
         

@@ -331,7 +331,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
             return Matrix_complex_dense._vector_times_matrix_(right,self)
          return self._lmul_(right)
         
-    cpdef ModuleElement _rmul_(self, RingElement left):
+    cpdef _rmul_(self, Element left):
         cdef Vector_complex_dense z
         cdef Py_ssize_t i
         cdef MPComplexNumber a
@@ -349,7 +349,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
         return z
 
 
-    cpdef ModuleElement _lmul_(self, RingElement right):
+    cpdef _lmul_(self, Element right):
         cdef Vector_complex_dense z
         cdef MPComplexNumber a
         # we can convert almost anything to MPComplexNumber

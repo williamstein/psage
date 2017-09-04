@@ -80,7 +80,7 @@ class JacobiFormsSpace_class(Parent):
 
 class JacobiFormsSubspace_class(JacobiFormsSpace_class):
 
-    def __init__(ambient_space):
+    def __init__(self,ambient_space):
         self._ambient_space = ambient_space
 
     def ambient_space(self):
@@ -123,7 +123,7 @@ def JacobiForms(weight, lattice, character):
     return JacobiFormsSpace_class(weight, lattice, character)
 
 def JacobiEisensteinForms(weight, lattice, character):
-    return JacobiEisensteinFormsSpace(weight, lattice, character)
+    return JacobiEisensteinFormsSpace_class(weight, lattice, character)
 
 def JacobiCuspForms(weight, lattice, character):
-    return JacobiCuspFormsSpace(weight, lattice, character)
+    return JacobiCuspFormsSpace_class(weight, lattice, character)

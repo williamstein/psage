@@ -312,7 +312,7 @@ cdef class Vector_real_mpfr_dense(FreeModuleElement):
          #   return Matrix_complex_dense._vector_times_matrix_(right,self)
 
         
-    cpdef ModuleElement _rmul_(self, RingElement left):
+    cpdef Element _rmul_(self, Element left):
         cdef Vector_real_mpfr_dense z
         cdef Py_ssize_t i
         cdef RealNumber a
@@ -330,7 +330,7 @@ cdef class Vector_real_mpfr_dense(FreeModuleElement):
         return z
 
 
-    cpdef ModuleElement _lmul_(self, RingElement right):
+    cpdef _lmul_(self, Element right):
         cdef Vector_real_mpfr_dense z
         cdef RealNumber a
         # we can convert almost anything to MPComplexNumber

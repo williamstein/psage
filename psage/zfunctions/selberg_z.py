@@ -944,6 +944,7 @@ class TransferOperator(Parent):
         qr=RF(q)
         llambda=mp2*(RF.pi()/qr).cos()
         dim=0
+        self._kappa = 0
         if is_even(q):
             #R=mp1
             h=ZZ(QQ(q-2)/QQ(2))
@@ -1254,17 +1255,19 @@ class TransferOperator(Parent):
                 intervals[2*i]=[x0,llambdaq_4]
                 if verbose>0:
                     print "intervals[{0}]={1}".format(2*i,intervals[2*i])
-
+            ## THen use the reflection
             for i in range(1,self._h+1):
                 x1 = intervals[2*i][0]; x2 = intervals[2*i][1]
                 if verbose>1:
                     print "x1,x2[{0}]={1}".format(2*i,(x1,x2))
-                intervals[2*i+dim_2]=[-x2,-x1]
+                    print "index=",2*(dim_2-i)+1
+                intervals[1+2*(dim_2-i)]=[-x2,-x1]
             for i in range(self._h+1):
                 x1 = intervals[2*i+1][0]; x2 = intervals[2*i+1][1]
                 if verbose>1:
                     print "x1,x2[{0}]={1}".format(2*i+1,(x1,x2))
-                intervals[2*i+1+dim_2]=[-x2,-x1]
+                    print "index=",2*(dim_2)-(2*i+1)+1
+                intervals[1+2*dim_2 - (2*i+1)]=[-x2,-x1]
 
         else:
             raise NotImplementedError
@@ -1740,11 +1743,11 @@ class TransferOperator(Parent):
         if alphas_in<>{}:
             alphas={}
             for j in alphas_in.keys():
-                alphas[j-1]=RF(alphas_in[j])
+                alphas[j]=RF(alphas_in[j])
         if rhos_in<>{}:
             rhos={}
             for j in rhos_in.keys():
-                rhos[j-1]=RF(rhos_in[j])            
+                rhos[j]=RF(rhos_in[j])            
         ## Checking that the order is ok, i.e. that the 
         if verbose>0:
             print "alphas=",alphas

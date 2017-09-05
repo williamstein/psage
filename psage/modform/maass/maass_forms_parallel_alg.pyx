@@ -84,8 +84,8 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
                            int cuspidal,
                            int verbose,
                            int ncpus=1,
-                           int is_trivial=0,
-                           int is_exceptional=0):
+                           int is_exceptional=0,
+                           int is_trivial=0):
 
 
     r"""
@@ -367,6 +367,7 @@ cdef int compute_V_cplx_dp_par(double complex **V,
                            int cuspidal,
                            int verbose,
                            int ncpus=1,
+                           int is_exceptional=0,
                            int is_trivial=0):
 
 

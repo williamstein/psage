@@ -34,5 +34,6 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
                            int cuspidal,
                            int verbose,
                            int ncpus=?,
-                           int is_trivial=?)
+                           int is_trivial=?,
+                           int is_exceptional=?)
 cdef int SMAT_cplx_par_dp(double complex** U,int N,int num_rhs,int num_set,double complex **C,double complex** values,int* setc,int ncpus)

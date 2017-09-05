@@ -93,7 +93,7 @@ class MaassWaveForms (AutomorphicFormSpace):
     Describes a space of Maass waveforms (cuspforms)
     """
     #def __init__(self,G,prec=500,ST=None,character=None,verbose=0,weight=0,**kwds):
-    def __init__(self,G,weight=0,multiplier="",ch=0,sym_type=-1,atkin_lehner={},hecke=False,verbose=0,dprec=None,prec=53,**kwds):
+    def __init__(self,G,weight=0,multiplier="",ch=0,sym_type=-1,atkin_lehner={},hecke=False,verbose=0,dprec=None,prec=53,exceptional=0,**kwds):
         r"""
         Creates an ambient space of Maass waveforms
 
@@ -149,11 +149,12 @@ class MaassWaveForms (AutomorphicFormSpace):
         self._atkin_lehner_evs={}
         self._cusp_evs=[]
         #if atkin_lehner<>{}:
-        self.set_cusp_evs(atkin_lehner)
-        self._check_consistent_symmetrization()
+        if self.group().is_congruence():
+            self.set_cusp_evs(atkin_lehner)
+            self._check_consistent_symmetrization()
         self._smallest_M0=0
         self._is_maass_waveform_space=True
-        self._exceptional = kwds.get('exceptional',False)
+        self._exceptional = exceptional 
 
     def _check_consistent_symmetrization(self):
         r"""
@@ -361,7 +362,7 @@ class MaassWaveForms (AutomorphicFormSpace):
     def __reduce__(self):
         r""" Used for pickling.
         """
-        return(MaassWaveForms,(self._group,self._weight,self._multiplier,self._character,self._sym_type,self._cusp_evs,self._hecke,self._verbose,self._dprec,self._prec))
+        return(MaassWaveForms,(self._group,self._weight,self._multiplier,self._character,self._sym_type,self._cusp_evs,self._hecke,self._verbose,self._dprec,self._prec,self._exceptional))
 
 
     def __ne__(self,other):
@@ -1454,7 +1455,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #import mpmath
         self.__dict__.update(data)
         AutomorphicFormElement.__init__(self,self._space,self._coeffs,prec=self._prec,principal_part={},verbose=self._verbose)
-        if isinstance(self._coeffs,dict) and dict_depth(self._coeffs)!=3:
+        if isinstance(self._coeffs,dict) and (dict_depth(self._coeffs)<2 or \
+                                             (dict_depth(self._coeffs)==2 and self._coeffs[0][0]!={})):
             raise ValueError,"Please represent coefficients by a nested dict in three levels: component.cusp.index where component is just 0 for scalar-valued forms and cusp is the index of a cusp rep. and index is the index of the coefficient. "
         if self._test==1 and self._errest<>0:
             self._errest = self.test()
@@ -1884,6 +1886,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         R = self._R
         Y = self.group().minimal_height()
         exceptional = self._space._exceptional
+        if exceptional:
+            R = RR(R)
         xx=x
         yy=y
         G=self.group()
@@ -2088,7 +2092,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             levels = [x for x in xsrange(*levels)]
             im = ax.contourf(X,Y,Z,levels,cmap=cmap)
         if add_contour or clip:
-            fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2)
+            if model=='H':
+                fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2,ymax=y1)
+            else:
+                fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2)          
             #return ax,im,fdom
             if add_contour:
                 ax.add_patch(fdom)

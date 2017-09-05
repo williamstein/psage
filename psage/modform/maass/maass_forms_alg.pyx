@@ -2040,13 +2040,15 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,
                               R,Y,nc,ncols,cuspidal,verbose,ncpus,
-                                  is_exceptional=is_exceptional)
+                                  is_exceptional=is_exceptional,
+                                      is_trivial=0)
     else:
         compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,
                               R,Y,nc,ncols,cuspidal,verbose,
-                              is_exceptional=is_exceptional)
+                              is_exceptional=is_exceptional
+                            )
 #    sig_off()
     cdef Matrix_complex_dense VV
     #Vtmp = load("A.sobj")

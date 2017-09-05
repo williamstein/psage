@@ -840,8 +840,13 @@ def nice_coset_reps(G):
 
 def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
     #if G.index()>1:
-    P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
-    #    #return P
+    ymax = kwds.get('ymax',None)
+    if ymax is None:
+        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
+    else:
+        P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True,ymax=ymax)
+        
+        #    #return P
     #else:
     #    P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
     l=build_connected_path(P,**kwds) #,model=model)

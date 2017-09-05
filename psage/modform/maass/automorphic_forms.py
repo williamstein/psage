@@ -211,7 +211,7 @@ class AutomorphicFormSpace(Parent):
         else:
             raise TypeError,"Could not find character {0} on group {1}".format(character,self._group)
 
-        if not multiplier:
+        if not multiplier or multiplier=='':
             self._multiplier = TrivialMultiplier(self._group,character=self._character)
         elif isinstance(multiplier,MultiplierSystem):
             self._multiplier=multiplier

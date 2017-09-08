@@ -1346,6 +1346,9 @@ def Maasswaveform(space,eigenvalue,**kwds):
     data['_Y'] = kwds.get('Y',0)
     data['_M0'] = kwds.get('M0',0)
     data['_norm'] =  kwds.get('norm',{})
+    if data['_norm']=={}:
+        if data['_set_c'] != {}:
+            data['_norm']=self.set_norm(set_c=set_c)
     data['_nd']=kwds.get('nd',12)
     ## If self is constructed as a Hecke eigenform with respect
     ## to T_p we don't want to use p for testing.
@@ -1925,7 +1928,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 wi = RF(G._cusp_data[0]['width'])
                 x3 = x2/wi; y3=y2/wi
         else:
-            x3 = x;y3 = y
+            wi = RF(G._cusp_data[cj]['width'])
+            x3 = x/wi;y3 = y/wi
             cj = use_cj
         #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
         res=0
@@ -1961,11 +1965,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             arx=twopi*x3
             ary=twopi*y3
             if exceptional:
-                for n in range(-numc+1,numc):
-                    if n== 0:
-                        continue
-                    term=scipy.special.kv(R,ary*abs(n))*CC(0,arx*n).exp()
-                    res=res+self._coeffs[fi][cj][n]*term
+                ## Sum up small terms first to avoid cancellation... 
+                for n in range(numc,0,-1):
+                    c_pos = self._coeffs[fi][cj].get(n,0)
+                    c_neg = self._coeffs[fi][cj].get(-n,0)
+                    fnval = scipy.special.kv(R,ary*abs(n))
+                    term=fnval*( CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg) 
+                    res=res+term
             else:
                 for n in range(-numc+1,numc):
                     if n== 0:
@@ -1976,6 +1982,8 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             #if res == 0.0:
             #    continue #print "value = 0"
             res = res*sqrt(y3)
+        if exceptional:
+            return res
         return res*exp(RR.pi()*R*0.5)
 #        return eval_maass_lp(self,RR(x),RR(y),use_pb=use_pb,version=version)
 

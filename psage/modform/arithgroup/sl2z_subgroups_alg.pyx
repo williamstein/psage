@@ -60,7 +60,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     corresponding to groups G with signature = sig
     get_details = True/False --> compute number of conjugates of the group G
     INPUT:
-    - sig --  signature
+    - sig --  signature of the form (mu,g,h,e2,e3)  where mu is the index, g the genus, h the number of cusps and e2 and e3 the number of elliptic points of order 2 and 3.
     - get_details -- logical
     - verbose -- binary, additive
 
@@ -72,7 +72,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     """
     cdef int mu,h,e2,e3,g
     try:
-        [mu,h,e2,e3,g]=sig
+        #[mu,h,e2,e3,g]=sig
+        [mu,g,h,e2,e3]=sig
     except:
         raise ValueError, "Indata not of correct format! sig=%s" %(sig)
     # For simplicity we fix the permutation of order two, E first:

@@ -6,6 +6,7 @@ import multiplier_systems
 import poincare_series
 import maass_forms_alg
 import maass_forms_phase2 
+import find_maass_forms
 
 # import specific functionality that we think the end user wants
 

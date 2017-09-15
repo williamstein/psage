@@ -395,14 +395,39 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         
         """
-        if not isinstance(other,MySubgroup_class):
-            return -1
+        if not isinstance(other,ArithmeticSubgroup):
+            raise NotImplementedError,"Can not compare subgroup with {0}!".format(other)
+        
         return super(MySubgroup_class,self).__cmp__(super(MySubgroup_class,self))
+
+    def __lt__(self,G):
+        r"""
+        Test if self is a subgroup of G 
+        """
+        return self.is_subgroup(G)
+
+    def __gt__(self,G):
+        r"""
+        Test if self is a subgroup of G 
+        """
+        return G.is_subgroup(self)
 
     def __ne__(self,G):
         return not self.__eq__(G)
         
-        
+    def __le__(self,G):
+        r"""
+        Test if self is a subgroup of or equal to G 
+        """
+        return self.__eq__(G) or self.__lt__(G)
+
+    def __ge__(self,G):
+        r"""
+        Test if G is a subgroup of or equal to G 
+        """
+        return self.__eq__(G) or self.__gt__(G)
+
+    
     def __eq__(self,G):
         r"""
         Test if G is equal to self.
@@ -424,17 +449,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return False
         if G.generalised_level() <> self.generalised_level():
             return False
-        return super(MySubgroup_class,self).__cmp__(G) == 0
-        # if not isinstance(G,MySubgroup_class):
-        #     S=G.as_permutation_group().S2()
-        #     R=G.as_permutation_group().S3()
-        #     t,p= are_mod1_equivalent(self.permR,self.permS,R,S)  
-        # else:
-        #     t,p= are_mod1_equivalent(self.permR,self.permS,G.permR,G.permS)
-        # if t==1:
-        #     return True
-        # return False
-        #return self.is_subgroup(G) and G.is_subgroup(self)
+        return self.as_permutation_group()==G.as_permutation_group()
 
     def relabel(self,inplace=True,label_on='R'):
         r"""
@@ -683,11 +698,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     
     def signature(self):
         r"""
-        Returns the signature of self: (index,h,nu2,nu3,g).
+        Returns the signature of self: (index,g,h,nu2,nu3).
         
         """
         if self._signature == None:
-            self._signature =  (self.index(),self.ncusps(),self.nu2(),self.nu3(),self.genus())
+            self._signature =  (self.index(),self.genus(),self.ncusps(),self.nu2(),self.nu3())
         return self._signature
 
     def reflected_group(self):
@@ -754,10 +769,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 self._symmetry_map =  SL2Z_elt(-A.a(),A.b(),-A.c(),A.d())
             else:
                 ## Check more complicated symmetry of type IIb:
-                self._is_symmetric = self._has_symmetry_type_IIa(verbose)
+                self._is_symmetric = self._has_symmetry_type_IIb(verbose)
                 if self._is_symmetric:
                     self._sym_perm = MyPermutation(length=self.index())
-                    A = self._symmetry_type_IIa[0][2] 
+                    A = self._symmetry_type_IIb[0][2] 
                     ## A^-1 T^n G* T^-n A = G
                     self._symmetry_map =  SL2Z_elt(-A.a(),A.b(),-A.c(),A.d())                
             if not self._sym_perm and force_check==True:
@@ -785,31 +800,45 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return self._is_symmetric
 
 
-    def has_translational_symmetry(self,verbose=0):
+    def has_translational_symmetry(self,verbose=0,return_k=True,check_preserve_cusp=True):
         r"""
-        Check if self has a symmetry of the form  or T^k G T^-k = G with T^2k in G
-        and T^k not in G.
+        Check if self has a symmetry of the form  JT^{-k} G JT^k = G 
+        where k is anon-negative integer. 
         
         OUTPUT:
 
-        - 'k' -- integer, the smallest k>0 such that T^kGT^-k=G and T^2k in G.
+        - 'k' -- integer, the smallest k>0 such that JT^{-k} G JT^k = G 
         
         """
-        if self._translational_symmetry == None:
-            if self.is_Gamma0():
-                self._translational_symmetry = 0  # symmetry z -> -bar(z) given by T^0
-            else:
-                self._translational_symmetry = -1 
-                if self._verbose>0:
-                    print "Checking symmetry with conjugation of T^n!"
-                for n in range(1,self._cusp_data[0]['width']):
-                    t = [ SL2Z_elt(x.a()+n*x.c(),x.b()+n*(x.d()-x.a())-n*n*x.c(),x.c(),x.d()-n*x.c()) in self for x in self.gens()].count(False)
-                    if t == 0 and SL2Z_elt(1,2*n,0,1) in self:
-                        self._translational_symmetry = n  # symmetry z -> n-bar(z) given by J*T^n
-                        break
-        return self._translational_symmetry
+        if self.is_Gamma0():
+            self._translational_symmetry = 0  # symmetry z -> -bar(z) given by T^0
+        else:
+            self._translational_symmetry = -1 
+            if self._verbose>0:
+                print "Checking symmetry with conjugation of T^n!"
+            for n in range(0,self._cusp_data[0]['width']):
+                t = [ SL2Z_elt(-(x.a()-n*x.c()),x.b()-n*(x.d()-x.a())-n*n*x.c(),x.c(),-(x.d()+n*x.c())) in self for x in self.gens()].count(False)
+                if t == 0 and (not check_preserve_cusp or self._preserve_cusp_classes([-1,n,0,1])):
+                    ## Then check if preserve cusp classes. 
+                    self._translational_symmetry = n  # symmetry z -> n-bar(z) given by J*T^n
+                    break
+        if return_k:
+            return self._translational_symmetry
+        else:
+            return self._translational_symmetry != -1            
 
-
+    def _preserve_cusp_classes(self,A):
+        r"""
+        Check if the map A preserves cusp classes
+        """
+        a,b,c,d=A
+        for cusp in self.cusps():
+            p = cusp.numerator()
+            q = cusp.denominator()
+            pnew = Cusp(a*p+b*q,c*p+d*q)
+            if not self.are_equivalent(cusp,pnew):
+                return False
+        return True
     ## Locate symmetries of different types.
     def _has_symmetry_type_Ia(self,verbose=0):
         r"""

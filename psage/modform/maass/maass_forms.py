@@ -1348,7 +1348,7 @@ def Maasswaveform(space,eigenvalue,**kwds):
     data['_norm'] =  kwds.get('norm',{})
     if data['_norm']=={}:
         if data['_set_c'] != {}:
-            data['_norm']=self.set_norm(set_c=set_c)
+            data['_norm']=space.set_norm(set_c=data['_set_c'])
     data['_nd']=kwds.get('nd',12)
     ## If self is constructed as a Hecke eigenform with respect
     ## to T_p we don't want to use p for testing.

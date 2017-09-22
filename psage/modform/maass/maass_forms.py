@@ -2044,11 +2044,6 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         w = G.cusp_width(Infinity)
         if xlim is None:
             xlim = (-0.5*w,0.5*w)
-        if isinstance(kwds.get('cmap','jet'),list):
-            res = []
-            for cmap0 in kwds.get('cmap'):
-                res.append(self.plot(xlim=xlim,ylim=ylim,num_pts=num_pts,**kwds))
-            return res
         add_contour = kwds.pop('add_contour',True) # add the contour of a fundamental domain
         version = kwds.pop('version',0)
         model = kwds.pop('model','H')
@@ -2088,41 +2083,48 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         g, ranges = setup_for_eval_on_grid([fun], [xrange, yrange], options['plot_points'])
         g = g[0]
         xrange,yrange=[r[:2] for r in ranges]
-        xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
+        xy_data_array = [[fun(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
         xsize = (xlim[1]-xlim[0]); ysize = (ylim[1]-ylim[0])
         #print "size=",xsize,ysize
-        g = plt.figure(figsize=(xsize,ysize))
-        ax = g.add_subplot(111)
-        x0,x1 = xlim
-        y0,y1 = ylim
-        if type=='density':
-            im = ax.imshow(xy_data_array, origin='lower', cmap=cmap, extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
-            #return xy_data_array,xlim,ylim
-        else:
-            X = xsrange(*ranges[0]); Y = xsrange(*ranges[1])
-            Z = np.ma.array(xy_data_array)
-            return X,Y,Z
-            levels=kwds.get('levels',[-1,1,0.1])
-            levels = [x for x in xsrange(*levels)]
-            im = ax.contourf(X,Y,Z,levels,cmap=cmap)
-        if add_contour or clip:
-            if model=='H':
-                fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness,ymax=y1)
+        ## From here we can have more than one figure with the same data
+        if not isinstance(cmap,list):
+            cmap = [cmap]
+        res = []
+        for cmap0 in cmap:
+            g = plt.figure(figsize=(xsize,ysize))
+            ax = g.add_subplot(111)
+            x0,x1 = xlim
+            y0,y1 = ylim
+            if type=='density':
+                im = ax.imshow(xy_data_array, origin='lower', cmap=cmap0, extent=(x0,x1,y0,y1), interpolation='catrom',**kwds)
+                #return xy_data_array,xlim,ylim
             else:
-                fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2)          
-            #return ax,im,fdom
-            if add_contour:
-                ax.add_patch(fdom)
-            if clip:
-                im.set_clip_path(fdom)
-        if not show_axis:
-            ax.set_frame_on(False)
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-        if model == 'D':
-            c = patches.Circle((0.0,0.0),radius=1.0,fc='none')
-            ax.add_patch(c)
-        return g
+                X = xsrange(*ranges[0]); Y = xsrange(*ranges[1])
+                Z = np.ma.array(xy_data_array)
+                #return X,Y,Z
+                #levels=kwds.get('levels',[-1,1,0.1])
+                levels = [x for x in xsrange(*levels)]
+                im = ax.contourf(X,Y,Z,levels,cmap=cmap)
+            if add_contour or clip:
+                if model=='H':
+                    fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness,ymax=y1)
+                else:
+                    fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness)          
+                if add_contour:
+                    ax.add_patch(fdom)
+                if clip:
+                    im.set_clip_path(fdom)
+            if not show_axis:
+                ax.set_frame_on(False)
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+            if model == 'D':
+                c = patches.Circle((0.0,0.0),radius=1.0,fc='none')
+                ax.add_patch(c)
+            res.append(g)
+        if len(res)==1:
+            return res[0]
+        return res
 
 
 

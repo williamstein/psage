@@ -2052,7 +2052,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         type= kwds.pop('type','density')
         cmap=kwds.pop('cmap','jet')
         ccolor=kwds.pop('contour_color','black')
-        ccolor=kwds.pop('cthickness',2)
+        cthickness=kwds.pop('cthickness',2)
         eps = 1e-10
         def fun(x,y):
             z = CC(x,y)

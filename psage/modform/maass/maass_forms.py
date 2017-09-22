@@ -2044,6 +2044,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         w = G.cusp_width(Infinity)
         if xlim is None:
             xlim = (-0.5*w,0.5*w)
+        if isinstance(kwds.get('cmap','jet'),list):
+            res = []
+            for cmap0 in kwds.get('cmap'):
+                res.append(self.plot(xlim=xlim,ylim=ylim,num_pts=num_pts,**kwds))
+            return res
         add_contour = kwds.pop('add_contour',True) # add the contour of a fundamental domain
         version = kwds.pop('version',0)
         model = kwds.pop('model','H')
@@ -2052,6 +2057,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         type= kwds.pop('type','density')
         cmap=kwds.pop('cmap','jet')
         ccolor=kwds.pop('contour_color','black')
+        ccolor=kwds.pop('cthickness',2)
         eps = 1e-10
         def fun(x,y):
             z = CC(x,y)
@@ -2101,7 +2107,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             im = ax.contourf(X,Y,Z,levels,cmap=cmap)
         if add_contour or clip:
             if model=='H':
-                fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2,ymax=y1)
+                fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness,ymax=y1)
             else:
                 fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=2)          
             #return ax,im,fdom

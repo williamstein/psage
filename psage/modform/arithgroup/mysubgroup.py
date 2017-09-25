@@ -120,7 +120,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         r = s*t
         s3 = MyPermutation(r.domain())
         if A.is_congruence():
-            level = A.level()
+            level = A.generalised_level()
         if isinstance(A,Gamma0_class):
             is_Gamma0=True
         else:

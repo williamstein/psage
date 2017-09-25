@@ -470,7 +470,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if label_on == 'R':
             super(MySubgroup_class,self).relabel(inplace=True)
             self.permS=MyPermutation([x+1 for x in self._S2])
-            self.permR=MyPermutation([x+1 for x in self._S3])
+            S3 = MyPermutation([x+1 for x in self._S3]) # = ST^-1
+            self.permR=self.permS*S3.inverse()*self.permS
             ## Relabel the rest as well
             ## Note: we now use a group *homomorphism*.
             self.permT = self.permS*self.permR            

@@ -3987,6 +3987,30 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             raise ValueError, s
         return True
 
+
+    def surgroups(self):
+        r"""
+        Return an iterator over nono-trivial supergroups between self and SL2(Z).
+        The which uses GAP for dealingwith the block systems is essentially copied from 
+        sages source in sage/modular/arithgroup/arithgroup_perm.py 
+
+        """
+        from sage.interfaces.gap import gap
+        from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
+        P = self.perm_group()._gap_()
+        for b in P.AllBlocks():
+            orbit = P.Orbit(b, gap.OnSets)
+            action = P.Action(orbit, gap.OnSets)
+            S2,S3,L,R = action.GeneratorsOfGroup()
+            R=S2*(S3**-1)*S2
+            S2 = PermutationGroupElement(S2)
+            R  = PermutationGroupElement(R)
+            s = [S2(i) for i in range(1,len(orbit)+1)]
+            r = [R(i) for i in range(1,len(orbit)+1)]
+            yield MySubgroup(o2=s,o3=r)
+            
+            
+    
 class MySubgroup_congruence_class (MySubgroup_class):
     r"""
     Subclass of congruence subgroups.

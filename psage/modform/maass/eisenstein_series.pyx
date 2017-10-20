@@ -26,6 +26,8 @@ from psage.rings.mp_cimports cimport *
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
 import mpmath    
 
+from lpkbessel import besselk_dp
+
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField
 from sage.rings.complex_field import ComplexField
@@ -95,12 +97,30 @@ from psage.modform.arithgroup.mysubgroups_alg import normalize_point_to_cusp_mpf
 from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mpc_new
 from pullback_algorithms cimport pullback_pts_cplx_dp
 
+from maass_forms_alg import get_M_and_Y
+cpdef scattering_determinant(S,double sigma,double R):
+    r"""
 
+    """
+    
+    Y = S.group().minimal_height()
+    M,Y = get_M_and_Y( R,Y,10,1e-7)
+    C = eisenstein_series(S,sigma,R,Y,M,M+10)
+    nc = S.group().ncusps()
+    if nc == 1:
+        return C[0][0]
+    CF=MPComplexField(53)
+    MS=MatrixSpace(CF,nc,nc)
+    A=Matrix_complex_dense(MS,0)
 
-
+    for i in range(nc):
+        for j in range(nc):
+            A[i,j]=C[i][j][0]
+    return A.det()
+    
 cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,int use_fak=0,double eps=1e-12):
     r"""
-    Compute the Eisenstein series for the Hecke triangle group G_q
+    Compute the Fourier coefficients of Eisenstein series E(z;sigma+R)
     """
     import mpmath
     cdef double complex **V=NULL
@@ -344,9 +364,9 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
     for j from 0<=j<comp_dim:
         res[j]=dict()
         for i from 0<=i<nc:
-            if i>0 and cusp_evs[i]<>0:
-                res[j][i]=cusp_evs[i]
-                continue
+            #if i>0 and cusp_evs[i]<>0:
+            #    res[j][i]=cusp_evs[i]
+            #    continue
             res[j][i]=dict()
             for k from 0<=k<Mv[i][2]:
                 ki=cusp_offsets[i]+k
@@ -432,7 +452,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     #mpmath.mp.dps=25
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,Qs,Qf,Mf,Ms,prec
     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,besarg,lr,nr
-    cdef double complex ckbes,ctmpV,iargm,twopii,kbes,ctmp
+    cdef double complex ckbes,ctmpV,iargm,twopii,kbes,ctmp,t
     cdef double RlnY,x,y
     cdef double complex Ys
     cdef mpc_t ztmp,stmp
@@ -461,6 +481,10 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     if verbose>0:
         print "Ys=",Ys
         print "Y**s=",Y**<double complex>(sigma+_I*R)
+    if abs(sigma-0.5)<1e-14:
+        on_half_line=True
+    else:
+        on_half_line = False
     mpy=mpmath.mp.mpf(Y)
     mpsqY=mpmath.mp.sqrt(mpy)
     mpone_minus_s=mpmath.mp.mpc(1.0-sigma,-R)
@@ -574,7 +598,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     s_minus_half=CC(sigma-0.5,R)
     one_minus_s=CC(1.0-sigma,-R) #-s
     if use_fak==1:
-        fak = mpmath.mp.exp(R*mpmath.mp.pi*0.5)
+        fak = 1 #mpmath.mp.exp(R*mpmath.mp.pi*0.5)
     else:
         fak = 1
     for jcusp in range(nc):
@@ -587,18 +611,23 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                     lr=nvec[jcusp][l]*twopi
                     besarg=fabs(lr)*ypb
                     if lr<>0.0:
-                        try:
-                            kbes=mpmath.mp.besselk(s_minus_half,besarg)
-                        except:
-                            print "s=",s,type(s)
-                            print "besarg=",besarg,type(besarg)
-                            raise ArithmeticError
+                        if on_half_line:
+                            kbes = besselk_dp(R,besarg,pref=0)
+                        else:
+                            try:
+                                kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                            except:
+                                print "s=",s,type(s)
+                                print "besarg=",besarg,type(besarg)
+                                raise ArithmeticError
                         kbesvec[icusp][l][j]=sqrt(ypb)*kbes*fak
                     else:
-                        if abs(s-0.5)>1E-14:
-                            kbesvec[icusp][l][j]=ypb**one_minus_s
-                        else:
-                            kbesvec[icusp][l][j]=sqrt(ypb)*log(ypb)
+                        #if abs(s-0.5)>1E-14:
+                        kbesvec[icusp][l][j]=ypb**one_minus_s
+                        #else:
+                        #    #kbesvec[icusp][l][j]=sqrt(ypb)*log(ypb)
+                    #print "ypb,besarg=",ypb,besarg
+                    #print "kbesvec[",icusp,jcusp,l+Mv[jcusp][0],j+Qv[jcusp][0],'=',kbesvec[icusp][l][j]
     #cdef double complex cuspev
     for jcusp in range(nc):
         for l in range(Mv[jcusp][2]):
@@ -628,6 +657,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                         print "lj=",cusp_offsets[jcusp],"+",l,"=",lj
                         raise ArithmeticError,"Index outside!"                    
                     V[ni][lj]=V[ni][lj]/Qfak[jcusp]
+
     cdef double complex summa,term
     #summa = CF(0); term = CF(0)
     for icusp in range(nc):
@@ -635,52 +665,56 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
             nr=fabs(nvec[icusp][n])
             ni=cusp_offsets[icusp]+n
             if nr==0.0:
-                 if abs(s-0.5)>1E-14:
-                     #kbes=Y**one_minus_s
-                     kbes=mp_y_1ms 
-                 else:
-                     kbes=sqrtY*log(Y)
+                #if abs(s-0.5)>1E-14:
+                #kbes=Y**one_minus_s
+                kbes=mp_y_1ms 
+                #else:
+                #    kbes=sqrtY*log(Y)
             else:
                 besarg=nr*Y2pi
-                try:
-                    #kbes=bessel_K(s,besarg)
-                    kbes=mpmath.fp.besselk(s_minus_half,besarg)
-                except:
-                    print "s=",s,type(s)
-                    print "besarg=",besarg,type(besarg)
-                    raise ArithmeticError
+                if on_half_line:
+                    kbes = besselk_dp(R,besarg,pref=0)
+                else:
+                    try:
+                        #kbes=bessel_K(s,besarg)
+                        kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                    except:
+                        print "s=",s,type(s)
+                        print "besarg=",besarg,type(besarg)
+                        raise ArithmeticError
                 kbes=sqrtY*kbes*fak # besselk_dp(R,nrY2pi,pref=1)
             if ni>N:
                 raise ArithmeticError,"Index outside!"
             V[ni][ni]=V[ni][ni] - kbes
-            ## Also get the RHS:
-            for jcusp in range(nc):
-                if jcusp<>icusp:
-                    RHS[ni][jcusp]=0
-                else:
-                    summa=0.0
-                    for j in range(Qv[jcusp][2]):            
-                        ypb=Ypb[icusp][jcusp][j]
-                        if abs(s-0.5)>1E-14:
-                            #term = ypb**s
-                            term = mpmath.mp.power(mpmath.mp.mpf(ypb),s)
-                        else:
-                            term = sqrt(ypb)
-                        term = term*ef2_c[jcusp][n][j]
-                        summa = summa + term
-                    RHS[ni][jcusp]=summa/Qfak[jcusp]
-                if nr==0 and jcusp==icusp:
-                    ## Subtracting of....
-                    if abs(s-0.5)>1E-14:
-                        #kbes=mpmath.mp.power(Y,s)
-                        #kbes = (Y**sigma)
-                        #kbes = kbes * (cos(RlnY)+_I*sin(RlnY))
-                        kbes = Ys
-                    else:
-                        kbes=mpmath.mp.sqrt(Y)
-                    RHS[ni][jcusp]=RHS[ni][jcusp]-kbes
-                if verbose>2:
-                    print 'RHS[',ni,jcusp,']=',RHS[ni][jcusp]
+    ## Also get the RHS:
+    for jcusp in range(nc):# this is the Eisenstein series number 
+        for icusp in range(nc):
+            for n in range(Mv[icusp][2]):
+                ## We have one right-hand side for each cusp 'jcusp'
+                summa=0.0
+                nr = nvec[icusp][n]
+                ni=cusp_offsets[icusp]+n
+                RHS[ni][jcusp] = 0
+                for j in range(Qv[icusp][2]):            
+                    ypb=Ypb[icusp][jcusp][j]
+                    if ypb == 0:
+                        continue
+                    term = mpmath.mp.mpf(ypb)**s #mpmath.mp.power(mpmath.mp.mpf(ypb),s)
+                    if nvec[icusp][n] !=0:
+                        term = term*CC(0,-nr*Xm[j]).exp()
+                        #term = term*ef2_c[icusp][n][j]
+                    summa = summa + term
+                    #if jcusp==icusp and nr==0:
+                    #    print "term:",jcusp,icusp,nr,j,'=',term
+                        #print "ef2=",ef2_c[icusp][n][j]
+                        #print "ypb=",ypb
+                        #print "term=",j,term
+                RHS[ni][jcusp]=summa/Qfak[icusp]
+                if nvec[icusp][n]==0 and jcusp==icusp:
+                    kbes = Ys
+                    RHS[ni][jcusp]=RHS[ni][jcusp]-CC(Y)**s
+                #if icusp == jcusp:
+                #    print 'RHS[',ni,jcusp,']=',RHS[ni][jcusp],CC(Y)**s
     if verbose>2:
         print "V3[",3,3,"]=",V[3][3]
     if kbesvec<>NULL:

@@ -123,7 +123,7 @@ cpdef scattering_determinant(S,double sigma,double R):
     
 cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,int use_fak=0,double eps=1e-12):
     r"""
-    Compute the Fourier coefficients of Eisenstein series E(z;sigma+R)
+    Compute the Fourier coefficients of all Eisenstein series E(z;sigma+R)
     """
     import mpmath
     cdef double complex **V=NULL
@@ -191,10 +191,10 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
     for jcusp in range(nc):
         cusp_offsets[jcusp]=0
         for icusp in range(jcusp):
-            if icusp==0 or cusp_evs[icusp]==0:
-                cusp_offsets[jcusp]+=Mv[icusp][2]
-                if verbose>0:
-                    print "cusp_offset[",jcusp,"]+=",Mv[icusp][2]
+            #if icusp==0 or cusp_evs[icusp]==0:
+            cusp_offsets[jcusp]+=Mv[icusp][2]
+            if verbose>0:
+                print "cusp_offset[",jcusp,"]+=",Mv[icusp][2]
         if verbose>0:
             print "cusp_offset[",jcusp,"]=",cusp_offsets[jcusp]
     ncols = N + comp_dim
@@ -362,6 +362,9 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
         SMAT_cplx_dp(V,N,comp_dim,0,C,vals_list,setc_list)
     except ArithmeticError as e:
         logger.critical("Arithmetic error:{0}".format(e))
+        #logger.critical("vals_list={0}".format(vals_list))
+        #logger.critical("setc_list={0}".format(setc_list))
+        
         print "V[0,0]=",V[0][0]
         raise e
     #sig_off()
@@ -433,7 +436,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                            double R,double Y,
                            int nc, int ncols,
                            int cuspidal,
-                           int verbose, int use_fak=0,
+                           int verbose=0, int use_fak=0,
                            int is_trivial=0):
 
 
@@ -520,8 +523,8 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     for jcusp from 0 <= jcusp < nc:
         cusp_offsets[jcusp]=0
         for icusp from 0 <= icusp < jcusp:
-            if icusp==0 or cusp_evs[icusp]==0:
-                cusp_offsets[jcusp]+=Mv[icusp][2]
+            #if icusp==0 or cusp_evs[icusp]==0:
+            cusp_offsets[jcusp]+=Mv[icusp][2]
         if verbose>0:
             print "cusp_offsets[",jcusp,"]=",cusp_offsets[jcusp]
     cdef double **nvec=NULL
@@ -673,6 +676,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
         for n in range(Mv[icusp][2]):
             nr=fabs(nvec[icusp][n])
             ni=cusp_offsets[icusp]+n
+            #print "({0},{1})={2}".format(icusp,n,ni)
             if nr==0.0:
                 #if abs(s-0.5)>1E-14:
                 #kbes=Y**one_minus_s

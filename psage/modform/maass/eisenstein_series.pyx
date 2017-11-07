@@ -51,6 +51,9 @@ from sage.matrix.all import MatrixSpace
 #import numpy as np
 #cimport numpy as cnp
 #cimport cython
+import logging
+
+logger = logging.getLogger(__name__)
 
 from maass_forms_alg cimport SMAT_cplx_dp,set_Mv_Qv_symm
 from maass_forms_alg import get_M_for_maass_dp
@@ -156,6 +159,7 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
         M = get_M_for_maass_dp(R,Y,eps)
     if Q<M:
         Q=M+20
+    logger.info("Y={0},M={1},Q={2},s={3},R={4}".format(Y,M,Q,sigma,R))
     #    Qfak=<double>(2*Q)    
     sym_type = S._sym_type
     nc = int(S._group._ncusps)
@@ -354,7 +358,12 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
                 VV[n,l]=V[n][l]
         return VV
     #sig_on()
-    SMAT_cplx_dp(V,N,comp_dim,0,C,vals_list,setc_list)
+    try:
+        SMAT_cplx_dp(V,N,comp_dim,0,C,vals_list,setc_list)
+    except ArithmeticError as e:
+        logger.critical("Arithmetic error:{0}".format(e))
+        print "V[0,0]=",V[0][0]
+        raise e
     #sig_off()
     if verbose>1:
         for k in range(ncols):

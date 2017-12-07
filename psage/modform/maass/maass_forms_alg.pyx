@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -2041,7 +2041,7 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
                               symmetric_cusps,
                               R,Y,nc,ncols,cuspidal,verbose,ncpus,
                                   is_exceptional=is_exceptional,
-                                      is_trivial=0)
+                                      is_trivial=0)                                      
     else:
         compute_V_cplx_dp_sym(V1,N1,Xm,Xpb,Ypb,Cvec,
                               cusp_evs,alphas,Mv,Qv,Qfak,
@@ -3932,14 +3932,23 @@ def get_M_for_maass(R,Y,eps):
     raise Exception," No good value for truncation was found!"
 
 
-def err_est_Maasswf(Y,M,R=0,pref=1):
+def err_est_Maasswf(Y,M,R=0,pref=1,proof=False):
     r"""
-    Estimate the truncated series: $|\Sum_{n\ge M} a(n) \sqrt{Y} K_{iR}(2\pi nY) e(nx)|$
-    we use that K_{iR}(x) = sqrt(pi/2x)e^-x to estimate the sum with
-    1/sqrt(2Y) erfc(sqrt(2piMY))
+    Estimate the truncated series: 
+      $|\Sum_{n\ge M} a(n) \sqrt{Y} K_{iR}(2\pi nY) e(nx)|$
+    we use that K_{iR}(x) \sim sqrt(pi/2x)e^-x to estimate the sum with
+     O_R(1) sqrt(pi/2)  |$\sum_{n\ge M} (2piny)^(-1/2)e^-(2piny)|
+     which we then estimate by an integral and get: 
+     sqrt(pi/2)  Gamma(3/2,2piMY) 
+    and finally, for Y>1/(2piM) we have |Gamma(3/2,2piMY)|< 2x^(1/2)e^-x
+
+    so that the final bound is 
+    2O_R(1) M^(1/2) e^(-2piMY) 
     CAVEATS:
     - we assume the Ramanujan bound for the coefficients $a(n)$, i.e. $|a(n)|\le2$.
     - error estimate holds for 2piMY >> R
+    - there is an implicit constant dependning on R which we neglect if proof=False
+      (currently this is the only value supported)
 
     INPUT:
 
@@ -3959,17 +3968,22 @@ def err_est_Maasswf(Y,M,R=0,pref=1):
         mpf('5.3032651127544969e-25')
 
     """
+    if proof==True:
+        raise NotImplementedError
     import mpmath
     mpmath.mp.pres=103
     YY = mpmath.mp.mpf(Y)
     #arg=sqrt(2*mpmath.fp.pi*YY*M)
-    gamma_arg=2*mpmath.mp.pi*YY*M
+    #gamma_arg=2*mpmath.mp.pi*YY*M
     if pref==1:
-        f = exp(mpmath.mp.pi*R/2.0)*mpmath.mp.sqrt(2.0/YY)
+        f = exp(mpmath.mp.pi*R/2.0)
+        #*mpmath.mp.sqrt(2.0/YY)
     else:
-        f = mpmath.mp.sqrt(2.0/YY) 
+        f = 1
+    r = f
 #    r = f*mpmath.fp.erfc(arg)
-    r = f*mpmath.mp.gammainc(0.75,gamma_arg)
+    r = f*2*M**(0.5)*exp(-2*M_PI*YY*M)
+    #mpmath.mp.gammainc(0.75,gamma_arg)
     return r
 
 # cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):

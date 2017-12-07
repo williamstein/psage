@@ -1,4 +1,5 @@
 # cython: profile=False
+# cython: linetrace=False
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -421,7 +422,7 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef compute_V_cplx_eis_dp_sym(double complex **V,
+cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                                double complex **RHS,
                            int N,
                            double *Xm,
@@ -766,6 +767,337 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     if cusp_offsets<>NULL:
         sage_free(cusp_offsets)
 
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef compute_V_cplx_eis_dp_sym(double complex **V,
+                               double complex **RHS,
+                           int N,
+                           double *Xm,
+                           double ***Xpb,
+                           double ***Ypb,
+                           double complex ***Cvec,
+                           double complex *cusp_evs,
+                           double *alphas,
+                           int **Mv,int **Qv,double *Qfak,
+                           int *symmetric_cusps,
+                           double sigma,
+                           double R,double Y,
+                           int nc, int ncols,
+                           int cuspidal,
+                           int verbose=0, int use_fak=0,
+                           int is_trivial=0):
+
+
+    r"""
+    Set up the matrix for the system of equations giving the Fourier coefficients of a non-holomorphic Eisenstein series with
+    spectral parameter s=sigma+iR
+    ( we set up a system for all Eisensteins series wrt all cusps)
+    INPUT:
+
+    - ``R``   -- double (eigenvalue)
+    - ``Y``   -- double (the height of the sampling horocycle)
+    - ``Ms,Mf``  -- int (The coefficients we want to compute are C(n), Ms<=n<=Mf )
+    - ``Qs,Qf``  -- int (The sampling points are X_m, Qs<=m<=Qf)
+    - ``alphas`` -- [nc] double array (the shifts of the Fourier expansion at each cusp)
+    - ``V``   -- [(Mf-Ms)*nc]^2 double complex matrix (allocated)
+    - ``Xm``  -- [Qf-Qs] double array (allocated)
+    - ``Xpb`` -- nc*nc*[Qf-Qs] double array (allocated)
+    - ``Ypb`` -- nc*nc*[Qf-Qs] double array (allocated)
+    - ``Cvec`` -- nc*nc*[Qf-Qs] double complex array (allocated)
+    - `` cuspidal`` -- int (set to 1 if we compute cuspidal functions, otherwise zero)
+    - `` sym_type`` -- int (set to 0/1 if we compute even/odd functions, otherwise -1)
+    - ``verbose`` -- int (verbosity of output)
+    
+    """
+    #mpmath.mp.dps=25
+    cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,Qs,Qf,Mf,Ms,prec
+    cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,besarg,lr,nr
+    cdef double complex ckbes,ctmpV,iargm,twopii,kbes,ctmp,t
+    cdef double RlnY,x,y,one
+    cdef double complex Ys
+    if not cuspidal in [0,1]:
+        raise ValueError," parameter cuspidal must be 0 or 1"
+    pi=M_PI #<double>RealField(53).pi() #3.141592653589793238
+    sqrtY=sqrt(Y)
+    RlnY=R*log(Y)
+    prec = 103
+    one = float(1)
+    Ys = Y**sigma*cos(RlnY)+_I*Y**sigma*sin(RlnY)
+    cdef double complex Y_1minus_s
+    # Y^(1-s)=Y^(1-sigma)*(cos(Rln(Y))-sin(Rln(Y)))
+    Y_1minus_s= Y**(one-sigma)*cos(RlnY)-_I*Y**(one-sigma)*sin(RlnY)
+    if verbose>0:
+        print "Ys=",Ys
+        print "Y**s=",Y**<double complex>(sigma+_I*R)
+    if abs(sigma-0.5)<1e-14:
+        on_half_line=True
+    else:
+        on_half_line = False
+    two=<double>(2)
+    Y2pi=Y*pi*two
+    twopi=two*pi
+    Ml=0; Ql=0
+    for i from 0<=i<nc:
+        if Mv[i][2]>Ml:
+            Ml=Mv[i][2]
+        if Qv[i][2]>Ql:
+            Ql=Qv[i][2]
+        if verbose>0:
+            print "Qv[",i,"]=(",Qv[i][0],",",Qv[i][1],",",Qv[i][2],")"
+            print "Mv[",i,"]=(",Mv[i][0],",",Mv[i][1],",",Mv[i][2],")"
+    if verbose>0:
+        print "N=",N
+        print "Ql=",Ql
+    ## This is the effective offset at the 
+    cdef int* cusp_offsets=NULL
+    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    if cusp_offsets==NULL: raise MemoryError
+    for jcusp from 0 <= jcusp < nc:
+        cusp_offsets[jcusp]=0
+        for icusp from 0 <= icusp < jcusp:
+            #if icusp==0 or cusp_evs[icusp]==0:
+            cusp_offsets[jcusp]+=Mv[icusp][2]
+        if verbose>0:
+            print "cusp_offsets[",jcusp,"]=",cusp_offsets[jcusp]
+    cdef double **nvec=NULL
+    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    if not nvec: raise MemoryError
+    for icusp in range(nc):
+        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+    cdef double complex ****ef1=NULL
+    cdef double complex ***ef2_c=NULL
+    ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+    if not ef2_c: raise MemoryError
+    for icusp  in range(nc):
+        ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+        for n  in range(Mv[icusp][2]):
+            ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+    if ef1==NULL: raise MemoryError        
+    for icusp  in range(nc):
+        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc) 
+        if ef1[icusp]==NULL: raise MemoryError        
+        for jcusp in range(nc):
+            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            if ef1[icusp][jcusp]==NULL: raise MemoryError        
+            for n from 0<=n<Mv[jcusp][2]:
+                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                if ef1[icusp][jcusp][n]==NULL: raise MemoryError        
+    for jcusp in range(nc):
+        for n in range(Ml):
+            nvec[jcusp][n]=<double>(n+Mv[jcusp][0])+alphas[jcusp]
+    cdef int twoQm1
+    twoQm1= 2*Qv[0][1]-1
+    for jcusp in range(nc):
+        for n in range(Mv[jcusp][2]):    
+            for j in range(Qv[jcusp][2]):
+                argm=nvec[jcusp][n]*Xm[j]
+                if symmetric_cusps[jcusp]==0:
+                    ef2_c[jcusp][n][j]=cos(argm)
+                elif symmetric_cusps[jcusp]==1:
+                    ef2_c[jcusp][n][j]=_I*sin(-argm)
+                else:
+                    ef2_c[jcusp][n][j]=cexpi(-argm)
+    cdef double argpb1
+    for jcusp in range(nc):
+        for icusp in range(nc):
+            for n from 0<=n<Mv[jcusp][2]:
+                for j from 0<=j<Qv[jcusp][2]: #in range(Qs,Qf+1):
+                    if Ypb[icusp][jcusp][j]==0:
+                        continue
+                    argpb=nvec[jcusp][n]*Xpb[icusp][jcusp][j]
+                    if symmetric_cusps[jcusp]==0:
+                        ef1[icusp][jcusp][n][j]=cos(argpb)
+                    elif symmetric_cusps[jcusp]==1:
+                        ef1[icusp][jcusp][n][j]=_I*sin(argpb)
+                    else:
+                        ef1[icusp][jcusp][n][j]=cexpi(argpb)
+                    ctmp = Cvec[icusp][jcusp][j]
+                    ef1[icusp][jcusp][n][j]=ef1[icusp][jcusp][n][j]*ctmp
+    if verbose>1:
+        print "here1121"
+    cdef double besarg_old=0.0
+    #cdef double y #,kbes_old=1.0
+    cdef double complex ***kbesvec=NULL
+    kbesvec=<double complex***>sage_malloc(sizeof(double complex**)*nc)
+    if kbesvec==NULL:
+        raise MemoryError
+    for jcusp in range(nc):
+        kbesvec[jcusp]=<double complex**>sage_malloc(sizeof(double complex*)*Ml)
+        if kbesvec[jcusp]==NULL:
+                raise MemoryError
+        for l in range(Ml):
+            kbesvec[jcusp][l]=<double complex*>sage_malloc(sizeof(double complex)*Ql)
+            if kbesvec[jcusp][l]==NULL:
+                raise MemoryError
+    if verbose>0:
+        print "here0"
+        print "Ml=",Ml
+        print "Ql=",Ql
+    cdef double besprec
+    besprec=1.0E-14
+    cdef double complex s,one_minus_s,s_minus_half
+    cdef double fak
+    s = sigma + _I*R
+    s_minus_half= sigma-0.5 +_I*R #CC(sigma-0.5,R)
+    one_minus_s=  1.0-sigma -_I*R #CC(1.0-sigma,-R) #-s
+    if use_fak==1:
+        fak = 1 #mpmath.mp.exp(R*mpmath.mp.pi*0.5)
+    else:
+        fak = 1
+    for jcusp in range(nc):
+        for icusp in range(nc):
+            for j in range(Qv[jcusp][2]):            
+                ypb=Ypb[icusp][jcusp][j]
+                if ypb==0:
+                    continue
+                for l in range(Mv[jcusp][2]):
+                    lr=nvec[jcusp][l]*twopi
+                    besarg=fabs(lr)*ypb
+                    if lr<>0.0:
+                        if on_half_line:
+                            kbes = besselk_dp(R,besarg,pref=0)
+                        else:
+                            try:
+                                kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                            except:
+                                print "s=",s,type(s)
+                                print "besarg=",besarg,type(besarg)
+                                raise ArithmeticError
+                        kbesvec[icusp][l][j]=sqrt(ypb)*kbes*fak
+                    else:
+                        #if abs(s-0.5)>1E-14:
+                        kbesvec[icusp][l][j]=ypb**one_minus_s
+                        #else:
+                        #    #kbesvec[icusp][l][j]=sqrt(ypb)*log(ypb)
+                    #print "ypb,besarg=",ypb,besarg
+                    #print "kbesvec[",icusp,jcusp,l+Mv[jcusp][0],j+Qv[jcusp][0],'=',kbesvec[icusp][l][j]
+    #cdef double complex cuspev
+    for jcusp in range(nc):
+        for l in range(Mv[jcusp][2]):
+            lr=nvec[jcusp][l]*twopi
+            lj=cusp_offsets[jcusp]+l
+            for j in range(Qv[jcusp][2]):
+                for icusp in range(nc):
+                    if Ypb[icusp][jcusp][j]==0: 
+                        continue
+                    ckbes=kbesvec[icusp][l][j]*ef1[icusp][jcusp][l][j]
+                    for n in range(Mv[icusp][2]):
+                        ni=cusp_offsets[icusp]+n
+                        ctmpV=ckbes*ef2_c[icusp][n][j]
+                        if ni>N or lj>N:
+                            raise ArithmeticError,"Index outside!"
+                        V[ni][lj]=V[ni][lj]+ctmpV
+    if verbose>3:
+        print "V0[",3,3,"]=",V[3][3]
+    for icusp in range(nc): 
+        for n in range(Mv[icusp][2]):
+            ni=cusp_offsets[icusp]+n
+            for jcusp in range(nc):
+                for l in range(Mv[jcusp][2]):
+                    lj=cusp_offsets[jcusp]+l
+                    if lj>N or ni>N: # some extra insurance...
+                        print "ni=",cusp_offsets[icusp],"+",n,"=",ni
+                        print "lj=",cusp_offsets[jcusp],"+",l,"=",lj
+                        raise ArithmeticError,"Index outside!"                    
+                    V[ni][lj]=V[ni][lj]/Qfak[jcusp]
+
+    cdef double complex summa,term
+    #summa = CF(0); term = CF(0)
+    for icusp in range(nc):
+        for n in range(Mv[icusp][2]):
+            nr=fabs(nvec[icusp][n])
+            ni=cusp_offsets[icusp]+n
+            #print "({0},{1})={2}".format(icusp,n,ni)
+            if nr==0.0:
+                #if abs(s-0.5)>1E-14:
+                #kbes=Y**one_minus_s
+                kbes= Y_1minus_s
+                #else:
+                #    kbes=sqrtY*log(Y)
+            else:
+                besarg=nr*Y2pi
+                if on_half_line:
+                    kbes = besselk_dp(R,besarg,pref=0)
+                else:
+                    try:
+                        #kbes=bessel_K(s,besarg)
+                        kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                    except:
+                        print "s=",s,type(s)
+                        print "besarg=",besarg,type(besarg)
+                        raise ArithmeticError
+                kbes=sqrtY*kbes*fak # besselk_dp(R,nrY2pi,pref=1)
+            if ni>N:
+                raise ArithmeticError,"Index outside!"
+            V[ni][ni]=V[ni][ni] - kbes
+    ## Also get the RHS:
+    for jcusp in range(nc):# this is the Eisenstein series number 
+        for icusp in range(nc):
+            for n in range(Mv[icusp][2]):
+                ## We have one right-hand side for each cusp 'jcusp'
+                summa=0.0
+                nr = nvec[icusp][n]
+                ni=cusp_offsets[icusp]+n
+                RHS[ni][jcusp] = 0
+                for j in range(Qv[icusp][2]):            
+                    ypb=Ypb[icusp][jcusp][j]
+                    if ypb == 0:
+                        continue
+                    term = ypb**s #mpmath.mp.mpf(ypb)**s #mpmath.mp.power(mpmath.mp.mpf(ypb),s)
+                    if nvec[icusp][n] !=0:
+                        #term = term*CC(0,-nr*Xm[j]).exp()
+                        term = term*cexpi(-nr*Xm[j])
+                        #term = term*ef2_c[icusp][n][j]
+                    summa = summa + term
+                    #if jcusp==icusp and nr==0:
+                    #    print "term:",jcusp,icusp,nr,j,'=',term
+                        #print "ef2=",ef2_c[icusp][n][j]
+                        #print "ypb=",ypb
+                        #print "term=",j,term
+                RHS[ni][jcusp]=summa/Qfak[icusp]
+                if nvec[icusp][n]==0 and jcusp==icusp:
+                    kbes = Ys
+                    RHS[ni][jcusp]=RHS[ni][jcusp]-CC(Y)**s
+                #if icusp == jcusp:
+                #    print 'RHS[',ni,jcusp,']=',RHS[ni][jcusp],CC(Y)**s
+    if verbose>2:
+        print "V3[",3,3,"]=",V[3][3]
+    if kbesvec<>NULL:
+        for icusp from 0<=icusp<nc:
+            if kbesvec[icusp]<>NULL:
+                for l from 0<=l<Ml:
+                    if kbesvec[icusp][l]<>NULL:
+                        sage_free(kbesvec[icusp][l])
+                sage_free(kbesvec[icusp])
+        sage_free(kbesvec)
+    #print "deal kbbes1"
+    if ef1<>NULL:
+        for jcusp from 0<=jcusp<nc:
+            if ef1[jcusp]<>NULL:
+                for icusp from 0<=icusp<nc:
+                    if ef1[jcusp][icusp]<>NULL:
+                        for n from 0<=n<Mv[icusp][2]:
+                            if ef1[jcusp][icusp][n]<>NULL: 
+                                sage_free(ef1[jcusp][icusp][n])
+                        sage_free(ef1[jcusp][icusp])
+                sage_free(ef1[jcusp])                                
+        sage_free(ef1)
+    if ef2_c<>NULL:
+        for icusp from 0<=icusp<nc:
+            if ef2_c[icusp]<>NULL:
+                for n from 0<=n<Mv[icusp][2]:
+                    if ef2_c[icusp][n]<>NULL:
+                        sage_free(ef2_c[icusp][n])
+                sage_free(ef2_c[icusp])
+        sage_free(ef2_c)
+    if nvec<>NULL:
+        for icusp from 0<=icusp<nc:
+            if nvec[icusp]<>NULL:
+                sage_free(nvec[icusp])
+        sage_free(nvec)
+    if cusp_offsets<>NULL:
+        sage_free(cusp_offsets)
 
 
 

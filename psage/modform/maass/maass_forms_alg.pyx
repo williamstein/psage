@@ -1,4 +1,5 @@
 # cython: profile=False
+# cython: linetrace=False
 # -*- coding=utf-8 -*-
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -3737,7 +3738,7 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
 
     """
     # initial value of M
-    MM=max(M0,ceil((12.0*R**0.3333+R)/RR.pi()/Y0/2.0))
+    MM=max(M0,ceil((12.0*R**0.3333+R)/(2*M_PI*Y0)))
     ## initial value of Y
     Y = min(Y0, (log(2.0)-log(eps)-0.5*log(MM)+M_PI*R*0.5)/(2*M_PI*MM))
     if verbose>0:
@@ -3750,7 +3751,7 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
     #if Y<0 or Y>Y0:
     #    raise ArithmeticError,"Could not get a good point"
     ## Now change M if necessary
-    minm = ceil((12.0*R**0.3333+R)/RR.pi()/Y/2.0)
+    minm = ceil((12.0*R**0.3333+R)/(M_PI*Y*2.0))
     if verbose>0:
         print "minm=",minm
     ## Use low precision
@@ -3762,7 +3763,7 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
             if erest<eps:
                 raise StopIteration()
     except StopIteration:
-        Y = (log(2.0)-log(eps)-0.5*log(RR(m))+M_PI*R*0.5)/(2*M_PI*RR(m))                   
+        Y = (log(2.0)-log(eps)-0.5*log(float(m))+M_PI*R*0.5)/(2*M_PI*float(m))                   
         Y = min(Y,Y0)
         return m,Y
     raise Exception," No good value for truncation was found!"
@@ -3921,7 +3922,7 @@ def get_M_for_maass(R,Y,eps):
 
     try:
         for m in range(minm+1,10000,3):
-            erest=err_est_Maasswf(Y,m,R,1)
+            erest=err_est_Maasswf_c(Y,m,R,1)
             #print "erest=",erest
             if erest<eps:
                 raise StopIteration()
@@ -3972,19 +3973,51 @@ def err_est_Maasswf(Y,M,R=0,pref=1,proof=False):
         raise NotImplementedError
     import mpmath
     mpmath.mp.pres=103
-    YY = mpmath.mp.mpf(Y)
-    #arg=sqrt(2*mpmath.fp.pi*YY*M)
-    #gamma_arg=2*mpmath.mp.pi*YY*M
-    if pref==1:
-        f = exp(mpmath.mp.pi*R/2.0)
-        #*mpmath.mp.sqrt(2.0/YY)
+    if R < 100: ## ordinary doubles should be sufficient
+        if pref==1:
+            f = exp(M_PI*R*0.5)
+        else:
+            f = 1
+            #    r = f*mpmath.fp.erfc(arg)
+        r = f*2*M**(0.5)*exp(-2*M_PI*Y*M)
+
     else:
-        f = 1
-    r = f
-#    r = f*mpmath.fp.erfc(arg)
-    r = f*2*M**(0.5)*exp(-2*M_PI*YY*M)
+        YY = mpmath.mp.mpf(Y)
+        #arg=sqrt(2*mpmath.fp.pi*YY*M)
+        #gamma_arg=2*mpmath.mp.pi*YY*M
+        if pref==1:
+            f = exp(mpmath.mp.pi*R/2.0)
+            #*mpmath.mp.sqrt(2.0/YY)
+        else:
+            f = 1
+            #    r = f*mpmath.fp.erfc(arg)
+        r = f*2*M**(0.5)*exp(-2*M_PI*YY*M)
     #mpmath.mp.gammainc(0.75,gamma_arg)
     return r
+
+cpdef err_est_Maasswf_c(double Y,int M,double R=0,int pref=1):
+    if R < 100: ## ordinary doubles should be sufficient
+        if pref==1:
+            f = exp(M_PI*R*0.5)
+        else:
+            f = 1
+            #    r = f*mpmath.fp.erfc(arg)
+        r = f*2*M**(0.5)*exp(-2*M_PI*Y*M)
+
+    else:
+        YY = mpmath.mp.mpf(Y)
+        #arg=sqrt(2*mpmath.fp.pi*YY*M)
+        #gamma_arg=2*mpmath.mp.pi*YY*M
+        if pref==1:
+            f = exp(mpmath.mp.pi*R/2.0)
+            #*mpmath.mp.sqrt(2.0/YY)
+        else:
+            f = 1
+            #    r = f*mpmath.fp.erfc(arg)
+        r = f*2*M**(0.5)*exp(-2*M_PI*YY*M)
+    #mpmath.mp.gammainc(0.75,gamma_arg)
+    return r
+
 
 # cpdef get_Y_and_M_dp(S,double R,double eps,int verbose=0):
 #     cdef int i,M0,MMAX=1000,m

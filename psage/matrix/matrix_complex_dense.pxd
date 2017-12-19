@@ -39,6 +39,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
     cdef int _truncate
     cdef int _double_matrix_is_set
     cdef Matrix_complex_double_dense _double_matrix
+    #    cpdef Matrix_complex_dense zero_matrix()
+    #cpdef Matrix_complex_dense identity_matrix()
     #cdef MPComplexField_class _base_ring
     #cdef object _base_ring
     cdef int _cmp_c_impl(self, Element right) except -2

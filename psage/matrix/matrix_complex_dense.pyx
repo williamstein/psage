@@ -266,6 +266,38 @@ cdef class Matrix_complex_dense(Matrix_dense):
         self._base_for_str_rep=base
         return self._base_for_str_rep
 
+    def zero_matrix(self):
+        r"""
+        Return the zero matrix in this space.
+        """
+        assert self._is_square
+        cdef Matrix_complex_dense res
+        res=Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
+        cdef int n,i,j,m
+        n = self._nrows
+        m = self._ncols
+        for i from 0 <= i < n:
+            for j from 0 <= j < m:
+                mpc_set_ui(res._matrix[i][j],0,self._rnd)
+        return res
+    def identity_matrix(self):
+        r"""
+        Return the identity matrix in this space.
+        """
+        assert self._is_square
+        cdef Matrix_complex_dense res
+        res=Matrix_complex_dense.__new__(Matrix_complex_dense,self._parent,None,None,None)
+        cdef int n,i,j,m
+        n = self._nrows
+        m = self._ncols
+        if n != m:
+            raise ValueError,"Only square matrices can have identity!"
+        for i from 0 <= i < n:
+            for j from 0 <= j < n:
+                mpc_set_ui(res._matrix[i][j],0,self._rnd)
+            mpc_set_ui(res._matrix[i][i],1,self._rnd)
+        return res
+
 
     cpdef set_zero_elements(self,double tol=0):
         r"""
@@ -2262,7 +2294,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     def to_numpy(self):
         return self.to_double().numpy()
         
-
+    
 ####  Helper functions
         
 #from sage.rings.complex_mpc cimport MPComplexField_class

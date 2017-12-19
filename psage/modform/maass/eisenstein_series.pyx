@@ -102,7 +102,7 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 from pullback_algorithms cimport pullback_pts_cplx_dp
 
 from maass_forms_alg import get_M_and_Y
-cpdef scattering_determinant(S,double sigma,double R):
+cpdef scattering_determinant(S,double sigma,double R,ret_matrix=False):
     r"""
 
     """
@@ -120,6 +120,8 @@ cpdef scattering_determinant(S,double sigma,double R):
     for i in range(nc):
         for j in range(nc):
             A[i,j]=C[i][j][0]
+    if ret_matrix:
+        return A
     return A.det()
     
 cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,int use_fak=0,double eps=1e-12):

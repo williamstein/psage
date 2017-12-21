@@ -260,9 +260,9 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
                 raise MemoryError
             for n in range(Ql):
                 Cvec[i][j][n]=0
-    sig_on()
+    #sig_on()
     pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm,Xpb,Ypb,Cvec)
-    sig_off()
+    #sig_off()
     for j in range(nc):
         tmpr=float(S.alpha(j)[0])
         alphas[j]=<double>tmpr

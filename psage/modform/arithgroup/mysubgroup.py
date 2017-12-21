@@ -105,6 +105,8 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
 
     - A -- can be 
     """
+    if A is None and B is None and kwds=={} and data == {}:
+        raise ValueError,"We do not have sufficient data to create a subgroup!"
     s2 = None; s3=None; is_Gamma0=None; level = None
     is_symmetric = kwds.get('is_symmetric')
     symmetry_map = kwds.get('symmetry_map')
@@ -152,12 +154,13 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     if hasattr(A,'__dict__'):
         is_symmetric = A.__dict__.get('is_symmetric',is_symmetric)
         symmetry_map = A.__dict__.get('symmetry_map',symmetry_map)
-    if s2==None or s3==None:
+    if s2 is None or s3 is None:
         s2 = kwds.get("s2",None)
         s3 = kwds.get("s3",None)
-    if s2==None or s3==None:
+    if s2 is None or s3 is None:
         raise ValueError,"Could not construct subgroup from input!"
     reps_from_farey = kwds.get('farey',None)
+    #print "s2,s3=",s2,s3
     if is_Gamma0:
         return MySubgroup_congruence_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,is_symmetric=1,symmetry_map=SL2Z_elt(1,0,0,1),reps_from_farey=reps_from_farey)
     return MySubgroup_class(o2=s2,o3=s3,verbose=verbose,is_Gamma0=is_Gamma0,level=level,is_symmetric=is_symmetric,symmetry_map=symmetry_map,reps_from_farey=reps_from_farey)
@@ -284,7 +287,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             print "kwds=",kwds
         if data<>{}:
             self.init_group_from_dict(data,**kwds)
-        elif o2<>None and o3<>None:
+        elif not o2 is None and not o3 is None and o2 !=[] and o3 !=[]:
             self.init_group_from_permutations(o2,o3)
         else:
             raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)

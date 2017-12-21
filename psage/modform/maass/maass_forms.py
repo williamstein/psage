@@ -703,7 +703,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             Vals[j]={}
         ### If we have set some c's explicitly then we only set these (plus constant terms if cuspidal):
 
-        if set_c<>[]:
+        if set_c<>[] and not set_c is None:
             if len(set_c)<>k:
                 raise ValueError,"Need to give a complete set of set coefficients! Got dim={0} and set_c={1}".format(k,set_c)
             for j in range(k):
@@ -1479,7 +1479,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 self._M0 = M0
         else:  ## See if we can get good enough error:
             if err_est_Maasswf(self._Y,self._M0,self._R,1)>dprec:
-                print "WARNING: FIxed parameters will not give desired precision!"
+                print "WARNING: Fixed parameters will not give desired precision!"
         #else:
         #    M0 = get_M_from_Y(self._R,self._Y,self._M0,dprec)
         #if self._M0 < M0:

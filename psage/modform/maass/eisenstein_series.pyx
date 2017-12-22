@@ -111,12 +111,13 @@ cpdef scattering_determinant(S,double sigma,double R,ret_matrix=False):
     M,Y = get_M_and_Y( R,Y,10,1e-7)
     C = eisenstein_series(S,sigma,R,Y,M,M+10)
     nc = S.group().ncusps()
-    if nc == 1:
-        return C[0][0]
     CF=MPComplexField(53)
     MS=MatrixSpace(CF,nc,nc)
     A=Matrix_complex_dense(MS,0)
-
+    if nc == 1:
+        A[0,0]=C[0][0]
+        return A
+        
     for i in range(nc):
         for j in range(nc):
             A[i,j]=C[i][j][0]

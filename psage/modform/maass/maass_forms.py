@@ -428,15 +428,17 @@ class MaassWaveForms (AutomorphicFormSpace):
         #param=self.set_default_parameters(R,Mset,Yset,ndigs)
         #Y0=param['Y']; Q=param['Q']; M0=param['M']
         NN = self.set_norm(dim); M0=0; Y0 = float(0.0); Q=0
-        eps =1e-12
+        eps =exp(-ndigs)
         if Mset<>None: M0 = int(Mset); Q=M0+10
         if Yset<>None: Y0 = float(Yset)
         if Y0==0.0 and M0==0:
-            Y0,M0=get_Y_and_M_dp(self,R,eps)
+            Y0 = self.group().minimal_height()*0.999
+            #Y0,M0=get_Y_and_M_dp(self,R,eps)
+            M0 = get_M_from_Y(R,Y0,1,eps,cuspdial=self._cuspidal)
         if Y0==0.0 and M0<>0:
-            Y0=get_Y_for_M_dp(self,R,M0,eps)
+            Y0=get_Y_for_M(self,R,M0,eps,cuspidal=self._cuspidal)
         if Y0<>0 and M0==0:
-            M0=get_M_for_maass_dp(R,Y0,eps)
+            M0=get_M_from_Y(R,Y0,1,eps,cuspdial=self._cuspidal)
 
         if self._verbose>0:
             print "Get Hecke basis with:{0},{1},{2},{3},{4}".format(R,Y0,M0,Q,dim)
@@ -648,14 +650,14 @@ class MaassWaveForms (AutomorphicFormSpace):
         else:
             YY = 0
         if MM==0 and YY==0:
-            MM,YY = get_M_and_Y(R,self.group().minimal_height(),M0,eps)
+            MM,YY = get_M_and_Y(R,self.group().minimal_height(),M0,eps,cuspidal=self._cuspidal)
         elif MM>0 and YY==0:
             try:
-                YY = get_Y_from_M(R,0.0,MM,eps,self.group().minimal_height(),self.group().ncusps())
+                YY = get_Y_for_M(R,MM,eps,self.group().minimal_height(),cuspidal=self._cuspidal)
             except ValueError as e: # need to increase MM
                 raise e
         if YY > 0 and MM==0:
-            MM=get_M_from_Y(float(R),float(YY),M0,float(eps))
+            MM=get_M_from_Y(float(R),float(YY),M0,float(eps),cuspidal=self._cuspidal)
         Q=MM+10
         res['Q']=Q
         res['M']=MM
@@ -1471,14 +1473,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         dprec=10.**(-self._nd)
         #if self._M0 == None or self._M0 <= 0:
         if self._Y is None or self._M0 is None or self._Y<=0 or self._M0<=0:
+            #print self._R,self.space().group().minimal_height(),self.space().smallest_M0(),dprec,self.space()._cuspidal
             M0,Y = get_M_and_Y(self._R,self.space().group().minimal_height(),
-                                   self.space().smallest_M0(),dprec)
+                                   self.space().smallest_M0(),dprec,cuspidal=self.space()._cuspidal,verbose=self._verbose-1)
             if self._Y is None or self._Y<=0:
                 self._Y = Y
             if self._M0 is None or self._M0 <=0:
                 self._M0 = M0
         else:  ## See if we can get good enough error:
-            if err_est_Maasswf(self._Y,self._M0,self._R,1)>dprec:
+            if err_est_Maasswf(self._Y,self._M0,self._R,1)>dprec and self._verbose>=0:
                 print "WARNING: Fixed parameters will not give desired precision!"
         #else:
         #    M0 = get_M_from_Y(self._R,self._Y,self._M0,dprec)
@@ -2366,19 +2369,14 @@ class EisensteinSeries(AutomorphicFormElement):
         if not is_Hecke_triangle_group(self._space._group):
             raise NotImplementedError
         Rf = float(abs(self._R))
-        if M0>0:
-            Y = get_Y_for_M_dp(self._space,Rf,M0,self._eps)
-        elif Y0>0:
-            Y = Y0
-            M = get_M_for_maass_dp(Rf,float(Y0),float(self._eps))
-        else:
-            Y,M = get_Y_and_M_dp(self._space,abs(self._R),self._eps)
-        Ymax = self._space._group.minimal_height()/self._space._group._lambdaq
-        if Y>Ymax:
-            Y=0.99*Ymax
-            M = get_M_for_maass_dp(float(abs(self._R)),float(Y),float(self._eps))
+        Y00 = self.group().minimal_height()/self._space._group._lambdaq
+        if M0>0 and Y0==0:
+            Y0 = min(get_Y_for_M(self._space,Rf,M0,self._eps,cuspidal=self.space()._cuspidal),Y00)
+        elif Y0==0:
+            Y0 = Y00
+        M = get_M_from_Y(Rf,float(Y0),1,float(self._eps),cuspidal=self.space()._cuspidal)
         RF = RealField(self._prec)
-        Y = RF(Y)
+        Y = RF(Y0)
         if self._verbose>0:
             print "Computing coefficients at s={0} with Y={1}, M={2}".format(self._s,Y,M)
         C = Eisenstein_series_one_cusp(self._space,self._sigma,self._R,Y,M,self._verbose)

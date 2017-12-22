@@ -3709,8 +3709,27 @@ def smallest_inf_norm(V):
             mi=j
     return minc
 
+cpdef get_M_and_Y_v2(double R,double Y0,int M0,double eps,int mmax=1000,int verbose=0):
+    r"""
 
-cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
+    """
+    R0 = max(R,1)
+    kmax = besselk_dp(R,R0,pref=0)*eps
+    try:
+        for m in range(10,mmax):
+            k = besselk_dp(R,m*Y0*2*M_PI,pref=0)
+            if abs(k)<abs(kmax):
+                raise StopIteration
+        raise ArithmeticError,"Could not find suitable m0!"
+    except StopIteration:
+        pass
+    if verbose>2:
+        print "M0=",M0
+    
+    
+
+        
+cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int mmax=10000,int verbose=0,int cuspidal=0):
     r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
     using both a check that the diagonal term in the V-matrix is not too small
     and that the truncation gives the correct accuracy.
@@ -3737,14 +3756,17 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
 
 
     """
+    M = get_M_from_Y(R,Y0,M0,eps,maxm=mmax,verbose=verbose,cuspidal=cuspidal)
+    return M,Y0
     # initial value of M
     MM=max(M0,ceil((12.0*R**0.3333+R)/(2*M_PI*Y0)))
     ## initial value of Y
+    ## choosen s.t. we are to the right of the "hump" of the K-Bessel function
     Y = min(Y0, (log(2.0)-log(eps)-0.5*log(MM)+M_PI*R*0.5)/(2*M_PI*MM))
     if verbose>0:
         print "MM=",MM
         print "Y=",Y
-    if M0>0 and Y>0: # check if we are opk to begin with
+    if M0>0 and Y>0: # check if we are ok to begin with
          if err_est_Maasswf(Y,M0,R,1)<eps:
              return M0,Y
          
@@ -3757,18 +3779,76 @@ cpdef get_M_and_Y(double R,double Y0,int M0,double eps,int verbose=0):
     ## Use low precision
     try:
         for m in range(minm+1,10000,3):
+            if m>mmax and mmax>0:
+                continue
             erest=err_est_Maasswf(Y,m,R,1)
             if verbose>2:
                 print "erest({0},{1},{2},1)={3}".format(Y,m,R,erest)
             if erest<eps:
-                raise StopIteration()
+                YY = (log(2.0)-log(eps)-0.5*log(float(m))+M_PI*R*0.5)/(2*M_PI*float(m))
+                YY = min(YY,Y0)
+                erest=err_est_Maasswf(YY,m,R,1)
+                #if verbose>2:                    
+                #    print "erest({0},{1},{2},1)={3}".format(YY,m,R,erest)
+                #if erest < eps:
+                #    raise StopIteration()
     except StopIteration:
         Y = (log(2.0)-log(eps)-0.5*log(float(m))+M_PI*R*0.5)/(2*M_PI*float(m))                   
         Y = min(Y,Y0)
         return m,Y
+    raise ArithmeticError," No good value for truncation was found!"
+
+cpdef get_M_from_Y(double R,double Y0,int M0,double eps,int verbose=0,int maxm=1000,int cuspidal=0):
+    r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
+    using both a check that the diagonal term in the V-matrix is not too small
+    and that the truncation gives the correct accuracy.
+
+    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holds for 2piYM > R+12R^(1/3)
+    which is not proven rigorously. Furthermore, the implied constant in this estimate is assumed to be 1 (which is of course only true asymptotically).
+
+    INPUT:
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
+
+    OUTPUT:
+
+        - ``M`` -- point for truncation
+
+    EXAMPLES::
+
+
+        sage:
+
+    """
+    #maxm = 2000
+    ## initial value of M
+    M0 = ceil( 4.0/7.0/M_PI/Y0)
+    if cuspidal==1:
+        rhs = abs(eps)*sqrt(M_PI/8.0)
+        beta = 2*M_PI*Y0
+    else:
+        rhs = abs(eps)*exp(-3*R)*sqrt(M_PI/8.0)
+        beta = 7.0*M_PI*Y0/4.0
+    minm=10
+    if verbose>0:
+        print "rhs={0}".format(rhs)
+    try:
+        for M in range(minm,minm+maxm):
+            ## Want to find largest Y which satisfies both estimates for the given M0
+            lhs = sqrt(float(M))*exp(-beta*M)
+            if verbose>0:
+                print "lhs({0})={1}".format(M,lhs)
+            if lhs<rhs:
+                raise StopIteration()
+    except StopIteration:
+        return M
     raise Exception," No good value for truncation was found!"
 
-cpdef get_M_from_Y(double R,double Y0,int M0,double eps,int verbose=0,maxm=1000):
+
+cpdef get_M_from_Y_old(double R,double Y0,int M0,double eps,int verbose=0,maxm=1000):
     r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
     using both a check that the diagonal term in the V-matrix is not too small
     and that the truncation gives the correct accuracy.
@@ -3821,6 +3901,7 @@ cpdef get_M_from_Y(double R,double Y0,int M0,double eps,int verbose=0,maxm=1000)
     except StopIteration:
         return M
     raise Exception," No good value for truncation was found!"
+
 
 cpdef  get_Y_from_M(double R,double Y0,int M0,double eps,int verbose=0,int maxny=2000):
     r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
@@ -4034,8 +4115,19 @@ cpdef err_est_Maasswf_c(double Y,int M,double R=0,int pref=1):
 #         return Y,MM
 #     raise ArithmeticError,"Could not find good Y and M for eps={0}".format(eps)
 
-
-
+cpdef get_Y_for_M(double R,int M0,double eps,double Y0,int verbose=0,int cuspidal=0):
+    r"""
+    Computes a value of Y for a given M for which
+    the estimated error is smaller than eps
+    """
+    Y = Y0
+    for i in range(1,1000):
+        Y = Y*0.999**i
+        M=get_M_from_Y(R,Y,1,eps,cuspidal=cuspidal)
+        if M > M0:
+            return Y
+    raise ArithmeticError,"Could not find a good Y!"
+        
 cpdef get_Y_for_M_dp_old(double R,int M,double eps,double Y,int nc,int verbose=0):
     r"""
     Computes a value of Y for a given M for which

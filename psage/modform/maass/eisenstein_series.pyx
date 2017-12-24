@@ -115,9 +115,11 @@ cpdef scattering_determinant(S,double sigma,double R,ret_matrix=False):
     MS=MatrixSpace(CF,nc,nc)
     A=Matrix_complex_dense(MS,0)
     if nc == 1:
-        A[0,0]=C[0][0]
-        return A
-        
+        if ret_matrix:
+            A[0,0]=C[0][0]
+            return A
+        else:
+            return C[0][0]
     for i in range(nc):
         for j in range(nc):
             A[i,j]=C[i][j][0]

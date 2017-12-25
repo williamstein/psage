@@ -3720,32 +3720,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return xpb,ypb,int(a),int(b),int(c),int(d)
 
 
-    def is_congruence(self):
-        r""" Is self a congruence subgroup or not?
-
-        EXAMPLES::
-
-
-            sage: S=SymmetricGroup(6)
-            sage: pS=S([2,1,4,3,6,5])
-            sage: pR=S([3,1,2,5,6,4])
-            sage: G=MySubgroup(o2=pS,o3=pR)
-            sage: G.is_congruence()
-            True
-            sage: S=SymmetricGroup(7)
-            sage: pS=S([1,3,2,5,4,7,6]); pS
-            (2,3)(4,5)(6,7)
-            sage: pR=S([3,2,4,1,6,7,5]); pR
-            (1,3,4)(5,6,7)
-            sage: G=MySubgroup(o2=pS,o3=pR)
-            sage: G.is_congruence()
-        False
-        
-        """
-        if self._is_congruence == None:
-            self._is_congruence=super(MySubgroup_class,self).is_congruence()
-        return self._is_congruence
-
 
     def is_Hecke_triangle_group(self):
         if self.is_Gamma0() and self.generalised_level()==1:

@@ -2279,15 +2279,15 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.to_even_subgroup() == Gamma0(6)
             True
         """
-        from sage.all import SymmetricGroup
+        #from sage.all import SymmetricGroup
         if self.index() == 1: # the group is SL2Z (trivial case)
             return True
         S = SymmetricGroup(self.index())
         ## Silly construction to get around GAP issue in multiprocessing... 
-        if self.index()>1:
-            one = S([1,2])
-        else:
-            one = S([1])
+        #if self.index()>1:
+        #    one = S([1,2])
+        #else:
+        #    one = S([1])
             
         L = self.L() # action of L
         R = self.R() # action of R
@@ -2306,7 +2306,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             # this only gets called if self is even
             onehalf = ZZ(2).inverse_mod(N) # i.e. 2^(-1) mod N
             rel = (R*R*L**(-onehalf))**3
-            return rel == one
+            return rel.order()==1
 
         elif m == 1:
             # N is a power of 2
@@ -2315,17 +2315,17 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     
             # congruence if the three below permutations are trivial
             rel = (~L*R*~L) * S * (L*~R*L) * S
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation A1")
                 return False
 
             rel = ~S*R*S*R**(-25)
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation A2")
                 return False
 
             rel = (S*R**5*L*~R*L)**3 * ~(L * ~R * L)**2
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation A3")
                 return False
 
@@ -2346,37 +2346,37 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             #Congruence if the seven permutations below are trivial:
             rel =~a*~r*a*r
             verbose("a,r,rel={0}".format((a,r,rel,rel.parent())))
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B1")
                 return False
 
             rel = (a*~b*a)**4
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B2")
                 return False
 
             rel = (a*~b*a)**2*(~a*b)**3
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B3")
                 return False
 
             rel = (a*~b*a)**2*(b*b*a**(-onehalf))**(-3)
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B4")
                 return False
 
             rel = (~l*r*~l)*s*(l*~r*l)*s
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B5")
                 return False
 
             rel = ~s*r*s*r**(-25)
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B6")
                 return False
             
             rel = (l*~r*l)**2*(s*r**5*l*~r*l)**(-3)
-            if not rel == one:
+            if not rel.order()==1:
                 verbose("Failed relation B7")
                 return False
 

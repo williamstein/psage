@@ -571,7 +571,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r = [i-1 for i in r.list()]
         super(MySubgroup_class,self).__init__(s2,s3,l,r)
         if self._is_congruence == None:
-            self._is_congruence = self.is_congruence2() #super(MySubgroup_class,self).is_congruence()
+            self._is_congruence = self.is_congruence() #super(MySubgroup_class,self).is_congruence()
 #         if self._is_congruence==True:
 #             #print "Adding level!"
 # #            setattr(MySubgroup_class,'level', types.MethodType(level,self,MySubgroup_class))
@@ -580,16 +580,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 #             #print "level=",self._level
         self.get_data_from_group()       
 
-    def is_congruence2(self):
-        r"""
-        Use the Sage routine to check if we are a congruence group. 
-        Unfortunately there is a caching problem when calling after making a Pool
-        ... 
-        """
-        G = super(MySubgroup_class,self)
-        L = G.L()
-        L.parent()
-        return self.is_congruence()
 
     def init_group_from_dict(self,data,**kwds):
         r"""

@@ -2283,7 +2283,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if self.index() == 1: # the group is SL2Z (trivial case)
             return True
         S = SymmetricGroup(self.index())
-        one = S.one()
+        one = S(1)
         L = self.L() # action of L
         R = self.R() # action of R
 

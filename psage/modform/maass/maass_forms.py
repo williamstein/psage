@@ -2219,7 +2219,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #dim=self._dim
         set_c=self._set_c
         if norm == {}:
-            norm = S.set_norm(dim,set_c=set_c)
+            if self._norm != {}:
+                norm = self._norm
+            else:
+                norm = S.set_norm(dim,set_c=set_c)
         if S._verbose>1:
             print "R,Y,M,Q=",R,Y,M,Q
             print "sym_type=",sym_type

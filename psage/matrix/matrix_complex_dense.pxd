@@ -67,7 +67,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
     cpdef delete_row(self,int n,int clear=?)
 
     cpdef  set_zero_elements(self,double tol=?)
-    cpdef int numerical_rank(self)
+    cpdef int numerical_rank(self,double tol=?)
     cpdef _balance(self)
     cpdef int is_hessenberg(self,double maxerr=?,int show_err=?)
 

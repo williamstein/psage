@@ -328,22 +328,41 @@ cdef class Matrix_complex_dense(Matrix_dense):
 #    cpdef eps(self):
 #        return self._eps
     
-    cpdef int numerical_rank(self):
-        Q,R=self.qr_decomposition()
+    cpdef int numerical_rank(self,double tol=0):
+        r"""
+        Find the numerical rank of self up to given tolerance.
+        We find it through computing the Q,R decoposition and observe that 
+        the rank of R is the same as the ran of self. 
+
+        """
         cdef int i,j,rank,row_is_nonzero
-        cdef mpfr_t tmp
-        mpfr_init2(tmp,self._prec)
-        rank=0
-        for i from 0<=i<self._nrows:
-            row_is_nonzero=0
-            for j from i<=j<self._nrows:
-                mpc_abs(tmp,self._matrix[i][j],self._rnd_re)
-                if mpfr_cmp(tmp,self._eps.value)>0:
-                    row_is_nonzero=1
-                    break
-            if row_is_nonzero:
+        Q,R=self.qr_decomposition()
+        rank = 0
+        if tol==0:
+            tol=self._eps
+        for i in range(0,R.nrows()):
+            if abs(R[i,i])>tol:
                 rank+=1
         return rank
+        #cdef mpfr_t tmp
+        #cdef mpfr_t mptol
+        #mpfr_init2(tmp,self._prec)
+        #mpfr_init2(mptol,self._prec)
+        #rank=0
+        #if tol>0:
+        #    mpfr_set_d(mptol,tol,self._rnd_re)
+        #else:
+        #    mpfr_set(mptol,self._eps.value,self._rnd_re)
+        #for i from 0<=i<self._nrows:
+        #    row_is_nonzero=0
+        #    for j from i<=j<self._nrows:
+        #        mpc_abs(tmp,R._matrix[i][j],self._rnd_re)
+        #        if mpfr_cmp(tmp,mptol)>0:
+        #            row_is_nonzero=1
+        #            break
+        #    if row_is_nonzero:
+        #        rank+=1
+        #return rank
     
     cpdef Vector_complex_dense column(self,int n):
         r""" return column nr. n of self.
@@ -737,7 +756,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 raise NotImplementedError,"Can not compare Matrix_complex_dense with {0}!".format(type(right))
             #return 0
         else:
-            return self._richcmp(right, op)
+            return self._richcmp_(right, op)
         
     # cpdef _eq_(self, right):
 
@@ -1119,7 +1138,8 @@ cdef class Matrix_complex_dense(Matrix_dense):
         return res
 
     cpdef transpose(self):
-        res = Matrix_complex_dense(self.parent(),0)
+        MS=MatrixSpace(self.base_ring(),self.ncols(),self.nrows())
+        res = Matrix_complex_dense(MS,0)
         self._transpose(res)
         return res
     
@@ -1131,12 +1151,12 @@ cdef class Matrix_complex_dense(Matrix_dense):
         #res = Matrix_complex_dense.__new__(Matrix_complex_dense, self._parent, None, None, None)
         #print "transponerar!"
         for j from 0<=j<=self._nrows-1:
-            for k from 0<=k<j:
+            for k from 0<=k<self._ncols-1:
                 #mpc_set(tmp,self._matrix[k][j],self._rnd)
                 #print "tmp[",k,j,"]=",print_mpc(tmp)
                 mpc_set(res._matrix[k][j],self._matrix[j][k],self._rnd)
-                mpc_set(res._matrix[j][k],self._matrix[k][j],self._rnd)
-            mpc_set(res._matrix[j][j],self._matrix[j][j],self._rnd)
+#                mpc_set(res._matrix[j][k],self._matrix[k][j],self._rnd)
+#            mpc_set(res._matrix[j][j],self._matrix[j][j],self._rnd)
         mpc_clear(tmp)
         return res
 

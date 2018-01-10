@@ -2088,14 +2088,14 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         sage_free(Cvec)
     if sqch<>NULL:
         sage_free(sqch)
-    if gr==1:
+    if gr==1 or gr==4:
         CF=MPComplexField(53)
         MS=MatrixSpace(CF,N1,ncols1)
         VV=Matrix_complex_dense(MS,0)
         for n in range(N1):
             for l in range(ncols1):
                 VV[n,l]=V1[n][l]
-        return VV
+        #return VV
     C=<double complex**>sage_malloc(sizeof(double complex*)*(comp_dim))
     if C==NULL:
         raise MemoryError
@@ -2127,19 +2127,37 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if verbose>0:
         print "comp_dim=",comp_dim
     normalize_matrix_cplx_dp(V1,N1,comp_dim,num_set,setc_list,vals_list,verbose)
-    if gr==2:
+    if gr==2 or gr==5:
         CF=MPComplexField(53)
         MS=MatrixSpace(CF,N1,ncols1)
         VV=Matrix_complex_dense(MS,0)
         for n in range(N1):
             for l in range(ncols1):
                 VV[n,l]=V1[n][l]
-        return VV
+        #return VV
     sig_on()
     if verbose>0:
         print "comp_dim=",comp_dim
     if do_par<=1:
         SMAT_cplx_dp(V1,ncols1-num_set,comp_dim,num_set,C,vals_list,setc_list)
+        if gr==5:
+            ## check result...
+            CF=MPComplexField(53)
+            MS=MatrixSpace(CF,ncols1-num_set,ncols1-num_set)
+            VVV=Matrix_complex_dense(MS,0)
+            MSB=MatrixSpace(CF,ncols1-num_set,comp_dim)
+            B=Matrix_complex_dense(MSB,0)
+            MSC=MatrixSpace(CF,comp_dim,ncols1-num_set)
+            C1=Matrix_complex_dense(MSC,0)
+            for n in range(ncols1-num_set):
+                for l in range(ncols1-num_set):
+                    VVV[n,l]=VV[n,l]
+                for l in range(comp_dim):
+                    C1[l,n]=C[l][n]
+                for l in range(comp_dim):
+                    B[n,l]=VV[n,ncols1-num_set+l]
+            print "return here"
+            return VVV,C1,B
     else:
         if verbose>0:
             print "smat parallel!"
@@ -2148,18 +2166,26 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
     if verbose>1:
         for k in range(ncols1-num_set):
             print "C[",k,"]=",C[0][k]
+    if gr==3 or gr==4:
+        CF=MPComplexField(53)
+        MSC=MatrixSpace(CF,comp_dim,N1)
+        C1=Matrix_complex_dense(MSC,0)
+        for n in range(comp_dim):
+            for l in range(N1):
+                C1[n,l]=C[n][l]
     cdef dict res={}
     cdef int ki
-    for j in range(comp_dim):
-        res[j]=dict()
-        for i in range(nc):
-            if i>0 and cusp_evs[i]<>0:
-                res[j][i]=cusp_evs[i]
-                continue
-            res[j][i]=dict()
-            for k in range(Mv[i][2]):
-                ki=cusp_offsets[i]+k
-                res[j][i][k+Mv[i][0]]=C[j][ki]
+    if gr==0:
+        for j in range(comp_dim):
+            res[j]=dict()
+            for i in range(nc):
+                if i>0 and cusp_evs[i]<>0:
+                    res[j][i]=cusp_evs[i]
+                    continue
+                res[j][i]=dict()
+                for k in range(Mv[i][2]):
+                    ki=cusp_offsets[i]+k
+                    res[j][i][k+Mv[i][0]]=C[j][ki]
 
     if setc_list<>NULL:
         sage_free(setc_list)
@@ -2194,6 +2220,14 @@ cpdef get_coeff_fast_cplx_dp_sym(S,double R,double Y,int M,int Q,dict Norm={},in
         sage_free(cusp_evs)
     #if comp_dim==1:
     #    return res[0]
+    if gr==1:
+        return VV
+    elif gr==2:
+        return VV
+    elif gr==3:
+        return C1
+    elif gr==4:
+        return VV,C1
     return res
 
 # cpdef get_coeff_fast_cplx_dp_nosym(S,double R,double Y,int M,int Q,dict Norm={},int gr=0,int norm_c=1,int do_par=0,int ncpus=1):
@@ -3832,7 +3866,7 @@ cpdef get_M_from_Y(double R,double Y0,int M0,double eps,int verbose=0,int maxm=1
     else:
         rhs = abs(eps)*exp(-3*R)*sqrt(M_PI/8.0)
         beta = 7.0*M_PI*Y0/4.0
-    minm=10
+    minm=max(10,M0)
     if verbose>0:
         print "rhs={0}".format(rhs)
     try:
@@ -3847,13 +3881,53 @@ cpdef get_M_from_Y(double R,double Y0,int M0,double eps,int verbose=0,int maxm=1
         return M
     raise Exception," No good value for truncation was found!"
 
+cpdef get_Y_from_M(double R,double Y0,int M0,double eps,int verbose=0,int maxny=1000,int cuspidal=0):
+    r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
+    using both a check that the diagonal term in the V-matrix is not too small
+    and that the truncation gives the correct accuracy.
+
+    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holds for 2piYM > R+12R^(1/3)
+    which is not proven rigorously. Furthermore, the implied constant in this estimate is assumed to be 1 (which is of course only true asymptotically).
+
+    INPUT:
+
+        - ``R`` -- spectral parameter, real
+        - ``Y`` -- height, real > 0
+        - ``eps`` -- desired error
+
+
+    OUTPUT:
+
+        - ``M`` -- point for truncation
+
+    EXAMPLES::
+
+
+        sage:
+
+    """
+    #maxm = 2000
+    ## initial value of Y  s.t. 
+    Y0 =  max(Y0,min(Y0,4.0/7.0/M_PI/float(M0)))
+    if cuspidal==1:
+        rhs = abs(eps)*sqrt(M_PI/8.0)/sqrt(float(M0))
+        gamma = 2*M_PI
+    else:
+        rhs = abs(eps)*exp(-3*R)*sqrt(M_PI/8.0)/sqrt(float(M0))
+        gamma = 7.0*M_PI/4.0
+    Y = -RR(rhs).log()/float(M0)/gamma
+    if verbose>0:
+        print "rhs=",rhs
+        print "Y0=",Y0
+        print "Y=",Y
+    return min(Y,Y0)
 
 cpdef get_M_from_Y_old(double R,double Y0,int M0,double eps,int verbose=0,maxm=1000):
     r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
     using both a check that the diagonal term in the V-matrix is not too small
     and that the truncation gives the correct accuracy.
 
-    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holds for 2piYM > R+12R^(1/3)
+    CAVEAT: The estimate for the truncated series is done assuming that the asymptotic formula holdsM0Y for 2piYM > R+12R^(1/3)
     which is not proven rigorously. Furthermore, the implied constant in this estimate is assumed to be 1 (which is of course only true asymptotically).
 
     INPUT:
@@ -3903,7 +3977,7 @@ cpdef get_M_from_Y_old(double R,double Y0,int M0,double eps,int verbose=0,maxm=1
     raise Exception," No good value for truncation was found!"
 
 
-cpdef  get_Y_from_M(double R,double Y0,int M0,double eps,int verbose=0,int maxny=2000):
+cpdef  get_Y_from_M_old(double R,double Y0,int M0,double eps,int verbose=0,int maxny=2000):
     r""" Computes the  truncation point M>=M0 for Maass waveform with parameter R.
     using both a check that the diagonal term in the V-matrix is not too small
     and that the truncation gives the correct accuracy.

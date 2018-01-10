@@ -705,7 +705,7 @@ class MaassWaveForms (AutomorphicFormSpace):
             Vals[j]={}
         ### If we have set some c's explicitly then we only set these (plus constant terms if cuspidal):
 
-        if set_c<>[] and not set_c is None:
+        if set_c != [] and set_c != {} and not set_c is None:
             if len(set_c)<>k:
                 raise ValueError,"Need to give a complete set of set coefficients! Got dim={0} and set_c={1}".format(k,set_c)
             for j in range(k):
@@ -1692,7 +1692,16 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         return self.space().test_Hecke_relation(C=coeffs,a=a,b=b,signed=signed)
 
 
-    
+    def find_dimension_numerical(self,tol=1e-10):
+        r"""
+        Check the dimension of the eigenspace corresponding to the current eigenvalue.
+
+        """
+        V = self.get_coeffs(gr=1)
+        rk = V.numerical_rank(tol=tol)
+        numdim=len(self._norm['Vals'][0])
+        return V.ncols()-rk-numdim+1
+        
     
     def test(self,method='Hecke',up_to_M0=0,format='digits',check_all=False,verbose=0):
         r""" Return the number of digits we believe are correct (at least)
@@ -1711,10 +1720,42 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
         """
-        from sage.all import Infinity
+        from sage.all import Infinity,log_b
         # If we have a Gamma_0(N) we can use Hecke operators
-        if method not in ['Hecke','pcoeff','eval']:
+        if method not in ['Hecke','pcoeff','eval','TwoY','CV']:
             raise ValueError,"Method : {0} is not recognized!".format(method)
+        if method=='TwoY':
+            Y1=self.Y()*0.995
+            Y2=self.Y()*0.99
+            M0=self.M0()
+            C1=self.get_coeffs(gr=3,Yset=Y1,Mset=M0)
+            C2=self.get_coeffs(gr=3,Yset=Y2,Mset=M0)
+            if verbose>0:
+                print "Y1,Y2,M0=",Y1,Y2,M0
+            if up_to_M0 > 0:
+                res = 0
+                for i in range(self.group().ncusps()):
+                    for n in range(-up_to_M0,up_to_M0+1):
+                        nn = n+M0+i*(2*M0+1)
+                        tmp=abs(C1[0][nn]-C2[0][nn])
+                        if verbose>1:
+                            print "diff[{0}][{1}](nn={2})={3}".format(i,n,nn,tmp)
+                            
+                        if tmp>res:
+                            res=tmp
+                return res
+            else:
+                return (C1-C2).norm(0)
+        elif method=='CV':
+            Y1=self.Y()*0.995
+            Y2=self.Y()*0.99
+            M0=self.M0()
+            V1,C1=self.get_coeffs(gr=4,Yset=Y1,Mset=M0)
+            V2,C2=self.get_coeffs(gr=4,Yset=Y2,Mset=M0)
+            w1 = V2*C1.transpose()
+            w2 = V1*C2.transpose()
+            return max(w1.norm(0),w2.norm(0))
+            
         verbose = max(verbose,self._space._verbose)
         if self.generalised_level()==1:
             method='Hecke'
@@ -1761,7 +1802,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             self._errest = ermax
             if format=='float':
                 return ermax
-            ermax = RR(ermax).log(10)
+            ermax = log_b(ermax,10)
             d=floor(-ermax)
             if verbose>0:
                 print "Hecke is ok up to ",d,"digits!"
@@ -1790,7 +1831,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             self._errest = d1
             if format=='float':
                 return d1
-            d=floor(-log(d1,10))
+            d=floor(-log_b(d1,10))
             return d
         else:
             ### Test to evaluate at different points close to the cusps...
@@ -1869,7 +1910,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             #     if t>er:
             #         er=t
             if er<>0:
-                d=floor(-log(er,10))
+                d=floor(-log_b(er,10))
             else:
                 d = 0
             if self._verbose>0:
@@ -2131,7 +2172,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
 
-    def get_coeffs(self,Mset=0 ,Yset=None,ndigs=12,twoy=None,overwrite=False,dim=1,norm={},**kwds):
+    def get_coeffs(self,Mset=0 ,Yset=None,ndigs=12,twoy=None,overwrite=True,dim=1,norm={},**kwds):
         r"""
         Compute M Fourier coefficients (at each cusp) of a Maass (cusp)
         waveform with eigenvalue R for the group G.
@@ -2178,7 +2219,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         #dim=self._dim
         set_c=self._set_c
         if norm == {}:
-            norm = S.set_norm(dim)
+            norm = S.set_norm(dim,set_c=set_c)
         if S._verbose>1:
             print "R,Y,M,Q=",R,Y,M,Q
             print "sym_type=",sym_type
@@ -2192,6 +2233,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             do_par = kwds.get('do_par',0)
         #if S.multiplier().is_real() and sym_type in [0,1] and S._use_real:
         #    do_cplx=0
+        ## The parameters used to compute the current set of coefficients.xs
+                
+        self._norm = norm
+
         if ndigs<=15:
             if do_cplx:
                 X = get_coeff_fast_cplx_dp(S,RR(R),RR(Y),int(M),0,norm,do_par=do_par,ncpus=ncpus,gr=gr)
@@ -2215,15 +2260,15 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                             raise TypeError,"Could not coerce coefficient {0} to CC: {1}".format(X[i][j],te)
         else:
             raise NotImplementedError,"High precision is currently not (efficiently) inplemented!"
-        ## The parameters used to compute the current set of coefficients.xs
-        self._M0 = M
-        self._Y  = Y
-        self._norm = norm
         # If we compute more than one Maass form at one time we simply put the coefficients in the first component
         # And rearrange them later in the "get_element" routine.
-        if overwrite==1 or dim>1:
-            self._coeffs=X
-            return 
+        self._M0 = M
+        self._Y  = Y
+        if not overwrite:
+            return X
+        #if dim>1:
+        #    self._coeffs=X
+        #    return 
         if not isinstance(self._coeffs,dict):
             self._coeffs={i: {j:{} for j in range(self.group().ncusps())}  for u in range(self._dim)}
         if self._verbose>0:

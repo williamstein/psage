@@ -102,13 +102,14 @@ from pullback_algorithms import pullback_pts_dp,pullback_pts_mpc,pullback_pts_mp
 from pullback_algorithms cimport pullback_pts_cplx_dp
 
 from maass_forms_alg import get_M_and_Y
-cpdef scattering_determinant(S,double sigma,double R,ret_matrix=False):
+cpdef scattering_determinant(S,double sigma,double R,M=None,Y=None,ret_matrix=False):
     r"""
 
     """
-    
-    Y = S.group().minimal_height()
-    M,Y = get_M_and_Y( R,Y,10,1e-7)
+    if Y is None:
+        Y = S.group().minimal_height()
+    if M is None:
+        M,Y = get_M_and_Y( R,Y,10,1e-7)
     C = eisenstein_series(S,sigma,R,Y,M,M+10)
     nc = S.group().ncusps()
     CF=MPComplexField(53)

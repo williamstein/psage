@@ -615,6 +615,7 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
     cdef double fak
     s = CC(sigma,R)
     s_minus_half=CC(sigma-0.5,R)
+    s_minus_half_mpc=mpmath.fp.mpc(sigma-0.5,R)
     one_minus_s=CC(1.0-sigma,-R) #-s
     if use_fak==1:
         fak = 1 #mpmath.mp.exp(R*mpmath.mp.pi*0.5)
@@ -634,7 +635,8 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                             kbes = besselk_dp(R,besarg,pref=0)
                         else:
                             try:
-                                kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                                besarg_mpf = mpmath.fp.mpf(besarg)
+                                kbes=mpmath.fp.besselk(s_minus_half_mpc,besarg_mpf)
                             except:
                                 print "s=",s,type(s)
                                 print "besarg=",besarg,type(besarg)
@@ -697,7 +699,9 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                 else:
                     try:
                         #kbes=bessel_K(s,besarg)
-                        kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                        besarg_mpf = mpmath.fp.mpf(besarg)
+                        kbes=mpmath.fp.besselk(s_minus_half_mpc,besarg_mpf)
+                        #kbes=mpmath.mp.besselk(s_minus_half,besarg)
                     except:
                         print "s=",s,type(s)
                         print "besarg=",besarg,type(besarg)
@@ -719,7 +723,7 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                     ypb=Ypb[icusp][jcusp][j]
                     if ypb == 0:
                         continue
-                    term = mpmath.mp.mpf(ypb)**s #mpmath.mp.power(mpmath.mp.mpf(ypb),s)
+                    term = mpmath.fp.mpf(ypb)**s #mpmath.mp.power(mpmath.mp.mpf(ypb),s)
                     if nvec[icusp][n] !=0:
                         term = term*CC(0,-nr*Xm[j]).exp()
                         #term = term*ef2_c[icusp][n][j]
@@ -947,6 +951,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     s = sigma + _I*R
     s_minus_half= sigma-0.5 +_I*R #CC(sigma-0.5,R)
     one_minus_s=  1.0-sigma -_I*R #CC(1.0-sigma,-R) #-s
+    s_minus_half_mpc=mpmath.fp.mpc(sigma-0.5,R)
     if use_fak==1:
         fak = 1 #mpmath.mp.exp(R*mpmath.mp.pi*0.5)
     else:
@@ -965,7 +970,8 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                             kbes = besselk_dp(R,besarg,pref=0)
                         else:
                             try:
-                                kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                                besarg_mpf = mpmath.fp.mpf(besarg)
+                                kbes=mpmath.fp.besselk(s_minus_half_mpc,besarg)
                             except:
                                 print "s=",s,type(s)
                                 print "besarg=",besarg,type(besarg)
@@ -1028,7 +1034,8 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                 else:
                     try:
                         #kbes=bessel_K(s,besarg)
-                        kbes=mpmath.mp.besselk(s_minus_half,besarg)
+                        besarg_mpf = mpmath.fp.mpf(besarg)
+                        kbes=mpmath.mp.besselk(s_minus_half_mpc,besarg_mpf)
                     except:
                         print "s=",s,type(s)
                         print "besarg=",besarg,type(besarg)
@@ -1152,7 +1159,7 @@ cpdef Eisenstein_series_one_cusp(S,RealNumber sigma,RealNumber R,RealNumber Y,in
     cdef ComplexNumber s2
     CCF = ComplexField(prec)
     s2 = CCF(sigma,R)-CCF(1,0)/CCF(2,0)
-    s2_mp = mpmath.mp.mpc(sigma-0.5,R)
+    s2_mp = mpmath.fp.mpc(sigma-0.5,R)
     #MyKBessel = Bessel(s2,typ='K',prec=prec)    
     one_minus_s=CF(1,0)-s #mpmath.mp.mpc(1,0)-s
     cdef RealNumber xpb,ypb
@@ -1200,7 +1207,8 @@ cpdef Eisenstein_series_one_cusp(S,RealNumber sigma,RealNumber R,RealNumber Y,in
                     besarg = ypb*ll*twopi
                 else:
                     besarg = -ypb*ll*twopi
-                bes = mpmath.mp.besselk(s2_mp,besarg)
+                besarg_mpf = mpmath.fp.mpf(besarg)
+                bes = mpmath.fp.besselk(s2_mp,besarg_mpf)
                 kbes = CF(bes.real,bes.imag)*ypb.sqrt()
             argpb = CF(0,ll*xpb)
             kbes = kbes*argpb.exp()
@@ -1225,7 +1233,8 @@ cpdef Eisenstein_series_one_cusp(S,RealNumber sigma,RealNumber R,RealNumber Y,in
             mpfr_mul(nn,nn,twopi.value,rnd_re)
             mpfr_abs(nn,nn,rnd_re)
             mpfr_mul(besarg.value,Y.value,nn,rnd_re)
-            bes = mpmath.mp.besselk(s2_mp,besarg)
+            besarg_mpf = mpmath.fp.mpf(besarg)
+            bes = mpmath.fp.besselk(s2_mp,besarg_mpf)
             kbes = mpsqY*CF(bes.real,bes.imag)
                 
         #bess = CF(bes.real,bes.imag)

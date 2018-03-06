@@ -42,6 +42,7 @@ else:
 from module_list import ext_modules,aliases
 
 include_dirs = sage_include_directories(use_sources=True)
+include_dirs = include_dirs + [SAGE_LIB]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"cysignals")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/ext/")]
 
@@ -108,7 +109,7 @@ def run_cythonize():
     # enclosing Python scope (e.g. to perform variable injection).
     Cython.Compiler.Options.old_style_globals = True
     Cython.Compiler.Main.default_options['cache'] = False
-
+    print "include_dirs1=",include_dirs
     global ext_modules
     ext_modules = cythonize(
         ext_modules,

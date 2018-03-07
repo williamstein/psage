@@ -79,7 +79,7 @@ for m in ext_modules:
     m.library_dirs = m.library_dirs + [os.path.join(SAGE_LOCAL, "lib")]
     m.include_dirs = m.include_dirs + include_dirs
 
-print "include_dirs=",include_dirs
+#print "include_dirs=",include_dirs
 
 def run_cythonize():
     from Cython.Build import cythonize
@@ -109,7 +109,7 @@ def run_cythonize():
     # enclosing Python scope (e.g. to perform variable injection).
     Cython.Compiler.Options.old_style_globals = True
     Cython.Compiler.Main.default_options['cache'] = False
-    print "include_dirs1=",include_dirs
+    #print "include_dirs1=",include_dirs
     global ext_modules
     ext_modules = cythonize(
         ext_modules,

@@ -44,8 +44,9 @@ AUTHOR:
 """
 
 
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from stdsage cimport PY_NEW
 
 cdef extern from "pari/pari.h":
     unsigned long Fl_sqrt(unsigned long, unsigned long)

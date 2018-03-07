@@ -51,14 +51,14 @@ r"""
 
 #from psage.modules.finite_quadratic_module import *
 
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 from sage.modules.free_module import span
 from sage.matrix.constructor import Matrix
 from sage.rings.qqbar import QQbar
 from sage.all import copy, exp, Integer, pi, I, walltime, CyclotomicField, ZZ, QQ, is_prime_power, \
-    kronecker, vector, CC, GF, next_prime, lcm, sqrt, cached_function, MatrixSpace#, sage_malloc, sage_free, ZZ
+    kronecker, vector, CC, GF, next_prime, lcm, sqrt, cached_function, MatrixSpace#, sig_malloc, sig_free, ZZ
 from sage.rings.number_field.number_field import NumberField_cyclotomic
 from cython.parallel import prange
 from sage.matrix.matrix_modn_dense_double cimport Matrix_modn_dense_double
@@ -94,7 +94,7 @@ cdef long* _elt(long ii, long *ed, int r) nogil:
     in a finite abelian group with elementary divisors specified by `ed`.
     """
     cdef long* eltl = NULL
-    eltl = <long*> sage_malloc(sizeof(long)*r)
+    eltl = <long*> sig_malloc(sizeof(long)*r)
     cdef long md = 1
     cdef long jj = 0
     cdef long c = 0
@@ -143,7 +143,7 @@ cdef long* Bl(long i, long **JJ, long *ed, int r) nogil:
     cdef long* ll = _elt(i, ed, r)
     cdef long ii, jj = 0
     cdef long* kk = NULL
-    kk = <long*> sage_malloc(sizeof(long)*r)
+    kk = <long*> sig_malloc(sizeof(long)*r)
     for ii in xrange(r):
         kk[ii] = 0
         for jj in xrange(r):
@@ -309,7 +309,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     cdef long* ed = NULL
     fed = FQM.elementary_divisors()
     cdef int r = len(fed)
-    ed = <long*> sage_malloc(sizeof(long) * r)
+    ed = <long*> sig_malloc(sizeof(long) * r)
     if ed is NULL:
         raise MemoryError('Cannot allocate memory.')
     for i,d in enumerate(FQM.elementary_divisors()):
@@ -320,12 +320,12 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     #sig_on()
     t = walltime()
     cdef long** JJ = NULL
-    JJ = <long**> sage_malloc(sizeof(long*) * r)
+    JJ = <long**> sig_malloc(sizeof(long*) * r)
     if JJ is NULL:
         raise MemoryError('Cannot allocate memory.')
     for i in xrange(r):
         JJ[i] = NULL
-        JJ[i] = <long*> sage_malloc(sizeof(long)*r)
+        JJ[i] = <long*> sig_malloc(sizeof(long)*r)
         if JJ[i] == NULL:
             raise MemoryError('Cannot allocate memory.')
         for j in xrange(r):
@@ -365,7 +365,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
 
     Ml.sort(norm_cmp)
     cdef long *Mli = NULL
-    Mli = <long*> sage_malloc(sizeof(long)*n)
+    Mli = <long*> sig_malloc(sizeof(long)*n)
     cdef long[:] Mlf = np.ndarray(n, dtype=int)
     for ii, xx in enumerate(Ml):
         Mli[ii] = xx[0]
@@ -380,12 +380,12 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     cdef long** BB = NULL
     cdef long* Bli = NULL
 
-    BB = <long**> sage_malloc(sizeof(long*)*n)
+    BB = <long**> sig_malloc(sizeof(long*)*n)
     if BB is NULL:
         raise MemoryError('Cannot allocate memory.')
     for i in prange(ni, nogil=True):
         BB[i] = NULL
-        BB[i] = <long*> sage_malloc(sizeof(long)*(n-i))
+        BB[i] = <long*> sig_malloc(sizeof(long)*(n-i))
         #if BB[i] == NULL:
         #    raise MemoryError('Cannot allocate memory.')
         Bli = Bl(Mli[i], JJ, ed, r)
@@ -400,8 +400,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     if not JJ is NULL:
         for i in range(r):
             if not JJ[i] is NULL:
-                sage_free(JJ[i])
-        sage_free(JJ)
+                sig_free(JJ[i])
+        sig_free(JJ)
      
     if debug > 0:
         print 'bilinear form computations: {0}'.format(walltime(t))
@@ -460,8 +460,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     if not BB is NULL:
         for i in range(ni):
             if not BB[i] is NULL:
-                sage_free(BB[i])
-        sage_free(BB)
+                sig_free(BB[i])
+        sig_free(BB)
 
     return R
 
@@ -555,7 +555,7 @@ cpdef invariants(FQM, use_reduction = True, proof = False, checks=False, debug =
     cdef long* ed = NULL
     fed = FQM.elementary_divisors()
     cdef int r = len(fed)
-    ed = <long*> sage_malloc(sizeof(long) * r)
+    ed = <long*> sig_malloc(sizeof(long) * r)
     for i,d in enumerate(FQM.elementary_divisors()):
         ed[i] = long(d)
 

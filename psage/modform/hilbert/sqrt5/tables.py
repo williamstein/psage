@@ -172,7 +172,7 @@ def elliptic_curves_parallel(v, B, dir, ncpu=16):
 #################################################################
 
 from sage.libs.all import pari
-from sage.rings.all import primes
+from sage.arith.all import primes
 
 def primes_of_bounded_norm(B):
     """

@@ -25,9 +25,10 @@ AUTHORS:
 #
 #===============================================================================
 
-include "cysignals/signals.pxi"
-include "stdsage.pxi"
-include "cdefs.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from stdsage cimport PY_NEW
+from sage.libs.gmp.all cimport *
 
 cpdef satoh_dz(f, R) :
     ## Satoh's definition of the operation on Siegel modular forms yields

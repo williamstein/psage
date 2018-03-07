@@ -20,8 +20,8 @@ Cython algorithms for Eisenstein series.
 Used by routines in maass_forms.py
 
 """
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *
 
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
@@ -128,11 +128,19 @@ cpdef scattering_determinant(S,double sigma,double R,M=None,Y=None,ret_matrix=Fa
         return A
     return A.det()
     
-cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,int use_fak=0,double eps=1e-12):
+cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,int use_fak=0,double eps=1e-12,ctx='fp',prec=53):
     r"""
     Compute the Fourier coefficients of all Eisenstein series E(z;sigma+R)
     """
+    cdef int mpcontext
     import mpmath
+    if ctx=='fp':
+        ctx = mpmath.fp
+        mpcontext = 0
+    else:
+        ctx = mpmath.mp
+        mpmath.mp.prec=prec
+        mpcontext = 1
     cdef double complex **V=NULL
     cdef double* Xm=NULL
     cdef double*** Xpb=NULL
@@ -170,23 +178,23 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
     #    Qfak=<double>(2*Q)    
     sym_type = S._sym_type
     nc = int(S._group._ncusps)
-    Qfak = <double *>sage_malloc(sizeof(double)*nc)
-    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qfak = <double *>sig_malloc(sizeof(double)*nc)
+    Mv=<int**>sig_malloc(sizeof(int*)*nc)
     if not Mv: raise MemoryError
-    Qv=<int**>sage_malloc(sizeof(int*)*nc)    
+    Qv=<int**>sig_malloc(sizeof(int*)*nc)    
     if not Qv: raise MemoryError
     for i from 0<=i<nc:
-        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Mv[i]=<int*>sig_malloc(sizeof(int)*3)
         if not Mv[i]: raise MemoryError
-        Qv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sig_malloc(sizeof(int)*3)
         if not Qv[i]: raise MemoryError
-    symmetric_cusps=<int*> sage_malloc(sizeof(int)*nc)
+    symmetric_cusps=<int*> sig_malloc(sizeof(int)*nc)
     if not symmetric_cusps: raise MemoryError
-    cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+    cusp_evs=<double complex*>sig_malloc(sizeof(double complex)*nc)
     if not cusp_evs: raise MemoryError
     N = 0; Ml=0; Ql=0
     cdef int* cusp_offsets=NULL
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
     cdef dict symmetries
     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N,&Ml,&Ql,M,Q,verbose)
@@ -205,19 +213,19 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
         if verbose>0:
             print "cusp_offset[",jcusp,"]=",cusp_offsets[jcusp]
     ncols = N + comp_dim
-    V=<double complex**>sage_malloc(sizeof(double complex*)*N)
+    V=<double complex**>sig_malloc(sizeof(double complex*)*N)
     if V==NULL: raise MemoryError
     for j in range(N):
-        V[j]=<double complex*>sage_malloc(sizeof(double complex)*(ncols))
+        V[j]=<double complex*>sig_malloc(sizeof(double complex)*(ncols))
         for k in range(ncols): #from 0<=k<ncols:
             V[j][k]=0
 
         
-    RHS=<double complex**>sage_malloc(sizeof(double complex*)*N)
+    RHS=<double complex**>sig_malloc(sizeof(double complex*)*N)
     if RHS==NULL: raise MemoryError
     for n in range(N):
         RHS[n]=NULL
-        RHS[n]=<double complex*>sage_malloc(sizeof(double complex)*nc)
+        RHS[n]=<double complex*>sig_malloc(sizeof(double complex)*nc)
         if RHS[n]==NULL: raise MemoryError
     if verbose>0:
         print "In get_coef_cplx_dp_sym R,Y,M,Q=",R,Y,M,Q
@@ -229,37 +237,37 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
         for i from 0<=i<nc:
             print "Ms,Mf,Ml[",i,"]=",Mv[i][0],Mv[i][1],Mv[i][2]
             print "Qs,Qf,Ql[",i,"]=",Qv[i][0],Qv[i][1],Qv[i][2]
-    alphas=<double*>sage_malloc(sizeof(double)*nc)
+    alphas=<double*>sig_malloc(sizeof(double)*nc)
     if alphas==NULL: raise MemoryError
-    Xm=<double*>sage_malloc(sizeof(double)*Ql)
+    Xm=<double*>sig_malloc(sizeof(double)*Ql)
     if Xm==NULL: raise MemoryError
-    Xpb = <double***> sage_malloc( sizeof(double** ) * nc )
+    Xpb = <double***> sig_malloc( sizeof(double** ) * nc )
     if Xpb==NULL: raise MemoryError
-    Ypb = <double***> sage_malloc( sizeof(double** ) * nc )
+    Ypb = <double***> sig_malloc( sizeof(double** ) * nc )
     if Ypb==NULL: raise MemoryError
     for i from 0<=i<nc:
         Xpb[i]=NULL; Ypb[i]=NULL
-        Xpb[i] = <double**>sage_malloc(sizeof(double*) * nc )
-        Ypb[i] = <double**>sage_malloc(sizeof(double*) * nc )
+        Xpb[i] = <double**>sig_malloc(sizeof(double*) * nc )
+        Ypb[i] = <double**>sig_malloc(sizeof(double*) * nc )
         if Ypb[i]==NULL or Xpb[i]==NULL:
             raise MemoryError
         for j from 0<=j<nc:
             Xpb[i][j]=NULL; Ypb[i][j]=NULL
-            Xpb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-            Ypb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+            Xpb[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
+            Ypb[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
                 raise MemoryError
             for n from 0<=n<Ql:
                 Xpb[i][j][n]=<double>0
                 Ypb[i][j][n]=<double>0
-    Cvec = <double complex***>sage_malloc(sizeof(double complex**) * nc )
+    Cvec = <double complex***>sig_malloc(sizeof(double complex**) * nc )
     if Cvec==NULL: raise MemoryError
     for i in range(nc):
-        Cvec[i] = <double complex**>sage_malloc(sizeof(double complex*) * nc )
+        Cvec[i] = <double complex**>sig_malloc(sizeof(double complex*) * nc )
         if Cvec[i]==NULL:
             raise MemoryError
         for j in range(nc):
-            Cvec[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+            Cvec[i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
             if Cvec[i][j]==NULL:
                 raise MemoryError
             for n in range(Ql):
@@ -277,41 +285,41 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
                               cusp_evs,alphas,Mv,Qv,Qfak,
                               symmetric_cusps,sigma,
                               R,Y,nc,ncols,cuspidal,
-                              verbose,use_fak,0)   
+                              verbose,use_fak,0,mpcontext=mpcontext)   
     sig_off()
     cdef Matrix_complex_dense VV,RRHS
     if Qfak<>NULL:
-        sage_free(Qfak)
+        sig_free(Qfak)
     if alphas<>NULL:
-        sage_free(alphas)
+        sig_free(alphas)
     if Xm<>NULL:
-        sage_free(Xm)
+        sig_free(Xm)
     if Ypb<>NULL:
         for i from 0<=i<nc:
             if Ypb[i]<>NULL:
                 for j from 0<=j<nc:
                     if Ypb[i][j]<>NULL:
-                        sage_free(Ypb[i][j])
-                sage_free(Ypb[i])
-        sage_free(Ypb)
+                        sig_free(Ypb[i][j])
+                sig_free(Ypb[i])
+        sig_free(Ypb)
     if Xpb<>NULL:
         for i from 0<=i<nc:
             if Xpb[i]<>NULL:
                 for j from 0<=j<nc:
                     if Xpb[i][j]<>NULL:
-                        sage_free(Xpb[i][j])
-                sage_free(Xpb[i])
-        sage_free(Xpb)
+                        sig_free(Xpb[i][j])
+                sig_free(Xpb[i])
+        sig_free(Xpb)
     if Cvec<>NULL:
         for i from 0<=i<nc:
             if Cvec[i]<>NULL:
                 for j from 0<=j<nc:
                     if Cvec[i][j]<>NULL:
-                        sage_free(Cvec[i][j])
-                sage_free(Cvec[i])
-        sage_free(Cvec)
+                        sig_free(Cvec[i][j])
+                sig_free(Cvec[i])
+        sig_free(Cvec)
     if sqch<>NULL:
-        sage_free(sqch)
+        sig_free(sqch)
     if gr==1:
         CF=MPComplexField(53)
         MS=MatrixSpace(CF,N,N)
@@ -324,21 +332,21 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
             for l in range(nc):
                 RRHS[n,l]=RHS[n][l]
         return VV,RRHS
-    C=<double complex**>sage_malloc(sizeof(double complex*)*(comp_dim))
+    C=<double complex**>sig_malloc(sizeof(double complex*)*(comp_dim))
     if C==NULL:
         raise MemoryError
     for i in range(comp_dim):
-        C[i]=<double complex*>sage_malloc(sizeof(double complex)*(N))
+        C[i]=<double complex*>sig_malloc(sizeof(double complex)*(N))
         if C[i]==NULL:
             raise MemoryError
-    #setc_list = <int*>sage_malloc(sizeof(int)*num_set)
+    #setc_list = <int*>sig_malloc(sizeof(int)*num_set)
     #if setc_list==NULL:
     #    raise MemoryError
-    #vals_list = <double complex** >sage_malloc(sizeof(double complex*)*comp_dim)
+    #vals_list = <double complex** >sig_malloc(sizeof(double complex*)*comp_dim)
     #if vals_list==NULL:
     #    raise MemoryError
     #for j in range(comp_dim):
-    #    vals_list[j]=<double complex*>sage_malloc(sizeof(double complex)*num_set) 
+    #    vals_list[j]=<double complex*>sig_malloc(sizeof(double complex)*num_set) 
     i=0
     # for r,n in SetCs:
     #     if cusp_evs[r]<>0 and r>0:
@@ -392,35 +400,35 @@ cpdef eisenstein_series(S,double sigma,double R,double Y,int M,int Q,int gr=0,in
                 res[j][i][k+Mv[i][0]]=C[j][ki]
 
     #if setc_list<>NULL:
-    #    sage_free(setc_list)
+    #    sig_free(setc_list)
     #if vals_list<>NULL:
     #    for j from 0<=j<comp_dim:
     #        if vals_list[j]<>NULL:
-    #            sage_free(vals_list[j])
-    #    sage_free(vals_list)
+    #            sig_free(vals_list[j])
+    #    sig_free(vals_list)
     if V<>NULL:
         for j from 0<=j<N:
             if V[j]<>NULL:
-                sage_free(V[j])
-        sage_free(V)
+                sig_free(V[j])
+        sig_free(V)
     if C<>NULL:
         for i from 0<=i<comp_dim:
             if C[i]<>NULL:
-                sage_free(C[i])
-        sage_free(C)
+                sig_free(C[i])
+        sig_free(C)
     if RHS<>NULL:
         for n in range(N):
             if RHS[n]<>NULL:
-                sage_free(RHS[n])
-        sage_free(RHS)
+                sig_free(RHS[n])
+        sig_free(RHS)
     if Mv<>NULL:
-        sage_free(Mv)
+        sig_free(Mv)
     if Qv<>NULL:
-        sage_free(Qv)                
+        sig_free(Qv)                
     if symmetric_cusps<>NULL:
-        sage_free(symmetric_cusps)
+        sig_free(symmetric_cusps)
     if cusp_evs<>NULL:
-        sage_free(cusp_evs)
+        sig_free(cusp_evs)
     if comp_dim==1:
         return res[0]
     return res
@@ -444,7 +452,8 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                            int nc, int ncols,
                            int cuspidal,
                            int verbose=0, int use_fak=0,
-                           int is_trivial=0):
+                           int is_trivial=0,
+                                    int mpcontext=0):
 
 
     r"""
@@ -468,6 +477,10 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
     - ``verbose`` -- int (verbosity of output)
     
     """
+    if mpcontext==0:
+        ctx = mpmath.fp
+    else:
+        ctx = mpmath.mp
     #mpmath.mp.dps=25
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,Qs,Qf,Mf,Ms,prec
     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,besarg,lr,nr
@@ -504,10 +517,10 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
         on_half_line=True
     else:
         on_half_line = False
-    mpy=mpmath.mp.mpf(Y)
-    mpsqY=mpmath.mp.sqrt(mpy)
-    mpone_minus_s=mpmath.mp.mpc(1.0-sigma,-R)
-    mp_y_1ms=mpmath.mp.power(mpy,mpone_minus_s)
+    mpy=ctx.mpf(Y)
+    mpsqY=ctx.sqrt(mpy)
+    mpone_minus_s=ctx.mpc(1.0-sigma,-R)
+    mp_y_1ms=ctx.power(mpy,mpone_minus_s)
     two=<double>(2)
     Y2pi=Y*pi*two
     twopi=two*pi
@@ -525,7 +538,7 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
         print "Ql=",Ql
     ## This is the effective offset at the 
     cdef int* cusp_offsets=NULL
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
     for jcusp from 0 <= jcusp < nc:
         cusp_offsets[jcusp]=0
@@ -535,28 +548,28 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
         if verbose>0:
             print "cusp_offsets[",jcusp,"]=",cusp_offsets[jcusp]
     cdef double **nvec=NULL
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp in range(nc):
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
     cdef double complex ****ef1=NULL
     cdef double complex ***ef2_c=NULL
-    ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+    ef2_c = <double complex***>sig_malloc(sizeof(double complex**)*nc)
     if not ef2_c: raise MemoryError
     for icusp  in range(nc):
-        ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+        ef2_c[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[icusp][2])
         for n  in range(Mv[icusp][2]):
-            ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
-    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+            ef2_c[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
+    ef1 = <double complex****>sig_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError        
     for icusp  in range(nc):
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc) 
+        ef1[icusp] = <double complex***>sig_malloc(sizeof(double complex**)*nc) 
         if ef1[icusp]==NULL: raise MemoryError        
         for jcusp in range(nc):
-            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError        
             for n from 0<=n<Mv[jcusp][2]:
-                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError        
     for jcusp in range(nc):
         for n in range(Ml):
@@ -594,15 +607,15 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
     cdef double besarg_old=0.0
     #cdef double y #,kbes_old=1.0
     cdef double complex ***kbesvec=NULL
-    kbesvec=<double complex***>sage_malloc(sizeof(double complex**)*nc)
+    kbesvec=<double complex***>sig_malloc(sizeof(double complex**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp in range(nc):
-        kbesvec[jcusp]=<double complex**>sage_malloc(sizeof(double complex*)*Ml)
+        kbesvec[jcusp]=<double complex**>sig_malloc(sizeof(double complex*)*Ml)
         if kbesvec[jcusp]==NULL:
                 raise MemoryError
         for l in range(Ml):
-            kbesvec[jcusp][l]=<double complex*>sage_malloc(sizeof(double complex)*Ql)
+            kbesvec[jcusp][l]=<double complex*>sig_malloc(sizeof(double complex)*Ql)
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
     if verbose>0:
@@ -615,7 +628,7 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
     cdef double fak
     s = CC(sigma,R)
     s_minus_half=CC(sigma-0.5,R)
-    s_minus_half_mpc=mpmath.fp.mpc(sigma-0.5,R)
+    s_minus_half_mpc=ctx.mpc(sigma-0.5,R)
     one_minus_s=CC(1.0-sigma,-R) #-s
     if use_fak==1:
         fak = 1 #mpmath.mp.exp(R*mpmath.mp.pi*0.5)
@@ -635,8 +648,8 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                             kbes = besselk_dp(R,besarg,pref=0)
                         else:
                             try:
-                                besarg_mpf = mpmath.fp.mpf(besarg)
-                                kbes=mpmath.fp.besselk(s_minus_half_mpc,besarg_mpf)
+                                besarg_mpf = ctx.mpf(besarg)
+                                kbes=ctx.besselk(s_minus_half_mpc,besarg_mpf)
                             except:
                                 print "s=",s,type(s)
                                 print "besarg=",besarg,type(besarg)
@@ -699,8 +712,8 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                 else:
                     try:
                         #kbes=bessel_K(s,besarg)
-                        besarg_mpf = mpmath.fp.mpf(besarg)
-                        kbes=mpmath.fp.besselk(s_minus_half_mpc,besarg_mpf)
+                        besarg_mpf = ctx.mpf(besarg)
+                        kbes=ctx.besselk(s_minus_half_mpc,besarg_mpf)
                         #kbes=mpmath.mp.besselk(s_minus_half,besarg)
                     except:
                         print "s=",s,type(s)
@@ -723,7 +736,7 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                     ypb=Ypb[icusp][jcusp][j]
                     if ypb == 0:
                         continue
-                    term = mpmath.fp.mpf(ypb)**s #mpmath.mp.power(mpmath.mp.mpf(ypb),s)
+                    term = ctx.mpf(ypb)**s #mpmath.mp.power(mpmath.mp.mpf(ypb),s)
                     if nvec[icusp][n] !=0:
                         term = term*CC(0,-nr*Xm[j]).exp()
                         #term = term*ef2_c[icusp][n][j]
@@ -746,9 +759,9 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
             if kbesvec[icusp]<>NULL:
                 for l from 0<=l<Ml:
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     #print "deal kbbes1"
     if ef1<>NULL:
         for jcusp from 0<=jcusp<nc:
@@ -757,25 +770,25 @@ cdef compute_V_cplx_eis_mpc_sym(double complex **V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n from 0<=n<Mv[icusp][2]:
                             if ef1[jcusp][icusp][n]<>NULL: 
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])                                
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])                                
+        sig_free(ef1)
     if ef2_c<>NULL:
         for icusp from 0<=icusp<nc:
             if ef2_c[icusp]<>NULL:
                 for n from 0<=n<Mv[icusp][2]:
                     if ef2_c[icusp][n]<>NULL:
-                        sage_free(ef2_c[icusp][n])
-                sage_free(ef2_c[icusp])
-        sage_free(ef2_c)
+                        sig_free(ef2_c[icusp][n])
+                sig_free(ef2_c[icusp])
+        sig_free(ef2_c)
     if nvec<>NULL:
         for icusp from 0<=icusp<nc:
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -795,7 +808,8 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                            int nc, int ncols,
                            int cuspidal,
                            int verbose=0, int use_fak=0,
-                           int is_trivial=0):
+                           int is_trivial=0,
+                           int mpcontext=0):
 
 
     r"""
@@ -820,6 +834,10 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     
     """
     #mpmath.mp.dps=25
+    if mpcontext==0:
+        ctx = mpmath.fp
+    else:
+        ctx = mpmath.mp
     cdef int l,j,icusp,jcusp,n,ni,lj,Ml,Ql,Qs,Qf,Mf,Ms,prec
     cdef double pi,sqrtY,Y2pi,nrY2pi,argm,argpb,twopi,two,besarg,lr,nr
     cdef double complex ckbes,ctmpV,iargm,twopii,kbes,ctmp,t
@@ -860,7 +878,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
         print "Ql=",Ql
     ## This is the effective offset at the 
     cdef int* cusp_offsets=NULL
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
     for jcusp from 0 <= jcusp < nc:
         cusp_offsets[jcusp]=0
@@ -870,28 +888,28 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
         if verbose>0:
             print "cusp_offsets[",jcusp,"]=",cusp_offsets[jcusp]
     cdef double **nvec=NULL
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp in range(nc):
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
     cdef double complex ****ef1=NULL
     cdef double complex ***ef2_c=NULL
-    ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+    ef2_c = <double complex***>sig_malloc(sizeof(double complex**)*nc)
     if not ef2_c: raise MemoryError
     for icusp  in range(nc):
-        ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+        ef2_c[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[icusp][2])
         for n  in range(Mv[icusp][2]):
-            ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
-    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+            ef2_c[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
+    ef1 = <double complex****>sig_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError        
     for icusp  in range(nc):
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc) 
+        ef1[icusp] = <double complex***>sig_malloc(sizeof(double complex**)*nc) 
         if ef1[icusp]==NULL: raise MemoryError        
         for jcusp in range(nc):
-            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError        
             for n from 0<=n<Mv[jcusp][2]:
-                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError        
     for jcusp in range(nc):
         for n in range(Ml):
@@ -929,15 +947,15 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     cdef double besarg_old=0.0
     #cdef double y #,kbes_old=1.0
     cdef double complex ***kbesvec=NULL
-    kbesvec=<double complex***>sage_malloc(sizeof(double complex**)*nc)
+    kbesvec=<double complex***>sig_malloc(sizeof(double complex**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp in range(nc):
-        kbesvec[jcusp]=<double complex**>sage_malloc(sizeof(double complex*)*Ml)
+        kbesvec[jcusp]=<double complex**>sig_malloc(sizeof(double complex*)*Ml)
         if kbesvec[jcusp]==NULL:
                 raise MemoryError
         for l in range(Ml):
-            kbesvec[jcusp][l]=<double complex*>sage_malloc(sizeof(double complex)*Ql)
+            kbesvec[jcusp][l]=<double complex*>sig_malloc(sizeof(double complex)*Ql)
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
     if verbose>0:
@@ -951,7 +969,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
     s = sigma + _I*R
     s_minus_half= sigma-0.5 +_I*R #CC(sigma-0.5,R)
     one_minus_s=  1.0-sigma -_I*R #CC(1.0-sigma,-R) #-s
-    s_minus_half_mpc=mpmath.fp.mpc(sigma-0.5,R)
+    s_minus_half_mpc=ctx.mpc(sigma-0.5,R)
     if use_fak==1:
         fak = 1 #mpmath.mp.exp(R*mpmath.mp.pi*0.5)
     else:
@@ -970,7 +988,7 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                             kbes = besselk_dp(R,besarg,pref=0)
                         else:
                             try:
-                                besarg_mpf = mpmath.fp.mpf(besarg)
+                                besarg_mpf =ctx.mpf(besarg)
                                 kbes=mpmath.fp.besselk(s_minus_half_mpc,besarg)
                             except:
                                 print "s=",s,type(s)
@@ -1081,9 +1099,9 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
             if kbesvec[icusp]<>NULL:
                 for l from 0<=l<Ml:
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     #print "deal kbbes1"
     if ef1<>NULL:
         for jcusp from 0<=jcusp<nc:
@@ -1092,25 +1110,25 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n from 0<=n<Mv[icusp][2]:
                             if ef1[jcusp][icusp][n]<>NULL: 
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])                                
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])                                
+        sig_free(ef1)
     if ef2_c<>NULL:
         for icusp from 0<=icusp<nc:
             if ef2_c[icusp]<>NULL:
                 for n from 0<=n<Mv[icusp][2]:
                     if ef2_c[icusp][n]<>NULL:
-                        sage_free(ef2_c[icusp][n])
-                sage_free(ef2_c[icusp])
-        sage_free(ef2_c)
+                        sig_free(ef2_c[icusp][n])
+                sig_free(ef2_c[icusp])
+        sig_free(ef2_c)
     if nvec<>NULL:
         for icusp from 0<=icusp<nc:
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
 
 
 
@@ -1170,10 +1188,10 @@ cpdef Eisenstein_series_one_cusp(S,RealNumber sigma,RealNumber R,RealNumber Y,in
     mpfr_init2(nn,prec);    mpfr_init2(rz,prec)
     mpfr_set_si(rz,0,rnd_re)
     cdef mpc_t **ef2=NULL
-    ef2=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Ml)
+    ef2=<mpc_t**>sig_malloc(sizeof(mpc_t*)*Ml)
     if ef2==NULL: raise MemoryError
     for n in range(Ml):
-        ef2[n]=<mpc_t*>sage_malloc(sizeof(mpc_t)*Ql)
+        ef2[n]=<mpc_t*>sig_malloc(sizeof(mpc_t)*Ql)
         if ef2[n]==NULL: raise MemoryError
         mpfr_set_si(nn,n+Ms,rnd_re)
         mpfr_neg(nn,nn,rnd_re)
@@ -1281,8 +1299,8 @@ cpdef Eisenstein_series_one_cusp(S,RealNumber sigma,RealNumber R,RealNumber Y,in
             if ef2[n]<>NULL:
                 for j in range(Ql):
                     mpc_clear(ef2[n][j])
-                sage_free(ef2[n])
-        sage_free(ef2)
+                sig_free(ef2[n])
+        sig_free(ef2)
     #B = RHS.column(0)
     if gr==1:
         return V,RHS

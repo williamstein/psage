@@ -64,9 +64,9 @@ cdef class pAdicLseries:
 
     def __dealloc__(self):
         if self.teich:
-            sage_free(self.teich)
+            sig_free(self.teich)
         if self.teich_mulmod:
-            sage_free(self.teich_mulmod)
+            sig_free(self.teich_mulmod)
     
     
     def __init__(self, E, p, algorithm='eclib', parallel=False):
@@ -198,13 +198,13 @@ cdef class pAdicLseries:
             self.p_pow[n+1] = ppow
 
         # Make a table of Teichmuller lifts to precision p^(prec//2)
-        self.teich = <long*> sage_malloc(sizeof(long)*self.p)
+        self.teich = <long*> sig_malloc(sizeof(long)*self.p)
         self.teich[0] = 0
         for n in range(1,p):
             self.teich[n] = K.teichmuller(n).lift()
 
         # Make a table of Teichmuller lifts to precision p^prec
-        self.teich_mulmod = <long*> sage_malloc(sizeof(long)*self.p)
+        self.teich_mulmod = <long*> sig_malloc(sizeof(long)*self.p)
         self.teich_mulmod[0] = 0
         for n in range(1,p):
             self.teich_mulmod[n] = K_mulmod.teichmuller(n).lift()

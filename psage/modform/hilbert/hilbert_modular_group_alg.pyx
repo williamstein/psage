@@ -20,8 +20,8 @@ Used by routines in development.
 
 """
 
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 from sage.rings.number_field.number_field_element import is_NumberFieldElement
 from sage.matrix.matrix2 import Matrix
@@ -137,17 +137,17 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
     cdef double *c1=NULL,*c2=NULL,*c3=NULL
     cdef double *nsigmamax_loc
     cdef int np,do_cont
-    nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
-    nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
-    nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
-    s2y2 = <double *>sage_malloc(degree*sizeof(double))
-    rhoemb = <double *>sage_malloc(degree*sizeof(double))
-    semb = <double *>sage_malloc(degree*sizeof(double))
-    xv = <double *>sage_malloc(degree*sizeof(double))
-    yv = <double *>sage_malloc(degree*sizeof(double))
-    c1 = <double *>sage_malloc(degree*sizeof(double))
-    c2 = <double *>sage_malloc(degree*sizeof(double))
-    c3 = <double *>sage_malloc(degree*sizeof(double))
+    nsigmamax_loc = <double *>sig_malloc(degree*sizeof(double))
+    nrhomax_loc = <double *>sig_malloc(degree*sizeof(double))
+    nrhomin_loc = <double *>sig_malloc(degree*sizeof(double))
+    s2y2 = <double *>sig_malloc(degree*sizeof(double))
+    rhoemb = <double *>sig_malloc(degree*sizeof(double))
+    semb = <double *>sig_malloc(degree*sizeof(double))
+    xv = <double *>sig_malloc(degree*sizeof(double))
+    yv = <double *>sig_malloc(degree*sizeof(double))
+    c1 = <double *>sig_malloc(degree*sizeof(double))
+    c2 = <double *>sig_malloc(degree*sizeof(double))
+    c3 = <double *>sig_malloc(degree*sizeof(double))
     nrhomax = 1.0;  nrhomin = 1.0
 
     if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
@@ -161,14 +161,14 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
         print "basis=",power_basis
     cdef int basislen = <int>len(power_basis)
     cdef double **basis_embeddings = NULL
-    basis_embeddings = <double**>sage_malloc(basislen*sizeof(double*))
+    basis_embeddings = <double**>sig_malloc(basislen*sizeof(double*))
     cdef list basis_list,tmp_list
     cdef double tmpx
     if basis_embeddings==NULL:
         raise MemoryError
     basis_list=[]
     for i in range(basislen):
-        basis_embeddings[i] = <double*>sage_malloc(degree*sizeof(double*))
+        basis_embeddings[i] = <double*>sig_malloc(degree*sizeof(double*))
         tmp_list=[]
         for j in range(degree):
             xi =  power_basis[i].complex_embeddings()[j].real()
@@ -187,22 +187,22 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
         print "N(y)=",ny
     delta0 = 2.0**(3-G._prec)
     cdef int *rho_v, *sigma_v
-    rho_v = <int*>sage_malloc(degree*sizeof(int))
-    sigma_v = <int*>sage_malloc(degree*sizeof(int))
+    rho_v = <int*>sig_malloc(degree*sizeof(int))
+    sigma_v = <int*>sig_malloc(degree*sizeof(int))
     cdef double *** cusp_reps=NULL
     #cdef double *** cusp_reps_coord=NULL
     cdef double disc
     disc = <double> float(G.number_field().discriminant())
     cdef int nc = <int>G.ncusps()
-    cusp_reps = <double***>sage_malloc(nc*sizeof(double**))
-    #cusp_reps_coord = <double***>sage_malloc(nc*sizeof(double**))
+    cusp_reps = <double***>sig_malloc(nc*sizeof(double**))
+    #cusp_reps_coord = <double***>sig_malloc(nc*sizeof(double**))
     B0 = G.translation_module(0)
     BDA = G.translation_module(0,ret_type='alg')
 
     for i in range(nc):
-        cusp_reps[i] = <double**>sage_malloc(2*sizeof(double*))
-        cusp_reps[i][0] = <double*>sage_malloc(degree*sizeof(double))
-        cusp_reps[i][1] = <double*>sage_malloc(degree*sizeof(double))
+        cusp_reps[i] = <double**>sig_malloc(2*sizeof(double*))
+        cusp_reps[i][0] = <double*>sig_malloc(degree*sizeof(double))
+        cusp_reps[i][1] = <double*>sig_malloc(degree*sizeof(double))
         if i==0:
             for j in range(degree):
                 cusp_reps[i][0][j]=1.0
@@ -213,16 +213,16 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
                 cusp_reps[i][1][j]=<double>G.cusps()[i].denominator().complex_embeddings()[j]
 
     cdef double*** integer_lattice=NULL
-    integer_lattice =  <double***>sage_malloc(2*sizeof(double**))
+    integer_lattice =  <double***>sig_malloc(2*sizeof(double**))
     if integer_lattice == NULL: raise MemoryError
-    integer_lattice[0] =  <double**>sage_malloc(degree*sizeof(double*))
-    integer_lattice[1] =  <double**>sage_malloc(degree*sizeof(double*))
+    integer_lattice[0] =  <double**>sig_malloc(degree*sizeof(double*))
+    integer_lattice[1] =  <double**>sig_malloc(degree*sizeof(double*))
     B0 = G.translation_module(0,inv=0)
     B1 = G.translation_module(0,inv=1)
     BA = G.translation_module(0,ret_type='alg')
     for i in range(degree):
-        integer_lattice[0][i] =  <double*>sage_malloc(degree*sizeof(double))
-        integer_lattice[1][i] =  <double*>sage_malloc(degree*sizeof(double))
+        integer_lattice[0][i] =  <double*>sig_malloc(degree*sizeof(double))
+        integer_lattice[1][i] =  <double*>sig_malloc(degree*sizeof(double))
         for j in range(degree):
             integer_lattice[0][i][j]=<double>(B0[i][j])
             integer_lattice[1][i][j]=<double>(B1[i][j])
@@ -459,35 +459,35 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
             c = G.cusps()[i]
             break
 
-    sage_free(semb)
-    sage_free(rhoemb)
-    sage_free(nrhomax_loc)
-    sage_free(nrhomin_loc)
-    sage_free(s2y2)
-    sage_free(rho_v); sage_free(sigma_v)
-    sage_free(c1);sage_free(c2);sage_free(c3)
+    sig_free(semb)
+    sig_free(rhoemb)
+    sig_free(nrhomax_loc)
+    sig_free(nrhomin_loc)
+    sig_free(s2y2)
+    sig_free(rho_v); sig_free(sigma_v)
+    sig_free(c1);sig_free(c2);sig_free(c3)
     if cusp_reps<>NULL:
         for j in range(nc):
             if cusp_reps[j]<>NULL:
                 if cusp_reps[j][0]<>NULL:
-                    sage_free(cusp_reps[j][0])
+                    sig_free(cusp_reps[j][0])
                 if cusp_reps[j][1]<>NULL:
-                    sage_free(cusp_reps[j][1])
-                sage_free(cusp_reps[j])
-        sage_free(cusp_reps)
+                    sig_free(cusp_reps[j][1])
+                sig_free(cusp_reps[j])
+        sig_free(cusp_reps)
 
     if integer_lattice<>NULL:
         if integer_lattice[0]<>NULL:
             for i in range(degree):
                 if integer_lattice[0][i]<>NULL:
-                    sage_free(integer_lattice[0][i])
-            sage_free(integer_lattice[0])
+                    sig_free(integer_lattice[0][i])
+            sig_free(integer_lattice[0])
         if integer_lattice[1]<>NULL:
             for i in range(degree):
                 if integer_lattice[1][i]<>NULL:
-                    sage_free(integer_lattice[1][i])
-            sage_free(integer_lattice[1])
-        sage_free(integer_lattice)
+                    sig_free(integer_lattice[1][i])
+            sig_free(integer_lattice[1])
+        sig_free(integer_lattice)
     ## Reduce c at the end.
     return c,delta_min
 
@@ -510,17 +510,17 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     cdef double *c1=NULL,*c2=NULL,*c3=NULL
     cdef double *nsigmamax_loc
     cdef int num_pair,do_cont
-    nsigmamax_loc = <double *>sage_malloc(degree*sizeof(double))
-    nrhomax_loc = <double *>sage_malloc(degree*sizeof(double))
-    nrhomin_loc = <double *>sage_malloc(degree*sizeof(double))
-    s2y2 = <double *>sage_malloc(degree*sizeof(double))
-    rhoemb = <double *>sage_malloc(degree*sizeof(double))
-    semb = <double *>sage_malloc(degree*sizeof(double))
-    xv = <double *>sage_malloc(degree*sizeof(double))
-    yv = <double *>sage_malloc(degree*sizeof(double))
-    c1 = <double *>sage_malloc(degree*sizeof(double))
-    c2 = <double *>sage_malloc(degree*sizeof(double))
-    c3 = <double *>sage_malloc(degree*sizeof(double))
+    nsigmamax_loc = <double *>sig_malloc(degree*sizeof(double))
+    nrhomax_loc = <double *>sig_malloc(degree*sizeof(double))
+    nrhomin_loc = <double *>sig_malloc(degree*sizeof(double))
+    s2y2 = <double *>sig_malloc(degree*sizeof(double))
+    rhoemb = <double *>sig_malloc(degree*sizeof(double))
+    semb = <double *>sig_malloc(degree*sizeof(double))
+    xv = <double *>sig_malloc(degree*sizeof(double))
+    yv = <double *>sig_malloc(degree*sizeof(double))
+    c1 = <double *>sig_malloc(degree*sizeof(double))
+    c2 = <double *>sig_malloc(degree*sizeof(double))
+    c3 = <double *>sig_malloc(degree*sizeof(double))
     nrhomax = 1.0;  nrhomin = 1.0
 
     if xv ==NULL or yv==NULL or semb==NULL or rhoemb==NULL or s2y2==NULL or nsigmamax_loc==NULL or nrhomax_loc==NULL or nrhomin_loc==NULL or c1==NULL or c2==NULL or c3==NULL:
@@ -534,14 +534,14 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "basis=",power_basis
     cdef int basislen = <int>len(power_basis)
     cdef double **basis_embeddings = NULL
-    basis_embeddings = <double**>sage_malloc(basislen*sizeof(double*))
+    basis_embeddings = <double**>sig_malloc(basislen*sizeof(double*))
     cdef list basis_list,tmp_list
     cdef double tmpx
     if basis_embeddings==NULL:
         raise MemoryError
     basis_list=[]
     for i in range(basislen):
-        basis_embeddings[i] = <double*>sage_malloc(degree*sizeof(double*))
+        basis_embeddings[i] = <double*>sig_malloc(degree*sizeof(double*))
         tmp_list=[]
         for j in range(degree):
             xi =  power_basis[i].complex_embeddings()[j].real()
@@ -560,22 +560,22 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "N(y)=",ny
     delta0 = 2.0**(3-G._prec)
     cdef int *rho_v, *sigma_v
-    rho_v = <int*>sage_malloc(degree*sizeof(int))
-    sigma_v = <int*>sage_malloc(degree*sizeof(int))
+    rho_v = <int*>sig_malloc(degree*sizeof(int))
+    sigma_v = <int*>sig_malloc(degree*sizeof(int))
     cdef double *** cusp_reps=NULL
     #cdef double *** cusp_reps_coord=NULL
     cdef double disc
     disc = <double> float(G.number_field().discriminant())
     cdef int nc = <int>G.ncusps()
-    cusp_reps = <double***>sage_malloc(nc*sizeof(double**))
-    #cusp_reps_coord = <double***>sage_malloc(nc*sizeof(double**))
+    cusp_reps = <double***>sig_malloc(nc*sizeof(double**))
+    #cusp_reps_coord = <double***>sig_malloc(nc*sizeof(double**))
     B0 = G.translation_module(0)
     BDA = G.translation_module(0,ret_type='alg')
 
     for i in range(nc):
-        cusp_reps[i] = <double**>sage_malloc(2*sizeof(double*))
-        cusp_reps[i][0] = <double*>sage_malloc(degree*sizeof(double))
-        cusp_reps[i][1] = <double*>sage_malloc(degree*sizeof(double))
+        cusp_reps[i] = <double**>sig_malloc(2*sizeof(double*))
+        cusp_reps[i][0] = <double*>sig_malloc(degree*sizeof(double))
+        cusp_reps[i][1] = <double*>sig_malloc(degree*sizeof(double))
         if i==0:
             for j in range(degree):
                 cusp_reps[i][0][j]=1.0
@@ -586,16 +586,16 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                 cusp_reps[i][1][j]=<double>G.cusps()[i].denominator().complex_embeddings()[j]
 
     cdef double*** integer_lattice=NULL
-    integer_lattice =  <double***>sage_malloc(2*sizeof(double**))
+    integer_lattice =  <double***>sig_malloc(2*sizeof(double**))
     if integer_lattice == NULL: raise MemoryError
-    integer_lattice[0] =  <double**>sage_malloc(degree*sizeof(double*))
-    integer_lattice[1] =  <double**>sage_malloc(degree*sizeof(double*))
+    integer_lattice[0] =  <double**>sig_malloc(degree*sizeof(double*))
+    integer_lattice[1] =  <double**>sig_malloc(degree*sizeof(double*))
     B0 = G.translation_module(0,inv=0)
     B1 = G.translation_module(0,inv=1)
     BA = G.translation_module(0,ret_type='alg')
     for i in range(degree):
-        integer_lattice[0][i] =  <double*>sage_malloc(degree*sizeof(double))
-        integer_lattice[1][i] =  <double*>sage_malloc(degree*sizeof(double))
+        integer_lattice[0][i] =  <double*>sig_malloc(degree*sizeof(double))
+        integer_lattice[1][i] =  <double*>sig_malloc(degree*sizeof(double))
         for j in range(degree):
             integer_lattice[0][i][j]=<double>(B0[i][j])
             integer_lattice[1][i][j]=<double>(B1[i][j])
@@ -651,12 +651,12 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         break_sigma=0
         #elements_of_norm_2(F,ns,degree,basis_embeddings,list_of_sigmas,num_sigmas)
         elements_of_norm_2(F,ns,degree,basis_embeddings,&num_sigmas)
-        #res = <double***> sage_malloc(numres*sizeof(double**))
+        #res = <double***> sig_malloc(numres*sizeof(double**))
         # print "elts of norm ",n,"=",elements_of_F_with_norm[n]
         #for i in range(num_sigmas):
-        #    res[i]=<double**>sage_malloc(2*sizeof(double*))
-        #    res[i][0]=<double*>sage_malloc(degree*sizeof(double))
-        #    res[i][1]=<double*>sage_malloc(degree*sizeof(double))
+        #    res[i]=<double**>sig_malloc(2*sizeof(double*))
+        #    res[i][0]=<double*>sig_malloc(degree*sizeof(double))
+        #    res[i][1]=<double*>sig_malloc(degree*sizeof(double))
         #    for j in range(degree):
         #        res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
         #        res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
@@ -820,11 +820,11 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                 #     for j in range(num_rhos):
                 #         if list_of_rhos[j]<>NULL:
                 #             if list_of_rhos[j][0]<>NULL:
-                #                 sage_free(list_of_rhos[j][0])
+                #                 sig_free(list_of_rhos[j][0])
                 #             if list_of_rhos[j][1]<>NULL:
-                #                 sage_free(list_of_rhos[j][1])
-                #             sage_free(list_of_rhos[j])
-                #     sage_free(list_of_rhos)
+                #                 sig_free(list_of_rhos[j][1])
+                #             sig_free(list_of_rhos[j])
+                #     sig_free(list_of_rhos)
                 if break_rho==1:
                     break_sigma=1
                     break
@@ -834,11 +834,11 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         #     for j in range(num_sigmas):
         #         if list_of_sigmas[j]<>NULL:
         #             if list_of_sigmas[j][0]<>NULL:
-        #                 sage_free(list_of_sigmas[j][0])
+        #                 sig_free(list_of_sigmas[j][0])
         #             if list_of_sigmas[j][1]<>NULL:
-        #                 sage_free(list_of_sigmas[j][1])
-        #             sage_free(list_of_sigmas[j])
-        #     sage_free(list_of_sigmas)
+        #                 sig_free(list_of_sigmas[j][1])
+        #             sig_free(list_of_sigmas[j])
+        #     sig_free(list_of_sigmas)
         if break_sigma==1:
             break
 
@@ -873,35 +873,35 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
                 c = ctest
                 delta_min = dtest
                 break
-    sage_free(semb)
-    sage_free(rhoemb)
-    sage_free(nrhomax_loc)
-    sage_free(nrhomin_loc)
-    sage_free(s2y2)
-    sage_free(rho_v); sage_free(sigma_v)
-    sage_free(c1);sage_free(c2);sage_free(c3)
+    sig_free(semb)
+    sig_free(rhoemb)
+    sig_free(nrhomax_loc)
+    sig_free(nrhomin_loc)
+    sig_free(s2y2)
+    sig_free(rho_v); sig_free(sigma_v)
+    sig_free(c1);sig_free(c2);sig_free(c3)
     if cusp_reps<>NULL:
         for j in range(nc):
             if cusp_reps[j]<>NULL:
                 if cusp_reps[j][0]<>NULL:
-                    sage_free(cusp_reps[j][0])
+                    sig_free(cusp_reps[j][0])
                 if cusp_reps[j][1]<>NULL:
-                    sage_free(cusp_reps[j][1])
-                sage_free(cusp_reps[j])
-        sage_free(cusp_reps)
+                    sig_free(cusp_reps[j][1])
+                sig_free(cusp_reps[j])
+        sig_free(cusp_reps)
 
     if integer_lattice<>NULL:
         if integer_lattice[0]<>NULL:
             for i in range(degree):
                 if integer_lattice[0][i]<>NULL:
-                    sage_free(integer_lattice[0][i])
-            sage_free(integer_lattice[0])
+                    sig_free(integer_lattice[0][i])
+            sig_free(integer_lattice[0])
         if integer_lattice[1]<>NULL:
             for i in range(degree):
                 if integer_lattice[1][i]<>NULL:
-                    sage_free(integer_lattice[1][i])
-            sage_free(integer_lattice[1])
-        sage_free(integer_lattice)
+                    sig_free(integer_lattice[1][i])
+            sig_free(integer_lattice[1])
+        sig_free(integer_lattice)
     ## Reduce c at the end.
     return c,delta_min
 
@@ -990,13 +990,13 @@ cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,int* numres,
             elements_of_F_with_norm[n].append((v,emb))
     numres[0] = len(elements_of_F_with_norm[n])
     #if res<>NULL:
-    #    sage_free(res)
-    #res = <double***> sage_malloc(numres*sizeof(double**))
+    #    sig_free(res)
+    #res = <double***> sig_malloc(numres*sizeof(double**))
     #print "elts of norm ",n,"=",elements_of_F_with_norm[n]
     #for i in range(numres):
-    #    res[i]=<double**>sage_malloc(2*sizeof(double*))
-    #    res[i][0]=<double*>sage_malloc(degree*sizeof(double))
-    #    res[i][1]=<double*>sage_malloc(degree*sizeof(double))
+    #    res[i]=<double**>sig_malloc(2*sizeof(double*))
+    #    res[i][0]=<double*>sig_malloc(degree*sizeof(double))
+    #    res[i][1]=<double*>sig_malloc(degree*sizeof(double))
     #    for j in range(degree):
     #        res[i][0][j]=<double> float(elements_of_F_with_norm[n][i][0][j])
     #        res[i][1][j]=<double> float(elements_of_F_with_norm[n][i][1][j])
@@ -1015,10 +1015,10 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
     cdef list rho_v=[],sigma_v=[]
     cdef double disc
     cdef gen F
-    xv = <double*>sage_malloc(degree*sizeof(double))
-    yv = <double*>sage_malloc(degree*sizeof(double))
-    rho_min = <int*>sage_malloc(degree*sizeof(int))
-    sigma_min = <int*>sage_malloc(degree*sizeof(int))
+    xv = <double*>sig_malloc(degree*sizeof(double))
+    yv = <double*>sig_malloc(degree*sizeof(double))
+    rho_min = <int*>sig_malloc(degree*sizeof(int))
+    sigma_min = <int*>sig_malloc(degree*sizeof(int))
     if xv==NULL or yv==NULL or rho_min==NULL or sigma_min==NULL:
         raise MemoryError
     cdef double eps0=2.0**(3-G._prec)
@@ -1028,11 +1028,11 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
     cdef double *** cusp_reps=NULL
     cdef int nc = G.ncusps()
     disc = <double> float(G.number_field().discriminant())
-    cusp_reps = <double***>sage_malloc(nc*sizeof(double**))
+    cusp_reps = <double***>sig_malloc(nc*sizeof(double**))
     for i in range(nc):
-        cusp_reps[i] = <double**>sage_malloc(2*sizeof(double*))
-        cusp_reps[i][0] = <double*>sage_malloc(degree*sizeof(double))
-        cusp_reps[i][1] = <double*>sage_malloc(degree*sizeof(double))
+        cusp_reps[i] = <double**>sig_malloc(2*sizeof(double*))
+        cusp_reps[i][0] = <double*>sig_malloc(degree*sizeof(double))
+        cusp_reps[i][1] = <double*>sig_malloc(degree*sizeof(double))
         if i==0:
             for j in range(degree):
                 cusp_reps[i][0][j]=1.0
@@ -1043,16 +1043,16 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
                 cusp_reps[i][1][j]=G.cusps()[i].denominator().complex_embeddings()[j]
     # containse both the basis matrix and its inverse
     cdef double*** integer_lattice=NULL
-    integer_lattice =  <double***>sage_malloc(2*sizeof(double**))
+    integer_lattice =  <double***>sig_malloc(2*sizeof(double**))
     if integer_lattice == NULL: raise MemoryError
-    integer_lattice[0] =  <double**>sage_malloc(degree*sizeof(double*))
-    integer_lattice[1] =  <double**>sage_malloc(degree*sizeof(double*))
+    integer_lattice[0] =  <double**>sig_malloc(degree*sizeof(double*))
+    integer_lattice[1] =  <double**>sig_malloc(degree*sizeof(double*))
     B0 = G.translation_module(0,inv=0)
     B1 = G.translation_module(0,inv=1)
     BA = G.translation_module(0,ret_type='alg')
     for i in range(degree):
-        integer_lattice[0][i] =  <double*>sage_malloc(degree*sizeof(double))
-        integer_lattice[1][i] =  <double*>sage_malloc(degree*sizeof(double))
+        integer_lattice[0][i] =  <double*>sig_malloc(degree*sizeof(double))
+        integer_lattice[1][i] =  <double*>sig_malloc(degree*sizeof(double))
         for j in range(degree):
             integer_lattice[0][i][j]=float(B0[i][j])
             integer_lattice[1][i][j]=float(B1[i][j])
@@ -1068,30 +1068,30 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
             print "BA[{0}]={1}".format(i,BA[i])
         #sigma_v.append(sigma_min[i])
         #rho_v.append(rho_min[i])
-    sage_free(rho_min); sage_free(sigma_min)
-    sage_free(xv); sage_free(yv)
+    sig_free(rho_min); sig_free(sigma_min)
+    sig_free(xv); sig_free(yv)
     if cusp_reps<>NULL:
         for j in range(nc):
             if cusp_reps[j]<>NULL:
                 if cusp_reps[j][0]<>NULL:
-                    sage_free(cusp_reps[j][0])
+                    sig_free(cusp_reps[j][0])
                 if cusp_reps[j][1]<>NULL:
-                    sage_free(cusp_reps[j][1])
-                sage_free(cusp_reps[j])
-        sage_free(cusp_reps)
+                    sig_free(cusp_reps[j][1])
+                sig_free(cusp_reps[j])
+        sig_free(cusp_reps)
 
     if integer_lattice<>NULL:
         if integer_lattice[0]<>NULL:
             for i in range(degree):
                 if integer_lattice[0][i]<>NULL:
-                    sage_free(integer_lattice[0][i])
-            sage_free(integer_lattice[0])
+                    sig_free(integer_lattice[0][i])
+            sig_free(integer_lattice[0])
         if integer_lattice[1]<>NULL:
             for i in range(degree):
                 if integer_lattice[1][i]<>NULL:
-                    sage_free(integer_lattice[1][i])
-            sage_free(integer_lattice[1])
-        sage_free(integer_lattice)
+                    sig_free(integer_lattice[1][i])
+            sig_free(integer_lattice[1])
+        sig_free(integer_lattice)
 
     return rho_res,sigma_res,d
 
@@ -1104,10 +1104,10 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     cdef double d0,d1,d2
     cdef int i,j
 
-    rho = <double*>sage_malloc(degree*sizeof(double))
-    sigma = <double*>sage_malloc(degree*sizeof(double))
-    xv = <double*>sage_malloc(degree*sizeof(double))
-    yv = <double*>sage_malloc(degree*sizeof(double))
+    rho = <double*>sig_malloc(degree*sizeof(double))
+    sigma = <double*>sig_malloc(degree*sizeof(double))
+    xv = <double*>sig_malloc(degree*sizeof(double))
+    yv = <double*>sig_malloc(degree*sizeof(double))
     if xv==NULL or yv==NULL or rho==NULL or sigma==NULL:
         raise MemoryError
     ## Check cusp at infinity
@@ -1167,7 +1167,7 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     cdef int ii,ci
     cdef double dist,dist_min=1
     cdef double* xcoord=NULL
-    xcoord = <double*>sage_malloc(degree*sizeof(double))
+    xcoord = <double*>sig_malloc(degree*sizeof(double))
     if xcoord == NULL:
         raise MemoryError
     for i in range(degree):
@@ -1218,11 +1218,11 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
                     else:
                         sigma_min[0]=q #sigma[i]
 
-    sage_free(xv)
-    sage_free(yv)
-    sage_free(rho)
-    sage_free(sigma)
-    sage_free(xcoord)
+    sig_free(xv)
+    sig_free(yv)
+    sig_free(rho)
+    sig_free(sigma)
+    sig_free(xcoord)
     if verbose>0:
         print "dmin=",dmin
         for i in range(degree):
@@ -1238,10 +1238,10 @@ cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
     cdef int i
     x=NULL;y=NULL;rho=NULL;sigma=NULL
     cdef double delta,ny=1.0
-    x = <double*>sage_malloc(degree*sizeof(double))
-    y = <double*>sage_malloc(degree*sizeof(double))
-    rho = <double*>sage_malloc(degree*sizeof(double))
-    sigma = <double*>sage_malloc(degree*sizeof(double))
+    x = <double*>sig_malloc(degree*sizeof(double))
+    y = <double*>sig_malloc(degree*sizeof(double))
+    rho = <double*>sig_malloc(degree*sizeof(double))
+    sigma = <double*>sig_malloc(degree*sizeof(double))
     if x==NULL or y==NULL or rho==NULL or sigma==NULL:
         raise MemoryError
     for i in range(degree):
@@ -1252,10 +1252,10 @@ cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
         ny = ny*y[i]
 
     delta = delta_cusp_c(x,y,rho,sigma,ny,norm,degree,verbose)
-    sage_free(x)
-    sage_free(y)
-    sage_free(rho)
-    sage_free(sigma)
+    sig_free(x)
+    sig_free(y)
+    sig_free(rho)
+    sig_free(sigma)
     return delta
 
 @cython.cdivision(True)
@@ -1382,16 +1382,16 @@ cpdef get_nearest_integers(list Y,int sgn=1):
     cdef double *Yv=NULL
     cdef int* NI=NULL
     n = len(Y)
-    Yv = <double*> sage_malloc(sizeof(double)*n)
-    NI = <int*> sage_malloc(sizeof(int)*n)
+    Yv = <double*> sig_malloc(sizeof(double)*n)
+    NI = <int*> sig_malloc(sizeof(int)*n)
     if Yv==NULL: raise MemoryError
     for i in range(n):
         Yv[i]=<double>Y[i]
     get_nearest_integers_dp(n,Yv,NI)
     for i in range(n):
         res.append(NI[i])
-    sage_free(Yv)
-    sage_free(NI)
+    sig_free(Yv)
+    sig_free(NI)
     return res
 
 

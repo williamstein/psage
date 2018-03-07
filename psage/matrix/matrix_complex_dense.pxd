@@ -1,7 +1,3 @@
-#include "sage/ext/stdsage.pxi"
-include "sage/ext/cdefs.pxi"
-#include "sage/rings/mpc.pxi"
-#include "sage/ext/gmp.pxi"
 from psage.rings.mpfr_nogil cimport *
 from psage.modules.vector_complex_dense cimport Vector_complex_dense
 from sage.matrix.matrix_dense cimport Matrix_dense

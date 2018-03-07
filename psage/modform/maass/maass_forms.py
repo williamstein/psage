@@ -1697,7 +1697,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         Check the dimension of the eigenspace corresponding to the current eigenvalue.
 
         """
-        V = self.get_coeffs(gr=1)
+        V = self.get_coeffs(gr=1,Mset=self.M0(),Yset=self.Y())
         rk = V.numerical_rank(tol=tol)
         numdim=len(self._norm['Vals'][0])
         return V.ncols()-rk-numdim+1

@@ -19,9 +19,9 @@ r"""
 Parallel routines for computing Maass forms.
 
 """
-include "stdsage.pxi"  
-include "cdefs.pxi"
-include 'cysignals/signals.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off  
+from sage.libs.gmp.all cimport *
 
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
@@ -141,34 +141,34 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
     if verbose>0:
         printf("Ql=%d \n",Ql)
     ## Allocate arrays 
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp in range(nc):
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
-    ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
+    ef2_c = <double complex***>sig_malloc(sizeof(double complex**)*nc)
     if not ef2_c: raise MemoryError
     for icusp in range(nc):
-        ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+        ef2_c[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[icusp][2])
         for n in range(Mv[icusp][2]):
-            ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
-    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+            ef2_c[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
+    ef1 = <double complex****>sig_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError
     for icusp in range(nc):
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        ef1[icusp] = <double complex***>sig_malloc(sizeof(double complex**)*nc)
         if ef1[icusp]==NULL: raise MemoryError
         for jcusp in range(nc):
-            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError
             for n in range(Mv[jcusp][2]):
-                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
-    endpts = <int**>sage_malloc(ncpus*sizeof(int*))
+    endpts = <int**>sig_malloc(ncpus*sizeof(int*))
     if endpts==NULL:
         raise MemoryError
     for i in range(ncpus):
-        endpts[i]=<int*>sage_malloc(2*sizeof(int))
+        endpts[i]=<int*>sig_malloc(2*sizeof(int))
 
     ## Assigning values to arrays
     for jcusp  in range(nc):
@@ -221,15 +221,15 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
         printf("here1121")
     cdef double besarg_old=0.0
     cdef double y,kbes_old=1.0
-    kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+    kbesvec=<double***>sig_malloc(sizeof(double**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp  in range(nc):
-        kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+        kbesvec[jcusp]=<double**>sig_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
             raise MemoryError
         for l in range(Ml):
-            kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+            kbesvec[jcusp][l]=<double*>sig_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
     if verbose>0:
@@ -275,9 +275,9 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
         if endpts[i][1]>Ml:
             endpts[i][1]=Ml
     cdef double **kbesvec2
-    kbesvec2 = <double**> sage_malloc(Ml*sizeof(double*))
+    kbesvec2 = <double**> sig_malloc(Ml*sizeof(double*))
     for icusp in range(nc):
-        kbesvec2[icusp] = <double*> sage_malloc(Ml*sizeof(double*))
+        kbesvec2[icusp] = <double*> sig_malloc(Ml*sizeof(double*))
         for l in range(Ml):
             #printf("nvec(%d,%d)=%e \n",icusp,l,nvec[icusp][l])              
             if nvec[icusp][l]==0:
@@ -307,21 +307,21 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
     ###
     if endpts<>NULL:
         for i in range(ncpus):
-            sage_free(endpts[i])
-        sage_free(endpts)
+            sig_free(endpts[i])
+        sig_free(endpts)
     if kbesvec<>NULL:
         for icusp in range(nc):
             if kbesvec[icusp]<>NULL:
                 for l in range(Ml):
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     if kbesvec2<>NULL:
         for icusp in range(nc):
             if kbesvec2[icusp]<>NULL:
-                sage_free(kbesvec2[icusp])
-        sage_free(kbesvec2)
+                sig_free(kbesvec2[icusp])
+        sig_free(kbesvec2)
     #print "deal kbbes1"
     if ef1<>NULL:
         for jcusp in range(nc):
@@ -330,25 +330,25 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n in range(Mv[icusp][2]):
                             if ef1[jcusp][icusp][n]<>NULL:
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])
+        sig_free(ef1)
     if ef2_c<>NULL:
         for icusp in range(nc):
             if ef2_c[icusp]<>NULL:
                 for n in range(Mv[icusp][2]):
                     if ef2_c[icusp][n]<>NULL:
-                        sage_free(ef2_c[icusp][n])
-                sage_free(ef2_c[icusp])
-        sage_free(ef2_c)
+                        sig_free(ef2_c[icusp][n])
+                sig_free(ef2_c[icusp])
+        sig_free(ef2_c)
     if nvec<>NULL:
         for icusp in range(nc):
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -422,34 +422,34 @@ cdef int compute_V_cplx_dp_par(double complex **V,
         printf("N1=%d \n",N1)
         printf("Ql=%d \n",Ql)
     ## Allocate arrays 
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp in range(nc):
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
-    ef2_c = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
+    ef2_c = <double complex***>sig_malloc(sizeof(double complex**)*nc)
     if not ef2_c: raise MemoryError
     for icusp in range(nc):
-        ef2_c[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[icusp][2])
+        ef2_c[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[icusp][2])
         for n in range(Mv[icusp][2]):
-            ef2_c[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
-    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+            ef2_c[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
+    ef1 = <double complex****>sig_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError
     for icusp in range(nc):
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        ef1[icusp] = <double complex***>sig_malloc(sizeof(double complex**)*nc)
         if ef1[icusp]==NULL: raise MemoryError
         for jcusp in range(nc):
-            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError
             for n in range(Mv[jcusp][2]):
-                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
-    endpts = <int**>sage_malloc(ncpus*sizeof(int*))
+    endpts = <int**>sig_malloc(ncpus*sizeof(int*))
     if endpts==NULL:
         raise MemoryError
     for i in range(ncpus):
-        endpts[i]=<int*>sage_malloc(2*sizeof(int))
+        endpts[i]=<int*>sig_malloc(2*sizeof(int))
 
     ## Assigning values to arrays
     for jcusp  in range(nc):
@@ -502,15 +502,15 @@ cdef int compute_V_cplx_dp_par(double complex **V,
         printf("here1121")
     cdef double besarg_old=0.0
     cdef double y,kbes_old=1.0
-    kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+    kbesvec=<double***>sig_malloc(sizeof(double**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp  in range(nc):
-        kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+        kbesvec[jcusp]=<double**>sig_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
             raise MemoryError
         for l in range(Ml):
-            kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+            kbesvec[jcusp][l]=<double*>sig_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
     if verbose>0:
@@ -556,7 +556,7 @@ cdef int compute_V_cplx_dp_par(double complex **V,
         if endpts[i][1]>Ml:
             endpts[i][1]=Ml
     cdef double **kbesvec2
-    kbesvec2 = <double**> sage_malloc(Ml*sizeof(double*))
+    kbesvec2 = <double**> sig_malloc(Ml*sizeof(double*))
     if verbose>0:
         for i in range(ncpus):
             printf("ranges[%d]=[%d:%d] \n",i,endpts[i][0],endpts[i][1])
@@ -572,21 +572,21 @@ cdef int compute_V_cplx_dp_par(double complex **V,
     ###
     if endpts<>NULL:
         for i in range(ncpus):
-            sage_free(endpts[i])
-        sage_free(endpts)
+            sig_free(endpts[i])
+        sig_free(endpts)
     if kbesvec<>NULL:
         for icusp in range(nc):
             if kbesvec[icusp]<>NULL:
                 for l in range(Ml):
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     if kbesvec2<>NULL:
         for icusp in range(nc):
             if kbesvec2[icusp]<>NULL:
-                sage_free(kbesvec2[icusp])
-        sage_free(kbesvec2)
+                sig_free(kbesvec2[icusp])
+        sig_free(kbesvec2)
     #print "deal kbbes1"
     if ef1<>NULL:
         for jcusp in range(nc):
@@ -595,25 +595,25 @@ cdef int compute_V_cplx_dp_par(double complex **V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n in range(Mv[icusp][2]):
                             if ef1[jcusp][icusp][n]<>NULL:
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])
+        sig_free(ef1)
     if ef2_c<>NULL:
         for icusp in range(nc):
             if ef2_c[icusp]<>NULL:
                 for n in range(Mv[icusp][2]):
                     if ef2_c[icusp][n]<>NULL:
-                        sage_free(ef2_c[icusp][n])
-                sage_free(ef2_c[icusp])
-        sage_free(ef2_c)
+                        sig_free(ef2_c[icusp][n])
+                sig_free(ef2_c[icusp])
+        sig_free(ef2_c)
     if nvec<>NULL:
         for icusp in range(nc):
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
         
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -835,12 +835,12 @@ cdef int SMAT_cplx_par_dp(double complex** U,int N,int num_rhs,int num_set,doubl
     cdef double temp
     cdef int *piv
     cdef int *used
-    piv=<int*>sage_malloc(sizeof(int)*N)
-    used=<int*>sage_malloc(sizeof(int)*N)
+    piv=<int*>sig_malloc(sizeof(int)*N)
+    used=<int*>sig_malloc(sizeof(int)*N)
     if C==NULL:
-        C=<double complex**>sage_malloc(sizeof(double complex*)*num_rhs)
+        C=<double complex**>sig_malloc(sizeof(double complex*)*num_rhs)
         for j in range(num_rhs):
-            C[j]=<double complex*>sage_malloc(sizeof(double complex*)*N)
+            C[j]=<double complex*>sig_malloc(sizeof(double complex*)*N)
     for j in range(N):
         piv[j]=0
         used[j]=0
@@ -902,7 +902,7 @@ cdef int SMAT_cplx_par_dp(double complex** U,int N,int num_rhs,int num_set,doubl
             #print "=U[",piv[m-m_offs],"][",N+i,"]"
         #print "C0[",m,"]=",C[m]
     if piv<>NULL:
-        sage_free(piv)
+        sig_free(piv)
     if used<>NULL:
-        sage_free(used)
+        sig_free(used)
     return 0

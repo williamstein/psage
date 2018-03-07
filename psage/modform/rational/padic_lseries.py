@@ -47,7 +47,6 @@ from sage.structure.sage_object import SageObject
 from sage.misc.all import verbose, denominator, get_verbose
 from sage.databases.cremona import parse_cremona_label
 from sage.schemes.elliptic_curves.constructor import EllipticCurve
-import sage.rings.arith as arith
 
 from sage.modules.free_module_element import vector
 import sage.matrix.all as matrix

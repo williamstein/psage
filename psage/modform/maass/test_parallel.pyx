@@ -1,6 +1,10 @@
-include "stdsage.pxi"  
-include "cdefs.pxi"
-#include "mpfr_loc.pxi"
+r"""
+Test parallell algorithms.
+
+"""
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off  
+from sage.libs.gmp.all cimport *
 
 from sage.libs.mpfr cimport *
 

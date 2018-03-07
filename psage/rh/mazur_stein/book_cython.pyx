@@ -19,8 +19,8 @@
 #
 #################################################################################
 
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 def mult_parities(int bound, bint verbose=False):
     """
@@ -38,13 +38,13 @@ def mult_parities(int bound, bint verbose=False):
     cdef int i, j, k, n, p, last_len, cur_ptr, last_parity, cur_parity
     cdef long long m
 
-    cdef int* v = <int*> sage_malloc(sizeof(int)*bound)
+    cdef int* v = <int*> sig_malloc(sizeof(int)*bound)
     if not v: raise MemoryError
 
-    cdef int* last = <int*> sage_malloc(sizeof(int)*bound)
+    cdef int* last = <int*> sig_malloc(sizeof(int)*bound)
     if not last: raise MemoryError
     
-    cdef int* cur = <int*> sage_malloc(sizeof(int)*bound)
+    cdef int* cur = <int*> sig_malloc(sizeof(int)*bound)
     if not cur: raise MemoryError    
 
     for i in range(bound):
@@ -53,7 +53,7 @@ def mult_parities(int bound, bint verbose=False):
     v[1] = 0
     
     P = prime_range(bound)
-    cdef int* primes = <int*> sage_malloc(sizeof(int)*len(P))
+    cdef int* primes = <int*> sig_malloc(sizeof(int)*len(P))
     if not primes: raise MemoryError
     for i in range(len(P)):
         primes[i] = P[i]
@@ -88,9 +88,9 @@ def mult_parities(int bound, bint verbose=False):
         sig_off()
 
     ans = [v[i] for i in range(bound)]
-    sage_free(v)
-    sage_free(last)
-    sage_free(cur)
-    sage_free(primes)
+    sig_free(v)
+    sig_free(last)
+    sig_free(cur)
+    sig_free(primes)
     ans[0] = None
     return ans

@@ -29,9 +29,9 @@ NOTE: We are (now) using a group *homomorphism* between permutations and subgrou
   in particular s(S)s(R)=s(T)   where R=ST and S^2=1 in PSL(2,Z)
 
 """
-include "cysignals/signals.pxi"
-include "sage/ext/cdefs.pxi"
-include "sage/ext/stdsage.pxi"  
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
 
 from psage.rings.mp_cimports cimport *
 from sage.rings.complex_mpc cimport * #MPComplexNumber
@@ -146,7 +146,7 @@ cdef class GL2Z_elt(object):
 
     def __dealloc__(self):
         if self.ent<>NULL:
-            sage_free(self.ent)
+            sig_free(self.ent)
             self.ent=NULL
 
     def __del__(self):
@@ -317,7 +317,7 @@ cdef class GL2Z_elt(object):
         else:
             res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
         if resent<>NULL:
-            sage_free(resent)
+            sig_free(resent)
         return res
 
     cpdef _mul_mat_id(self,Matrix_integer_dense other,int inv=0):
@@ -343,7 +343,7 @@ cdef class GL2Z_elt(object):
         else:
             res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
         if resent<>NULL:
-            sage_free(resent)
+            sig_free(resent)
         return res
 
 
@@ -355,7 +355,7 @@ cdef class GL2Z_elt(object):
     #     """
     #     cdef GL2Z_elt res
     #     cdef int* resent=NULL
-    #     resent=<int*>sage_malloc(sizeof(int)*4)
+    #     resent=<int*>sig_malloc(sizeof(int)*4)
     #     if resent==NULL: raise MemoryError
     #     self._mul_c_mpz(other._entries,resent,inv)
     #     if resent[0]*resent[3]-resent[2]*resent[1] == 1:            
@@ -363,7 +363,7 @@ cdef class GL2Z_elt(object):
     #     else:
     #         res=GL2Z_elt(resent[0],resent[1],resent[2],resent[3])
     #     if resent<>NULL:
-    #         sage_free(resent)
+    #         sig_free(resent)
     #     return res
 
     cdef _mul_c(self,int* other,int* res,int inv=0):
@@ -1008,7 +1008,7 @@ cpdef pullback_to_Gamma0N_mpfr(G,RealNumber x,RealNumber y):
     yy=RealNumber(x.parent(),y)
     _pullback_to_Gamma0N_mpfr(reps ,nreps, N,xx.value,yy.value)
     a=reps[0][0][0];b=reps[0][0][1];c=reps[0][1][0];d=reps[0][1][1]
-    sage_free(reps)
+    sig_free(reps)
     return xx,yy,a,b,c,d
 
 
@@ -1045,7 +1045,7 @@ cdef void pullback_to_Gamma0N_mpfr_c(G,mpfr_t xout,mpfr_t yout, mpfr_t xin,mpfr_
     b[0]=reps[0][0][1]
     c[0]=reps[0][1][0]
     d[0]=reps[0][1][1]
-    sage_free(reps)
+    sig_free(reps)
     #print "here: a,b,c,d=",a[0],b[0],c[0],d[0]
     #return xx,yy,a,b,c,d
 
@@ -1099,11 +1099,11 @@ cdef void _pullback_to_Gamma0N_mpfr(int*** reps ,int nreps, int N,mpfr_t x,mpfr_
             reps[0][0][0]=a; reps[0][0][1]=b; reps[0][1][0]=c; reps[0][1][1]=d; 
             return 
     if V[0]<>NULL:
-        sage_free(V[0])
+        sig_free(V[0])
     if V[1]<>NULL:
-        sage_free(V[1])    
+        sig_free(V[1])    
     if V<>NULL:
-        sage_free(V)
+        sig_free(V)
     raise Exception,"Did not find pullback! A=[%s %s, %s %s]" %(a,b,c,d)
 
 
@@ -1149,11 +1149,11 @@ cpdef tuple pullback_to_Gamma0N_dp(G,double x,double y,int verbose=0):
         for j from 0 <=j<nreps:
             if reps[j]<>NULL:
                 if reps[j][0]<>NULL:
-                    sage_free(reps[j][0])
+                    sig_free(reps[j][0])
                 if reps[j][1]<>NULL:
-                    sage_free(reps[j][1])
-                sage_free(reps[j])
-        sage_free(reps)
+                    sig_free(reps[j][1])
+                sig_free(reps[j])
+        sig_free(reps)
     return xx,yy,a,b,c,d
 
 
@@ -1235,11 +1235,11 @@ cdef void _pullback_to_Gamma0N_dp(int*** reps ,int nreps, int N,double *x,double
     if verbose>2:
         print "pb_to_Gamma:",x[0],y[0]
     if V[0]<>NULL:
-        sage_free(V[0])
+        sig_free(V[0])
     if V[1]<>NULL:
-        sage_free(V[1])
+        sig_free(V[1])
     if V<>NULL:
-        sage_free(V)
+        sig_free(V)
     if done==0:
         raise Exception,"Did not find pullback! A=[%s %s, %s %s]" %(a[0],b[0],c[0],d[0])
 
@@ -1633,10 +1633,10 @@ cpdef closest_vertex(in_vertex_maps, wids,int nv_in,double x,double y,int verbos
     if vertex_maps<>NULL:
         for i from 0<=i<nv:
             if vertex_maps[i]<>NULL:
-                sage_free(vertex_maps[i])
-        sage_free(vertex_maps)
+                sig_free(vertex_maps[i])
+        sig_free(vertex_maps)
     if widths<>NULL:
-        sage_free(widths)
+        sig_free(widths)
     return vmax
 
 cdef int closest_vertex_dp_c(int nv,int **vertex_maps,double *widths,double* x,double* y,int verbose=0):

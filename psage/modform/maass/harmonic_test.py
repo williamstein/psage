@@ -1,265 +1,245 @@
+r"""
+
+Python routines for calculating Harmonic Weak Maass forms
+
+
+"""
 from sage.all import *
 from psage import *
 import mpmath
-from psage.matrix import Matrix_complex_dense
+from psage.matrix.matrix_complex_dense import Matrix_complex_dense
 from psage.modform.maass.pullback_algorithms import pullback_pts_mp #,pullback_pts_mp_sym
 from psage.modform.maass.automorphic_forms_alg import check_principal_parts
 from psage.modform.maass.automorphic_forms import solve_system_for_harmonic_weak_Maass_waveforms,smallest_inf_norm
 from psage.modform.maass.linear_system import *
 import pstats, cProfile
-def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0):
+from psage.modform.maass.all import *
+
+def Wk_nhol(k,l,y):
+    CF = MPComplexField(y.prec())
+    pi = CF.base().pi()
+    x = l*y*2*pi
+    if l==0:
+        if k==1:
+            return y.log()
+        else:
+            return y**(1-k)   
+    if x < 0:
+        return CF(1-k).gamma_inc(-2*x)
+    else:
+        return CF(1-k).gamma_inc(-2*x) + CF(-1)**(1-k)*CF(0,CF.base().pi())/CF(k).gamma()
+    
+def Wk(k,l,y,var_a0_plus=False,var_a0_minus=False):
+    r"""
+    This takes care of the "normal" holomorphic (x>0) and holomorphic (x<0) parts. 
+    The divergent non-holomorphic parts are computed by Wk(k,x) above.
+    """
+    CF = MPComplexField(y.prec())
+    if y < 0:
+        raise ValueError,"Here we should have y>0!"
+    if l==0:
+        if var_a0_plus:
+            return CF(1)
+        elif var_a0_minus:
+            if k==1:
+                return y.log()
+            else:
+                return y**CF(1-k)
+        else:
+            return CF(0)
+    pi = CF.base().pi()
+    x = pi*2*y*l
+    if l > 0:
+        return CF(-x).exp()
+    elif l<0:
+        print "HERE"
+        return CF(1-k).gamma_inc(-2*x)*CF(-x).exp()
+
+        
+def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
     r"""
     MxM system for Harmonic weak Maass forms at Y=Y with weight k
     """
-    Q = M0+10; Qs=1-Q; Qf = Q
+    Q = M0+20; Qs=1; Qf = Q
     Ql = Qf-Qs + 1
-    prec = Y.parent().prec()
-    mpmath.mp.prec=prec
-    X = S.multiplier()
+    if S._holomorphic or M._almost_holomorphic:
+        Ms=0; Mf=M0  ## For (almost/weakly) holomorphic forms we don't have negative coefficients.
+    else:
+        Ms=-M0; Mf=M0
+    Ml = Mf - Ms + 1
+    if isinstance(Y,float):
+        prec = S.prec()
+        Y = RealField(prec)(Y)
+    else:
+        prec = Y.parent().prec()
     RF = RealField(prec)
     CF = MPComplexField(prec)
+    print "pb"
     pb = pullback_pts_mp(S,Qs,Qf,Y)
+    print "after pb"
     if ret_pb==1:        
         return pb
     xm = pb['xm']; xpb=pb['xpb']; ypb=pb['ypb']; cvec=pb['cvec']
+    print cvec[0][0]
     verbose = S._verbose
     if S._verbose>0:
         print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,{})    
-        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,{})    
-    sz = (2*M0+1)*S.group().ncusps()
-    V = Matrix_complex_dense(MatrixSpace(CF,sz,sz),0)
-    RHS = Matrix_complex_dense(MatrixSpace(CF,sz,1),0)
+        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,{})
+    size_of_matrix = Ml*S.group().ncusps()
+    V = Matrix_complex_dense(MatrixSpace(CF, size_of_matrix, size_of_matrix),0)
+    RHS = Matrix_complex_dense(MatrixSpace(CF, size_of_matrix,1),0)
     nc = S.group().ncusps()
     k = S.weight()
     km1 = 1-k
     twopi=RF.pi()*RF(2)
-    pp_info = check_principal_parts(H,[pp])
-    if S._holomorphic==1:
-        Ms=0; Mf=M0
-    else:
-        Ms=-M0; Mf=M0
-    Ml=Mf-Ms+1
+    pp_info = check_principal_parts(S,[pp])
     f1d = {}
     f2d = {}
     for l in range(Ms,Mf+1):
         f2d[l]={}
-        #f1d[l]={}
         for icusp in range(nc):
-            #f1d[l][icusp]={};
             f2d[l][icusp]={}
             lr = RF(l + S.alpha(icusp)[0])
             for j in range(Ql):
                 f2d[l][icusp][j]=CF(0,-xm[j]*lr).exp()
-                #for jcusp in range(nc):
-                #    f1d[l][icusp][jcusp]={}
-                #    for j in range(Ql):
-                #        f1d[l][icusp][jcusp][j]=CF(0,lr*xpb[icusp][jcusp][j]).exp()
-    ymax = 0
-    xdmax=0
-    Q0 = 0; Q1 = Ql
+    #Q0 = 0; Q1 = Ql
+    ##
+    ## Setup the matrix entries V_nl
+    ##
+    print pp_info
     for l in range(Ms,Mf+1):
         for jcusp in range(nc):
             lj = l-Ms+jcusp*Ml
             lr = RF(l + S.alpha(jcusp)[0])
             if lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==0 and int(pp_info['variable_a0_minus'][0][jcusp])==0:
+                # We drop the equations of the zeroth coefficient if both holomorphic and non-holomorphic
+                # parts are not free variables (but instead set as a principal part)
                 continue
             for icusp in range(nc):
-                for j in range(Q0,Q1):
+                for j in range(Ql):
                     if ypb[icusp][jcusp][j]==0:
                         continue
-                    #print "ypb=",icusp,jcusp,j,":",ypb[icusp][jcusp][j]
-                    f11 = CF(1)
-                    if lr>0:
-                        f11 = (-twopi*lr*ypb[icusp][jcusp][j]).exp()
-                        bes = CF(1)
-                    elif lr<0:
-                        f11 = (-twopi*lr*ypb[icusp][jcusp][j]).exp()
-                        arg = RF.pi()*RF(4)*abs(lr)*ypb[icusp][jcusp][j]
-                        bes = RF(mpmath.mp.gammainc(km1,arg))
-                        if S._verbose>3 and icusp == 1 and l==Ms:
-                            print "arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,arg)
-                    elif lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
-                        bes = RF(1)
-                    elif lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1:
-                        if k==1:
-                            bes = ypb[icusp][jcusp][j].log()
-                        else:
-                            bes = ypb[icusp][jcusp][j]**RF(1-k)
-                    else:
-                        ## In this case we should have simply skipped this
-                        bes = RF(0)
-                    #f1 = f1d[l][icusp][jcusp][j]*cvec[icusp][jcusp][j]
-                    #f1 = f1*cvec[icusp][jcusp][j]
-                    #if use_sym == 0: 
-                    f1 = CF(0,lr*xpb[icusp][jcusp][j]).exp()
-                    cv = cvec[icusp][jcusp][j]
-                    #else:
-                    #    f1 = RF(2)*RF(lr*xpb[icusp][jcusp][j]).cos()
-                    #    cv = cvec[icusp][jcusp][j]+cvec[icusp][jcusp][2*Q-1-j]
-                    if S._verbose>3 and icusp == 1 and l==Ms:
-                        print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,f1*f11)
-                        print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,bes)
-                    bes = bes*f11  
+                    y = ypb[icusp][jcusp][j]
+                    x = lr*xpb[icusp][jcusp][j] 
+                    kappa = Wk(k,lr,y,
+                                  var_a0_plus=pp_info['variable_a0_plus'][0][jcusp],
+                                  var_a0_minus=pp_info['variable_a0_minus'][0][jcusp])
                     for n in range(Ms,Mf+1):
                         nr = RF(n)+S.alpha(icusp)[0]
-                        #f2 = CF(0,-xm[j]*nr).exp()
-                        ni = n-Ms+icusp*(2*M0+1)
-                        vtmp = f1*cv*bes*f2d[n][icusp][j]
-                        #if abs(vtmp)<2.**(1-prec):
-                        #    print "vtm=",f1,":",f2,":",bes
+                        ni = n-Ms+icusp*Ml
+                        vtmp = cvec[icusp][jcusp][j]*kappa
+                        vtmp *= 2.0*RF(x-nr*xm[j]).cos()
+                        #z1*cv*kappa*f2d[n][icusp][j]
                         V[ni,lj]+=vtmp
                         if S._verbose>2 and ni==0 and lj==11:
                             print "-------------------"
                             print "V[1,1](",j,")=",V[ni,lj]
-                            print "ef1(",j,")=",f1*cv*f2d[n][icusp][j]
-                            #print "cv(",j,")=",cv
-                            #print "ef2(",j,")=",f2d[n][icusp][j]
+                            print "ef1(",j,")=",f1,'*',cvec[icusp][jcusp][j],'*',f2d[n][icusp][j]
+
     Qfak = RF(1)/RF(2*Q)
-    if verbose>0:
-        print "V[0,0]0=",V[0,0]
-        print "V[1,0]0=",V[1,0]
-        print "V[0,1]0=",V[0,1]
-        print "V[1,1]0=",V[1,1]
-        if V.nrows()>11:
-            print "V[0,11] 1=",V[0,11]
-        if V.nrows()>16:
-            print "V[16,16] 1=",V[16,16]
-        print "Y=",Y
-        print "Q=",Q
     for n in range(V.nrows()):
         for l in range(V.ncols()):
             V[n,l]=V[n,l]*Qfak
-            #print "V[0,11] 1=",V[0,11]
-    if verbose>0:
-        print "V[0,0]1=",V[0,0]
-        print "V[1,0]1=",V[1,0]
-        print "V[0,1]1=",V[0,1]
-        print "V[1,1]1=",V[1,1]
-        print "pp_info=",pp_info
-    ## Setting up the right hand side and subtracting left-hand side
-    pp_plus = pp_info['PPplus'][0]
-    pp_minus = pp_info['PPminus'][0]
+    ## Subtract off the diagonal terms in the matrix.
+    ## i.e. corresponding to c(n)e^-{2pi nY} etc.
     for n in range(Ms,Mf+1):
         for icusp in range(nc):
-            #print "n,icusp=",n,icusp
             nr = RF(n)+S.alpha(icusp)[0]
-            ni = n -Ms + icusp*(2*M0+1)
-            if nr>0:
-                bes = RF(-Y*twopi*nr).exp()
-            elif nr<0:
-                arg = RF.pi()*RF(4)*abs(nr)*Y
-                bes = RF(-Y*twopi*nr).exp()
-                bes = bes*RF(mpmath.mp.gammainc(km1,arg))
-                #bes = RF(bes)
-                #bes = incomplete_gamma(km1,arg)
-            elif nr==0 and int(pp_info['variable_a0_plus'][0][icusp])==1:
-                bes = RF(1)
-            elif nr==0 and int(pp_info['variable_a0_minus'][0][icusp])==1:
-                if k==1:
-                    bes = Y.log()
-                else:
-                    bes = Y**RF(1-k)
-            else:
-                bes = 0
-            #if ni==1 or ni==16 and S._verbose>0:
-            #    print "ni=",ni
-            #    print "nr=",nr
-            #    print "bes(1)=",bes
-            V[ni,ni]-=bes
-                #raise ArithmeticError,"a0 not correct set!"
-            if verbose>1:
-                print "n=",n
-            for jcusp,l in pp_plus.keys():
-                ppc = CF(pp_plus[(jcusp,l)])
+            ni = n -Ms + icusp*Ml
+            kappa = Wk(k,nr,Y,
+                          var_a0_plus=pp_info['variable_a0_plus'][0][icusp],
+                          var_a0_minus=pp_info['variable_a0_minus'][0][icusp])
+            V[ni,ni] = V[ni,ni] - kappa
+    ## Setting up the right hand side
+    pp_plus = pp_info['PPplus'][0]
+    pp_minus = pp_info['PPminus'][0]
+    print "Ms=",Ms
+    print "Mf=",Mf
+    for n in range(Ms,Mf+1):
+        for icusp in range(nc):
+            ni = n -Ms + icusp*Ml
+            nr = RF(n)+S.alpha(icusp)[0]
+            ##
+            ## first the holomorphic principal parts
+            for (jcusp,l),ppc in pp_plus.viewitems():
                 lr = RF(l)+S.alpha(jcusp)[0]
-                if verbose>1:
-                    print "l=",l
                 summa = CF(0)
-                if lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
+                if ppc==0 or (lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1):
                     continue
-                #print "MAking RHS! with l,jcusp=",l,jcusp
+                if lr >0:
+                    raise ValueError,"Invalid holomorphic principal part! lr={0}".format(lr) 
                 for j in range(Ql):
-                    if ypb[icusp][jcusp][j]==0:
-                        continue
-                    y = ypb[icusp][jcusp][j]
-                    if lr<0:
-                        bes = RF(-y*twopi*lr).exp()
-                    elif lr==0:
-                        bes = RF(1)
-                    else:
-                        raise ArithmeticError,"This princpal part should be holomorphic!"
+                    y = ypb[icusp][jcusp][j]                    
+                    if y==0:     # this indicates a pull-back not belonging to these cusps... 
+                        continue #
+                    kappa = Wk(k,lr,y,var_a0_plus=True)
                     arg = lr*xpb[icusp][jcusp][j] - nr*xm[j]
-                    f2 = CF(0,arg).exp()
-                    tmpc = bes*f2*cvec[icusp][jcusp][j]
-                    if verbose>4:
-                        print "tmpc = (",j,")",y,bes,"*",f2,"*",cvec[icusp][jcusp][j],"=",tmpc
+                    f2 = 2*RF(arg).cos()
+                    tmpc = kappa*f2*cvec[icusp][jcusp][j]
                     summa = summa + tmpc
                 if verbose>1:
-                    print "MAking RHS! summma = ",summa
+                    print "Making RHS! summma({9}) ={1} ".format(n,summa)
                 summa = summa*Qfak
                 RHS[ni,0] = RHS[ni,0] + summa*ppc
+                ## Subtract off the potential principal parts from the right-hand-side as well.
                 if l==n and icusp==jcusp:
                     if verbose>0:
                         print "Subtract! ni,n,nr=",ni,n,nr
                         print "ppc=",ppc
-                    if nr<0:
-                        bes = RF(-Y*twopi*nr).exp()
-                        RHS[ni,0] = RHS[ni,0] - bes*ppc
-                    else:
-                        if nr==0 and pp_info['variable_a0_plus'][0][icusp]==0:
-                            bes = RF(1)
-                            RHS[ni,0] = RHS[ni,0] - bes*ppc
+                    kappa =  Wk(k,nr,Y,var_a0_plus=True)
+                    RHS[ni,0] = RHS[ni,0] - kappa*ppc
             # Set the non-holomorphic principal part
-            for jcusp,l in pp_minus.keys():
-                ppc = pp_minus[(jcusp,l)]
+            for (jcusp,l),ppc in pp_minus.viewitems():
                 lr = RF(l)+S.alpha(jcusp)[0]
                 summa = 0
-                if ppc==0:
+                if ppc==0 or (lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1):
                     continue
-                if lr==0 and int(pp_info['variable_a0_minus'][0][icusp])==1:
-                    continue
-                if lr<>0:
-                    raise NotImplementedError,"Only implemented n=0 in non-holom. principal part!"
-                for j in range(Ql):
-                    if ypb[icusp][jcusp][j]==0:
-                        continue
+                if lr<0:
+                    raise ValueError,"Invalid non-holomorphic principal part l={0}".format(lr)
+                print (jcusp,l),ppc
+                #print "Ql=",Ql
+                for j in xrange(Ql):
+                    #print j
                     y = ypb[icusp][jcusp][j]
-                    if k==1:
-                        bes = y.log()
-                    else:
-                        bes = y**RF(1-k)
+                    if y == 0:
+                        #print "continue ",j
+                        continue
+                    kappa = Wk_nhol(1-k,lr,y)
                     arg = lr*xpb[icusp][jcusp][j] - nr*xm[j]
-                    f2 = CF(0,arg).exp()
-                    tmpc = bes*f2*cvec[icusp][jcusp][j]
-                    summa += tmpc
-     
+                    f2 = 2*RF(arg).cos()
+                    tmpc = kappa*f2*cvec[icusp][jcusp][j]
+                    summa = summa + tmpc
+                    #print "summa({0},{1},{2})+={3}*{4}*{5}".format(icusp,jcusp,j,kappa,f2,cvec[icusp][jcusp][j])
+                #print "cvec=",cvec[0][0][1]
                 summa = summa*ppc*Qfak
+                #print "summa[{0}]={1}".format(ni,summa),"*",ppc,"*",Qfak
                 RHS[ni,0] +=summa                                
+                print "RHS[{0}]={1}".format(ni,RHS[ni,0])
                 if l==n and icusp==jcusp:
-                    if k==1:
-                        bes = Y.log()
-                    else:
-                        bes = Y**RF(1-k)
-                    RHS[ni,0] -= bes*ppc
-    if verbose>0:
-        print "ymax = ",ymax
+                    kappa = Wk(k,l,Y)
+                    RHS[ni,0] -= kappa*ppc
+            print "RHS[{0}]={1}".format(ni,RHS[ni,0])
 
-    if setc==None:
-        return V,RHS
+    #if setc==None:
+    #    return V,RHS
     W={}
     W['V']=V
     W['RHS']=RHS
     W['space']=S
-    W['Ms']=-M0;    W['Mf']=M0
-    W['Ml']=2*M0+1
+    W['Ms']=Ms;
+    W['Mf']=Mf
+    W['Ml']=Ml
     W['rdim']=1
     W['pp']=pp
     W['nc']=S.group().ncusps()
     W['var_a+']=pp_info['variable_a0_plus']
     W['var_a-']=pp_info['variable_a0_minus']
- 
-    N = S.set_normalization([setc])
-    
+    if gr==1:
+        return W
+    if not setc is None:
+        N = S.set_norm(setc)
+    else:
+        N = S.set_norm(pp)
     C=solve_system_for_harmonic_weak_Maass_waveforms(W,N)
     return C
 
@@ -582,11 +562,11 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
     X = S.multiplier()
     RF = RealField(prec)
     CF = MPComplexField(prec)
-    pb = pullback_pts_mp(S,1-Q,Q,Y)
+    pb = pullback_pts_mp(S,Qs,Qf,Y)
     if ret_pb==1:        
         return pb
     xm = pb['xm']; xpb=pb['xpb']; ypb=pb['ypb']; cvec=pb['cvec']
-    assert S.group().ncusps()==2
+    assert S.group().ncusps() in [1,2]
     verbose = S._verbose
     if S._verbose>0:
         print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,0)
@@ -598,7 +578,7 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
     k = S.weight()
     km1 = 1-k
     twopi=RF.pi()*RF(2)
-    pp_info = check_principal_parts(H,[pp])
+    pp_info = check_principal_parts(S,[pp])
     if S._holomorphic==1:
         Ms=0; Mf=M0
     else:
@@ -1337,27 +1317,32 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
     C=solve_system_for_harmonic_weak_Maass_waveforms(W,N)
     return C
 
-
-m=TrivialMultiplier(Gamma0(23),dchar=(23,-1))
-H=HarmonicWeakMaassForms(23,weight=1,multiplier=m,verbose=0,do_mpmath=0,prec=53)
+#from psage.modform.maass.multiplier_systems import TrivialMultiplier
+#m=TrivialMultiplier(Gamma0(23),dchar=(23,-1))
+#H=HarmonicWeakMaassFormSpace(23,weight=1,multiplier=m,verbose=0,do_mpmath=0,prec=53)
 # attach "/scratch/fredstro/git_test/psage/psage/modform/maass/harmonic_test.py"
-RF=RealField(H._prec)
-Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)
-CF =MPComplexField(H._prec)
+#RF=RealField(H._prec)
+#Y=RF(0.0369002128569021638466147119322192090862246962107263820410857672275201091238727713061962280)
+#CF =MPComplexField(H._prec)
 #pp={'+':{(0,-1):1,(1,-2):1},'-':{(0,0):0,(1,0):0}}
-pp={'+':{(0,-1):1,(0,0):RF(-1/3),(1,0):CF(0,-1/3)},'-':{(0,0):0,(1,0):0}}
+#pp={'+':{(0,-1):1,(0,0):RF(-1/3),(1,0):CF(0,-1/3)},'-':{(0,0):0,(1,0):0}}
 #H._verbose=2
 #V2=automorphic_forms_alg.setup_matrix_for_harmonic_Maass_waveforms_sym(H,Y,5,15,[pp])
+
+pp={'-':{(0,0):RR(-3)/RR.pi()},'+':{(0,0):RR(1)}}
+M =  HarmonicWeakMaassFormSpace(1,weight=2,almost_holomorphic=True)
+E2 = setup_harmonic_matrix(M,pp,RealField(53)(0.80),10,setc=None,gr=1)
+
 def testing_new_solve(W,N):
 
     A,B = solve_system_for_harmonic_weak_Maass_waveforms_mp(N, W['V'],W['RHS'],gr=1)
     setc=N['SetCs']
     D = test_lin_solve(A,B,setc)
     return D
-MS=MatrixSpace(CF,3)
-A = Matrix_complex_dense(MS,[1,2,0,1,3,0,0,0,1])
-MS1=MatrixSpace(CF,3,1)
-B = Matrix_complex_dense(MS1,[1,1,1])
+#MS=MatrixSpace(CF,3)
+#A = Matrix_complex_dense(MS,[1,2,0,1,3,0,0,0,1])
+#MS1=MatrixSpace(CF,3,1)
+#B = Matrix_complex_dense(MS1,[1,1,1])
 
 
 # def test_SMAT_filter(W,N,verbose=0):

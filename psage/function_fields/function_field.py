@@ -65,6 +65,7 @@ from sage.rings.ring import Field
 from sage.rings.integer_ring import ZZ
 from sage.structure.parent_gens import ParentWithGens
 #import function_field_element
+from sage.arith.all import lcm,gcd
 
 from category import FunctionFields
 from sage.rings.function_field import function_field_element
@@ -495,7 +496,6 @@ class FunctionField_polymod(FunctionField):
             f = f / c
 
         # find lcm of denominators
-        from sage.arith.all import lcm
         # would be good to replace this by minimal...
         d = lcm([b.denominator() for b in f.list() if b])
         if d != 1:
@@ -955,7 +955,6 @@ class RationalFunctionField(FunctionField):
             (x^7*t^2 - x^4*t^5 - x^3 + t^3, t^3)        
         """
         v = f.list()
-        from sage.rings.arith import LCM
         denom = LCM([a.denominator() for a in v])
         S = denom.parent()
         x,t = S.base_ring()['x,t'].gens()

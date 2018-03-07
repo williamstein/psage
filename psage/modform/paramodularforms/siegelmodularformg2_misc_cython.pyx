@@ -25,10 +25,10 @@ AUTHORS:
 #
 #===============================================================================
 
-include "cysignals/signals.pxi"
-include 'sage/ext/stdsage.pxi'
-include "sage/ext/cdefs.pxi"
-#include 'sage/ext/gmp.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from stdsage cimport PY_NEW
+from sage.libs.gmp.all cimport *
 
 from sage.rings.integer cimport Integer
 
@@ -75,7 +75,7 @@ cpdef negative_fundamental_discriminants(int precision) :
     r"""
     Return a list of all negative fundamental discriminants `> -precision`
     """
-    cdef int *markers = <int *>sage_malloc(precision * sizeof(int))
+    cdef int *markers = <int *>sig_malloc(precision * sizeof(int))
     cdef int k
     cdef int maxh
     cdef int hs

@@ -2,9 +2,9 @@
 # A new implementation of Dirichlet characters based on the numbering scheme
 # devised by Brian Conrey.
 #
-include "cysignals/signals.pxi"  # ctrl-c interrupt block support
-include "stdsage.pxi"  # ctrl-c interrupt block support
-include "cdefs.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off  # ctrl-c interrupt block support
+from sage.libs.gmp.all cimport *
 
 from libc.stdlib cimport malloc, free
 

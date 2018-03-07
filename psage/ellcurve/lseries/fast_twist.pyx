@@ -3,8 +3,8 @@ Numerically computing L'(E/K,1) for E an elliptic curve over Q and K a
 quadratic imaginary field satisfying the Heegner hypothesis.
 """
 
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 from sage.rings.all import ZZ
 

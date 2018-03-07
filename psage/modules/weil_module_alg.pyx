@@ -29,10 +29,11 @@ AUTHOR:
 
 """
 
-#include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 from sage.modules.vector_integer_dense import *
 from sage.misc.functional import is_even
-from sage.rings.arith import kronecker,odd_part,gcd,valuation,is_prime
+from sage.arith.all import kronecker,odd_part,gcd,valuation,is_prime
 from sage.rings.integer import Integer
 from sage.rings.finite_rings.finite_field_constructor import FiniteField
 from psage.matrix.matrix_complex_dense import Matrix_complex_dense

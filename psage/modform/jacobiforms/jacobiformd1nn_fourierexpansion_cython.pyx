@@ -27,9 +27,9 @@ AUTHORS:
 #===============================================================================
 
 
-#include "cysignals/signals.pxi"
-#include "stdsage.pxi"
-include "cdefs.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
 from stdsage cimport PY_NEW
 from cysignals.signals cimport sig_on,sig_off
 

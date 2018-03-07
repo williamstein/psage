@@ -25,9 +25,10 @@ Fast Cython code needed to compute Hilbert modular forms over F = Q(sqrt(5)).
 All the code in this file is meant to be highly optimized. 
 """
 
-include 'stdsage.pxi'
-include 'cdefs.pxi'
-include 'cysignals/signals.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
+from stdsage cimport PY_NEW
 
 from cpython cimport *
 from sqrt5_fast cimport residue_element
@@ -2299,10 +2300,10 @@ cdef class IcosiansModP1ModN:
             self.f = ModN_Reduction(N)
         self.P1 = ProjectiveLineModN(N)
         self.orbit_reps = <long*>0
-        self.std_to_rep_table = <long*> sage_malloc(sizeof(long) * self.P1.cardinality())
+        self.std_to_rep_table = <long*> sig_malloc(sizeof(long) * self.P1.cardinality())
         
         # TODO: This is very wasteful of memory, by a factor of about 120 on average?  
-        self.orbit_reps_p1elt = <p1_element*>sage_malloc(sizeof(p1_element) * self.P1.cardinality())
+        self.orbit_reps_p1elt = <p1_element*>sig_malloc(sizeof(p1_element) * self.P1.cardinality())
         
         # initialize the group G of the 120 mod-N icosian matrices
         from sqrt5 import all_icosians
@@ -2322,10 +2323,10 @@ cdef class IcosiansModP1ModN:
         return self._cardinality
 
     def __dealloc__(self):
-        sage_free(self.std_to_rep_table)
-        sage_free(self.orbit_reps_p1elt)
+        sig_free(self.std_to_rep_table)
+        sig_free(self.orbit_reps_p1elt)
         if self.orbit_reps:
-            sage_free(self.orbit_reps)
+            sig_free(self.orbit_reps)
 
     def __repr__(self):
         return "The %s orbits for the action of the Icosian group on %s"%(self._cardinality, self.P1)
@@ -2380,7 +2381,7 @@ cdef class IcosiansModP1ModN:
                     self.P1.next_element(x, x)
             i += 1
         self._cardinality = len(reps)
-        self.orbit_reps = <long*> sage_malloc(sizeof(long)*self._cardinality)
+        self.orbit_reps = <long*> sig_malloc(sizeof(long)*self._cardinality)
         for j in range(self._cardinality):
             self.orbit_reps[j] = reps[j]
 
@@ -2427,7 +2428,7 @@ cdef class IcosiansModP1ModN:
                     self.P1.next_element(x, x)
             i += 1
         self._cardinality = len(reps)
-        self.orbit_reps = <long*> sage_malloc(sizeof(long)*self._cardinality)
+        self.orbit_reps = <long*> sig_malloc(sizeof(long)*self._cardinality)
         for j in range(self._cardinality):
             self.orbit_reps[j] = reps[j]
 

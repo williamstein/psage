@@ -1,14 +1,38 @@
 # encoding: utf-8
 # cython: profile=True
 # filename: matrix_complex_dense.pyx
+#################################################################################
+#
+# (c) Copyright 2018 Fredrik Stromberg <fredrik314@gmail.com>
+#
+#  This file is part of PSAGE
+#
+#  PSAGE is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+# 
+#  PSAGE is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# 
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#################################################################################
 
 r"""
 Dense matrices over the complex field.
 
-EXAMPLES
+
+
+
+EXAMPLES:
 """
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 from psage.rings.mp_cimports cimport *
 
@@ -118,18 +142,18 @@ cdef class Matrix_complex_dense(Matrix_dense):
         if self._verbose>0:
             print "matrix dense inited!"
         cdef Py_ssize_t i, k
-        self._entries = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
+        self._entries = <mpc_t *> sig_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
         if self._verbose>0:
             print "entries alloc!"
         if self._entries == NULL:
             raise MemoryError, "Out of memory allocating entries for a matrix of size {0} x {1}".format(self._nrows,self._ncols)
         sig_on()        
-        self._matrix =  <mpc_t **> sage_malloc(sizeof(mpc_t*) * self._nrows)
+        self._matrix =  <mpc_t **> sig_malloc(sizeof(mpc_t*) * self._nrows)
         sig_off()
         if self._verbose>0:
             print "matrix alloc!"
         if self._matrix == NULL:
-            sage_free(self._entries)
+            sig_free(self._entries)
             self._entries = NULL
             raise MemoryError, "Out of memory allocating a matrix of size {0} x {1}".format(self._nrows,self._ncols)
         # store pointers to the starts of the rows
@@ -186,9 +210,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 if self._verbose>1:
                     print "dealloc i=",i
                 mpc_clear(self._entries[i])
-        sage_free(self._entries)
+        sig_free(self._entries)
         if self._matrix<> NULL:
-            sage_free(self._matrix)
+            sig_free(self._matrix)
 
     
     def __init__(self, parent, entries=0, coerce=True, copy=True,verbose=0):
@@ -414,7 +438,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             self._nrows = self._nrows -1
         else:
             self._nrows = self._nrows -1
-            entries_tmp = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
+            entries_tmp = <mpc_t *> sig_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
             for r from 0 <= r <= self._nrows-1:
                 if r < n:
                     nnr=r *self._ncols
@@ -428,20 +452,20 @@ cdef class Matrix_complex_dense(Matrix_dense):
                     mpc_set(entries_tmp[nn],self._entries[nn1],self._rnd)
             for r from 0 <= r <= self._ncols*(self._nrows+1)-1:
                 mpc_clear(self._entries[r])
-            sage_free(self._entries)
-            self._entries = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
+            sig_free(self._entries)
+            self._entries = <mpc_t *> sig_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
             for r from 0 <= r <= self._nrows*self._ncols-1:
                 mpc_init2(self._entries[r],self._prec)
                 mpc_set(self._entries[r],entries_tmp[r],self._rnd)
                 #print "set entries[",r,"]:",print_mpc(self._entries[r])
             for i from 0 <= i <= self._nrows * self._ncols-1:
                 mpc_clear(entries_tmp[i])
-            sage_free(entries_tmp)
+            sig_free(entries_tmp)
             ### delete matrix and add the pointers again
-            sage_free(self._matrix)
-            self._matrix =  <mpc_t **> sage_malloc(sizeof(mpc_t*) * self._nrows)
+            sig_free(self._matrix)
+            self._matrix =  <mpc_t **> sig_malloc(sizeof(mpc_t*) * self._nrows)
             if self._matrix == NULL:
-                sage_free(self._entries)
+                sig_free(self._entries)
                 self._entries = NULL
                 raise MemoryError, "out of memory allocating a matrix"
             k=0
@@ -470,7 +494,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
 
         self._ncols = self._ncols -1
         sig_on()
-        entries_tmp = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
+        entries_tmp = <mpc_t *> sig_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
             
         for r from 0 <= r <= self._nrows-1:
             for k from 0<=k <=self._ncols-1:
@@ -484,19 +508,19 @@ cdef class Matrix_complex_dense(Matrix_dense):
     
         for i from 0 <= i <= self._nrows * self._ncols:
             mpc_clear(self._entries[i])
-        sage_free(self._entries)
-        self._entries = <mpc_t *> sage_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
+        sig_free(self._entries)
+        self._entries = <mpc_t *> sig_malloc(sizeof(mpc_t)*(self._nrows * self._ncols))
         for r from 0 <= r <= self._nrows*self._ncols-1:
             mpc_init2(self._entries[r],self._prec)
             mpc_set(self._entries[r],entries_tmp[r],self._rnd)                
         for i from 0 <= i <= self._nrows*self._ncols-1:
             mpc_clear(entries_tmp[i])
-        sage_free(entries_tmp)
+        sig_free(entries_tmp)
             ### delete matrix and add the pointers again
-        sage_free(self._matrix)
-        self._matrix =  <mpc_t **> sage_malloc(sizeof(mpc_t*) * self._nrows)
+        sig_free(self._matrix)
+        self._matrix =  <mpc_t **> sig_malloc(sizeof(mpc_t*) * self._nrows)
         if self._matrix == NULL:
-            sage_free(self._entries)
+            sig_free(self._entries)
             self._entries = NULL
             raise MemoryError, "out of memory allocating a matrix"
         sig_off()
@@ -606,7 +630,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             emax = ceil(emax2*self._base_ring._base.log2()/self._base_ring(base).log())
             #print "max exponent in base=",emax
             n = n*(reqdigits+1+len(str(emax)))
-            s = <char*> sage_malloc(n * sizeof(char))
+            s = <char*> sig_malloc(n * sizeof(char))
             #print "alloc len=",n * sizeof(char)
             t = s
         
@@ -670,7 +694,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             #print "s=",str(s)
         sig_off()
         mpfr_clear(x); mpfr_clear(y)
-        sage_free(s)
+        sig_free(s)
         return data
 
 
@@ -1304,11 +1328,11 @@ cdef class Matrix_complex_dense(Matrix_dense):
         if overwrite:
             qr_decomp(self._matrix,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
         else:
-            A = <mpc_t **> sage_malloc(sizeof(mpc_t*) * n)
+            A = <mpc_t **> sig_malloc(sizeof(mpc_t*) * n)
             if A==NULL:
                 raise MemoryError            
             for i from 0 <= i <  n:
-                A[i]=<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+                A[i]=<mpc_t *> sig_malloc(sizeof(mpc_t) * n)
                 for j from 0 <= j < n:
                     mpc_init2(A[i][j],self._prec+100)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
@@ -1340,7 +1364,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
                     mpc_clear(A[i][j])
-            sage_free(A)
+            sig_free(A)
         ## Set the errors in RR and QQ as estimated by error_qr
         cdef RealNumber errest=self.error_qr()
         cdef int prec = ceil(errest.log2())
@@ -1639,7 +1663,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         mpc_init2(w[0],self._prec); mpc_init2(w[1],self._prec)
         #if not overwrite:
         #
-        v = <mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+        v = <mpc_t *> sig_malloc(sizeof(mpc_t) * n)
         for i from 0 <= i <  n:
             
             mpc_init2(v[i],self._prec)
@@ -1652,9 +1676,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 #with nogil:
                 #    qr_decomp_par(self._matrix,n,n,self._prec,self._mpeps,num_threads,schedule,self._rnd,self._rnd_re)
         else:
-            A = <mpc_t **> sage_malloc(sizeof(mpc_t*) * n)
+            A = <mpc_t **> sig_malloc(sizeof(mpc_t*) * n)
             for i from 0 <= i <  n:
-                A[i]=<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+                A[i]=<mpc_t *> sig_malloc(sizeof(mpc_t) * n)
                 for j from 0 <= j < n:
                     mpc_init2(A[i][j],self._prec)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
@@ -1721,7 +1745,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             mpc_set(res._entries[i],v[i],self._rnd)
         for i from 0 <= i < n:
             mpc_clear(v[i])
-        sage_free(v)
+        sig_free(v)
         mpc_clear(s); mpc_clear(sc)
         mpc_clear(t[0]); mpc_clear(t[1]); mpc_clear(t[2])
         mpfr_clear(c); mpfr_clear(x)
@@ -1730,7 +1754,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
                     mpc_clear(A[i][j])
-            sage_free(A)
+            sig_free(A)
         return res
   
 
@@ -1785,9 +1809,9 @@ cdef class Matrix_complex_dense(Matrix_dense):
         if overwrite==1:
             qr_decomp(self._matrix,n,n,self._prec,self._mpeps,self._rnd,self._rnd_re)
         else:
-            A = <mpc_t **> sage_malloc(sizeof(mpc_t*) * n)
+            A = <mpc_t **> sig_malloc(sizeof(mpc_t*) * n)
             for i from 0 <= i <  n:
-                A[i]=<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+                A[i]=<mpc_t *> sig_malloc(sizeof(mpc_t) * n)
                 for j from 0 <= j < n:
                     mpc_init2(A[i][j],self._prec)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
@@ -1796,7 +1820,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             for k from 0 <= k < B._ncols:
                 mpc_set(res._matrix[j][k],B._matrix[j][k],self._rnd)
         # compute b' = Q.conjugate().transpose()*b 
-        v =<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+        v =<mpc_t *> sig_malloc(sizeof(mpc_t) * n)
         for j from 0 <= j < n:
             mpc_init2(v[j],self._prec)
 
@@ -1865,7 +1889,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             #
         for j from 0 <= j < n:
             mpc_clear(v[j])
-        sage_free(v)
+        sig_free(v)
         mpc_clear(s); mpc_clear(sc); mpc_clear(t[0]); mpc_clear(t[1]); mpc_clear(t[2])
         mpfr_clear(c); mpfr_clear(x)
         mpc_clear(w[0]);mpc_clear(w[1])
@@ -1873,7 +1897,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             for i from 0 <= i < n:
                 for j from 0 <= j < n:
                     mpc_clear(A[i][j])
-            sage_free(A)
+            sig_free(A)
         return res
 
     cpdef list eigenvalues(self,int check=0,int sorted=0,int overwrite=0,int num_threads=1,int schedule=0):
@@ -1902,13 +1926,13 @@ cdef class Matrix_complex_dense(Matrix_dense):
         mpfr_init2(tmp,self._prec)
         #from linalg_complex_dense cimport Eigenvalues_of_M
         z = self._base_ring(1)
-        evs = <mpc_t *> sage_malloc(sizeof(mpc_t) * self._nrows)
+        evs = <mpc_t *> sig_malloc(sizeof(mpc_t) * self._nrows)
         for i in xrange(self._nrows):
             mpc_init2(evs[i],self._prec)
         if self.is_immutable() or overwrite==0:
-            A = <mpc_t **> sage_malloc(sizeof(mpc_t*) * self._nrows)
+            A = <mpc_t **> sig_malloc(sizeof(mpc_t*) * self._nrows)
             for i from 0 <= i <  self._nrows:
-                A[i]=<mpc_t *> sage_malloc(sizeof(mpc_t) * self._nrows)
+                A[i]=<mpc_t *> sig_malloc(sizeof(mpc_t) * self._nrows)
                 for j from 0 <= j < self._nrows:
                     mpc_init2(A[i][j],self._prec)
                     mpc_set(A[i][j],self._matrix[i][j],self._rnd)
@@ -1919,7 +1943,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
                 #_eigenvalues_par(evs,A,self._nrows,self._prec,num_threads,schedule,self._verbose,self._rnd,self._rnd_re)
             #for i in range(self._nrows):
             #    print "evs[",i,"]=",print_mpc(evs[i])
-            sage_free(A)
+            sig_free(A)
         else:
             if num_threads==1:
                 _eigenvalues(evs,self._matrix,self._nrows,self._prec,self._rnd,self._rnd_re,self._verbose)
@@ -1952,7 +1976,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
             for i from 0<=i<self._nrows:
                 if evs[i]<>NULL:
                     mpc_clear(evs[i])
-            sage_free(evs)
+            sig_free(evs)
         mpfr_clear(tmp)
         return res
 
@@ -2261,7 +2285,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         res  = list()
         #from linalg_complex_dense cimport Eigenvalues_of_M
         z = self._base_ring(1)
-        evs = <mpc_t *> sage_malloc(sizeof(mpc_t) * self._nrows)
+        evs = <mpc_t *> sig_malloc(sizeof(mpc_t) * self._nrows)
         for i in xrange(self._nrows):
             mpc_init2(evs[i],self._prec)
         #_eigenvalues_(evs,self._matrix,self._nrows,self._prec,self._mpeps,self._rnd,self._rnd_re)
@@ -2640,14 +2664,14 @@ cdef _multiply_classical(mpc_t* AB, mpc_t* A,mpc_t* B,int m, int n,int l,int pre
         with the same precision.
         Checks must be performed *before* calling this routine!
         INPUT:
-        -- AB - m x l matrix: <mpc_t *> sage_malloc(sizeof(mpc_t) * m*l)
-        -- A - m x n matrix: <mpc_t *> sage_malloc(sizeof(mpc_t) * m*n)
-        -- B - n x l matrix: <mpc_t *> sage_malloc(sizeof(mpc_t) * n*l)
+        -- AB - m x l matrix: <mpc_t *> sig_malloc(sizeof(mpc_t) * m*l)
+        -- A - m x n matrix: <mpc_t *> sig_malloc(sizeof(mpc_t) * m*n)
+        -- B - n x l matrix: <mpc_t *> sig_malloc(sizeof(mpc_t) * n*l)
         """
         #print "In multiply classical!!"
         cdef int i,j,k,ii
         cdef mpc_t s, z        
-        #AB = <mpc_t *> sage_malloc(sizeof(mpc_t) * m*l)
+        #AB = <mpc_t *> sig_malloc(sizeof(mpc_t) * m*l)
         mpc_init2(z,prec)
         for i from 0 <= i < m:
             for j from 0 <= j < l:

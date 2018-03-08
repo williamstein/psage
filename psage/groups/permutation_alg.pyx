@@ -141,7 +141,7 @@ cdef class MyPermutation(SageObject):
                 else:
                     # It could be given by self.export_as_string()
                     entries_list=self.list_from_string(s)
-            elif hasattr(entries,list):
+            elif hasattr(entries,'list'):
                 entries_list=entries.list()
             elif isinstance(entries,(list,tuple)):
                 if isinstance(entries[0],(int,Integer)):

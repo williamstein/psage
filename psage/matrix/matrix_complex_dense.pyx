@@ -387,7 +387,20 @@ cdef class Matrix_complex_dense(Matrix_dense):
         #    if row_is_nonzero:
         #        rank+=1
         #return rank
-    
+
+    cpdef list singular_values(self):
+        r""" Singular values of self.                   
+        """
+        A = Matrix_complex_dense(self.parent(),0)
+        self._conjugate_transpose(A)
+        B = self*A
+        sv = B.eigenvalues()
+        res = []
+        for x in sv:
+            res.append(x.real().abs().sqrt())
+        res.sort()
+        return res
+
     cpdef Vector_complex_dense column(self,int n):
         r""" return column nr. n of self.
         """

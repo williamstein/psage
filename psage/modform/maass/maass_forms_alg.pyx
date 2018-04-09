@@ -1425,7 +1425,7 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                    print "n=",ni
                    print "nrY2pi=",nrY2pi
                    print "R=",R
-                   print kbes=",kbes
+                   print "kbes=",kbes
             if ni>N1:
                 raise ArithmeticError,"Index outside!"
             if verbose>2 and ni==3:

@@ -1421,8 +1421,8 @@ cdef int compute_V_cplx_dp_sym(double complex **V,
                 else:
                     kbes = scipy.special.kv(R,nrY2pi)
                 kbes=sqrtY*kbes # besselk_dp(R,nrY2pi,pref=1)
-                if verbose>2 and abs(ni)<= 3:
-                   print "n=",ni
+                if verbose>2 and abs(nr)<= 3:
+                   print "nr=",nr
                    print "nrY2pi=",nrY2pi
                    print "R=",R
                    print "kbes=",kbes

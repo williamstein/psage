@@ -2022,6 +2022,11 @@ cdef class MyPermutationIterator(SageObject):
                             done = 0
                             if self._verbose > 1:
                                 print "Continue since R({0})={1}>{2}".format(self._map_from,self._current_perm[self._map_from-1],self._map_at_most_to)
+                    if self._num_fixed>0:
+                        if done==1:
+                            done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
+                        if done==1:
+                            done = _set_fixed_eq(self._current_perm,self._N,self._fixed_pts,self._num_fixed)
                     if done==1 and self._order>0:
                         done = _is_of_order(self._N,self._current_perm,self._order)
                         #else:
@@ -2029,8 +2034,8 @@ cdef class MyPermutationIterator(SageObject):
                     if self._verbose > 1:
                         print "current_perm2=",self.current_perm()
                     #    print "of correct order=",done
-                    if self._num_fixed==0 and done==1:
-                        done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
+                    #if self._num_fixed>0 and done==1:
+                    #    done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
                     if done==0:
                         #if ii>mmax:
                         if mpz_cmp_si(mpzmmax,ii)<0:

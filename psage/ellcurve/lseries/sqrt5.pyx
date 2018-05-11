@@ -115,8 +115,8 @@ from psage.libs.smalljac.wrapper1 import elliptic_curve_ap
 
 import aplist
 
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 cdef long UNKNOWN = 2**31 - 1
 
@@ -148,9 +148,9 @@ cdef class TracesOfFrobenius:
     def _initialize_prime_ap_tables(self, long bound):
         self.bound = bound
         cdef long max_size = 2*bound+20
-        self.primes = <long*> sage_malloc(sizeof(long)*max_size)
-        self.sqrt5 = <long*> sage_malloc(sizeof(long)*max_size)
-        self.ap = <long*> sage_malloc(sizeof(long)*max_size)
+        self.primes = <long*> sig_malloc(sizeof(long)*max_size)
+        self.sqrt5 = <long*> sig_malloc(sizeof(long)*max_size)
+        self.ap = <long*> sig_malloc(sizeof(long)*max_size)
 
         cdef long p, t, i=0, sr0, sr1
         for p in prime_range(bound):
@@ -223,11 +223,11 @@ cdef class TracesOfFrobenius:
     def __dealloc__(self):
         mpz_clear(self.Ax); mpz_clear(self.Ay); mpz_clear(self.Bx); mpz_clear(self.By)
         if self.primes:
-            sage_free(self.primes)
+            sig_free(self.primes)
         if self.sqrt5:
-            sage_free(self.sqrt5)
+            sig_free(self.sqrt5)
         if self.ap:
-            sage_free(self.ap)
+            sig_free(self.ap)
         
     def _tables(self):
         """

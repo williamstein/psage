@@ -14,11 +14,9 @@
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-include "cysignals/signals.pxi"  
-include "stdsage.pxi"  
-include "cdefs.pxi"
-#include "sage/ext/gmp.pxi"
-#include "sage/rings/mpc.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off  
+from sage.libs.gmp.all cimport *
 from psage.rings.mpfr_nogil cimport *
 
 cdef mpc_rnd_t rnd
@@ -36,7 +34,7 @@ from sage.rings.integer cimport Integer as cInteger
 from sage.rings.integer import Integer,is_Integer
 
 from sage.rings.number_field.number_field import CyclotomicField
-from sage.rings.arith import gcd,kronecker,valuation
+from sage.arith.all import gcd,kronecker,valuation
 from sage.modules.free_module import FreeModule
 from sage.misc.functional import numerator,denominator,is_odd
 from sage.functions.other import floor,ceil as pceil
@@ -479,10 +477,10 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     ## Count how large the principal part is
     len_of_pp = len(PP.keys())
     cdef int  *mbeta_int, *beta_int
-    beta_int = <int *>sage_malloc(sizeof(int)*len_of_pp)
-    mbeta_int = <int *>sage_malloc(sizeof(int)*len_of_pp)    
-    mm_real = <mpfr_t *>sage_malloc(sizeof(mpfr_t)*len_of_pp)
-    mmi_cplx = <mpc_t *>sage_malloc(sizeof(mpc_t)*len_of_pp)        
+    beta_int = <int *>sig_malloc(sizeof(int)*len_of_pp)
+    mbeta_int = <int *>sig_malloc(sizeof(int)*len_of_pp)    
+    mm_real = <mpfr_t *>sig_malloc(sizeof(mpfr_t)*len_of_pp)
+    mmi_cplx = <mpc_t *>sig_malloc(sizeof(mpc_t)*len_of_pp)        
     for i from 0 <= i <len_of_pp:
         mpfr_init2(mm_real[i],prec)
         mpc_init2(mmi_cplx[i],prec)
@@ -571,20 +569,20 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     cdef Vector_real_mpfr_dense Qvv
     cdef mpc_t ***Cv
     Cv = NULL
-    Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
+    Cv = <mpc_t***> sig_malloc ( sizeof(mpc_t**)*Ql)
     if Cv==NULL: raise MemoryError
     #cdef int nr = Df -Ds + 1
     cdef int nc = H.multiplier().ambient_rank()
     for j from 0 <= j < Ql: 
         Cv[j] = NULL
-        Cv[j]=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Dl)
+        Cv[j]=<mpc_t**>sig_malloc(sizeof(mpc_t*)*Dl)
         if Cv[j]==NULL: raise MemoryError
         for n from 0 <= n <  Dl:
             Cv[j][n] = NULL
-            Cv[j][n]=<mpc_t*>sage_malloc(sizeof(mpc_t)*nc) 
+            Cv[j][n]=<mpc_t*>sig_malloc(sizeof(mpc_t)*nc) 
             if Cv[j][n]==NULL: raise MemoryError
             for l from 0<= l < nc:
-                mpc_init2(Cv[j][n][l],prec) #=<mpc_t>sage_malloc(sizeof(mpc_t)*nc) 
+                mpc_init2(Cv[j][n][l],prec) #=<mpc_t>sig_malloc(sizeof(mpc_t)*nc) 
                 #print "set Cv[",j,n,l,"]=",printf("%p ",Cv[j][n][l])
                 #print "Set Cv",j,n,l
     cdef Vector_real_mpfr_dense Xm
@@ -637,18 +635,18 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     tmpc=CF(0)
     cdef mpc_t ***fak1,***fak2
     fak1=NULL; fak2=NULL
-    fak1 =<mpc_t ***> sage_malloc( Ml*sizeof(mpc_t**))
+    fak1 =<mpc_t ***> sig_malloc( Ml*sizeof(mpc_t**))
     for n from 0 <= n < Ml:
-        fak1[n]=<mpc_t **> sage_malloc( Dl*sizeof(mpc_t*))
+        fak1[n]=<mpc_t **> sig_malloc( Dl*sizeof(mpc_t*))
         for ai from 0 <= ai < Dl:
-            fak1[n][ai]=<mpc_t *>sage_malloc(Q*sizeof(mpc_t))
+            fak1[n][ai]=<mpc_t *>sig_malloc(Q*sizeof(mpc_t))
             for j from 0 <= j < Ql:
                 mpc_init2(fak1[n][ai][j],prec)
-    fak2 =<mpc_t ***> sage_malloc( Ml*sizeof(mpc_t**))
+    fak2 =<mpc_t ***> sig_malloc( Ml*sizeof(mpc_t**))
     for n from 0 <= n < Ml:
-        fak2[n]=<mpc_t **> sage_malloc( Dl*sizeof(mpc_t*))
+        fak2[n]=<mpc_t **> sig_malloc( Dl*sizeof(mpc_t*))
         for ai from 0 <= ai < Dl:
-            fak2[n][ai]=<mpc_t *>sage_malloc(Q*sizeof(mpc_t))
+            fak2[n][ai]=<mpc_t *>sig_malloc(Q*sizeof(mpc_t))
             for j from 0 <= j < Q:
                 mpc_init2(fak2[n][ai][j],prec)
 
@@ -713,7 +711,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     mpc_init2(ch22[0],prec)
     cdef MPComplexNumber tmpV1
     cdef int* minus_bi
-    minus_bi =<int*>sage_malloc(Df*sizeof(int))
+    minus_bi =<int*>sig_malloc(Df*sizeof(int))
     for i in range(Df):
         minus_bi[i]=int(H.multiplier().weil_module().neg_index(i))
     cdef int t
@@ -996,10 +994,10 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
     mpfr_clear(twopiY[0])
     mpc_clear(nri[0])
     mpc_clear(tmpc_t[0])
-    sage_free(beta_int)
-    sage_free(mbeta_int)
-    sage_free(mm_real)
-    sage_free(mmi_cplx)
+    sig_free(beta_int)
+    sig_free(mbeta_int)
+    sig_free(mm_real)
+    sig_free(mmi_cplx)
     if Cv<>NULL:
         for j from 0 <= j < Ql: 
             if Cv[j]<>NULL:
@@ -1010,9 +1008,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                             #mpc_set(ztmp.value,Cv[j][n][l],rnd)
                             #print ztmp
                             mpc_clear(Cv[j][n][l])
-                        sage_free(Cv[j][n])
-                sage_free(Cv[j])
-        sage_free(Cv)
+                        sig_free(Cv[j][n])
+                sig_free(Cv[j])
+        sig_free(Cv)
 
     if fak1<>NULL:
         for n from 0<=n < Ml:
@@ -1021,9 +1019,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                     if fak1[n][ai]<>NULL:
                         for j from 0<=j<=Q-1:
                             mpc_clear(fak1[n][ai][j])
-                        sage_free(fak1[n][ai])
-                sage_free(fak1[n])            
-        sage_free(fak1)
+                        sig_free(fak1[n][ai])
+                sig_free(fak1[n])            
+        sig_free(fak1)
     if fak2<>NULL:
         for n from 0<=n < Ml:
             if fak2[n]<>NULL:
@@ -1031,9 +1029,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc(H,dict PP,RealNumber Y,int M,int Q):
                     if fak2[n][ai]<>NULL:
                         for j from 0<=j<=Q-1:
                             mpc_clear(fak2[n][ai][j])
-                        sage_free(fak2[n][ai])
-                sage_free(fak2[n])            
-        sage_free(fak2)
+                        sig_free(fak2[n][ai])
+                sig_free(fak2[n])            
+        sig_free(fak2)
     W=dict()
     W['space']=H
     W['V']=V
@@ -1127,10 +1125,10 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     else:
         len_of_pp = 0
     cdef int  *mbeta_int, *beta_int
-    beta_int = <int *>sage_malloc(sizeof(int)*len_of_pp)
-    mbeta_int = <int *>sage_malloc(sizeof(int)*len_of_pp)    
-    mm_real = <mpfr_t *>sage_malloc(sizeof(mpfr_t)*len_of_pp)
-    mmi_cplx = <mpc_t *>sage_malloc(sizeof(mpc_t)*len_of_pp)        
+    beta_int = <int *>sig_malloc(sizeof(int)*len_of_pp)
+    mbeta_int = <int *>sig_malloc(sizeof(int)*len_of_pp)    
+    mm_real = <mpfr_t *>sig_malloc(sizeof(mpfr_t)*len_of_pp)
+    mmi_cplx = <mpc_t *>sig_malloc(sizeof(mpc_t)*len_of_pp)        
     for i from 0 <= i <len_of_pp:
         mpfr_init2(mm_real[i],prec)
         mpc_init2(mmi_cplx[i],prec)
@@ -1228,7 +1226,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     cdef Vector_real_mpfr_dense Qvv
     cdef mpc_t ***Cv
     Cv = NULL
-    Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
+    Cv = <mpc_t***> sig_malloc ( sizeof(mpc_t**)*Ql)
     if Cv==NULL: raise MemoryError
     #cdef int nr = Df -Ds + 1
     #cdef int nc = len(WM.basis())
@@ -1240,16 +1238,16 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
         print "precBBBB:",prec
     for j from 0 <= j < Ql: 
         Cv[j] = NULL
-        Cv[j]=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Dl)
+        Cv[j]=<mpc_t**>sig_malloc(sizeof(mpc_t*)*Dl)
         if Cv[j]==NULL: raise MemoryError
         for n from 0 <= n <  Dl:
             Cv[j][n] = NULL
-            Cv[j][n]=<mpc_t*>sage_malloc(sizeof(mpc_t)*full_rank) 
+            Cv[j][n]=<mpc_t*>sig_malloc(sizeof(mpc_t)*full_rank) 
             if Cv[j][n]==NULL: raise MemoryError
             for l from 0<= l < full_rank:
                 #if verbose>0:
                 #    print "j,n,l=",j,n,l
-                mpc_init2(Cv[j][n][l],prec) #=<mpc_t>sage_malloc(sizeof(mpc_t)*nc) 
+                mpc_init2(Cv[j][n][l],prec) #=<mpc_t>sig_malloc(sizeof(mpc_t)*nc) 
                 #print "set Cv[",j,n,l,"]=",printf("%p ",Cv[j][n][l])
                 #print "Set Cv",j,n,l
     cdef Vector_real_mpfr_dense Xm
@@ -1305,18 +1303,18 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     tmpc=CF(0)
     cdef mpc_t ***fak1,***fak2
     fak1=NULL; fak2=NULL
-    fak1 =<mpc_t ***> sage_malloc( Ml*sizeof(mpc_t**))
+    fak1 =<mpc_t ***> sig_malloc( Ml*sizeof(mpc_t**))
     for n from 0 <= n < Ml:
-        fak1[n]=<mpc_t **> sage_malloc( Dl*sizeof(mpc_t*))
+        fak1[n]=<mpc_t **> sig_malloc( Dl*sizeof(mpc_t*))
         for ai from 0 <= ai < Dl:
-            fak1[n][ai]=<mpc_t *>sage_malloc(Q*sizeof(mpc_t))
+            fak1[n][ai]=<mpc_t *>sig_malloc(Q*sizeof(mpc_t))
             for j from 0 <= j < Ql:
                 mpc_init2(fak1[n][ai][j],prec)
-    fak2 =<mpc_t ***> sage_malloc( Ml*sizeof(mpc_t**))
+    fak2 =<mpc_t ***> sig_malloc( Ml*sizeof(mpc_t**))
     for n from 0 <= n < Ml:
-        fak2[n]=<mpc_t **> sage_malloc( Dl*sizeof(mpc_t*))
+        fak2[n]=<mpc_t **> sig_malloc( Dl*sizeof(mpc_t*))
         for ai from 0 <= ai < Dl:
-            fak2[n][ai]=<mpc_t *>sage_malloc(Q*sizeof(mpc_t))
+            fak2[n][ai]=<mpc_t *>sig_malloc(Q*sizeof(mpc_t))
             for j from 0 <= j < Q:
                 mpc_init2(fak2[n][ai][j],prec)
 
@@ -1398,7 +1396,7 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     cdef MPComplexNumber tmpV1
     cdef int order = WM.finite_quadratic_module().order()
     cdef int* minus_ix
-    minus_ix = <int*>sage_malloc(sizeof(int)*order)
+    minus_ix = <int*>sig_malloc(sizeof(int)*order)
     #QM = WM.finite_quadratic_module()
     for i in range(order):
         minus_ix[i] = WM._neg_index(i)
@@ -1705,11 +1703,11 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
     mpfr_clear(twopiY[0])
     mpc_clear(nri[0])
     mpc_clear(tmpc_t[0])
-    sage_free(beta_int)
-    sage_free(mbeta_int)
-    sage_free(mm_real)
-    sage_free(mmi_cplx)
-    sage_free(minus_ix)
+    sig_free(beta_int)
+    sig_free(mbeta_int)
+    sig_free(mm_real)
+    sig_free(mmi_cplx)
+    sig_free(minus_ix)
     if Cv<>NULL:
         for j from 0 <= j < Ql: 
             if Cv[j]<>NULL:
@@ -1720,9 +1718,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                             #mpc_set(ztmp.value,Cv[j][n][l],rnd)
                             #print ztmp
                             mpc_clear(Cv[j][n][l])
-                        sage_free(Cv[j][n])
-                sage_free(Cv[j])
-        sage_free(Cv)
+                        sig_free(Cv[j][n])
+                sig_free(Cv[j])
+        sig_free(Cv)
 
     if fak1<>NULL:
         for n from 0<=n < Ml:
@@ -1731,9 +1729,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                     if fak1[n][ai]<>NULL:
                         for j from 0<=j<=Q-1:
                             mpc_clear(fak1[n][ai][j])
-                        sage_free(fak1[n][ai])
-                sage_free(fak1[n])            
-        sage_free(fak1)
+                        sig_free(fak1[n][ai])
+                sig_free(fak1[n])            
+        sig_free(fak1)
     if fak2<>NULL:
         for n from 0<=n < Ml:
             if fak2[n]<>NULL:
@@ -1741,9 +1739,9 @@ cpdef vv_harmonic_wmwf_setupV_mpc2(H,dict PP,RealNumber Y,int M,int Q):
                     if fak2[n][ai]<>NULL:
                         for j from 0<=j<=Q-1:
                             mpc_clear(fak2[n][ai][j])
-                        sage_free(fak2[n][ai])
-                sage_free(fak2[n])            
-        sage_free(fak2)
+                        sig_free(fak2[n][ai])
+                sig_free(fak2[n])            
+        sig_free(fak2)
     W=dict()
     #W['WR']=WR
     W['V']=V
@@ -1851,7 +1849,7 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     cdef Vector_real_mpfr_dense Qvv
     cdef mpc_t ***Cv
     Cv = NULL
-    Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
+    Cv = <mpc_t***> sig_malloc ( sizeof(mpc_t**)*Ql)
     if Cv==NULL: raise MemoryError
     cdef int nc = H.group().ncusps() #len(WM.basis())
     cdef int rank = X.rank()
@@ -1860,11 +1858,11 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
         print "precBBBB:",prec
     for j from 0 <= j < Ql: 
         Cv[j] = NULL
-        Cv[j]=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Dl)
+        Cv[j]=<mpc_t**>sig_malloc(sizeof(mpc_t*)*Dl)
         if Cv[j]==NULL: raise MemoryError
         for n from 0 <= n <  Dl:
             Cv[j][n] = NULL
-            Cv[j][n]=<mpc_t*>sage_malloc(sizeof(mpc_t)*full_rank) 
+            Cv[j][n]=<mpc_t*>sig_malloc(sizeof(mpc_t)*full_rank) 
             if Cv[j][n]==NULL: raise MemoryError
             for l from 0<= l < full_rank:
                 mpc_init2(Cv[j][n][l],prec) 
@@ -1919,18 +1917,18 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     tmpc=CF(0)
     cdef mpc_t ***fak1,***fak2
     fak1=NULL; fak2=NULL
-    fak1 =<mpc_t ***> sage_malloc( Ml*sizeof(mpc_t**))
+    fak1 =<mpc_t ***> sig_malloc( Ml*sizeof(mpc_t**))
     for n from 0 <= n < Ml:
-        fak1[n]=<mpc_t **> sage_malloc( Dl*sizeof(mpc_t*))
+        fak1[n]=<mpc_t **> sig_malloc( Dl*sizeof(mpc_t*))
         for ai from 0 <= ai < Dl:
-            fak1[n][ai]=<mpc_t *>sage_malloc(Q*sizeof(mpc_t))
+            fak1[n][ai]=<mpc_t *>sig_malloc(Q*sizeof(mpc_t))
             for j from 0 <= j < Ql:
                 mpc_init2(fak1[n][ai][j],prec)
-    fak2 =<mpc_t ***> sage_malloc( Ml*sizeof(mpc_t**))
+    fak2 =<mpc_t ***> sig_malloc( Ml*sizeof(mpc_t**))
     for n from 0 <= n < Ml:
-        fak2[n]=<mpc_t **> sage_malloc( Dl*sizeof(mpc_t*))
+        fak2[n]=<mpc_t **> sig_malloc( Dl*sizeof(mpc_t*))
         for ai from 0 <= ai < Dl:
-            fak2[n][ai]=<mpc_t *>sage_malloc(Q*sizeof(mpc_t))
+            fak2[n][ai]=<mpc_t *>sig_malloc(Q*sizeof(mpc_t))
             for j from 0 <= j < Q:
                 mpc_init2(fak2[n][ai][j],prec)
 
@@ -1975,7 +1973,7 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     cdef MPComplexNumber tmpV1
     cdef int order = WM.finite_quadratic_module().order()
     cdef int* minus_ix
-    minus_ix = <int*>sage_malloc(sizeof(int)*order)
+    minus_ix = <int*>sig_malloc(sizeof(int)*order)
     for i in range(order):
         minus_ix[i] = WM._neg_index(i)
     cdef int t
@@ -2119,11 +2117,11 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
     mpfr_clear(twopiY)
     mpc_clear(nri[0])
     mpc_clear(tmpc_t[0])
-    #sage_free(beta_int)
-    #sage_free(mbeta_int)
-    #sage_free(mm_real)
-    #sage_free(mmi_cplx)
-    sage_free(minus_ix)
+    #sig_free(beta_int)
+    #sig_free(mbeta_int)
+    #sig_free(mm_real)
+    #sig_free(mmi_cplx)
+    sig_free(minus_ix)
     if Cv<>NULL:
         for j from 0 <= j < Ql: 
             if Cv[j]<>NULL:
@@ -2134,9 +2132,9 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                             #mpc_set(ztmp.value,Cv[j][n][l],rnd)
                             #print ztmp
                             mpc_clear(Cv[j][n][l])
-                        sage_free(Cv[j][n])
-                sage_free(Cv[j])
-        sage_free(Cv)
+                        sig_free(Cv[j][n])
+                sig_free(Cv[j])
+        sig_free(Cv)
 
     if fak1<>NULL:
         for n from 0<=n < Ml:
@@ -2145,9 +2143,9 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                     if fak1[n][ai]<>NULL:
                         for j from 0<=j<=Q-1:
                             mpc_clear(fak1[n][ai][j])
-                        sage_free(fak1[n][ai])
-                sage_free(fak1[n])            
-        sage_free(fak1)
+                        sig_free(fak1[n][ai])
+                sig_free(fak1[n])            
+        sig_free(fak1)
     if fak2<>NULL:
         for n from 0<=n < Ml:
             if fak2[n]<>NULL:
@@ -2155,9 +2153,9 @@ cpdef vv_holomorphic_setupV_mpc(H,RealNumber Y,int M,int Q):
                     if fak2[n][ai]<>NULL:
                         for j from 0<=j<=Q-1:
                             mpc_clear(fak2[n][ai][j])
-                        sage_free(fak2[n][ai])
-                sage_free(fak2[n])            
-        sage_free(fak2)
+                        sig_free(fak2[n][ai])
+                sig_free(fak2[n])            
+        sig_free(fak2)
     W=dict()
     #W['WR']=WR
     W['V']=V
@@ -2609,7 +2607,7 @@ cpdef pullback_pts_vv_mpc(H,int Q,RealNumber Y,RealNumber weight,int verbose=0):
     else:
         Qs=1-Q; Qf=Q; Ql=Qf-Qs+1; Qfaki=4*Q
         #Ds=0; Df=nc; Dl=Df-Ds+1
-    Cv = <mpc_t***> sage_malloc ( sizeof(mpc_t**)*Ql)
+    Cv = <mpc_t***> sig_malloc ( sizeof(mpc_t**)*Ql)
     if Cv==NULL: raise MemoryError
     Xm = Vector_real_mpfr_dense(FreeModule(RF,Ql),0)
     Zpb= Vector_complex_dense(FreeModule(CF,Ql),0)
@@ -2618,11 +2616,11 @@ cpdef pullback_pts_vv_mpc(H,int Q,RealNumber Y,RealNumber weight,int verbose=0):
     Ds=H.D()[0]; Df=H.D()[-1]; Dl=Df-Ds+1
     for j from 0 <= j < Ql: 
         Cv[j] = NULL
-        Cv[j]=<mpc_t**>sage_malloc(sizeof(mpc_t*)*Dl)
+        Cv[j]=<mpc_t**>sig_malloc(sizeof(mpc_t*)*Dl)
         if Cv[j]==NULL: raise MemoryError
         for n from 0 <= n <  Dl:
             Cv[j][n] = NULL
-            Cv[j][n]=<mpc_t*>sage_malloc(sizeof(mpc_t)*nc) 
+            Cv[j][n]=<mpc_t*>sig_malloc(sizeof(mpc_t)*nc) 
             if Cv[j][n]==NULL: raise MemoryError
             for l from 0<= l < nc:
                 mpc_init2(Cv[j][n][l],prec)
@@ -2644,9 +2642,9 @@ cpdef pullback_pts_vv_mpc(H,int Q,RealNumber Y,RealNumber weight,int verbose=0):
                     for l in range(nc):
                         if Cv[j][n][l]<>NULL:
                             mpc_clear(Cv[j][n][l])
-                    sage_free(Cv[j][n])
-            sage_free(Cv[j])
-    sage_free(Cv)
+                    sig_free(Cv[j][n])
+            sig_free(Cv[j])
+    sig_free(Cv)
     return Xm,Zpb,Cvec,Cfak_minus,Cfak_plus
     
 cdef pullback_pts_weil_rep_mpc2(H,int Q,RealNumber Y,RealNumber weight,Vector_real_mpfr_dense Xm,Vector_complex_dense Zpb,Vector_complex_dense Cfak_plus,Vector_complex_dense Cfak_minus, mpc_t *** Cvec,int ds=-1,int df=-1):
@@ -3770,7 +3768,7 @@ cpdef rn_from_D(m,D,verbose=0):
     l = m.rank()
     if verbose>0:
         print "D=",D
-    Qv = <double*>sage_malloc(sizeof(double)*l)
+    Qv = <double*>sig_malloc(sizeof(double)*l)
     for j in range(l):
         Qv[j]=float(m.Qv[j])
     if isinstance(D,list):
@@ -3780,12 +3778,12 @@ cpdef rn_from_D(m,D,verbose=0):
             one_rn_from_D(N,sig,l,Df,Qv,&r,&n,verbose)
             if r>-1:
                 lout.append((r,n))
-        sage_free(Qv)
+        sig_free(Qv)
         return lout
     else:
         Df = float(D)/float(N)
         one_rn_from_D(N,sig,l,Df,Qv,&r,&n,verbose)
-        sage_free(Qv)
+        sig_free(Qv)
         return r,n
 
 cdef one_rn_from_D(int N,int sig,int l,double Df,double* Qv,int* r,int* n,int verbose=0):

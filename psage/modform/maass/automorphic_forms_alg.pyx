@@ -22,8 +22,8 @@ Used by routines in atomorphic_forms.py
 from libc.stdint cimport uint64_t
 
 from psage.rings.mpfr_nogil cimport *
-include "sage/ext/stdsage.pxi" 
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc,check_allocarray
+from cysignals.signals cimport sig_on,sig_off
 
 import logging
 log = logging.getLogger(__name__)
@@ -1429,34 +1429,34 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
 
     for j in range(d):
         #printf("a0jm=%p",variable_a0_minus[j])
-        sage_free(variable_a0_minus[j])
-        sage_free(variable_a0_plus[j])        
-        sage_free(PPplus_cusp[j])
-        sage_free(PPplus_n[j])
-        sage_free(PPminus_cusp[j])
-        sage_free(PPminus_n[j])
+        sig_free(variable_a0_minus[j])
+        sig_free(variable_a0_plus[j])        
+        sig_free(PPplus_cusp[j])
+        sig_free(PPplus_n[j])
+        sig_free(PPminus_cusp[j])
+        sig_free(PPminus_n[j])
         for l in range(num_ppplus):
             mpc_clear(PPplus_values[j][l])
             mpfr_clear(PPplus_lal[j][l])
-        sage_free(PPplus_lal[j])
-        sage_free(PPplus_values[j])
+        sig_free(PPplus_lal[j])
+        sig_free(PPplus_values[j])
         for l in range(num_ppminus):
             mpc_clear(PPminus_values[j][l])
             mpfr_clear(PPminus_lal[j][l])
-        sage_free(PPminus_lal[j])
-        sage_free(PPminus_values[j])
+        sig_free(PPminus_lal[j])
+        sig_free(PPminus_values[j])
         
-    sage_free(PPminus_lal)
-    sage_free(PPplus_lal)
-    sage_free(PPplus_cusp)
-    sage_free(PPplus_n)
-    sage_free(PPplus_values)
-    sage_free(PPminus_cusp)
-    sage_free(PPminus_n)
-    sage_free(PPminus_values)
+    sig_free(PPminus_lal)
+    sig_free(PPplus_lal)
+    sig_free(PPplus_cusp)
+    sig_free(PPplus_n)
+    sig_free(PPplus_values)
+    sig_free(PPminus_cusp)
+    sig_free(PPminus_n)
+    sig_free(PPminus_values)
 
-    sage_free(variable_a0_minus)
-    sage_free(variable_a0_plus)
+    sig_free(variable_a0_minus)
+    sig_free(variable_a0_plus)
 
 
     if Ypb<>NULL:
@@ -1464,25 +1464,25 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
             if Ypb[i]<>NULL:
                 for j in range(nc):
                     if Ypb[i][j]<>NULL:
-                        sage_free(Ypb[i][j])
-                sage_free(Ypb[i])
-        sage_free(Ypb)
+                        sig_free(Ypb[i][j])
+                sig_free(Ypb[i])
+        sig_free(Ypb)
     if Xpb<>NULL:
         for i in range(nc):
             if Xpb[i]<>NULL:
                 for j in range(nc):
                     if Xpb[i][j]<>NULL:
-                        sage_free(Xpb[i][j])
-                sage_free(Xpb[i])
-        sage_free(Xpb)
+                        sig_free(Xpb[i][j])
+                sig_free(Xpb[i])
+        sig_free(Xpb)
     if CSvec<>NULL:
         for i in range(nc):
             if CSvec[i]<>NULL:
                 for j in range(nc):
                     if CSvec[i][j]<>NULL:
-                        sage_free(CSvec[i][j])
-                sage_free(CSvec[i])
-        sage_free(CSvec)
+                        sig_free(CSvec[i][j])
+                sig_free(CSvec[i])
+        sig_free(CSvec)
     if RCvec<>NULL:
         for i in range(nc):
             if RCvec[i]<>NULL:
@@ -1493,20 +1493,20 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                 mpfr_clear(RCvec[i][j][n][0])
                                 mpfr_clear(RCvec[i][j][n][1])
                                 mpfr_clear(RCvec[i][j][n][2])
-                                sage_free(RCvec[i][j][n])
-                sage_free(RCvec[i])
-        sage_free(RCvec)
+                                sig_free(RCvec[i][j][n])
+                sig_free(RCvec[i])
+        sig_free(RCvec)
     if nvec<>NULL:
         for i in range(nc):
             if nvec[i]<>NULL:
                 for l in range(Ml):
                     mpfr_clear(nvec[i][l])
-                sage_free(nvec[i])
-        sage_free(nvec)
+                sig_free(nvec[i])
+        sig_free(nvec)
     if Xm<>NULL:
         for l in range(Ql):
             mpfr_clear(Xm[l])
-        sage_free(Xm)
+        sig_free(Xm)
     if ef2cosv<>NULL:
         for icusp in range(nc):
             if ef2cosv[icusp]<>NULL:
@@ -1514,9 +1514,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                     if ef2cosv[icusp][n]<>NULL:
                         for j in range(Ql):
                             mpfr_clear(ef2cosv[icusp][n][j])
-                        sage_free(ef2cosv[icusp][n])
-                sage_free(ef2cosv[icusp])
-        sage_free(ef2cosv)
+                        sig_free(ef2cosv[icusp][n])
+                sig_free(ef2cosv[icusp])
+        sig_free(ef2cosv)
     if ef2sinv<>NULL:
         for icusp in range(nc):
             if ef2sinv[icusp]<>NULL:
@@ -1524,9 +1524,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                     if ef2sinv[icusp][n]<>NULL:
                         for j in range(Ql):
                             mpfr_clear(ef2sinv[icusp][n][j])
-                        sage_free(ef2sinv[icusp][n])
-                sage_free(ef2sinv[icusp])
-        sage_free(ef2sinv)
+                        sig_free(ef2sinv[icusp][n])
+                sig_free(ef2sinv[icusp])
+        sig_free(ef2sinv)
         
     if ef1cosv<>NULL:
         for icusp in range(nc):
@@ -1537,10 +1537,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             if ef1cosv[icusp][jcusp][n]<>NULL:
                                 for j in range(Ql):
                                     mpfr_clear(ef1cosv[icusp][jcusp][n][j])
-                                sage_free(ef1cosv[icusp][jcusp][n])
-                        sage_free(ef1cosv[icusp][jcusp])                        
-                sage_free(ef1cosv[icusp])
-        sage_free(ef1cosv)
+                                sig_free(ef1cosv[icusp][jcusp][n])
+                        sig_free(ef1cosv[icusp][jcusp])                        
+                sig_free(ef1cosv[icusp])
+        sig_free(ef1cosv)
     if ef1sinv<>NULL:
         for icusp in range(nc):
             if ef1sinv[icusp]<>NULL:
@@ -1550,10 +1550,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             if ef1sinv[icusp][jcusp][n]<>NULL:
                                 for j in range(Ql):
                                     mpfr_clear(ef1sinv[icusp][jcusp][n][j])
-                                sage_free(ef1sinv[icusp][jcusp][n])
-                        sage_free(ef1sinv[icusp][jcusp])                        
-                sage_free(ef1sinv[icusp])
-        sage_free(ef1sinv)
+                                sig_free(ef1sinv[icusp][jcusp][n])
+                        sig_free(ef1sinv[icusp][jcusp])                        
+                sig_free(ef1sinv[icusp])
+        sig_free(ef1sinv)
     if besv<>NULL:
         for icusp in range(nc):
             if besv[icusp]<>NULL:
@@ -1563,10 +1563,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             if besv[icusp][jcusp][n]<>NULL:
                                 for j in range(Ql):
                                     mpfr_clear(besv[icusp][jcusp][n][j])
-                                sage_free(besv[icusp][jcusp][n])
-                        sage_free(besv[icusp][jcusp])                        
-                sage_free(besv[icusp])
-        sage_free(besv)
+                                sig_free(besv[icusp][jcusp][n])
+                        sig_free(besv[icusp][jcusp])                        
+                sig_free(besv[icusp])
+        sig_free(besv)
     if besv_minus<>NULL:
         for icusp in range(nc):
             if besv_minus[icusp]<>NULL:
@@ -1576,10 +1576,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                             if besv_minus[icusp][jcusp][n]<>NULL:
                                 for j in range(Ql):
                                     mpc_clear(besv_minus[icusp][jcusp][n][j])
-                                sage_free(besv_minus[icusp][jcusp][n])
-                        sage_free(besv_minus[icusp][jcusp])                        
-                sage_free(besv_minus[icusp])
-        sage_free(besv_minus)
+                                sig_free(besv_minus[icusp][jcusp][n])
+                        sig_free(besv_minus[icusp][jcusp])                        
+                sig_free(besv_minus[icusp])
+        sig_free(besv_minus)
     mpc_clear(iargpb_t)
     mpc_clear(tmpc_t)
     mpc_clear(tmp1)
@@ -2399,31 +2399,31 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
             # Clearing up allocated variables
 
     for j in range(d):
-        sage_free(variable_a0_minus[j])
-        sage_free(variable_a0_plus[j])        
-        sage_free(PPplus_cusp[j])
-        sage_free(PPplus_n[j])
-        sage_free(PPminus_cusp[j])
-        sage_free(PPminus_n[j])
+        sig_free(variable_a0_minus[j])
+        sig_free(variable_a0_plus[j])        
+        sig_free(PPplus_cusp[j])
+        sig_free(PPplus_n[j])
+        sig_free(PPminus_cusp[j])
+        sig_free(PPminus_n[j])
         for l in range(num_ppplus):
             mpc_clear(PPplus_values[j][l])
             mpfr_clear(PPplus_lal[j][l])
-        sage_free(PPplus_lal[j])
-        sage_free(PPplus_values[j])
+        sig_free(PPplus_lal[j])
+        sig_free(PPplus_values[j])
         for l in range(num_ppminus):
             mpc_clear(PPminus_values[j][l])
-        sage_free(PPminus_values[j])
+        sig_free(PPminus_values[j])
         
-    sage_free(PPplus_lal)
-    sage_free(PPplus_cusp)
-    sage_free(PPplus_n)
-    sage_free(PPplus_values)
-    sage_free(PPminus_cusp)
-    sage_free(PPminus_n)
-    sage_free(PPminus_values)
+    sig_free(PPplus_lal)
+    sig_free(PPplus_cusp)
+    sig_free(PPplus_n)
+    sig_free(PPplus_values)
+    sig_free(PPminus_cusp)
+    sig_free(PPminus_n)
+    sig_free(PPminus_values)
 
-    sage_free(variable_a0_minus)
-    sage_free(variable_a0_plus)
+    sig_free(variable_a0_minus)
+    sig_free(variable_a0_plus)
 
 
 
@@ -2433,36 +2433,36 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
             if Ypb[i]<>NULL:
                 for j in range(nc):
                     if Ypb[i][j]<>NULL:
-                        sage_free(Ypb[i][j])
-                sage_free(Ypb[i])
-        sage_free(Ypb)
+                        sig_free(Ypb[i][j])
+                sig_free(Ypb[i])
+        sig_free(Ypb)
     if Xpb<>NULL:
         for i in range(nc):
             if Xpb[i]<>NULL:
                 for j in range(nc):
                     if Xpb[i][j]<>NULL:
-                        sage_free(Xpb[i][j])
-                sage_free(Xpb[i])
-        sage_free(Xpb)
+                        sig_free(Xpb[i][j])
+                sig_free(Xpb[i])
+        sig_free(Xpb)
     if Cvec<>NULL:
         for i in range(nc):
             if Cvec[i]<>NULL:
                 for j in range(nc):
                     if Cvec[i][j]<>NULL:
-                        sage_free(Cvec[i][j])
-                sage_free(Cvec[i])
-        sage_free(Cvec)
+                        sig_free(Cvec[i][j])
+                sig_free(Cvec[i])
+        sig_free(Cvec)
     if nvec<>NULL:
         for i in range(nc):
             if nvec[i]<>NULL:
                 for l in range(Ml):
                     mpfr_clear(nvec[i][l])
-                sage_free(nvec[i])
-        sage_free(nvec)
+                sig_free(nvec[i])
+        sig_free(nvec)
     if Xm<>NULL:
         for n in range(Ql):
             mpfr_clear(Xm[n])
-        sage_free(Xm)
+        sig_free(Xm)
     if ef2<>NULL:
         for icusp in range(nc):
             if ef2[icusp]<>NULL:
@@ -2470,9 +2470,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                     if ef2[icusp][n]<>NULL:
                         for j in range(Ql):
                             mpc_clear(ef2[icusp][n][j])
-                        sage_free(ef2[icusp][n])
-                sage_free(ef2[icusp])
-        sage_free(ef2)
+                        sig_free(ef2[icusp][n])
+                sig_free(ef2[icusp])
+        sig_free(ef2)
     if ef1<>NULL:
         for icusp in range(nc):
             if ef1[icusp]<>NULL:
@@ -2482,10 +2482,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
                             if ef1[icusp][jcusp][n]<>NULL:
                                 for j in range(Ql):
                                     mpc_clear(ef1[icusp][jcusp][n][j])
-                                sage_free(ef1[icusp][jcusp][n])
-                        sage_free(ef1[icusp][jcusp])                        
-                sage_free(ef1[icusp])
-        sage_free(ef1)
+                                sig_free(ef1[icusp][jcusp][n])
+                        sig_free(ef1[icusp][jcusp])                        
+                sig_free(ef1[icusp])
+        sig_free(ef1)
         
         #    print "V2(",44,n,")=",V[V.rows-1,n]
     mpc_clear(iargpb_t)
@@ -3171,31 +3171,31 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##     # Clearing up allocated variables
 
 ##     for j in range(d):
-##         sage_free(variable_a0_minus[j])
-##         sage_free(variable_a0_plus[j])        
-##         sage_free(PPplus_cusp[j])
-##         sage_free(PPplus_n[j])
-##         sage_free(PPminus_cusp[j])
-##         sage_free(PPminus_n[j])
+##         sig_free(variable_a0_minus[j])
+##         sig_free(variable_a0_plus[j])        
+##         sig_free(PPplus_cusp[j])
+##         sig_free(PPplus_n[j])
+##         sig_free(PPminus_cusp[j])
+##         sig_free(PPminus_n[j])
 ##         for l in range(num_ppplus):
 ##             mpc_clear(PPplus_values[j][l])
 ##             mpfr_clear(PPplus_lal[j][l])
-##         sage_free(PPplus_lal[j])
-##         sage_free(PPplus_values[j])
+##         sig_free(PPplus_lal[j])
+##         sig_free(PPplus_values[j])
 ##         for l in range(num_ppminus):
 ##             mpc_clear(PPminus_values[j][l])
-##         sage_free(PPminus_values[j])
+##         sig_free(PPminus_values[j])
         
-##     sage_free(PPplus_lal)
-##     sage_free(PPplus_cusp)
-##     sage_free(PPplus_n)
-##     sage_free(PPplus_values)
-##     sage_free(PPminus_cusp)
-##     sage_free(PPminus_n)
-##     sage_free(PPminus_values)
+##     sig_free(PPplus_lal)
+##     sig_free(PPplus_cusp)
+##     sig_free(PPplus_n)
+##     sig_free(PPplus_values)
+##     sig_free(PPminus_cusp)
+##     sig_free(PPminus_n)
+##     sig_free(PPminus_values)
 
-##     sage_free(variable_a0_minus)
-##     sage_free(variable_a0_plus)
+##     sig_free(variable_a0_minus)
+##     sig_free(variable_a0_plus)
 
 
 
@@ -3205,32 +3205,32 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##             if Ypb[i]<>NULL:
 ##                 for j in range(nc):
 ##                     if Ypb[i][j]<>NULL:
-##                         sage_free(Ypb[i][j])
-##                 sage_free(Ypb[i])
-##         sage_free(Ypb)
+##                         sig_free(Ypb[i][j])
+##                 sig_free(Ypb[i])
+##         sig_free(Ypb)
 ##     if Xpb<>NULL:
 ##         for i in range(nc):
 ##             if Xpb[i]<>NULL:
 ##                 for j in range(nc):
 ##                     if Xpb[i][j]<>NULL:
-##                         sage_free(Xpb[i][j])
-##                 sage_free(Xpb[i])
-##         sage_free(Xpb)
+##                         sig_free(Xpb[i][j])
+##                 sig_free(Xpb[i])
+##         sig_free(Xpb)
 ##     if Cvec<>NULL:
 ##         for i in range(nc):
 ##             if Cvec[i]<>NULL:
 ##                 for j in range(nc):
 ##                     if Cvec[i][j]<>NULL:
-##                         sage_free(Cvec[i][j])
-##                 sage_free(Cvec[i])
-##         sage_free(Cvec)
+##                         sig_free(Cvec[i][j])
+##                 sig_free(Cvec[i])
+##         sig_free(Cvec)
 ##     if nvec<>NULL:
 ##         for i in range(nc):
 ##             if nvec[i]<>NULL:
 ##                 for l in range(Ml):
 ##                     mpfr_clear(nvec[i][l])
-##                 sage_free(nvec[i])
-##         sage_free(nvec)
+##                 sig_free(nvec[i])
+##         sig_free(nvec)
 ##     if ef2<>NULL:
 ##         for icusp in range(nc):
 ##             if ef2[icusp]<>NULL:
@@ -3238,9 +3238,9 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                     if ef2[icusp][n]<>NULL:
 ##                         for j in range(Ql):
 ##                             mpc_clear(ef2[icusp][n][j])
-##                         sage_free(ef2[icusp][n])
-##                 sage_free(ef2[icusp])
-##         sage_free(ef2)
+##                         sig_free(ef2[icusp][n])
+##                 sig_free(ef2[icusp])
+##         sig_free(ef2)
 ##     if ef1<>NULL:
 ##         for icusp in range(nc):
 ##             if ef1[icusp]<>NULL:
@@ -3250,10 +3250,10 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_no_sym(H,Y_in,int M,int Q,princi
 ##                             if ef1[icusp][jcusp][n]<>NULL:
 ##                                 for j in range(Ql):
 ##                                     mpc_clear(ef1[icusp][jcusp][n][j])
-##                                 sage_free(ef1[icusp][jcusp][n])
-##                         sage_free(ef1[icusp][jcusp])                        
-##                 sage_free(ef1[icusp])
-##         sage_free(ef1)
+##                                 sig_free(ef1[icusp][jcusp][n])
+##                         sig_free(ef1[icusp][jcusp])                        
+##                 sig_free(ef1[icusp])
+##         sig_free(ef1)
         
 ##         #    print "V2(",44,n,")=",V[V.rows-1,n]
 ##     mpc_clear(iargpb_t)
@@ -4529,11 +4529,11 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
         if setc_values[r]<>NULL:
             for j in range(num_set):
                 mpc_clear(setc_values[r][j])
-            sage_free(setc_values[r])
+            sig_free(setc_values[r])
         if setc_n[r]<>NULL:
-            sage_free(setc_n[r])
+            sig_free(setc_n[r])
     if setc_n<>NULL:
-        sage_free(setc_n)
+        sig_free(setc_n)
     if setc_values<>NULL:
-        sage_free(setc_values)
+        sig_free(setc_values)
     return X

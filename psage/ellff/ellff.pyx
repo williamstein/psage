@@ -21,8 +21,9 @@
 
 # Wrapper code for ellff library
 
-include "stdsage.pxi"
-include "cdefs.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
 
 from sage.libs.ntl.ntl_ZZ_decl cimport *
 from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ
@@ -162,21 +163,21 @@ cdef class _ellff_EllipticCurve_c:
         # table is empty (and will need to be allocated).
         self.num_trace_tables = 15
         self.trace_tables = \
-            <long**>sage_malloc(sizeof(long*)*self.num_trace_tables)
+            <long**>sig_malloc(sizeof(long*)*self.num_trace_tables)
         self.trace_table_sizes  = \
-            <long*>sage_malloc(sizeof(long)*self.num_trace_tables)
+            <long*>sig_malloc(sizeof(long)*self.num_trace_tables)
         for i in range(self.num_trace_tables):
             self.trace_tables[i] = NULL
             self.trace_table_sizes[i] = -1
 
         # allocate memory for b and c coefficients (for L-function)
         self.bc_len = 2*self.num_trace_tables
-        self.b = <ZZ_c **>sage_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
-        self.c = <ZZ_c **>sage_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
+        self.b = <ZZ_c **>sig_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
+        self.c = <ZZ_c **>sig_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
         self.b_star = \
-            <ZZ_c **>sage_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
+            <ZZ_c **>sig_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
         self.c_star = \
-            <ZZ_c **>sage_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
+            <ZZ_c **>sig_malloc(sizeof(ZZ_c*)*(self.bc_len+1))
 
         for n in range(self.bc_len+1):
             self.b[n] = ZZ_new()
@@ -190,9 +191,9 @@ cdef class _ellff_EllipticCurve_c:
     def __dealloc__(self):
         for i in range(self.num_trace_tables):
             if self.trace_table_sizes[i] != -1:
-                sage_free(self.trace_tables[i])
-        sage_free(self.trace_tables)
-        sage_free(self.trace_table_sizes)
+                sig_free(self.trace_tables[i])
+        sig_free(self.trace_tables)
+        sig_free(self.trace_table_sizes)
 
         for i in range(self.bc_len+1):
             ZZ_delete(self.b[i])
@@ -200,10 +201,10 @@ cdef class _ellff_EllipticCurve_c:
             ZZ_delete(self.b_star[i])
             ZZ_delete(self.c_star[i])
 
-        sage_free(self.b)
-        sage_free(self.c)
-        sage_free(self.b_star)
-        sage_free(self.c_star)
+        sig_free(self.b)
+        sig_free(self.c)
+        sig_free(self.b_star)
+        sig_free(self.c_star)
 
     def _build_euler_table(self, n):
         self._allocate_table(n, self.q**n+1)
@@ -252,14 +253,14 @@ cdef class _ellff_EllipticCurve_c:
     def _allocate_table(self, n, size):
         if self.trace_table_sizes[n] == -1:
             self.trace_tables[n] \
-                = <long*>sage_malloc(sizeof(long)*size)
+                = <long*>sig_malloc(sizeof(long)*size)
             self.trace_table_sizes[n] = size
         elif self.trace_table_sizes[n] != size:
             raise RuntimeError("table size is wrong")
 
     def _deallocate_table(self, i):
         assert self.trace_table_sizes[i] > 0
-        sage_free(self.trace_tables[i])
+        sig_free(self.trace_tables[i])
         self.trace_table_sizes[i] = -1
 
     def _num_trace_tables(self):
@@ -520,7 +521,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         ellff_F = F2
 
         cdef ZZ_pEX_c **divisors
-        divisors = <ZZ_pEX_c**>sage_malloc(sizeof(ZZ_pEX_c*)*9)
+        divisors = <ZZ_pEX_c**>sig_malloc(sizeof(ZZ_pEX_c*)*9)
         for i in range(9):
             divisors[i] = ZZ_pEX_new()
 
@@ -596,7 +597,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         # clean up allocated memory
         for i in range(9):
             ZZ_pEX_delete(divisors[i])
-        sage_free(divisors)
+        sig_free(divisors)
 
         ZZ_pEX_delete(a4)
         ZZ_pEX_delete(a6)
@@ -1572,9 +1573,9 @@ def jacobi_sum(p, n, d, verbose=False):
 
     # allocate memory for Jacobi sum
     cdef ZZ_c   ***sum
-    sum = <ZZ_c***>sage_malloc(sizeof(ZZ_c**)*d)
+    sum = <ZZ_c***>sig_malloc(sizeof(ZZ_c**)*d)
     for i in range(d):
-        sum[i] = <ZZ_c**>sage_malloc(sizeof(ZZ_c*)*d)
+        sum[i] = <ZZ_c**>sig_malloc(sizeof(ZZ_c*)*d)
         for j in range(d):
             sum[i][j] = ZZ_new()
 
@@ -1603,8 +1604,8 @@ def jacobi_sum(p, n, d, verbose=False):
     for i in range(d):
         for j in range(d):
             ZZ_delete(sum[i][j])
-        sage_free(sum[i])
-    sage_free(sum)
+        sig_free(sum[i])
+    sig_free(sum)
 
     return A
 

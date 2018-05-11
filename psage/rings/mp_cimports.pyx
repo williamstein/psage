@@ -3,9 +3,10 @@ Standard cimports for working with multiprecision numbers.
 
 
 """
-include 'sage/ext/stdsage.pxi' 
-include "sage/ext/cdefs.pxi"
-include 'cysignals/signals.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from stdsage cimport PY_NEW
+from sage.libs.gmp.all cimport *
 from sage.libs.mpfr cimport *
 
 from sage.rings.complex_mpc cimport * 

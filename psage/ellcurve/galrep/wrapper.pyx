@@ -29,9 +29,9 @@ AUTHOR:
 #################################################################################
 
 
-include "stdsage.pxi"
-include "cdefs.pxi"
-include 'cysignals/signals.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
 from sage.rings.integer cimport Integer
 
 cdef extern from "galrep.h":
@@ -144,13 +144,13 @@ cdef class GalRep:
             raise ValueError, "max must be bigger than min"
         if max > GALREP_MAX_ELL:
             raise ValueError, "max must be <= %s"%GALREP_MAX_ELL
-        cdef int* ccs = <int*> sage_malloc(sizeof(int)*len(self.primes))
+        cdef int* ccs = <int*> sig_malloc(sizeof(int)*len(self.primes))
         cdef int i, a = galrep_ec_modl_images (ccs, min, max, A.value, B.value, 0)
         cdef list v = []
         for i in range(len(self.primes)):
             if self.primes[i] > max: break
             v.append(ccs[i])
-        sage_free(ccs)
+        sig_free(ccs)
         return v
 
     def non_surjective_primes(self, Integer A, Integer B, int min=2, int max=59):

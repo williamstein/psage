@@ -32,8 +32,8 @@ AUTHOR:
 from sage.matrix.all import matrix
 from sage.rings.all import QQ, ZZ, Integer
 
-include 'stdsage.pxi'
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 def test_contfrac_q(a, b):
     """
@@ -134,7 +134,7 @@ cdef class ModularSymbolMap:
         
         X, self.denom = C._clear_denom()
         # Now store in a C data structure the entries of X (as long's)
-        self.X = <long*>sage_malloc(sizeof(long*)*X.nrows()*X.ncols())
+        self.X = <long*>sig_malloc(sizeof(long*)*X.nrows()*X.ncols())
         cdef Py_ssize_t i, j, n
         n = 0
         for a in X.list():
@@ -191,7 +191,7 @@ cdef class ModularSymbolMap:
 
     def __dealloc__(self):
         if self.X:
-            sage_free(self.X)
+            sig_free(self.X)
 
     cdef int evaluate(self, long v[MAX_DEG], long a, long b) except -1:
         cdef long q[MAX_CONTFRAC]

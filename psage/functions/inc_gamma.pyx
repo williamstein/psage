@@ -30,8 +30,9 @@ Conventions for return codes:
  '-1'- error in input parameters
  
 """
-#include "sage/ext/cdefs.pxi"
-include "sage/ext/stdsage.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
 ## For multiprecision support
 cdef mpfr_rnd_t rnd_re
 rnd_re = MPFR_RNDN

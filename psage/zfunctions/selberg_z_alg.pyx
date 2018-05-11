@@ -1,8 +1,31 @@
 # cython: profile=True
 #clib mpc gmp
-include "cysignals/signals.pxi"
-include "sage/ext/cdefs.pxi"
-include "sage/ext/stdsage.pxi"
+#################################################################################
+#
+# (c) Copyright 2018 Fredrik Stromberg <fredrik314@gmail.com>
+#
+#  This file is part of PSAGE
+#
+#  PSAGE is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+# 
+#  PSAGE is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# 
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#################################################################################
+r"""
+Cython algorithms for Selberg Zeta functions.
+
+"""
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 import sys
 import mpmath    
@@ -34,7 +57,7 @@ from psage.rings.mpc_extras cimport _mpc_mul,_mpc_mul_fr,_mpc_add,_mpc_set
 #from libc.math cimport sin as dsin
 #from libc.math cimport cos as dcos
 
-#from sage.ext.memory cimport check_allocarray,sage_free
+#from sage.ext.memory cimport check_allocarray,sig_free
 
 import numpy as np
 cimport numpy as cnp
@@ -169,7 +192,7 @@ cpdef trop_approximation(Matrix_complex_dense A, Matrix_integer_dense B, int M0,
         for i in range(dim):
             for j in range(dim):
                 print "B[{0}][{1}]={2}".format(i,j,B[i][j])
-    #Nij =  <mpc_t *> sage_malloc(sizeof(*int)*(dim))
+    #Nij =  <mpc_t *> sig_malloc(sizeof(*int)*(dim))
     #print "in trop_approx 1!"
     if approx_type==0:
         setup_approximation(A._matrix, M0,  B._matrix, dim,  q, Nmax, z,llv,rnd,rnd_re,verbose)
@@ -349,7 +372,7 @@ cdef setup_approximation(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, int 
     if Z<>NULL:
         for n from 0 <= n < 2*M+1:
             mpc_clear(Z[n])
-        sage_free(Z)
+        sig_free(Z)
     if lsum<>NULL:
         for n from 0 <= n < 2*M+1:
             if lsum[n]<>NULL:
@@ -357,30 +380,30 @@ cdef setup_approximation(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, int 
                     if lsum[n][i]<>NULL:
                         for j from 0<= j < dim:
                             mpc_clear(lsum[n][i][j])
-                        sage_free(lsum[n][i])
-                sage_free(lsum[n])
-        sage_free(lsum)
+                        sig_free(lsum[n][i])
+                sig_free(lsum[n])
+        sig_free(lsum)
     if abN<>NULL:
         for i in range(dim):
             if abN[i]<>NULL:
-                sage_free(abN[i])
-        sage_free(abN)    
+                sig_free(abN[i])
+        sig_free(abN)    
     if twozn<>NULL:
         for n in range(2*M+1):
             mpc_clear(twozn[n])
-        sage_free(twozn)
+        sig_free(twozn)
     if q>3:
         if lpow<>NULL:
             for n in range(2*M+1):
                 mpc_clear(lpow[n])
-            sage_free(lpow)
+            sig_free(lpow)
         if npow<>NULL:
             for i in range(Nmax):
                 if npow[i]<>NULL:
                     for n in range(2*M+1):
                         mpc_clear(npow[i][n])
-                    sage_free(npow[i])
-            sage_free(npow)
+                    sig_free(npow[i])
+            sig_free(npow)
     sig_off()
     #return
 
@@ -609,10 +632,10 @@ cdef setup_approximation_sym(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, 
                         for n from 0 <= n < 2*M+1:
                             mpc_clear(Z[i][j][n][0])
                             mpc_clear(Z[i][j][n][1])
-                            sage_free(Z[i][j][n])
-                        sage_free(Z[i][j])
-                sage_free(Z[i])
-        sage_free(Z)
+                            sig_free(Z[i][j][n])
+                        sig_free(Z[i][j])
+                sig_free(Z[i])
+        sig_free(Z)
     # if lsum<>NULL:
     #     for n from 0 <= n < 2*M+1:
     #         if lsum[n]<>NULL:
@@ -620,26 +643,26 @@ cdef setup_approximation_sym(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, 
     #                 if lsum[n][i]<>NULL:
     #                     for j from 0<= j < dim:
     #                         mpc_clear(lsum[n][i][j])
-    #                     sage_free(lsum[n][i])
-    #             sage_free(lsum[n])
-    #     sage_free(lsum)
+    #                     sig_free(lsum[n][i])
+    #             sig_free(lsum[n])
+    #     sig_free(lsum)
     
     if ajpow<>NULL:
         for i in range(sym_dim):
             if ajpow[i]<>NULL:
                 for n in range(M+1):
                     mpfr_clear(ajpow[i][n])
-                sage_free(ajpow[i])
-        sage_free(ajpow)    
+                sig_free(ajpow[i])
+        sig_free(ajpow)    
     if twozn<>NULL:
         for n in range(2*M+1):
             mpc_clear(twozn[n])
-        sage_free(twozn)
+        sig_free(twozn)
     if q>3:
         if lpow<>NULL:
             for n in range(2*M+1):
                 mpc_clear(lpow[n])
-            sage_free(lpow)     
+            sig_free(lpow)     
     sig_off()
     #return
                     #print "A[",i*(M+1)+n,",",j*(M+1)+k,"]=",print_mpc(w)
@@ -906,22 +929,22 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
     if Z<>NULL:
         for n in range(r2-r1+1):
             mpc_clear(Z[n])
-        sage_free(Z)
+        sig_free(Z)
     if ajpow<>NULL:
         for k in range(k2):
             mpfr_clear(ajpow[k])
-        sage_free(ajpow)    
+        sig_free(ajpow)    
     if twozn<>NULL:
         for n in range(0,lmax-lmin):
             mpc_clear(twozn[n])
-        sage_free(twozn)
+        sig_free(twozn)
     if pochammer_vec <> NULL:
         for k in range(k2-k1):
             if pochammer_vec[k]<>NULL:
                 for n in range(r2-r1):
                     mpc_clear(pochammer_vec[k][n])
-                sage_free(pochammer_vec[k])
-        sage_free(pochammer_vec)
+                sig_free(pochammer_vec[k])
+        sig_free(pochammer_vec)
     sig_off()
 
        

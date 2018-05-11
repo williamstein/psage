@@ -1,10 +1,41 @@
+# encoding: utf-8
+# cython: profile=False
+#################################################################################
+#
+# (c) Copyright 2018 Fredrik Stromberg <fredrik314@gmail.com>
+#
+#  This file is part of PSAGE
+#
+#  PSAGE is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+# 
+#  PSAGE is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# 
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# 
+# Based on the file src/sage/modules/vector_rational_dense.pyx with copyright notice:
+###############################################################################
+#   Sage: System for Algebra and Geometry Experimentation    
+#       Copyright (C) 2007 William Stein <wstein@gmail.com>
+#  Distributed under the terms of the GNU General Public License (GPL)
+#                  http://www.gnu.org/licenses/
+###############################################################################
+
+
 """
 Vectors with mpc entries. 
 
+Based on the structure in src/sage/modules/vector_rational_dense.pyx
+
 AUTHOR:
     -- Fredrik Stroemberg (2011)
-#    -- William Stein (2007)
-#    -- Soroosh Yazdani (2007)
 
 EXAMPLES:
     sage: v = vector(QQ,[1,2,3,4,5])
@@ -36,15 +67,8 @@ TESTS:
     True
 """
 
-###############################################################################
-#   Sage: System for Algebra and Geometry Experimentation    
-#       Copyright (C) 2007 William Stein <wstein@gmail.com>
-#  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-###############################################################################
-
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *
 
 from sage.all import FreeModule #,FreeModuleElement,ModuleElement
@@ -78,7 +102,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
         self._parent = parent
         self._base_ring=parent._base
         self._prec = self._base_ring.__prec
-        self._entries = <mpc_t *> sage_malloc(sizeof(mpc_t) * degree)
+        self._entries = <mpc_t *> sig_malloc(sizeof(mpc_t) * degree)
         #print "_inite entries=",<int>self._entries
         #print "_inite pprec=",self._prec
         if self._entries == NULL:
@@ -128,7 +152,7 @@ cdef class Vector_complex_dense(FreeModuleElement):
                 mpc_clear(self._entries[i])
             sig_off()
             #print "clearing python entries"
-            sage_free(self._entries)
+            sig_free(self._entries)
 
     cpdef base_ring(self):
         return self._base_ring

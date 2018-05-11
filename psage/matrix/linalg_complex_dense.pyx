@@ -14,7 +14,8 @@ The main idea is to use QR-reduction computed by Givens rotations for complex ma
 ###
 ###  efficient subroutines for complex dense linear algebra
 ### 
-include 'sage/ext/stdsage.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mpfr_nogil cimport *
 from psage.rings.mpc_extras cimport *
 from sage.rings.complex_mpc cimport MPComplexNumber
@@ -657,7 +658,7 @@ cdef int solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rn
     #print "b/R=",print_mpc(b[n-1])
     for i in xrange(n-2,-1,-1):
         mpc_set_si(s[0],0,rnd)
-        v =<mpc_t *> sage_malloc(sizeof(mpc_t) * n)
+        v =<mpc_t *> sig_malloc(sizeof(mpc_t) * n)
         if v==NULL: return -1
         for j from i <= j < n:
             mpc_init2(v[j],prec)
@@ -673,7 +674,7 @@ cdef int solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rn
         _mpc_div(&b[i],b[i],v[i],s,rnd_re)
         for j from i <= j < n:
             mpc_clear(v[j])
-        sage_free(v)
+        sig_free(v)
     #for j from 0 <= j <n:
     #        print "b[",j,"]",print_mpc(b[j])
     mpc_clear(s[0])

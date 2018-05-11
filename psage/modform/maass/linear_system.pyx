@@ -22,12 +22,9 @@ AUTHOR:
 
 
 """
-#from sage.rings.complex_mpc import MPComplexField
-#from psage.matrix import *
-include "cysignals/signals.pxi"  # ctrl-c interrupt block support
-include "sage/ext/stdsage.pxi"  # ctrl-c interrupt block support
-include "sage/ext/cdefs.pxi"
-#include "sage/ext/gmp.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off  # ctrl-c interrupt block support
+from sage.libs.gmp.all cimport *
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re
 rnd = MPC_RNDNN
@@ -256,19 +253,19 @@ cpdef lin_solve_w_filter(Matrix_complex_dense A,Matrix_complex_dense B,dict setC
         print "nset=",nset
     if B.nrows()<>nrow:
         raise ArithmeticError,"Incompatible RHS and LHS!"
-    setc = <int*>sage_malloc(sizeof(int)*nset)
+    setc = <int*>sig_malloc(sizeof(int)*nset)
     cdef int index_to_skip = len(skipping)
-    setc_ix = <int*>sage_malloc(sizeof(int)*index_to_skip)
+    setc_ix = <int*>sig_malloc(sizeof(int)*index_to_skip)
     for i in range(index_to_skip):
         setc_ix[i]=skipping[i]
     if verbose>0:
         print "Real number of rows=",nrow
-    C = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
-    values = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
+    C = <mpc_t **>sig_malloc(sizeof(mpc_t*)*nrhs)
+    values = <mpc_t **>sig_malloc(sizeof(mpc_t*)*nrhs)
     cdef int roffs=0,coffs=0,rcont=0,ccont=0
     nrow = A.nrows()
     for i in range(nrhs):
-        C[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*nrow)
+        C[i]=<mpc_t*>sig_malloc(sizeof(mpc_t)*nrow)
         for j in range(nrow):
             mpc_init2(C[i][j],prec)            
     if verbose>0:
@@ -304,10 +301,10 @@ cpdef lin_solve_w_filter(Matrix_complex_dense A,Matrix_complex_dense B,dict setC
             if C[i]<>NULL:
                 for j in range(nrow):
                     mpc_clear(C[i][j])
-                sage_free(C[i])
-        sage_free(C)
-    sage_free(setc)
-    sage_free(setc_ix)
+                sig_free(C[i])
+        sig_free(C)
+    sig_free(setc)
+    sig_free(setc_ix)
     return Cret
     
 @cython.cdivision(True)
@@ -331,12 +328,12 @@ cpdef lin_solve_w_filter(Matrix_complex_dense A,Matrix_complex_dense B,dict setC
 #     mpfr_init2(rtemp,prec); mpfr_init2(tabs,prec)
 #     cdef int *piv
 #     cdef int *used
-#     piv=<int*>sage_malloc(sizeof(int)*N)
-#     used=<int*>sage_malloc(sizeof(int)*N)
+#     piv=<int*>sig_malloc(sizeof(int)*N)
+#     used=<int*>sig_malloc(sizeof(int)*N)
 #     if C==NULL:
-#         C=<mpc_t**>sage_malloc(sizeof(mpc_t*)*num_rhs)
+#         C=<mpc_t**>sig_malloc(sizeof(mpc_t*)*num_rhs)
 #         for j from 0<=j<num_rhs:
-#             C[j]=<mpc_t*>sage_malloc(sizeof(mpc_t*)*N)
+#             C[j]=<mpc_t*>sig_malloc(sizeof(mpc_t*)*N)
 #     for j in range(N):
 #         piv[j]=0
 #         used[j]=0
@@ -394,9 +391,9 @@ cpdef lin_solve_w_filter(Matrix_complex_dense A,Matrix_complex_dense B,dict setC
 #                 print "Set C[{0}] from system to {1}".format(m,tempc)
 #         #print "C0[",m,"]=",C[m]
 #     if piv<>NULL:
-#         sage_free(piv)
+#         sig_free(piv)
 #     if used<>NULL:
-#         sage_free(used)
+#         sig_free(used)
 #     mpc_clear(ctemp)
 #     mpfr_clear(tabs); mpfr_clear(rtemp)
 
@@ -425,12 +422,12 @@ cdef Gauss_elim_filter(mpc_t** A,mpc_t** B,int N,int num_rhs,int num_set,mpc_t**
     mpfr_init2(rtemp,prec); mpfr_init2(tabs,prec)
     cdef int *piv
     cdef int *used
-    piv=<int*>sage_malloc(sizeof(int)*N)
-    used=<int*>sage_malloc(sizeof(int)*N)
+    piv=<int*>sig_malloc(sizeof(int)*N)
+    used=<int*>sig_malloc(sizeof(int)*N)
     if C==NULL:
-        C=<mpc_t**>sage_malloc(sizeof(mpc_t*)*num_rhs)
+        C=<mpc_t**>sig_malloc(sizeof(mpc_t*)*num_rhs)
         for j from 0<=j<num_rhs:
-            C[j]=<mpc_t*>sage_malloc(sizeof(mpc_t*)*N)
+            C[j]=<mpc_t*>sig_malloc(sizeof(mpc_t*)*N)
     for j in range(N):
         piv[j]=0
         do_cont=0
@@ -513,9 +510,9 @@ cdef Gauss_elim_filter(mpc_t** A,mpc_t** B,int N,int num_rhs,int num_set,mpc_t**
                 
         #print "C0[",m,"]=",C[m]
     if piv<>NULL:
-        sage_free(piv)
+        sig_free(piv)
     if used<>NULL:
-        sage_free(used)
+        sig_free(used)
     mpc_clear(ctemp)
     mpc_clear(t[0])
     mpc_clear(t[1])
@@ -547,21 +544,21 @@ cdef Gauss_elim_filter(mpc_t** A,mpc_t** B,int N,int num_rhs,int num_set,mpc_t**
 #         print "nset=",nset
 #     if RHS.nrows()<>nrow:
 #         raise ArithmeticError,"Incompatible RHS and LHS!"
-#     setc = <int*>sage_malloc(sizeof(int)*nset)
+#     setc = <int*>sig_malloc(sizeof(int)*nset)
 #     cdef int index_to_skip = len(skipping)
-#     setc_ix = <int*>sage_malloc(sizeof(int)*index_to_skip)
+#     setc_ix = <int*>sig_malloc(sizeof(int)*index_to_skip)
 #     for i in range(index_to_skip):
 #         setc_ix[i]=skipping[i]
 #     #nrow = nrow - index_to_skip
 #     #ncol = ncol - index_to_skip
 #     if verbose>0:
 #         print "Real number of rows=",nrow
-#     U = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrow)
-#     C = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
-#     values = <mpc_t **>sage_malloc(sizeof(mpc_t*)*nrhs)
+#     U = <mpc_t **>sig_malloc(sizeof(mpc_t*)*nrow)
+#     C = <mpc_t **>sig_malloc(sizeof(mpc_t*)*nrhs)
+#     values = <mpc_t **>sig_malloc(sizeof(mpc_t*)*nrhs)
 #     cdef int roffs=0,coffs=0,rcont=0,ccont=0
 #     for i in range(nrow):
-#         U[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*(ncol+nrhs))
+#         U[i]=<mpc_t*>sig_malloc(sizeof(mpc_t)*(ncol+nrhs))
 #         for j in range(ncol+nrhs):
 #             mpc_init2(U[i][j],prec)
       
@@ -598,10 +595,10 @@ cdef Gauss_elim_filter(mpc_t** A,mpc_t** B,int N,int num_rhs,int num_set,mpc_t**
 #                 print "Set U[{0}][{1}]=RHS[{2}][{3}]".format(i-roffs,j,i,j-ncol)
 #     nrow = A.nrows()
 #     for i in range(nrhs):
-#         C[i]=<mpc_t*>sage_malloc(sizeof(mpc_t)*nrow)
+#         C[i]=<mpc_t*>sig_malloc(sizeof(mpc_t)*nrow)
 #         for j in range(nrow):
 #             mpc_init2(C[i][j],prec)            
-#         # values[i] = <mpc_t *>sage_malloc(sizeof(mpc_t)*nset)
+#         # values[i] = <mpc_t *>sig_malloc(sizeof(mpc_t)*nset)
 #         # for j in range(nset):
 #         #     c,n = setC[i].keys()[j]
 #         #     setc[j]=n                
@@ -638,15 +635,15 @@ cdef Gauss_elim_filter(mpc_t** A,mpc_t** B,int N,int num_rhs,int num_set,mpc_t**
 #             if U[i]<>NULL:
 #                 for j in range(ncol+nrhs):
 #                     mpc_clear(U[i][j])
-#                 sage_free(U[i])
-#         sage_free(U)
+#                 sig_free(U[i])
+#         sig_free(U)
 #     if C<>NULL:
 #         for i in range(nrhs):
 #             if C[i]<>NULL:
 #                 for j in range(nrow):
 #                     mpc_clear(C[i][j])
-#                 sage_free(C[i])
-#         sage_free(C)
+#                 sig_free(C[i])
+#         sig_free(C)
 
 #     # if values<>NULL:
 #     #     for i in range(nrhs):
@@ -655,10 +652,10 @@ cdef Gauss_elim_filter(mpc_t** A,mpc_t** B,int N,int num_rhs,int num_set,mpc_t**
 #     #                 if verbose>1:
 #     #                     print "clearing value[",i,j
 #     #                 mpc_clear(values[i][j])
-#     #             sage_free(values[i])
-#     #     sage_free(values)
-#     sage_free(setc)
-#     sage_free(setc_ix)
+#     #             sig_free(values[i])
+#     #     sig_free(values)
+#     sig_free(setc)
+#     sig_free(setc_ix)
 #     return Cret
         
 

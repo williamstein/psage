@@ -27,9 +27,11 @@ AUTHOR:
 
 """
 
-include "cysignals/signals.pxi" 
-include "sage/ext/stdsage.pxi"  
-include "sage/ext/cdefs.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
+from libc.stdio cimport *
+
 
 from psage.groups.permutation_alg cimport MyPermutation,MyPermutationIterator,CycleCombinationIterator,print_vec,_conjugate_perm,_are_eq_vec,transposition,_mult_perm_unsafe,are_transitive_perm_c,perm_to_cycle_c,are_conjugate_perm,get_conjugating_perm_list,get_conjugating_perm_ptr_unsafe,num_cycles_c,_is_in_list,are_mod1_equivalent_c
 from psage.groups.permutation_alg import verbosity,sort_perms,perm_to_cycle,are_mod1_equivalent
@@ -91,17 +93,17 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef MyPermutation S,R,Sp,Tp,Spc,Stest,Rtest,Rp,Rpc
     cdef MyPermutation pR,p,Spp,S_canonical
 
-    Sptr = <int*>sage_malloc(sizeof(int)*mu)
+    Sptr = <int*>sig_malloc(sizeof(int)*mu)
     if not Sptr: raise MemoryError
-    Tptr = <int*>sage_malloc(sizeof(int)*mu)
+    Tptr = <int*>sig_malloc(sizeof(int)*mu)
     if not Tptr: raise MemoryError
-    cycle = <int*> sage_malloc(sizeof(int)*mu)
+    cycle = <int*> sig_malloc(sizeof(int)*mu)
     if not cycle: raise MemoryError
-    cycle_lens = <int*> sage_malloc(sizeof(int)*mu)
+    cycle_lens = <int*> sig_malloc(sizeof(int)*mu)
     if not cycle_lens: raise MemoryError
-    rr2=<int *>sage_malloc(sizeof(int)*mu)
+    rr2=<int *>sig_malloc(sizeof(int)*mu)
     if not rr2: raise MemoryError
-    rs=<int *>sage_malloc(sizeof(int)*mu)
+    rs=<int *>sig_malloc(sizeof(int)*mu)
     if not rs: raise MemoryError
     cdef int j
     cdef long i,ii
@@ -145,7 +147,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         rfx_list = [1]
         
     cdef int* rfx = NULL
-    rfx = <int*>sage_malloc(sizeof(int)*e3)
+    rfx = <int*>sig_malloc(sizeof(int)*e3)
     if rfx == NULL:
         raise MemoryError
     for i in range(e3):
@@ -201,17 +203,17 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     list_of_groups=[] 
     cdef int len_list_of_R 
 
-    rcycle_lens = <int*>sage_malloc(sizeof(int)*mu)
+    rcycle_lens = <int*>sig_malloc(sizeof(int)*mu)
     if not rcycle_lens: raise MemoryError
-    Rcycles = <int*>sage_malloc(sizeof(int*)*mu*mu)
+    Rcycles = <int*>sig_malloc(sizeof(int*)*mu*mu)
     if not Rcycles: raise MemoryError
-    gotten = <int *>sage_malloc(sizeof(int)*mu)
+    gotten = <int *>sig_malloc(sizeof(int)*mu)
     if not gotten: raise MemoryError
     #DEB sig_on()
     #cdef MyPermutation ptestR
     #ptestR = MyPermutation('(1 3 9)(2 4 10)(5 12 6)(7 11 8)')
     if used==NULL:
-        used = <int *>sage_malloc(sizeof(int)*mu)
+        used = <int *>sig_malloc(sizeof(int)*mu)
     if verbose>=0:
         start = time()
     cdef list Tcyc=[]
@@ -230,7 +232,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     #print "max =", PRI._max_num
     t = 0
     cdef int* Rptr
-    Rptr = <int*>sage_malloc(sizeof(int*)*mu)
+    Rptr = <int*>sig_malloc(sizeof(int*)*mu)
     cdef list Rlist = [0 for j in range(mu)]
     while (mpz_cmp(counter.value,PRI._max_num.value)<=0 and
            (limit<=0 or counter<limit)):        
@@ -423,9 +425,9 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 print ":::::::::::::::: ",r.cycles(),";",(S_canonical*r).cycles()
 
     if gotten<>NULL:
-        sage_free(gotten)
+        sig_free(gotten)
     if rfx<>NULL:
-        sage_free(rfx)
+        sig_free(rfx)
 #    mpz_clear(counter)
     if get_one_rep:
         if congruence==1:
@@ -441,14 +443,14 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 print "We didn't find any subgroups..."
             return []
     if used<>NULL:
-        sage_free(used)
+        sig_free(used)
         used=NULL
     PRI._c_dealloc()
     if Rcycles<>NULL:
-        sage_free(Rcycles)
+        sig_free(Rcycles)
         Rcycles=NULL
     if rcycle_lens<>NULL:
-        sage_free(rcycle_lens)
+        sig_free(rcycle_lens)
     # Now list_of_R contains at least one representative for each group with the correct signature
     #DEB sig_off()
     list_of_R.sort()
@@ -471,7 +473,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     #ptmp1 = MyPermutation([[1, 2, 8],[3, 5, 10],[4],[6],[7, 9, 11]])
     #ptmp2 = MyPermutation([[1, 7, 2], [3, 4, 9], [5, 11, 10], [6, 8, 12]])
     cdef int* plist=NULL
-    plist = <int*>sage_malloc(sizeof(int)*mu)  
+    plist = <int*>sig_malloc(sizeof(int)*mu)  
     for k in range(len_list_of_R):
         Rp = copy(list_of_R[k])
         Spc = copy(S_canonical)
@@ -645,7 +647,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
         print "Number of groups:",len(list_of_groups)
     cdef int nlr = len(list_of_R)
     if plist<>NULL:
-        sage_free(plist)
+        sig_free(plist)
 
 #### CHECK
     if check==1:
@@ -823,19 +825,19 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 if isinstance(v,MyPermutation):
                     v.set_rep(0)
     if rr2<>NULL:
-        sage_free(rr2)
+        sig_free(rr2)
         rr2=NULL
     if rs<>NULL:
-        sage_free(rs)
+        sig_free(rs)
         rs=NULL
     if Sptr<>NULL:
-        sage_free(Sptr)
+        sig_free(Sptr)
     if Tptr<>NULL:
-        sage_free(Tptr)
+        sig_free(Tptr)
     if cycle<>NULL:
-        sage_free(cycle); cycle=NULL
+        sig_free(cycle); cycle=NULL
     if cycle_lens<>NULL:
-        sage_free(cycle_lens); cycle_lens=NULL
+        sig_free(cycle_lens); cycle_lens=NULL
 
     #sig_off()
     return d
@@ -874,11 +876,11 @@ cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi
     cdef int numr = len(listGin)
     cdef int* checked=NULL
     cdef int t=0
-    pp_entries = <int*>sage_malloc(sizeof(int)*mu)
+    pp_entries = <int*>sig_malloc(sizeof(int)*mu)
     if pp_entries==NULL:
         raise MemoryError
     pp = MyPermutation(length=mu,rep=0)
-    checked = <int*>sage_malloc(numr*sizeof(int))
+    checked = <int*>sig_malloc(numr*sizeof(int))
     for i in range(numr):
         checked[i]=0
     if verbose>0:
@@ -987,7 +989,7 @@ cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi
                         pi = pp.inverse(); pi.set_rep(0)
                         conjugate_maps[listGin[j]]['pgl'].append(pi)
     if pp_entries<>NULL:
-        sage_free(pp_entries)
+        sig_free(pp_entries)
     #if R in conjugates.keys():
     #    for R1 in conjugates[R]['psl']:
     ## in the list of PGL-conjugates we want to only have representatives
@@ -1046,7 +1048,7 @@ cpdef tuple find_conjugate_pairs_old(list listGin, int mu, int verbose=0,int mpi
     #             print "new list=",conjugates[grp]
     #             print "new list=",conjugate_maps[grp]
     if checked<>NULL:
-        sage_free(checked)
+        sig_free(checked)
     return conjugates,conjugate_maps,Gmodpsl,Gmodpgl
 
 
@@ -1066,7 +1068,7 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
     cdef list Gmodpsl_tmp
     cdef int i,j,k
     pp = MyPermutation(length=mu,rep=0)
-    checked = <int*>sage_malloc(numr*sizeof(int))
+    checked = <int*>sig_malloc(numr*sizeof(int))
     for i in range(numr):
         checked[i]=0
     if verbose>=0:
@@ -1078,7 +1080,7 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
 #    SS = MyPermutation('(1)(2 3)(4 5)(6 7)(8 9)(10 11)')
 #    RR = MyPermutation('(1 3 6)(2)(4)(5 7 8)(9 10 11)')
     cdef int* pp_entries = NULL
-    pp_entries = <int*>sage_malloc(sizeof(int)*mu)
+    pp_entries = <int*>sig_malloc(sizeof(int)*mu)
     if pp_entries==NULL:
         raise MemoryError
     cdef MyPermutation ppp
@@ -1211,9 +1213,9 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
 #    for S,R in conjugates.keys():
 #        print S,R
     if checked<>NULL:
-        sage_free(checked)
+        sig_free(checked)
     numr = len(Gmodpsl)
-    checked = <int*>sage_malloc(numr*sizeof(int))
+    checked = <int*>sig_malloc(numr*sizeof(int))
     if checked==NULL: raise MemoryError
     for i in range(numr):
         checked[i]=0
@@ -1268,9 +1270,9 @@ cpdef tuple find_conjugate_pairs(list listGin, int mu, int verbose=0,int mpi_ver
     if verbose>=0:
         print "Groups out:",len(Gmodpsl)
     if checked<>NULL:
-        sage_free(checked)
+        sig_free(checked)
     if pp_entries<>NULL:
-        sage_free(pp_entries)
+        sig_free(pp_entries)
 
     return conjugates,conjugate_maps,Gmodpsl,Gmodpgl
 
@@ -1348,7 +1350,7 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
         print "p=",pp
         print "S^p=",Sc
     cdef int j,t=0
-    pp_entries = <int*>sage_malloc(sizeof(int)*mu)
+    pp_entries = <int*>sig_malloc(sizeof(int)*mu)
     if pp_entries==NULL:
         raise MemoryError
     for j in range(mu):
@@ -1372,7 +1374,7 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
         are_conjugate_wrt_stabiliser(R2,Sc,S2,pp_entries,&t,0,0,verbose-1)
         pp.set_entries(pp_entries)
     if pp_entries<>NULL:
-        sage_free(pp_entries)
+        sig_free(pp_entries)
     if t == 0:
         if ret=='perm':
             return 0, MyPermutation(length=S1.N())
@@ -1425,7 +1427,7 @@ cpdef tuple are_conjugate_pairs_of_perms(MyPermutation S1,MyPermutation R1,MyPer
 
 cpdef are_conjugate_pairs_of_perms_newer(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,str ret='all',int map_from=0,int map_to=0,int verbose=0):
     cdef int* plist
-    plist = <int*>sage_malloc(sizeof(int)*S1.N())
+    plist = <int*>sig_malloc(sizeof(int)*S1.N())
     return  are_conjugate_pairs_of_perms_c(S1,R1,S2,R2,plist,map_from,map_to,verbose)
 
 cdef int are_conjugate_pairs_of_perms_c(MyPermutation S1,MyPermutation R1,MyPermutation S2,MyPermutation R2,int* plist,int map_from=0,int map_to=0,int verbose=0):
@@ -1440,7 +1442,7 @@ cdef int are_conjugate_pairs_of_perms_c(MyPermutation S1,MyPermutation R1,MyPerm
     cdef MyPermutation pp0,pp1,pp,Sc,Scp
     cdef int* pp_entries = NULL
     mu = <int>S1.N()
-    pp_entries = <int*>sage_malloc(sizeof(int)*mu)
+    pp_entries = <int*>sig_malloc(sizeof(int)*mu)
     if pp_entries==NULL:
         raise MemoryError
     p = are_conjugate_perm(R1,R2)
@@ -1477,7 +1479,7 @@ cdef int are_conjugate_pairs_of_perms_c(MyPermutation S1,MyPermutation R1,MyPerm
             print "p*pp=",p*pp
                         #Sc._dealloc_c()
     if pp_entries<>NULL:
-        sage_free(pp_entries)
+        sig_free(pp_entries)
     if t == 0:
         return 0
     #verbose =1
@@ -1723,7 +1725,7 @@ cdef int are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermut
     mu = <int>pR.N()
     # Check that res_entries is allocated
     if res_entries == NULL:
-        res_entries = <int*> sage_malloc(sizeof(int)*mu)
+        res_entries = <int*> sig_malloc(sizeof(int)*mu)
         if res_entries == NULL:
             raise MemoryError
     t[0] = 0
@@ -1749,11 +1751,11 @@ cdef int are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermut
     lR = pR.cycles_ordered_as_list()
     Rcycles = pR.cycles() #o_cycles() #'list')
     Rctype = pR._cycle_type
-    ll = <int*> sage_malloc(sizeof(int)*mu)
+    ll = <int*> sig_malloc(sizeof(int)*mu)
     if ll == NULL:
         raise MemoryError
     cdef int * llR=NULL
-    llR = <int*> sage_malloc(sizeof(int)*mu)
+    llR = <int*> sig_malloc(sizeof(int)*mu)
     if llR == NULL:
         raise MemoryError
     for i in range(mu):
@@ -1762,18 +1764,18 @@ cdef int are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermut
     d3 = num_three_cycles #Rctype.count(3)
     cycles1 = []; cycles3=[]
     cdef int* cycles1ptr = NULL
-    cycles1ptr = <int*>sage_malloc(sizeof(int)*num_one_cycles)
+    cycles1ptr = <int*>sig_malloc(sizeof(int)*num_one_cycles)
     if cycles1ptr == NULL:
         raise MemoryError
     cdef int** cycles3ptr = NULL
-    cycles3ptr = <int**>sage_malloc(sizeof(int*)*num_three_cycles)
+    cycles3ptr = <int**>sig_malloc(sizeof(int*)*num_three_cycles)
     if cycles3ptr == NULL:
         raise MemoryError
     #for i in range(num_one_cycles):
     #    cycles1ptr[i]=cycles1[i][0]
     for i in range(num_three_cycles):
         cycles3ptr[i] = NULL
-        cycles3ptr[i] = <int*>sage_malloc(sizeof(int)*3)
+        cycles3ptr[i] = <int*>sig_malloc(sizeof(int)*3)
         if cycles3ptr[i] == NULL:
             raise MemoryError
     cdef int i1=0,i3=0
@@ -1810,12 +1812,12 @@ cdef int are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermut
     CCIR = CycleCombinationIterator(pR)
     nir = CCIR.length()
     cdef int**  three_cycles_R_ptr = NULL
-    three_cycles_R_ptr = <int**> sage_malloc(sizeof(int*)*(nir))
+    three_cycles_R_ptr = <int**> sig_malloc(sizeof(int*)*(nir))
     if three_cycles_R_ptr == NULL:
         raise MemoryError
     for i in range(nir):
         three_cycles_R_ptr[i] = NULL
-        three_cycles_R_ptr[i] = <int*> sage_malloc(sizeof(int)*mu)
+        three_cycles_R_ptr[i] = <int*> sig_malloc(sizeof(int)*mu)
         if three_cycles_R_ptr[i] == NULL:
             raise MemoryError
         CCIR.permutation_nr_c_ptr(i,three_cycles_R_ptr[i])      
@@ -1918,22 +1920,22 @@ cdef int are_conjugate_wrt_stabiliser(MyPermutation pR,MyPermutation pS,MyPermut
         print "res=",res
         print "t=",t[0]
     if ll <> NULL:
-        sage_free(ll)
+        sig_free(ll)
     if llR <> NULL:
-        sage_free(llR)
+        sig_free(llR)
     if cycles1ptr<>NULL:
-        sage_free(cycles1ptr)    
+        sig_free(cycles1ptr)    
     if cycles3ptr<>NULL:
         for i in range(num_three_cycles):
             if cycles3ptr[i]<>NULL:
-                sage_free(cycles3ptr[i])
-        sage_free(cycles3ptr)
+                sig_free(cycles3ptr[i])
+        sig_free(cycles3ptr)
         cycles3ptr=NULL
     if three_cycles_R_ptr<>NULL:
         for i in range(nir):
             if three_cycles_R_ptr[i] <> NULL:
-                sage_free(three_cycles_R_ptr[i])
-        sage_free(three_cycles_R_ptr)
+                sig_free(three_cycles_R_ptr[i])
+        sig_free(three_cycles_R_ptr)
     return 0
 
 cpdef list flatten_list2d(list l):
@@ -2016,7 +2018,7 @@ cpdef are_transitive_permutations_wmaps(MyPermutation pS,MyPermutation pR,int ve
     cdef MyPermutation pT=pS*pR
     if pS.order()<>2 or pR.order()<>3:
         raise ValueError,"Need pS of order 2 and pR of order 3"
-    gotten = <int *>sage_malloc(sizeof(int)*N)
+    gotten = <int *>sig_malloc(sizeof(int)*N)
     if not gotten: raise MemoryError
     cdef int num,num_old
     cdef int i,j,k,x
@@ -2024,7 +2026,7 @@ cpdef are_transitive_permutations_wmaps(MyPermutation pS,MyPermutation pR,int ve
     cdef int* cycle_lens=NULL
     pT.cycles(order=0)  ## make sure we have the cycle containing 1 first
     cdef int numc = pT.num_cycles()
-#    cdef list cycle_lens = pT.cycle_lens() #<int*>sage_malloc(sizeof(int)*numc)
+#    cdef list cycle_lens = pT.cycle_lens() #<int*>sig_malloc(sizeof(int)*numc)
     if cycle_lens==NULL:
         raise MemoryError
     for i in range(numc):
@@ -2095,11 +2097,11 @@ cpdef are_transitive_permutations_wmaps(MyPermutation pS,MyPermutation pR,int ve
         if num_old==num:
             # we didn't get to the next cycle so we are not transitive
             if cycle_lens<>NULL:
-                sage_free(cycle_lens)
+                sig_free(cycle_lens)
             return 0,{}
         cycle_bd+=cycle_lens[j]
     if cycle_lens<>NULL:
-        sage_free(cycle_lens)
+        sig_free(cycle_lens)
     return 1,maps_list
                 
     #     num_old = num
@@ -2136,10 +2138,10 @@ cpdef are_transitive_permutations_wmaps(MyPermutation pS,MyPermutation pR,int ve
     #             print "maps_list = ",maps_list
     #     if num == num_old:
     #         if num<>N:
-    #             sage_free(gotten)
+    #             sig_free(gotten)
     #             return 0,{}
     #         else:
-    #             sage_free(gotten)
+    #             sig_free(gotten)
     #             return 1,maps_list
-    # sage_free(gotten)
+    # sig_free(gotten)
     # return 0,{}

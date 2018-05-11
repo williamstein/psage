@@ -6,9 +6,6 @@ Note: When the builtin mpc_mul etc. catch up to mine you can delete these routin
 All functions return 0 on success but the only fail which returns an error code is division by 0.
 
 """
-include "sage/ext/stdsage.pxi"
-#include "sage/ext/cdefs.pxi"
-#include "sage/rings/mpc.pxi"
 from psage.rings.mp_cimports cimport *
 
 from sage.rings.complex_mpc import _mpfr_rounding_modes,_mpc_rounding_modes

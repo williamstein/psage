@@ -17,8 +17,8 @@
 r"""
 Algorithms for phase 2 for Maass waveforms
 """
-include "stdsage.pxi"
-include "cysignals/signals.pxi"
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *
 
 
@@ -167,8 +167,8 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
         method='TwoY'
         if method=='TwoY':
             numy=2
-    Yv=<double*>sage_malloc(sizeof(double)*numy)
-    Y2pi=<double*>sage_malloc(sizeof(double)*numy)
+    Yv=<double*>sig_malloc(sizeof(double)*numy)
+    Y2pi=<double*>sig_malloc(sizeof(double)*numy)
     #cdef double nr0,nr1kbes,kbes0,kbes1
     #verbose=S._verbose
     pi=M_PI
@@ -184,29 +184,29 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     cdef list c_evs=S.cusp_evs()
     if not len(c_evs)==nc:
         c_evs = [0 for i in range(len(c_evs),nc)]
-    cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+    cusp_evs=<double complex*>sig_malloc(sizeof(double complex)*nc)
     for i in range(nc):
         cusp_evs[i]=<double complex> CC(c_evs[i])
-    Ctmp = <double complex***>sage_malloc(sizeof(double complex**)*numy)
+    Ctmp = <double complex***>sig_malloc(sizeof(double complex**)*numy)
     for yi in range(numy):
-        Ctmp[yi] = <double complex**>sage_malloc(sizeof(double complex*)*(fstop-fstart))
+        Ctmp[yi] = <double complex**>sig_malloc(sizeof(double complex*)*(fstop-fstart))
         for i in range(fstop-fstart):
-            Ctmp[yi][i] = <double complex*>sage_malloc(sizeof(double complex)*nc*2)
+            Ctmp[yi][i] = <double complex*>sig_malloc(sizeof(double complex)*nc*2)
             for j in range(nc*2):
                 Ctmp[yi][i][j]=0
-    Qfak=<double*>sage_malloc(sizeof(double)*nc)
+    Qfak=<double*>sig_malloc(sizeof(double)*nc)
     if Qfak==NULL: raise MemoryError
-    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Mv=<int**>sig_malloc(sizeof(int*)*nc)
     if Mv==NULL: raise MemoryError
-    Qv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qv=<int**>sig_malloc(sizeof(int*)*nc)
     if Qv==NULL: raise MemoryError
-    symmetric_cusps=<int*>sage_malloc(sizeof(int)*nc)
+    symmetric_cusps=<int*>sig_malloc(sizeof(int)*nc)
     if symmetric_cusps==NULL: raise MemoryError
     for i in range(nc):
-        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
-        Qv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Mv[i]=<int*>sig_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sig_malloc(sizeof(int)*3)
     cdef int* cusp_offsets
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if dim<=0:
         if hasattr(S,"_dim"):
             dim=S._dim
@@ -306,16 +306,16 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     Cnew[j][i][n]=XS[j+fstart][i][n]
     #print "CK=",Cnew[2].keys()
     maass_logger.debug("after!")
-    Cold=<double complex***>sage_malloc(sizeof(double complex**)*(fstop-fstart))
+    Cold=<double complex***>sig_malloc(sizeof(double complex**)*(fstop-fstart))
     for j in range(fstop-fstart):
-        Cold[j]=<double complex**>sage_malloc(sizeof(double complex*)*nc)
+        Cold[j]=<double complex**>sig_malloc(sizeof(double complex*)*nc)
         for i in range(nc):
             if cusp_evs[i]==0 or i==0:
-                Cold[j][i]=<double complex*>sage_malloc(sizeof(double complex)*Mv[i][2])
+                Cold[j][i]=<double complex*>sig_malloc(sizeof(double complex)*Mv[i][2])
                 for n in range(Mv[i][2]):
                     Cold[j][i][n]=<double complex>CC(XS[j][i][n+Mv[i][0]])
             else:
-                Cold[j][i]=<double complex*>sage_malloc(sizeof(double complex)*Mv[i][2])
+                Cold[j][i]=<double complex*>sig_malloc(sizeof(double complex)*Mv[i][2])
                 for n in range(Mv[i][2]):
                     Cold[j][i][n]=cusp_evs[i]*XS[j][0][n+Mv[i][0]]
     # using these we want to compute more
@@ -366,40 +366,40 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
         maass_logger.debug("Qfak[{0}]={1}".format(i,(Qfak[i])))
     sig_off()
     #Ql=2*Q
-    Xm=<double**>sage_malloc(sizeof(double*)*numy)
+    Xm=<double**>sig_malloc(sizeof(double*)*numy)
     if Xm==NULL: raise MemoryError
     for yi in range(numy):
-        Xm[yi]=<double*>sage_malloc(sizeof(double)*Q)
+        Xm[yi]=<double*>sig_malloc(sizeof(double)*Q)
         if Xm[yi] is NULL: raise MemoryError
     maass_logger.debug("Allocated Xm of len {0} x {1}".format(numy,Q))
-    Xpb = <double****> sage_malloc( sizeof(double***) * numy )
+    Xpb = <double****> sig_malloc( sizeof(double***) * numy )
     if Xpb==NULL: raise MemoryError
-    Ypb = <double****> sage_malloc( sizeof(double*** ) * numy )
+    Ypb = <double****> sig_malloc( sizeof(double*** ) * numy )
     if Ypb==NULL: raise MemoryError
-    Cvec = <double complex****>sage_malloc(sizeof(double complex***) * numy )
+    Cvec = <double complex****>sig_malloc(sizeof(double complex***) * numy )
     if Cvec==NULL: raise MemoryError
     for yi in range(numy):
-        Xpb[yi] = <double***> sage_malloc( sizeof(double** ) * nc )
+        Xpb[yi] = <double***> sig_malloc( sizeof(double** ) * nc )
         if Xpb[yi]==NULL: raise MemoryError
-        Ypb[yi] = <double***> sage_malloc( sizeof(double** ) * nc )
+        Ypb[yi] = <double***> sig_malloc( sizeof(double** ) * nc )
         if Ypb[yi]==NULL: raise MemoryError
-        Cvec[yi] = <double complex***>sage_malloc(sizeof(double complex**) * nc )
+        Cvec[yi] = <double complex***>sig_malloc(sizeof(double complex**) * nc )
         if Cvec[yi]==NULL: raise MemoryError
         for i in range(nc):
             Xpb[yi][i]=NULL; Ypb[yi][i]=NULL; Cvec[yi][i]=NULL
-            Xpb[yi][i] = <double**>sage_malloc(sizeof(double*) * nc )
+            Xpb[yi][i] = <double**>sig_malloc(sizeof(double*) * nc )
             if Xpb[yi][i]==NULL: raise MemoryError
-            Ypb[yi][i] = <double**>sage_malloc(sizeof(double*) * nc )
+            Ypb[yi][i] = <double**>sig_malloc(sizeof(double*) * nc )
             if Ypb[yi][i]==NULL: raise MemoryError
-            Cvec[yi][i] = <double complex**>sage_malloc(sizeof(double*) * nc )
+            Cvec[yi][i] = <double complex**>sig_malloc(sizeof(double*) * nc )
             if Cvec[yi][i]==NULL: raise MemoryError
             for j in range(nc):
                 Xpb[yi][i][j]=NULL; Ypb[yi][i][j]=NULL; Cvec[yi][i][j]=NULL
-                Xpb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                Xpb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                 if Xpb[yi][i][j]==NULL: raise MemoryError
-                Ypb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                Ypb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                 if Ypb[yi][i][j]==NULL: raise MemoryError
-                Cvec[yi][i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+                Cvec[yi][i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
                 if Cvec[yi][i][j]==NULL: raise MemoryError
                 for n in range(Ql):
                     Xpb[yi][i][j][n]=<double>0
@@ -411,7 +411,7 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     maass_logger.debug("N1={0}".format(N1))
     maass_logger.debug("Ml,Ql={0},{1}".format(Ml,Ql))
     cdef double *alphas=NULL
-    alphas=<double*>sage_malloc(sizeof(double)*nc)
+    alphas=<double*>sig_malloc(sizeof(double)*nc)
     for i in range(nc):
         alphas[i]=<double>S.alpha(i)[0]
     cdef double complex **** V=NULL
@@ -426,15 +426,15 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     maass_logger.debug("Compute coefficients at cusps from {0} to {1}".format(cuspstart,cuspstop))
 
     cdef int sym_fak
-    V=<double complex****>sage_malloc(sizeof(double complex***)*(numy))
+    V=<double complex****>sig_malloc(sizeof(double complex***)*(numy))
     for yi in range(numy):
-        V[yi]=<double complex***>sage_malloc(sizeof(double complex**)*2*nc) #(cuspbb-cuspa))
+        V[yi]=<double complex***>sig_malloc(sizeof(double complex**)*2*nc) #(cuspbb-cuspa))
         if V[yi]==NULL: raise MemoryError
         for i in range(2*nc): #cuspbb-cuspa):
-            V[yi][i]=<double complex**>sage_malloc(sizeof(double complex*)*(n_step))
+            V[yi][i]=<double complex**>sig_malloc(sizeof(double complex*)*(n_step))
             if V[yi][i]==NULL: raise MemoryError
             for l in range(n_step):
-                V[yi][i][l]=<double complex*>sage_malloc(sizeof(double complex)*(N1))
+                V[yi][i][l]=<double complex*>sig_malloc(sizeof(double complex)*(N1))
                 if V[yi][i][l]==NULL: raise MemoryError
                 for n in range(N1):
                     V[yi][i][l][n]=0
@@ -456,13 +456,13 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     besprec=1.0E-14
     cdef double besmin = 0
     cdef int ncnt=0,redov=0,fi
-    nr = <double**>sage_malloc(sizeof(double*)*numy)
+    nr = <double**>sig_malloc(sizeof(double*)*numy)
     for yi in range(numy):
-        nr[yi] = <double*>sage_malloc(sizeof(double)*nc*2)
-    kbes = <double**>sage_malloc(sizeof(double)*numy)
+        nr[yi] = <double*>sig_malloc(sizeof(double)*nc*2)
+    kbes = <double**>sig_malloc(sizeof(double)*numy)
     for yi in range(numy):
-        kbes[yi] = <double*>sage_malloc(sizeof(double)*nc*2)
-    sqrtY=<double*>sage_malloc(sizeof(double)*numy)
+        kbes[yi] = <double*>sig_malloc(sizeof(double)*nc*2)
+    sqrtY=<double*>sig_malloc(sizeof(double)*numy)
     for yn in range(ynmax):
         try:
             try:
@@ -614,30 +614,30 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Xm<>NULL:
                         for yi in range(numy):
                             if Xm[yi]<>NULL:
-                                sage_free(Xm[yi])
-                        sage_free(Xm)
-                    Xm=<double**>sage_malloc(sizeof(double*)*numy)
+                                sig_free(Xm[yi])
+                        sig_free(Xm)
+                    Xm=<double**>sig_malloc(sizeof(double*)*numy)
                     if Xm==NULL: raise MemoryError
                     #if verbose>3:
                     maass_logger.debug("After deallocating Xm!")
                     for yi in range(numy):
                         Xm[yi]=NULL
-                        Xm[yi]=<double*>sage_malloc(sizeof(double)*Q)                        
+                        Xm[yi]=<double*>sig_malloc(sizeof(double)*Q)                        
                         if Xm[yi] is NULL: raise MemoryError
                         maass_logger.debug("Allocated new Xm of len {0} x {1}".format(numy,Q))
                         for i in range(nc):
                             if Xpb[yi][i]<>NULL:
                                 for j in range(nc):
                                     if Xpb[yi][i][j]<>NULL:
-                                        sage_free(Xpb[yi][i][j])
+                                        sig_free(Xpb[yi][i][j])
                             if Ypb[yi][i]<>NULL:
                                 for j in range(nc):
                                     if Ypb[yi][i][j]<>NULL:
-                                        sage_free(Ypb[yi][i][j])
+                                        sig_free(Ypb[yi][i][j])
                             if Cvec[yi][i]<>NULL:
                                 for j in range(nc):
                                     if Cvec[yi][i][j]<>NULL:
-                                        sage_free(Cvec[yi][i][j])
+                                        sig_free(Cvec[yi][i][j])
                         if verbose>2:
                             maass_logger.debug("After Xm! {0}".format(yi))
                         for i in range(nc):
@@ -645,11 +645,11 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                                 if verbose>3:
                                     maass_logger.debug("Before {0}:{1}:{2}".format(yi,i,j))
                                 Xpb[yi][i][j]=NULL; Ypb[yi][i][j]=NULL; Cvec[yi][i][j]=NULL
-                                Xpb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                                Xpb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                                 if not Xpb[yi][i][j]: raise MemoryError
-                                Ypb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                                Ypb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                                 if not Xpb[yi][i][j]: raise MemoryError
-                                Cvec[yi][i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+                                Cvec[yi][i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
                                 if not Cvec[yi][i][j]: raise MemoryError
                                 if verbose>3:
                                     maass_logger.debug("Before assigning! {0}:{1}".format(yi,j))
@@ -714,26 +714,26 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     ## Deallocating stuff
     #print "too free!"
     if Yv<>NULL:
-        sage_free(Yv)
+        sig_free(Yv)
     if Y2pi<>NULL:
-        sage_free(Y2pi)
+        sig_free(Y2pi)
     if Ctmp<>NULL:
         for yi in range(numy):
             if Ctmp[yi]<>NULL:
                 for j in range(fstop-fstart):
                     if Ctmp[yi][j]<>NULL:
-                        sage_free(Ctmp[yi][j])
-                sage_free(Ctmp[yi])
-        sage_free(Ctmp)
+                        sig_free(Ctmp[yi][j])
+                sig_free(Ctmp[yi])
+        sig_free(Ctmp)
     if Qfak<>NULL:
-        sage_free(Qfak)
+        sig_free(Qfak)
     if Qv<>NULL:
         for i in range(nc):
             if Qv[i]<>NULL:
-                sage_free(Qv[i])
-        sage_free(Qv)
+                sig_free(Qv[i])
+        sig_free(Qv)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
     if Cold<>NULL:
         for j in range(fstop-fstart):
             if Cold[j]<>NULL:
@@ -741,9 +741,9 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if cusp_evs[i]<>0 and i<>0:
                         continue
                     if Cold[j][i]<>NULL:
-                        sage_free(Cold[j][i])
-                sage_free(Cold[j])
-        sage_free(Cold)
+                        sig_free(Cold[j][i])
+                sig_free(Cold[j])
+        sig_free(Cold)
     if Xpb<>NULL:
         for yi in range(numy):
             if Xpb[yi]<>NULL:
@@ -751,10 +751,10 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Xpb[yi][i]<>NULL:
                         for j in range(nc):
                             if Xpb[yi][i][j]<>NULL:
-                                sage_free(Xpb[yi][i][j])
-                        sage_free(Xpb[yi][i])
-                sage_free(Xpb[yi])
-        sage_free(Xpb)
+                                sig_free(Xpb[yi][i][j])
+                        sig_free(Xpb[yi][i])
+                sig_free(Xpb[yi])
+        sig_free(Xpb)
     if Ypb<>NULL:
         for yi in range(numy):
             if Ypb[yi]<>NULL:
@@ -762,10 +762,10 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Ypb[yi][i]<>NULL:
                         for j in range(nc):
                             if Ypb[yi][i][j]<>NULL:
-                                sage_free(Ypb[yi][i][j])
-                        sage_free(Ypb[yi][i])
-                sage_free(Ypb[yi])
-        sage_free(Ypb)
+                                sig_free(Ypb[yi][i][j])
+                        sig_free(Ypb[yi][i])
+                sig_free(Ypb[yi])
+        sig_free(Ypb)
     if Cvec<>NULL:
         for yi in range(numy):
             if Cvec[yi]<>NULL:
@@ -773,25 +773,25 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Cvec[yi][i]<>NULL:
                         for j in range(nc):
                             if Cvec[yi][i][j]<>NULL:
-                                sage_free(Cvec[yi][i][j])
-                        sage_free(Cvec[yi][i])
-                sage_free(Cvec[yi])
-        sage_free(Cvec)
+                                sig_free(Cvec[yi][i][j])
+                        sig_free(Cvec[yi][i])
+                sig_free(Cvec[yi])
+        sig_free(Cvec)
     if Xm<>NULL:
         for yi in range(numy):
             if Xm[yi]<>NULL:
-                sage_free(Xm[yi])
-        sage_free(Xm)
+                sig_free(Xm[yi])
+        sig_free(Xm)
     if nr<>NULL:
         for yi in range(numy):
             if nr[yi]<>NULL:
-                sage_free(nr[yi])
-        sage_free(nr)
+                sig_free(nr[yi])
+        sig_free(nr)
     if nr<>NULL:
         for yi in range(numy):
             if kbes[yi]<>NULL:
-                sage_free(kbes[yi])
-        sage_free(kbes)
+                sig_free(kbes[yi])
+        sig_free(kbes)
     if V<>NULL:
         for yi in range(numy):
             if V[yi]<>NULL:
@@ -799,21 +799,21 @@ cpdef phase_2_cplx_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if V[yi][i]<>NULL:
                         for j in range(n_step):
                             if V[yi][i][j]<>NULL:
-                                sage_free(V[yi][i][j])
-                        sage_free(V[yi][i])
-                sage_free(V[yi])
-        sage_free(V)
+                                sig_free(V[yi][i][j])
+                        sig_free(V[yi][i])
+                sig_free(V[yi])
+        sig_free(V)
     if cusp_evs<>NULL:
-        sage_free(cusp_evs)
+        sig_free(cusp_evs)
     if Mv<>NULL:
         for i in range(nc):
             if Mv[i]<>NULL:
-                sage_free(Mv[i])
-        sage_free(Mv)
+                sig_free(Mv[i])
+        sig_free(Mv)
 
-    sage_free(sqrtY)
-    sage_free(alphas)
-    sage_free(symmetric_cusps)
+    sig_free(sqrtY)
+    sig_free(alphas)
+    sig_free(symmetric_cusps)
     return Cnew
 
 
@@ -890,7 +890,7 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
         maass_logger.debug("Ql={0}".format(Ql))
     ## This is the effective offset at the
     cdef int* cusp_offsets=NULL
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
     for jcusp from 0 <= jcusp < nc:
         cusp_offsets[jcusp]=0
@@ -906,13 +906,13 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
         if jcusp==0 or cusp_evs[jcusp]<>0:
             nc_sym+=1
     cdef double **nvec=NULL
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp from 0<=icusp<nc:
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
     cdef double complex ****ef1=NULL
     cdef double complex ***ef2=NULL
-    ef2 = <double complex***>sage_malloc(sizeof(double complex**)*(cuspB-cuspA))
+    ef2 = <double complex***>sig_malloc(sizeof(double complex**)*(cuspB-cuspA))
     if ef2==NULL: raise MemoryError
     cdef int n1
     cdef int iicusp
@@ -928,42 +928,42 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
             if verbose>0:
                 maass_logger.debug("test1")
             ef2[icusp]=NULL
-            ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*(NB-NA))
+            ef2[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*(NB-NA))
             if ef2[icusp]==NULL: raise MemoryError
             for n in range(NB-NA):
                 #maass_logger.debug("n={0}".format(n))
                 ef2[icusp][n]=NULL
-                ef2[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+                ef2[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
         else:
             if verbose>0:
                 maass_logger.debug("test2")
             ef2[icusp]=NULL
-            ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*2*(NB-NA))
+            ef2[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*2*(NB-NA))
             if ef2[icusp]==NULL: raise MemoryError
             for n in range(NB-NA):
                 #maass_logger.debug("n={0}".format(n))
                 n1 = n + NB-NA
                 ef2[icusp][n]=NULL;  ef2[icusp][n1]=NULL
-                ef2[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+                ef2[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
-                ef2[icusp][n1] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+                ef2[icusp][n1] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n1]==NULL: raise MemoryError
     if verbose>=0:
         maass_logger.debug("here1")
-    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+    ef1 = <double complex****>sig_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError
     for icusp in range(nc):
         ef1[icusp]=NULL
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        ef1[icusp] = <double complex***>sig_malloc(sizeof(double complex**)*nc)
         if ef1[icusp]==NULL: raise MemoryError
         for jcusp in range(nc):
             ef1[icusp][jcusp]=NULL
-            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError
             for n in range(Mv[jcusp][2]):
                 ef1[icusp][jcusp][n]=NULL
-                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
     for jcusp in range(nc):
         
@@ -1055,16 +1055,16 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
     cdef double besarg_old=0.0
     cdef double y,kbes_old=1.0
     cdef double ***kbesvec=NULL
-    kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+    kbesvec=<double***>sig_malloc(sizeof(double**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp from 0<=jcusp<nc:
         #print "allocating kbesvec[",jcusp,"] of size:",Mv[jcusp][2]
-        kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+        kbesvec[jcusp]=<double**>sig_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
             raise MemoryError
         for l from 0<=l<Ml:
-            kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+            kbesvec[jcusp][l]=<double*>sig_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
 
@@ -1177,9 +1177,9 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
             if kbesvec[icusp]<>NULL:
                 for l in range(Ml):
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     if verbose>0:
         maass_logger.debug("deal kbbes1")
     if ef1<>NULL:
@@ -1189,10 +1189,10 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n in range(Mv[icusp][2]):
                             if ef1[jcusp][icusp][n]<>NULL:
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])
+        sig_free(ef1)
     #if verbose>0:
     #    print "NB-NA=",NB-NA
     if ef2<>NULL:
@@ -1208,21 +1208,21 @@ cdef compute_V_cplx_dp_sym_for_phase2_sym(double complex ***V,
                     #if verbose>0:
                     #    print "n=",n
                     if ef2[icusp][n]<>NULL:
-                        sage_free(ef2[icusp][n])
+                        sig_free(ef2[icusp][n])
                     if Mv[icusp][0]<0:
                         n1 = n + NB - NA
                         if ef2[icusp][n1]<>NULL:
-                            sage_free(ef2[icusp][n1])
-                sage_free(ef2[icusp])
-        sage_free(ef2)
+                            sig_free(ef2[icusp][n1])
+                sig_free(ef2[icusp])
+        sig_free(ef2)
 
     if nvec<>NULL:
         for icusp in range(nc):
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
 
 
 
@@ -1386,7 +1386,7 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
         maass_logger.debug("Ql={0}".format(Ql))
     ## This is the effective offset at the
     cdef int* cusp_offsets=NULL
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
     for jcusp from 0 <= jcusp < nc:
         cusp_offsets[jcusp]=0
@@ -1402,13 +1402,13 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
         if jcusp==0 or cusp_evs[jcusp]<>0:
             nc_sym+=1
     cdef double **nvec=NULL
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp from 0<=icusp<nc:
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
     cdef double complex ****ef1=NULL
     cdef double complex ***ef2=NULL
-    ef2 = <double complex***>sage_malloc(sizeof(double complex**)*(cuspB-cuspA))
+    ef2 = <double complex***>sig_malloc(sizeof(double complex**)*(cuspB-cuspA))
     if ef2==NULL: raise MemoryError
     cdef int n1
     cdef int iicusp
@@ -1424,42 +1424,42 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
             if verbose>0:
                 maass_logger.debug("test1")
             ef2[icusp]=NULL
-            ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*(NB-NA))
+            ef2[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*(NB-NA))
             if ef2[icusp]==NULL: raise MemoryError
             for n in range(NB-NA):
                 #maass_logger.debug("n={0}".format(n))
                 ef2[icusp][n]=NULL
-                ef2[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+                ef2[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
         else:
             if verbose>0:
                 maass_logger.debug("test2")
             ef2[icusp]=NULL
-            ef2[icusp] = <double complex**>sage_malloc(sizeof(double complex*)*2*(NB-NA))
+            ef2[icusp] = <double complex**>sig_malloc(sizeof(double complex*)*2*(NB-NA))
             if ef2[icusp]==NULL: raise MemoryError
             for n in range(NB-NA):
                 #maass_logger.debug("n={0}".format(n))
                 n1 = n + NB-NA
                 ef2[icusp][n]=NULL;  ef2[icusp][n1]=NULL
-                ef2[icusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+                ef2[icusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
-                ef2[icusp][n1] = <double complex*>sage_malloc(sizeof(double complex)*Qv[icusp][2])
+                ef2[icusp][n1] = <double complex*>sig_malloc(sizeof(double complex)*Qv[icusp][2])
                 if ef2[icusp][n1]==NULL: raise MemoryError
     if verbose>2:
         maass_logger.debug("here1")
-    ef1 = <double complex****>sage_malloc(sizeof(double complex***)*nc)
+    ef1 = <double complex****>sig_malloc(sizeof(double complex***)*nc)
     if ef1==NULL: raise MemoryError
     for icusp in range(nc):
         ef1[icusp]=NULL
-        ef1[icusp] = <double complex***>sage_malloc(sizeof(double complex**)*nc)
+        ef1[icusp] = <double complex***>sig_malloc(sizeof(double complex**)*nc)
         if ef1[icusp]==NULL: raise MemoryError
         for jcusp in range(nc):
             ef1[icusp][jcusp]=NULL
-            ef1[icusp][jcusp] = <double complex**>sage_malloc(sizeof(double complex*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double complex**>sig_malloc(sizeof(double complex*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError
             for n in range(Mv[jcusp][2]):
                 ef1[icusp][jcusp][n]=NULL
-                ef1[icusp][jcusp][n] = <double complex*>sage_malloc(sizeof(double complex)*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double complex*>sig_malloc(sizeof(double complex)*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
     for jcusp in range(nc):
         for n in range(Mv[jcusp][2]):
@@ -1519,16 +1519,16 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
     cdef double besarg_old=0.0
     cdef double y,kbes_old=1.0
     cdef double ***kbesvec=NULL
-    kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+    kbesvec=<double***>sig_malloc(sizeof(double**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp from 0<=jcusp<nc:
         #print "allocating kbesvec[",jcusp,"] of size:",Mv[jcusp][2]
-        kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+        kbesvec[jcusp]=<double**>sig_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
             raise MemoryError
         for l from 0<=l<Ml:
-            kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+            kbesvec[jcusp][l]=<double*>sig_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
 
@@ -1625,9 +1625,9 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
             if kbesvec[icusp]<>NULL:
                 for l in range(Ml):
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     if verbose>0:
         maass_logger.debug("deal kbbes1")
     if ef1<>NULL:
@@ -1637,10 +1637,10 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n in range(Mv[icusp][2]):
                             if ef1[jcusp][icusp][n]<>NULL:
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])
+        sig_free(ef1)
     #if verbose>0:
     #    print "NB-NA=",NB-NA
     if ef2<>NULL:
@@ -1656,21 +1656,21 @@ cdef compute_V_cplx_dp_sym_for_phase2(double complex ***V,
                     #if verbose>0:
                     #    print "n=",n
                     if ef2[icusp][n]<>NULL:
-                        sage_free(ef2[icusp][n])
+                        sig_free(ef2[icusp][n])
                     if Mv[icusp][0]<0:
                         n1 = n + NB - NA
                         if ef2[icusp][n1]<>NULL:
-                            sage_free(ef2[icusp][n1])
-                sage_free(ef2[icusp])
-        sage_free(ef2)
+                            sig_free(ef2[icusp][n1])
+                sig_free(ef2[icusp])
+        sig_free(ef2)
 
     if nvec<>NULL:
         for icusp in range(nc):
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
 
         
 cpdef get_good_Y_for_n(double Y0,double R,int n,double eps):
@@ -1766,8 +1766,8 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
         method='TwoY'
         if method=='TwoY':
             numy=2
-        Yv=<double*>sage_malloc(sizeof(double)*numy)
-    Y2pi=<double*>sage_malloc(sizeof(double)*numy)
+        Yv=<double*>sig_malloc(sizeof(double)*numy)
+    Y2pi=<double*>sig_malloc(sizeof(double)*numy)
     #cdef double nr0,nr1kbes,kbes0,kbes1
     #verbose=S._verbose
     pi=M_PI
@@ -1785,32 +1785,32 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     cdef list c_evs=S.cusp_evs()
     if not len(c_evs)==nc:
         c_evs = [0 for i in range(len(c_evs),nc)]
-    cusp_evs=<double*>sage_malloc(sizeof(double)*nc)
+    cusp_evs=<double*>sig_malloc(sizeof(double)*nc)
     for i in range(nc):
         cusp_evs[i]=<double> CC(c_evs[i])
-    cusp_evs_cplx=<double complex*>sage_malloc(sizeof(double)*nc)
+    cusp_evs_cplx=<double complex*>sig_malloc(sizeof(double)*nc)
     for i in range(nc):
         cusp_evs_cplx[i]=<double complex> CC(c_evs[i])
-    Ctmp = <double***>sage_malloc(sizeof(double**)*numy)
+    Ctmp = <double***>sig_malloc(sizeof(double**)*numy)
     for yi in range(numy):
-        Ctmp[yi] = <double**>sage_malloc(sizeof(double*)*(fstop-fstart))
+        Ctmp[yi] = <double**>sig_malloc(sizeof(double*)*(fstop-fstart))
         for i in range(fstop-fstart):
-            Ctmp[yi][i] = <double*>sage_malloc(sizeof(double)*nc*2)
+            Ctmp[yi][i] = <double*>sig_malloc(sizeof(double)*nc*2)
             for j in range(nc*2):
                 Ctmp[yi][i][j]=0
-    Qfak=<double*>sage_malloc(sizeof(double)*nc)
+    Qfak=<double*>sig_malloc(sizeof(double)*nc)
     if Qfak==NULL: raise MemoryError
-    Mv=<int**>sage_malloc(sizeof(int*)*nc)
+    Mv=<int**>sig_malloc(sizeof(int*)*nc)
     if Mv==NULL: raise MemoryError
-    Qv=<int**>sage_malloc(sizeof(int*)*nc)
+    Qv=<int**>sig_malloc(sizeof(int*)*nc)
     if Qv==NULL: raise MemoryError
-    symmetric_cusps=<int*>sage_malloc(sizeof(int)*nc)
+    symmetric_cusps=<int*>sig_malloc(sizeof(int)*nc)
     if symmetric_cusps==NULL: raise MemoryError
     for i in range(nc):
-        Mv[i]=<int*>sage_malloc(sizeof(int)*3)
-        Qv[i]=<int*>sage_malloc(sizeof(int)*3)
+        Mv[i]=<int*>sig_malloc(sizeof(int)*3)
+        Qv[i]=<int*>sig_malloc(sizeof(int)*3)
     cdef int* cusp_offsets
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if dim<=0:
         if hasattr(S,"_dim"):
             dim=S._dim
@@ -1913,16 +1913,16 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     #print "CK=",Cnew[2].keys()
     if verbose>0:
         print "after!"
-    Cold=<double***>sage_malloc(sizeof(double**)*(fstop-fstart))
+    Cold=<double***>sig_malloc(sizeof(double**)*(fstop-fstart))
     for j in range(fstop-fstart):
-        Cold[j]=<double**>sage_malloc(sizeof(double*)*nc)
+        Cold[j]=<double**>sig_malloc(sizeof(double*)*nc)
         for i in range(nc):
             if cusp_evs[i]==0 or i==0:
-                Cold[j][i]=<double*>sage_malloc(sizeof(double)*Mv[i][2])
+                Cold[j][i]=<double*>sig_malloc(sizeof(double)*Mv[i][2])
                 for n in range(Mv[i][2]):
                     Cold[j][i][n]=<double>CC(XS[j][i][n+Mv[i][0]])
             else:
-                Cold[j][i]=<double*>sage_malloc(sizeof(double)*Mv[i][2])
+                Cold[j][i]=<double*>sig_malloc(sizeof(double)*Mv[i][2])
                 for n in range(Mv[i][2]):
                     Cold[j][i][n]=cusp_evs[i]*XS[j][0][n+Mv[i][0]]
     # using these we want to compute more
@@ -1972,38 +1972,38 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     Q=max(get_M_for_maass_dp_c(R,Y0,eps)+5,Ml+10)+Qp
     sig_off()
     Ql=2*Q
-    Xm=<double**>sage_malloc(sizeof(double*)*numy)
+    Xm=<double**>sig_malloc(sizeof(double*)*numy)
     if Xm==NULL: raise MemoryError
     for yi in range(numy):
-        Xm[yi]=<double*>sage_malloc(sizeof(double)*Ql)
-    Xpb = <double****> sage_malloc( sizeof(double***) * numy )
+        Xm[yi]=<double*>sig_malloc(sizeof(double)*Ql)
+    Xpb = <double****> sig_malloc( sizeof(double***) * numy )
     if Xpb==NULL: raise MemoryError
-    Ypb = <double****> sage_malloc( sizeof(double*** ) * numy )
+    Ypb = <double****> sig_malloc( sizeof(double*** ) * numy )
     if Ypb==NULL: raise MemoryError
-    Cvec = <double****>sage_malloc(sizeof(double***) * numy )
+    Cvec = <double****>sig_malloc(sizeof(double***) * numy )
     if Cvec==NULL: raise MemoryError
     for yi in range(numy):
-        Xpb[yi] = <double***> sage_malloc( sizeof(double** ) * nc )
+        Xpb[yi] = <double***> sig_malloc( sizeof(double** ) * nc )
         if Xpb[yi]==NULL: raise MemoryError
-        Ypb[yi] = <double***> sage_malloc( sizeof(double** ) * nc )
+        Ypb[yi] = <double***> sig_malloc( sizeof(double** ) * nc )
         if Ypb[yi]==NULL: raise MemoryError
-        Cvec[yi] = <double***>sage_malloc(sizeof(double**) * nc )
+        Cvec[yi] = <double***>sig_malloc(sizeof(double**) * nc )
         if Cvec[yi]==NULL: raise MemoryError
         for i in range(nc):
             Xpb[yi][i]=NULL; Ypb[yi][i]=NULL; Cvec[yi][i]=NULL
-            Xpb[yi][i] = <double**>sage_malloc(sizeof(double*) * nc )
+            Xpb[yi][i] = <double**>sig_malloc(sizeof(double*) * nc )
             if Xpb[yi][i]==NULL: raise MemoryError
-            Ypb[yi][i] = <double**>sage_malloc(sizeof(double*) * nc )
+            Ypb[yi][i] = <double**>sig_malloc(sizeof(double*) * nc )
             if Ypb[yi][i]==NULL: raise MemoryError
-            Cvec[yi][i] = <double**>sage_malloc(sizeof(double*) * nc )
+            Cvec[yi][i] = <double**>sig_malloc(sizeof(double*) * nc )
             if Cvec[yi][i]==NULL: raise MemoryError
             for j in range(nc):
                 Xpb[yi][i][j]=NULL; Ypb[yi][i][j]=NULL; Cvec[yi][i][j]=NULL
-                Xpb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                Xpb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                 if Xpb[yi][i][j]==NULL: raise MemoryError
-                Ypb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                Ypb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                 if Ypb[yi][i][j]==NULL: raise MemoryError
-                Cvec[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                Cvec[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                 if Cvec[yi][i][j]==NULL: raise MemoryError
                 for n in range(Ql):
                     Xpb[yi][i][j][n]=<double>0
@@ -2016,7 +2016,7 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
         maass_logger.debug("N1={0}".format(N1))
         maass_logger.debug("Ml,Ql={0},{1}".format(Ml,Ql))
     cdef double *alphas=NULL
-    alphas=<double*>sage_malloc(sizeof(double)*nc)
+    alphas=<double*>sig_malloc(sizeof(double)*nc)
     for i in range(nc):
         alphas[i]=<double>S.alpha(i)[0]
     cdef double **** V=NULL
@@ -2028,15 +2028,15 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
         maass_logger.debug("Compute coefficients at cusps from {0} to {1}".format(cuspstart,cuspstop))
 
     cdef int sym_fak
-    V=<double****>sage_malloc(sizeof(double***)*(numy))
+    V=<double****>sig_malloc(sizeof(double***)*(numy))
     for yi in range(numy):
-        V[yi]=<double***>sage_malloc(sizeof(double**)*2*nc) #(cuspbb-cuspa))
+        V[yi]=<double***>sig_malloc(sizeof(double**)*2*nc) #(cuspbb-cuspa))
         if V[yi]==NULL: raise MemoryError
         for i in range(2*nc): #cuspbb-cuspa):
-            V[yi][i]=<double**>sage_malloc(sizeof(double*)*(n_step))
+            V[yi][i]=<double**>sig_malloc(sizeof(double*)*(n_step))
             if V[yi][i]==NULL: raise MemoryError
             for l in range(n_step):
-                V[yi][i][l]=<double*>sage_malloc(sizeof(double)*(N1))
+                V[yi][i][l]=<double*>sig_malloc(sizeof(double)*(N1))
                 if V[yi][i][l]==NULL: raise MemoryError
                 for n in range(N1):
                     V[yi][i][l][n]=0
@@ -2060,13 +2060,13 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     besprec=1.0E-14
     cdef double besmin = 0
     cdef int ncnt=0,redov=0,fi
-    nr = <double**>sage_malloc(sizeof(double*)*numy)
+    nr = <double**>sig_malloc(sizeof(double*)*numy)
     for yi in range(numy):
-        nr[yi] = <double*>sage_malloc(sizeof(double)*nc*2)
-    kbes = <double**>sage_malloc(sizeof(double)*numy)
+        nr[yi] = <double*>sig_malloc(sizeof(double)*nc*2)
+    kbes = <double**>sig_malloc(sizeof(double)*numy)
     for yi in range(numy):
-        kbes[yi] = <double*>sage_malloc(sizeof(double)*nc*2)
-    sqrtY=<double*>sage_malloc(sizeof(double)*numy)
+        kbes[yi] = <double*>sig_malloc(sizeof(double)*nc*2)
+    sqrtY=<double*>sig_malloc(sizeof(double)*numy)
     for yn in range(1000):
         try:
             try:
@@ -2221,29 +2221,29 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Xm<>NULL:
                         for yi in range(numy):
                             if Xm[yi]<>NULL:
-                                sage_free(Xm[yi])
-                        sage_free(Xm)
-                    Xm=<double**>sage_malloc(sizeof(double*)*numy)
+                                sig_free(Xm[yi])
+                        sig_free(Xm)
+                    Xm=<double**>sig_malloc(sizeof(double*)*numy)
                     if not Xm: raise MemoryError
                     if verbose>3:
                         print "After Xm!1"
                     for yi in range(numy):
                         Xm[yi]=NULL
-                        Xm[yi]=<double*>sage_malloc(sizeof(double)*Ql)
+                        Xm[yi]=<double*>sig_malloc(sizeof(double)*Ql)
                         if not Xm[yi]: raise MemoryError
                         for i in range(nc):
                             if Xpb[yi][i]<>NULL:
                                 for j in range(nc):
                                     if Xpb[yi][i][j]<>NULL:
-                                        sage_free(Xpb[yi][i][j])
+                                        sig_free(Xpb[yi][i][j])
                             if Ypb[yi][i]<>NULL:
                                 for j in range(nc):
                                     if Ypb[yi][i][j]<>NULL:
-                                        sage_free(Ypb[yi][i][j])
+                                        sig_free(Ypb[yi][i][j])
                             if Cvec[yi][i]<>NULL:
                                 for j in range(nc):
                                     if Cvec[yi][i][j]<>NULL:
-                                        sage_free(Cvec[yi][i][j])
+                                        sig_free(Cvec[yi][i][j])
                         if verbose>3:
                             print "After Xm! {0}".format(yi)
                         for i in range(nc):
@@ -2251,11 +2251,11 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                                 if verbose>3:
                                     print "Before {0}:{1}:{2}".format(yi,i,j)
                                 Xpb[yi][i][j]=NULL; Ypb[yi][i][j]=NULL; Cvec[yi][i][j]=NULL
-                                Xpb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                                Xpb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                                 if not Xpb[yi][i][j]: raise MemoryError
-                                Ypb[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                                Ypb[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                                 if not Xpb[yi][i][j]: raise MemoryError
-                                Cvec[yi][i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+                                Cvec[yi][i][j] = <double*>sig_malloc(sizeof(double) * Ql )
                                 if not Cvec[yi][i][j]: raise MemoryError
                                 if verbose>3:
                                     print "Before assigning! {0}:{1}".format(yi,j)
@@ -2316,26 +2316,26 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
     ## Deallocating stuff
     #print "too free!"
     if Yv<>NULL:
-        sage_free(Yv)
+        sig_free(Yv)
     if Y2pi<>NULL:
-        sage_free(Y2pi)
+        sig_free(Y2pi)
     if Ctmp<>NULL:
         for yi in range(numy):
             if Ctmp[yi]<>NULL:
                 for j in range(fstop-fstart):
                     if Ctmp[yi][j]<>NULL:
-                        sage_free(Ctmp[yi][j])
-                sage_free(Ctmp[yi])
-        sage_free(Ctmp)
+                        sig_free(Ctmp[yi][j])
+                sig_free(Ctmp[yi])
+        sig_free(Ctmp)
     if Qfak<>NULL:
-        sage_free(Qfak)
+        sig_free(Qfak)
     if Qv<>NULL:
         for i in range(nc):
             if Qv[i]<>NULL:
-                sage_free(Qv[i])
-        sage_free(Qv)
+                sig_free(Qv[i])
+        sig_free(Qv)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
     if Cold<>NULL:
         for j in range(fstop-fstart):
             if Cold[j]<>NULL:
@@ -2343,9 +2343,9 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if cusp_evs[i]<>0 and i<>0:
                         continue
                     if Cold[j][i]<>NULL:
-                        sage_free(Cold[j][i])
-                sage_free(Cold[j])
-        sage_free(Cold)
+                        sig_free(Cold[j][i])
+                sig_free(Cold[j])
+        sig_free(Cold)
     if Xpb<>NULL:
         for yi in range(numy):
             if Xpb[yi]<>NULL:
@@ -2353,10 +2353,10 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Xpb[yi][i]<>NULL:
                         for j in range(nc):
                             if Xpb[yi][i][j]<>NULL:
-                                sage_free(Xpb[yi][i][j])
-                        sage_free(Xpb[yi][i])
-                sage_free(Xpb[yi])
-        sage_free(Xpb)
+                                sig_free(Xpb[yi][i][j])
+                        sig_free(Xpb[yi][i])
+                sig_free(Xpb[yi])
+        sig_free(Xpb)
     if Ypb<>NULL:
         for yi in range(numy):
             if Ypb[yi]<>NULL:
@@ -2364,10 +2364,10 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Ypb[yi][i]<>NULL:
                         for j in range(nc):
                             if Ypb[yi][i][j]<>NULL:
-                                sage_free(Ypb[yi][i][j])
-                        sage_free(Ypb[yi][i])
-                sage_free(Ypb[yi])
-        sage_free(Ypb)
+                                sig_free(Ypb[yi][i][j])
+                        sig_free(Ypb[yi][i])
+                sig_free(Ypb[yi])
+        sig_free(Ypb)
     if Cvec<>NULL:
         for yi in range(numy):
             if Cvec[yi]<>NULL:
@@ -2375,25 +2375,25 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if Cvec[yi][i]<>NULL:
                         for j in range(nc):
                             if Cvec[yi][i][j]<>NULL:
-                                sage_free(Cvec[yi][i][j])
-                        sage_free(Cvec[yi][i])
-                sage_free(Cvec[yi])
-        sage_free(Cvec)
+                                sig_free(Cvec[yi][i][j])
+                        sig_free(Cvec[yi][i])
+                sig_free(Cvec[yi])
+        sig_free(Cvec)
     if Xm<>NULL:
         for yi in range(numy):
             if Xm[yi]<>NULL:
-                sage_free(Xm[yi])
-        sage_free(Xm)
+                sig_free(Xm[yi])
+        sig_free(Xm)
     if nr<>NULL:
         for yi in range(numy):
             if nr[yi]<>NULL:
-                sage_free(nr[yi])
-        sage_free(nr)
+                sig_free(nr[yi])
+        sig_free(nr)
     if nr<>NULL:
         for yi in range(numy):
             if kbes[yi]<>NULL:
-                sage_free(kbes[yi])
-        sage_free(kbes)
+                sig_free(kbes[yi])
+        sig_free(kbes)
     if V<>NULL:
         for yi in range(numy):
             if V[yi]<>NULL:
@@ -2401,23 +2401,23 @@ cpdef phase_2_real_dp_sym(S,double R,int NA,int NB,int M0in=0,int ndig=10,int di
                     if V[yi][i]<>NULL:
                         for j in range(n_step):
                             if V[yi][i][j]<>NULL:
-                                sage_free(V[yi][i][j])
-                        sage_free(V[yi][i])
-                sage_free(V[yi])
-        sage_free(V)
+                                sig_free(V[yi][i][j])
+                        sig_free(V[yi][i])
+                sig_free(V[yi])
+        sig_free(V)
     if cusp_evs<>NULL:
-        sage_free(cusp_evs)
+        sig_free(cusp_evs)
     if cusp_evs_cplx<>NULL:
-        sage_free(cusp_evs_cplx)
+        sig_free(cusp_evs_cplx)
     if Mv<>NULL:
         for i in range(nc):
             if Mv[i]<>NULL:
-                sage_free(Mv[i])
-        sage_free(Mv)
+                sig_free(Mv[i])
+        sig_free(Mv)
 
-    sage_free(sqrtY)
-    sage_free(alphas)
-    sage_free(symmetric_cusps)
+    sig_free(sqrtY)
+    sig_free(alphas)
+    sig_free(symmetric_cusps)
     return Cnew
 
 
@@ -2494,7 +2494,7 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
         maass_logger.debug("Ql={0}".format(Ql))
     ## This is the effective offset at the
     cdef int* cusp_offsets=NULL
-    cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+    cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
     if cusp_offsets==NULL: raise MemoryError
     for jcusp from 0 <= jcusp < nc:
         cusp_offsets[jcusp]=0
@@ -2510,13 +2510,13 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
         if jcusp==0 or cusp_evs[jcusp]<>0:
             nc_sym+=1
     cdef double **nvec=NULL
-    nvec = <double**>sage_malloc(sizeof(double*)*nc)
+    nvec = <double**>sig_malloc(sizeof(double*)*nc)
     if not nvec: raise MemoryError
     for icusp from 0<=icusp<nc:
-        nvec[icusp] = <double*>sage_malloc(sizeof(double)*Ml)
+        nvec[icusp] = <double*>sig_malloc(sizeof(double)*Ml)
     cdef double ****ef1=NULL
     cdef double ***ef2=NULL
-    ef2 = <double ***>sage_malloc(sizeof(double**)*(cuspB-cuspA))
+    ef2 = <double ***>sig_malloc(sizeof(double**)*(cuspB-cuspA))
     if ef2==NULL: raise MemoryError
     cdef int n1
     cdef int iicusp
@@ -2527,36 +2527,36 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
             continue
         if Mv[icusp][0]>=0:
             ef2[icusp]=NULL
-            ef2[icusp] = <double**>sage_malloc(sizeof(double*)*(NB-NA))
+            ef2[icusp] = <double**>sig_malloc(sizeof(double*)*(NB-NA))
             if ef2[icusp]==NULL: raise MemoryError
             for n in range(NB-NA):
                 ef2[icusp][n]=NULL
-                ef2[icusp][n] = <double*>sage_malloc(sizeof(double)*Qv[icusp][2])
+                ef2[icusp][n] = <double*>sig_malloc(sizeof(double)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
         else:
             ef2[icusp]=NULL
-            ef2[icusp] = <double**>sage_malloc(sizeof(double*)*2*(NB-NA))
+            ef2[icusp] = <double**>sig_malloc(sizeof(double*)*2*(NB-NA))
             if ef2[icusp]==NULL: raise MemoryError
             for n in range(NB-NA):
                 n1 = n + NB-NA
                 ef2[icusp][n]=NULL;  ef2[icusp][n1]=NULL
-                ef2[icusp][n] = <double*>sage_malloc(sizeof(double)*Qv[icusp][2])
+                ef2[icusp][n] = <double*>sig_malloc(sizeof(double)*Qv[icusp][2])
                 if ef2[icusp][n]==NULL: raise MemoryError
-                ef2[icusp][n1] = <double*>sage_malloc(sizeof(double)*Qv[icusp][2])
+                ef2[icusp][n1] = <double*>sig_malloc(sizeof(double)*Qv[icusp][2])
                 if ef2[icusp][n1]==NULL: raise MemoryError
-    ef1 = <double****>sage_malloc(sizeof(double***)*nc)
+    ef1 = <double****>sig_malloc(sizeof(double***)*nc)
     if ef1==NULL: raise MemoryError
     for icusp in range(nc):
         ef1[icusp]=NULL
-        ef1[icusp] = <double***>sage_malloc(sizeof(double**)*nc)
+        ef1[icusp] = <double***>sig_malloc(sizeof(double**)*nc)
         if ef1[icusp]==NULL: raise MemoryError
         for jcusp in range(nc):
             ef1[icusp][jcusp]=NULL
-            ef1[icusp][jcusp] = <double**>sage_malloc(sizeof(double*)*Mv[jcusp][2])
+            ef1[icusp][jcusp] = <double**>sig_malloc(sizeof(double*)*Mv[jcusp][2])
             if ef1[icusp][jcusp]==NULL: raise MemoryError
             for n in range(Mv[jcusp][2]):
                 ef1[icusp][jcusp][n]=NULL
-                ef1[icusp][jcusp][n] = <double *>sage_malloc(sizeof(double )*Qv[jcusp][2])
+                ef1[icusp][jcusp][n] = <double *>sig_malloc(sizeof(double )*Qv[jcusp][2])
                 if ef1[icusp][jcusp][n]==NULL: raise MemoryError
     for jcusp in range(nc):
         for n in range(Mv[jcusp][2]):
@@ -2612,16 +2612,16 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
     cdef double besarg_old=0.0
     cdef double y,kbes_old=1.0
     cdef double ***kbesvec=NULL
-    kbesvec=<double***>sage_malloc(sizeof(double**)*nc)
+    kbesvec=<double***>sig_malloc(sizeof(double**)*nc)
     if kbesvec==NULL:
         raise MemoryError
     for jcusp from 0<=jcusp<nc:
         #print "allocating kbesvec[",jcusp,"] of size:",Mv[jcusp][2]
-        kbesvec[jcusp]=<double**>sage_malloc(sizeof(double*)*Ml)
+        kbesvec[jcusp]=<double**>sig_malloc(sizeof(double*)*Ml)
         if kbesvec[jcusp]==NULL:
             raise MemoryError
         for l from 0<=l<Ml:
-            kbesvec[jcusp][l]=<double*>sage_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
+            kbesvec[jcusp][l]=<double*>sig_malloc(sizeof(double)*Ql) #Qv[jcusp][2])
             if kbesvec[jcusp][l]==NULL:
                 raise MemoryError
 
@@ -2717,9 +2717,9 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
             if kbesvec[icusp]<>NULL:
                 for l in range(Ml):
                     if kbesvec[icusp][l]<>NULL:
-                        sage_free(kbesvec[icusp][l])
-                sage_free(kbesvec[icusp])
-        sage_free(kbesvec)
+                        sig_free(kbesvec[icusp][l])
+                sig_free(kbesvec[icusp])
+        sig_free(kbesvec)
     if verbose>0:
         print "deal kbbes1"
     if ef1<>NULL:
@@ -2729,10 +2729,10 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
                     if ef1[jcusp][icusp]<>NULL:
                         for n in range(Mv[icusp][2]):
                             if ef1[jcusp][icusp][n]<>NULL:
-                                sage_free(ef1[jcusp][icusp][n])
-                        sage_free(ef1[jcusp][icusp])
-                sage_free(ef1[jcusp])
-        sage_free(ef1)
+                                sig_free(ef1[jcusp][icusp][n])
+                        sig_free(ef1[jcusp][icusp])
+                sig_free(ef1[jcusp])
+        sig_free(ef1)
     #if verbose>0:
     #    print "NB-NA=",NB-NA
     if ef2<>NULL:
@@ -2748,21 +2748,21 @@ cdef compute_V_real_dp_sym_for_phase2(double ***V,
                     #if verbose>0:
                     #    print "n=",n
                     if ef2[icusp][n]<>NULL:
-                        sage_free(ef2[icusp][n])
+                        sig_free(ef2[icusp][n])
                     if Mv[icusp][0]<0:
                         n1 = n + NB - NA
                         if ef2[icusp][n1]<>NULL:
-                            sage_free(ef2[icusp][n1])
-                sage_free(ef2[icusp])
-        sage_free(ef2)
+                            sig_free(ef2[icusp][n1])
+                sig_free(ef2[icusp])
+        sig_free(ef2)
 
     if nvec<>NULL:
         for icusp in range(nc):
             if nvec[icusp]<>NULL:
-                sage_free(nvec[icusp])
-        sage_free(nvec)
+                sig_free(nvec[icusp])
+        sig_free(nvec)
     if cusp_offsets<>NULL:
-        sage_free(cusp_offsets)
+        sig_free(cusp_offsets)
 
 
 
@@ -2889,27 +2889,27 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 
 #     G=S.group(); nc=int(G.ncusps()); sym_type=S._sym_type
 #     cdef dict c_evs=S.cusp_evs_dict()
-#     cusp_evs=<double complex*>sage_malloc(sizeof(double complex)*nc)
+#     cusp_evs=<double complex*>sig_malloc(sizeof(double complex)*nc)
 #     for i in range(nc):
 #         cusp_evs[i]=<double complex> CC(c_evs.get(i,0))
-#     Ctmp = <double complex**>sage_malloc(sizeof(double complex*)*fstop-fstart)
+#     Ctmp = <double complex**>sig_malloc(sizeof(double complex*)*fstop-fstart)
 #     for i in range(fstop-fstart):
-#         Ctmp[i] = <double complex*>sage_malloc(sizeof(double complex)*nc)
+#         Ctmp[i] = <double complex*>sig_malloc(sizeof(double complex)*nc)
 #         for j in range(nc):
 #             Ctmp[i][j]=<double complex>0.0
-#     Qfak=<double*>sage_malloc(sizeof(double)*nc)
+#     Qfak=<double*>sig_malloc(sizeof(double)*nc)
 #     if Qfak==NULL: raise MemoryError
-#     Mv=<int**>sage_malloc(sizeof(int*)*nc)
+#     Mv=<int**>sig_malloc(sizeof(int*)*nc)
 #     if Mv==NULL: raise MemoryError
-#     Qv=<int**>sage_malloc(sizeof(int*)*nc)
+#     Qv=<int**>sig_malloc(sizeof(int*)*nc)
 #     if Qv==NULL: raise MemoryError
-#     symmetric_cusps=<int*>sage_malloc(sizeof(int)*nc)
+#     symmetric_cusps=<int*>sig_malloc(sizeof(int)*nc)
 #     if symmetric_cusps==NULL: raise MemoryError
 #     for i in range(nc):
-#         Mv[i]=<int*>sage_malloc(sizeof(int)*3)
-#         Qv[i]=<int*>sage_malloc(sizeof(int)*3)
+#         Mv[i]=<int*>sig_malloc(sizeof(int)*3)
+#         Qv[i]=<int*>sig_malloc(sizeof(int)*3)
 #     cdef int* cusp_offsets
-#     cusp_offsets=<int*>sage_malloc(sizeof(int)*nc)
+#     cusp_offsets=<int*>sig_malloc(sizeof(int)*nc)
 #     ### The starting coefficients
 #     #dim = 1 #F._dim
 #     if dim<=0:
@@ -2980,16 +2980,16 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #     #print "CK=",Cnew[2].keys()
 #     if verbose>0:
 #         print "after!"
-#     Cold=<double complex***>sage_malloc(sizeof(double complex**)*(fstop-fstart))
+#     Cold=<double complex***>sig_malloc(sizeof(double complex**)*(fstop-fstart))
 #     for j in range(fstop-fstart):
-#         Cold[j]=<double complex**>sage_malloc(sizeof(double complex*)*nc)
+#         Cold[j]=<double complex**>sig_malloc(sizeof(double complex*)*nc)
 #         for i in range(nc):
 #             if cusp_evs[i]==0 or i==0:
-#                 Cold[j][i]=<double complex*>sage_malloc(sizeof(double complex)*Mv[i][2])
+#                 Cold[j][i]=<double complex*>sig_malloc(sizeof(double complex)*Mv[i][2])
 #                 for n in range(Mv[i][2]):
 #                     Cold[j][i][n]=<double complex>CC(XS[j][i][n+Mv[i][0]])
 #             else:
-#                 Cold[j][i]=<double complex*>sage_malloc(sizeof(double complex)*Mv[i][2])
+#                 Cold[j][i]=<double complex*>sig_malloc(sizeof(double complex)*Mv[i][2])
 #                 for n in range(Mv[i][2]):
 #                     Cold[j][i][n]=cusp_evs[i]*XS[j][0][n+Mv[i][0]]
 #     # using these we want to compute more
@@ -3035,34 +3035,34 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #     Q=max(get_M_for_maass_dp_c(R,Y0,eps)+5,Ml+10)+Qp
 #     sig_off()
 #     Ql=2*Q
-#     Xm=<double*>sage_malloc(sizeof(double)*Ql)
+#     Xm=<double*>sig_malloc(sizeof(double)*Ql)
 #     if Xm==NULL: raise MemoryError
-#     Xpb = <double***> sage_malloc( sizeof(double** ) * nc )
+#     Xpb = <double***> sig_malloc( sizeof(double** ) * nc )
 #     if Xpb==NULL: raise MemoryError
-#     Ypb = <double***> sage_malloc( sizeof(double** ) * nc )
+#     Ypb = <double***> sig_malloc( sizeof(double** ) * nc )
 #     if Ypb==NULL: raise MemoryError
 #     for i in range(nc):
 #         Xpb[i]=NULL; Ypb[i]=NULL
-#         Xpb[i] = <double**>sage_malloc(sizeof(double*) * nc )
-#         Ypb[i] = <double**>sage_malloc(sizeof(double*) * nc )
+#         Xpb[i] = <double**>sig_malloc(sizeof(double*) * nc )
+#         Ypb[i] = <double**>sig_malloc(sizeof(double*) * nc )
 #         if Ypb[i]==NULL or Xpb[i]==NULL:
 #             raise MemoryError
 #         for j in range(nc):
 #             Xpb[i][j]=NULL; Ypb[i][j]=NULL
-#             Xpb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-#             Ypb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+#             Xpb[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
+#             Ypb[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
 #             if Ypb[i][j]==NULL or Xpb[i][j]==NULL:
 #                 raise MemoryError
 #             for n in range(Ql):
 #                 Xpb[i][j][n]=<double>0
 #                 Ypb[i][j][n]=<double>0
-#     Cvec = <double complex***>sage_malloc(sizeof(double complex**) * nc )
+#     Cvec = <double complex***>sig_malloc(sizeof(double complex**) * nc )
 #     if Cvec==NULL: raise MemoryError
 #     for i in range(nc):
-#         Cvec[i] = <double complex**>sage_malloc(sizeof(double complex*) * nc )
+#         Cvec[i] = <double complex**>sig_malloc(sizeof(double complex*) * nc )
 #         if Cvec[i]==NULL: raise MemoryError
 #         for j in range(nc):
-#             Cvec[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+#             Cvec[i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
 #             if Cvec[i][j]==NULL: raise MemoryError
 #             for n in range(Ql):
 #                 Cvec[i][j][n]=<double complex>0
@@ -3071,34 +3071,34 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #     pullback_pts_cplx_dp(S,1-Q,Q,Y0,Xm,Xpb,Ypb,Cvec)
 #     sig_off()
 #     if method=='TwoY':
-#         Xm2=<double*>sage_malloc(sizeof(double)*Ql)
+#         Xm2=<double*>sig_malloc(sizeof(double)*Ql)
 #         if Xm2==NULL: raise MemoryError
-#         Xpb2 = <double***> sage_malloc( sizeof(double** ) * nc )
+#         Xpb2 = <double***> sig_malloc( sizeof(double** ) * nc )
 #         if Xpb2==NULL: raise MemoryError
-#         Ypb2 = <double***> sage_malloc( sizeof(double** ) * nc )
+#         Ypb2 = <double***> sig_malloc( sizeof(double** ) * nc )
 #         if Ypb2==NULL: raise MemoryError
 #         for i in range(nc):
 #             Xpb2[i]=NULL; Ypb[i]=NULL
-#             Xpb2[i] = <double**>sage_malloc(sizeof(double*) * nc )
-#             Ypb2[i] = <double**>sage_malloc(sizeof(double*) * nc )
+#             Xpb2[i] = <double**>sig_malloc(sizeof(double*) * nc )
+#             Ypb2[i] = <double**>sig_malloc(sizeof(double*) * nc )
 #             if Ypb2[i]==NULL or Xpb2[i]==NULL:
 #                 raise MemoryError
 #             for j in range(nc):
 #                 Xpb2[i][j]=NULL; Ypb[i][j]=NULL
-#                 Xpb2[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-#                 Ypb2[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
+#                 Xpb2[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
+#                 Ypb2[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
 #                 if Ypb2[i][j]==NULL or Xpb2[i][j]==NULL:
 #                     raise MemoryError
 #                 for n in range(Ql):
 #                     Xpb2[i][j][n]=<double>0
 #                     Ypb2[i][j][n]=<double>0
-#         Cvec2 = <double complex***>sage_malloc(sizeof(double complex**) * nc )
+#         Cvec2 = <double complex***>sig_malloc(sizeof(double complex**) * nc )
 #         if Cvec2==NULL: raise MemoryError
 #         for i in range(nc):
-#             Cvec2[i] = <double complex**>sage_malloc(sizeof(double complex*) * nc )
+#             Cvec2[i] = <double complex**>sig_malloc(sizeof(double complex*) * nc )
 #             if Cvec2[i]==NULL: raise MemoryError
 #             for j in range(nc):
-#                 Cvec2[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+#                 Cvec2[i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
 #                 if Cvec2[i][j]==NULL: raise MemoryError
 #             for n in range(Ql):
 #                 Cvec2[i][j][n]=<double complex>0
@@ -3117,7 +3117,7 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #         print "After pullback"
 
 #     cdef double *alphas=NULL
-#     alphas=<double*>sage_malloc(sizeof(double)*nc)
+#     alphas=<double*>sig_malloc(sizeof(double)*nc)
 #     for i in range(nc):
 #         alphas[i]=<double>S.alpha(i)[0]
 #     # We compute coefficients at the first two cusps only
@@ -3129,13 +3129,13 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #     n_b = n_a + n_step
 #     if verbose>0:
 #         print "Compute coefficients at cusps from {0} to {1}".format(cuspstart,cuspstop)
-#     V=<double complex***>sage_malloc(sizeof(double complex**)*(cuspbb-cuspa))
+#     V=<double complex***>sig_malloc(sizeof(double complex**)*(cuspbb-cuspa))
 #     if V==NULL: raise MemoryError
 #     for i in range(cuspbb-cuspa):
-#         V[i]=<double complex**>sage_malloc(sizeof(double complex*)*(n_step))
+#         V[i]=<double complex**>sig_malloc(sizeof(double complex*)*(n_step))
 #         if V[i]==NULL: raise MemoryError
 #         for l in range(n_step):
-#             V[i][l]=<double complex*>sage_malloc(sizeof(double complex)*(N1))
+#             V[i][l]=<double complex*>sig_malloc(sizeof(double complex)*(N1))
 #             if V[i][l]==NULL: raise MemoryError
 #             for n in range(N1):
 #                 V[i][l][n]=<double complex>0.0
@@ -3153,13 +3153,13 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #         print "after computing first V"
 #     cdef double complex ***V2
 #     if method=='TwoY':
-#         V2=<double complex***>sage_malloc(sizeof(double complex**)*(cuspbb-cuspa))
+#         V2=<double complex***>sig_malloc(sizeof(double complex**)*(cuspbb-cuspa))
 #         if V2==NULL: raise MemoryError
 #         for i in range(cuspbb-cuspa):
-#             V2[i]=<double complex**>sage_malloc(sizeof(double complex*)*(n_step))
+#             V2[i]=<double complex**>sig_malloc(sizeof(double complex*)*(n_step))
 #             if V2[i]==NULL: raise MemoryError
 #             for l in range(n_step):
-#                 V2[i][l]=<double complex*>sage_malloc(sizeof(double complex)*(N1))
+#                 V2[i][l]=<double complex*>sig_malloc(sizeof(double complex)*(N1))
 #                 if V2[i][l]==NULL: raise MemoryError
 #                 for n in range(N1):
 #                     V2[i][l][n]=<double complex>0.0
@@ -3180,8 +3180,8 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #     besprec=1.0E-14
 #     cdef int ncnt=0,redov=0,fi
 #     cdef double *nr,*kbes
-#     nr = <double*>sage_malloc(sizeof(double)*nc)
-#     kbes = <double*>sage_malloc(sizeof(double)*nc)
+#     nr = <double*>sig_malloc(sizeof(double)*nc)
+#     kbes = <double*>sig_malloc(sizeof(double)*nc)
 #     for yn in range(1000):
 #         try:
 #             #Y01=Y0;
@@ -3287,24 +3287,24 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #                     set_Mv_Qv_symm(S,Mv,Qv,Qfak,symmetric_cusps,cusp_evs,cusp_offsets,&N1,&Ml,&Ql,M0,Q,verbose-2)
 #                     # If we change Y we also need to recompute the pullback
 #                     if Xm<>NULL:
-#                         sage_free(Xm)
-#                     Xm=<double*>sage_malloc(sizeof(double)*Ql)
+#                         sig_free(Xm)
+#                     Xm=<double*>sig_malloc(sizeof(double)*Ql)
 #                     #if verbose>0:
 #                     #   print "Allocated Xm!"
 #                     for i in range(nc):
 #                         if Xpb[i]<>NULL:
 #                             for j in range(nc):
 #                                 if Xpb[i][j]<>NULL:
-#                                     sage_free(Xpb[i][j])
+#                                     sig_free(Xpb[i][j])
 #                                 if Ypb[i][j]<>NULL:
-#                                     sage_free(Ypb[i][j])
+#                                     sig_free(Ypb[i][j])
 #                                 if Cvec[i][j]<>NULL:
-#                                     sage_free(Cvec[i][j])
+#                                     sig_free(Cvec[i][j])
 #                     for i in range(nc):
 #                         for j in range(nc):
-#                             Xpb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-#                             Ypb[i][j] = <double*>sage_malloc(sizeof(double) * Ql )
-#                             Cvec[i][j] = <double complex*>sage_malloc(sizeof(double complex) * Ql )
+#                             Xpb[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
+#                             Ypb[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
+#                             Cvec[i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
 #                             for l in range(Ql):
 #                                 Xpb[i][j][l]=<double>0
 #                                 Ypb[i][j][l]=<double>0
@@ -3351,70 +3351,70 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #             return {}
 #     ## Deallocating stuff
 #     #print "too free!"
-#     sage_free(alphas)
-#     sage_free(nr)
-#     sage_free(kbes)
-#     sage_free(Xm)
-#     sage_free(symmetric_cusps)
-#     sage_free(cusp_evs)
+#     sig_free(alphas)
+#     sig_free(nr)
+#     sig_free(kbes)
+#     sig_free(Xm)
+#     sig_free(symmetric_cusps)
+#     sig_free(cusp_evs)
 #     if Ctmp<>NULL:
 #         for j in range(fstop-fstart):
 #             if Ctmp[j]<>NULL:
-#                 sage_free(Ctmp[j])
-#         sage_free(Ctmp)
+#                 sig_free(Ctmp[j])
+#         sig_free(Ctmp)
 
 #     #print "freed 1!"
 #     if Qfak<>NULL:
-#         sage_free(Qfak)
+#         sig_free(Qfak)
 #     if Mv<>NULL:
 #         for i in range(nc):
 #             if Mv[i]<>NULL:
-#                 sage_free(Mv[i])
-#         sage_free(Mv)
+#                 sig_free(Mv[i])
+#         sig_free(Mv)
 #     if Qv<>NULL:
 #         for i in range(nc):
 #             if Qv[i]<>NULL:
-#                 sage_free(Qv[i])
-#         sage_free(Qv)
+#                 sig_free(Qv[i])
+#         sig_free(Qv)
 #     if Cold<>NULL:
 #         for j in range(fstop-fstart):
 #             if Cold[j]<>NULL:
 #                 for i in range(nc):
 #                     if Cold[j][i]<>NULL:
-#                         sage_free(Cold[j][i])
-#                 sage_free(Cold[j])
-#         sage_free(Cold)
+#                         sig_free(Cold[j][i])
+#                 sig_free(Cold[j])
+#         sig_free(Cold)
 #     if Xpb<>NULL:
 #         for i in range(nc):
 #             if Xpb[i]<>NULL:
 #                 for j in range(nc):
 #                     if Xpb[i][j]<>NULL:
-#                         sage_free(Xpb[i][j])
-#                 sage_free(Xpb[i])
-#         sage_free(Xpb)
+#                         sig_free(Xpb[i][j])
+#                 sig_free(Xpb[i])
+#         sig_free(Xpb)
 #     if Ypb<>NULL:
 #         for i in range(nc):
 #             if Ypb[i]<>NULL:
 #                 for j in range(nc):
 #                     if Ypb[i][j]<>NULL:
-#                         sage_free(Ypb[i][j])
-#                 sage_free(Ypb[i])
-#         sage_free(Ypb)
+#                         sig_free(Ypb[i][j])
+#                 sig_free(Ypb[i])
+#         sig_free(Ypb)
 #     if Cvec<>NULL:
 #         for i in range(nc):
 #             if Cvec[i]<>NULL:
 #                 for j in range(nc):
 #                     if Cvec[i][j]<>NULL:
-#                         sage_free(Cvec[i][j])
-#                 sage_free(Cvec[i])
-#         sage_free(Cvec)
+#                         sig_free(Cvec[i][j])
+#                 sig_free(Cvec[i])
+#         sig_free(Cvec)
 #     if V<>NULL:
 #         for i in range(cuspbb-cuspa):
 #             if V[i]<>NULL:
 #                 for j in range(n_step):
 #                     if V[i][j]<>NULL:
-#                         sage_free(V[i][j])
-#                 sage_free(V[i])
-#         sage_free(V)
+#                         sig_free(V[i][j])
+#                 sig_free(V[i])
+#         sig_free(V)
 
 #     return Cnew

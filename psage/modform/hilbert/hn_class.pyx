@@ -19,9 +19,13 @@ Cython class for for working with H^n, i.e. n copies of upper half-plane.
 
 
 """
-include 'sage/ext/stdsage.pxi'
-#include "sage/ext/cdefs.pxi"
-include 'cysignals/signals.pxi'
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
+
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
+
 include "../../rings/double_prec_math.pxi"
 
 
@@ -164,10 +168,10 @@ cdef class  Hn(object):
         
     cdef c_new(self,list x,list y):
         self._x = NULL; self._y=NULL
-        self._x = <double*>sage_malloc(sizeof(double)*self._degree)
+        self._x = <double*>sig_malloc(sizeof(double)*self._degree)
         if self._x==NULL:
             raise MemoryError
-        self._y = <double*>sage_malloc(sizeof(double)*self._degree)
+        self._y = <double*>sig_malloc(sizeof(double)*self._degree)
         if self._y==NULL:
             raise MemoryError
         cdef int i
@@ -226,9 +230,9 @@ cdef class  Hn(object):
             
     cdef _free(self):
         if self._x<>NULL:
-            sage_free(self._x)
+            sig_free(self._x)
         if self._y<>NULL:
-            sage_free(self._y)
+            sig_free(self._y)
         self._degree = 0        
 
     def __add__(self,other):

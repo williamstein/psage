@@ -1817,6 +1817,8 @@ cdef class MyPermutationIterator(SageObject):
         r"""
         Go to the first permitted permutation.
         """
+        cdef int *tmplist
+        tmplist=<int*>check_allocarray(sizeof(int),self._N)
         if self._verbose>0:
             print "in _goto_first! N=",self._N," cur=",self._cur
             print "map_from0=",self._map_from,self._map_at_most_to
@@ -1826,7 +1828,7 @@ cdef class MyPermutationIterator(SageObject):
             self._rewind()
         if self._current_perm<>NULL:
             if self._order>0:
-                done = _is_of_order(self._N,self._current_perm,self._order)
+                done = _is_of_order(self._N,self._current_perm,self._order,tmplist)
             if done==1 and self._num_fixed>=0:
                 done = _num_fixed_eq(self._current_perm,self._N,self._num_fixed)
             if done==1 and self._num_fixed>=0:
@@ -1928,11 +1930,13 @@ cdef class MyPermutationIterator(SageObject):
         Used for either a set of permutations without fixed points or a list with all different fixed points.
         """
         cdef int *lista
+        cdef int *tmplist
         cdef int start,tmp2,num,i,k,t,done
         cdef long tmp,n,f
         cdef Integer mmax
         cdef mpz_t mpzmmax
         cdef unsigned long ii
+        tmplist=<int*>check_allocarray(sizeof(int),self._N)
         #cdef unsigned long lmmax
         if mpz_cmp_si(self._max_num.value,0)==0:
             return 1
@@ -2028,7 +2032,7 @@ cdef class MyPermutationIterator(SageObject):
                         if done==1:
                             done = _set_fixed_eq(self._current_perm,self._N,self._fixed_pts,self._num_fixed)
                     if done==1 and self._order>0:
-                        done = _is_of_order(self._N,self._current_perm,self._order)
+                        done = _is_of_order(self._N,self._current_perm,self._order,tmplist)
                         #else:
                         #    done=1
                     if self._verbose > 1:
@@ -2052,6 +2056,7 @@ cdef class MyPermutationIterator(SageObject):
                     #raise ArithmeticError,"Could not find permutation with correct properties!"
                 #if self._verbose > 3:
                 #    print "perm is of order ",self._order
+        sig_free(tmplist)            
         return 0
         #if self._verbose > 0:
         #    print "end of next!",self._order        
@@ -2237,12 +2242,14 @@ cdef class MyPermutationIterator(SageObject):
         if self._N>12:
                 raise ValueError, "Do not use for N>12!"
         cdef int *lista
+        cdef int *tmplist
         cdef int i
         cdef long num
         if self._got_list==1: #list_of_perms<>NULL and self._num>2:            
             if self._verbose>0:
                 print "we already have a list of length : %s " %  self.num()
             return 
+        tmplist=<int*>check_allocarray(sizeof(int),self._N)
         self._got_list=1
         self._c_alloc_list_of_perms(factorial(self._N))
         if self._verbose > 1:
@@ -2274,6 +2281,8 @@ cdef class MyPermutationIterator(SageObject):
         """
         cdef int i,j,k,test_o,test_f
         cdef int *fixed_pts
+        cdef int *tmplist
+        tmplist=<int*>check_allocarray(sizeof(int),self._N)        
         if self._verbose>1:
             print "lista=",printf("%p ", lista)
             tmpl=list()
@@ -2299,7 +2308,7 @@ cdef class MyPermutationIterator(SageObject):
                     print "Continue since R({0})={1}>{2}".format(self._map_from,self._current_perm[self._map_from-1],self._map_at_most_to)
             # Then test if of correct order.
             if test_o==1:
-                test_o =_is_of_order(self._N,lista,self._order)
+                test_o =_is_of_order(self._N,lista,self._order,tmplist)
                 if self._verbose>3:
                     print "test_o=",test_o
                     print "num_fixed=",self._num_fixed
@@ -2336,7 +2345,7 @@ cdef class MyPermutationIterator(SageObject):
                     self._c_dealloc_last_perm()
                     if self._verbose>3:
                         print "decreased num to:",self.num()
-
+        sig_free(tmplist)
         if num>0:
             num=num-1
             if self._verbose>3:
@@ -2578,18 +2587,27 @@ cdef class CycleCombinationIterator(Parent):
     
 ### Helper functions
 
-cdef int _is_of_order(int n,int *plist, int order):
+cdef int _is_of_order(int n,int *plist, int order, int* tmplist):
     r"""
     Check if list is a permutation of given order.
     """
     cdef int i,j,tmp
     cdef list l
+    for i in range(n):
+        tmplist[i]=1
+    
     if order<1:
         return 1
     elif order==3:
         for i in range(n):
+            if tmplist[i]==0:
+                continue
             if plist[plist[plist[i]-1]-1]<>i+1:
                 return 0
+            # Checked values in addition to i
+            tmplist[plist[i]-1]=0
+            tmplist[plist[plist[i]-1]-1]=0            
+            
         return 1
     elif order==2:
         for i in range(n):
@@ -3395,13 +3413,16 @@ cpdef test_p(int n):
 
 cpdef test_is_of_order(perml,o):
     cdef int* perm
+    cdef int* tmplist
     cdef int i,N,r
     N = len(perml)
     perm=<int*>check_allocarray(sizeof(int),N)
+    tmplist=<int*>check_allocarray(sizeof(int),N)    
     for i from 0 <= i <N:
         perm[i]=perml[i]
-    r=_is_of_order(N,perm, o)
+    r=_is_of_order(N,perm, o,tmplist)
     sig_free(perm)
+    sig_free(tmplist)
     return r
     
 

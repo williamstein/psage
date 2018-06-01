@@ -28,6 +28,7 @@ from sage.all import trivial_character,timeit,log,is_squarefree,prime_range,next
 from maass_forms_alg import *
 from lpkbessel import *
 from automorphic_forms import *
+import eisenstein_series
 from eisenstein_series import Eisenstein_series_one_cusp
 #from mysubgroup import is_Hecke_triangle_group
 import matplotlib
@@ -1457,21 +1458,19 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         mpc(real='-0.53844676975695485', imag='3.3624257152434837e-13')
 
         """
-        #import mpmath
-        self.__dict__.update(data)
+        if data != {}:
+            self.__dict__.update(data)
         AutomorphicFormElement.__init__(self,self._space,self._coeffs,prec=self._prec,principal_part={},verbose=self._verbose)
-        if isinstance(self._coeffs,dict) and (dict_depth(self._coeffs)<2 or \
+        if hasattr(self,'_coeffs') and isinstance(self._coeffs,dict) and (dict_depth(self._coeffs)<2 or \
                                              (dict_depth(self._coeffs)==2 and self._coeffs[0][0]!={})):
             raise ValueError,"Please represent coefficients by a nested dict in three levels: component.cusp.index where component is just 0 for scalar-valued forms and cusp is the index of a cusp rep. and index is the index of the coefficient. "
-        if self._test==1 and self._errest<>0:
+        if getattr(self,'_test',None)==1 and getattr(self,'_errest',None)<>0:
             self._errest = self.test()
         if kwds.get('M0',0) > 0:
             self._M0 = int(kwds.get('M0'))
         if kwds.get('Y',0)>0:
             self._Y = float(kwds.get('Y'))
-        #self._M0 = max(self._coeffs.values().values().keys())
         dprec=10.**(-self._nd)
-        #if self._M0 == None or self._M0 <= 0:
         if self._Y is None or self._M0 is None or self._Y<=0 or self._M0<=0:
             #print self._R,self.space().group().minimal_height(),self.space().smallest_M0(),dprec,self.space()._cuspidal
             M0,Y = get_M_and_Y(self._R,self.space().group().minimal_height(),
@@ -1985,6 +1984,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             numc = self._M0
         elif numc > maxc:
             numc = maxc
+
         if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):
             f = 1.0
             if self._sym_type==0:
@@ -2383,7 +2383,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         return self._is_new
             
-class EisensteinSeries(AutomorphicFormElement):
+class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
     r"""
     Non-holomorphic Eisenstein series
     """
@@ -2396,28 +2396,42 @@ class EisensteinSeries(AutomorphicFormElement):
         ### The working precision is determined by the input
         if hasattr(s,"prec"):
             prec = s.prec()
+            
         else:
             prec = 53
+        if prec == 53:
+            self.ctx = mpmath.fp 
+        else:
+            self.ctx = mpmath.mp
+            self.ctx.prec = prec
+        self._sym_type = -1    
         self._prec = prec
         self._verbose = verbose
         CF = MPComplexField(self._prec)
         RF = RealField(self._prec)
         self._sigma= RF(s.real())
         self._R= RF(s.imag())
+        self._Y = None
+        self._M0 = None
         self._s = CF(self._sigma,self._R)
         self._ndigs = nd
+        self._nd = nd
         self._eps = 2.0**(1-nd)
-        AutomorphicFormElement.__init__(self,self._space,C=None,prec=prec,principal_part={},verbose=verbose)
+        self._coeffs = None
+        self._test = None
+        self._s_minus_one_half = mpmath.mpc(self._sigma-0.5,self._R)
+        MaassWaveformElement_class.__init__(self)
         if compute:
             self.get_coefficients()
 
     def get_coefficients(self,Y0=0,M0=0):
         ## At the moment we have only implemented
         ## Eisenstein series for Hecke triangle groups.
-        if not is_Hecke_triangle_group(self._space._group):
-            raise NotImplementedError
         Rf = float(abs(self._R))
-        Y00 = self.group().minimal_height()/self._space._group._lambdaq
+        if is_Hecke_triangle_group(self._space._group):
+            Y00 = self.group().minimal_height()/self._space._group._lambdaq
+        else:
+            Y00 = self.group().minimal_height()
         if M0>0 and Y0==0:
             Y0 = min(get_Y_for_M(self._space,Rf,M0,self._eps,cuspidal=self.space()._cuspidal),Y00)
         elif Y0==0:
@@ -2427,11 +2441,124 @@ class EisensteinSeries(AutomorphicFormElement):
         Y = RF(Y0)
         if self._verbose>0:
             print "Computing coefficients at s={0} with Y={1}, M={2}".format(self._s,Y,M)
-        C = Eisenstein_series_one_cusp(self._space,self._sigma,self._R,Y,M,self._verbose)
+        if is_Hecke_triangle_group(self._space._group):
+            C = Eisenstein_series_one_cusp(self._space,self._sigma,self._R,Y,M,self._verbose)
+        else:
+            C = eisenstein_series.eisenstein_series(self.space(),float(self._sigma),float(self._R),Y,M,M+10)
         self._coeffs = {0: C}
 
+    @cached_method
+    def kbes(self,y):
+        if self._sigma==0.5:
+            return besselk_dp(self._R,y,pref=0)
+        else:
+            return ctx.besselk(self._s_minus_half,y)
+        
+    def eval(self,x,y=None,version=1,use_cj=-1,use_pb=1,verbose=0,numc=0):
+        r"""
+        Evaluate self.
+        """
+        import scipy
+        from sage.functions.trig import cos,sin
+        if y == None:
+            y = float(x.imag())
+            x = float(x.real())
+        RF=RealField(self.prec())
+        R = self._R
+        Y = self.group().minimal_height()
+        exceptional = self._space._exceptional
+        if exceptional:
+            R = RR(R)
+        xx=x
+        yy=y
+        G=self.group()
+        # pullback
+        if use_cj==-1:
+            if use_pb == 1:
+                #print "Gp=",G.pullback(x,y,version=version)
+                x1,y1,a,b,c,d =  G.pullback(x,y,version=version)
+            else:
+                x1 = x; y1 = y
+            v = G.closest_vertex(x1,y1)
+            cj= G._vertex_data[v]['cusp'] #representative[v]
+            a,b,c,d=G._vertex_data[v]['cusp_map']
+            if a<>1 or b<>0 or c<>0 or d<>1:
+                x2,y2 = apply_sl2z_map_mpfr(RF(x1),RF(y1),a,b,c,d)
+            else:
+                x2=x1;y2=y1
+            # And then normalize to the correct cusp
+            if cj<>0:
+                a,b,c,d=G._cusp_data[cj]['normalizer']
+                wi = RF(G._cusp_data[cj]['width'])
+                if verbose>0:
+                    print "x2,y2=",x2,y2,a,b,c,d
+                x3,y3 = apply_sl2z_map_mpfr(RF(x2),RF(y2),d,-b,-c,a)
+                if verbose>0:
+                    print "x2,y2=",x2,y2
+                    print "cj=",cj
+                    print "wi=",wi
+                x3 = x3/wi #sqrt(wi)
+                y3 = y3/wi #sqrt(wi)
+                if verbose>0:
+                    print "x3,y3=",x3,y3
+                #x3,y3 = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+            else:
+                wi = RF(G._cusp_data[0]['width'])
+                x3 = x2/wi; y3=y2/wi
+        else:
+            wi = RF(G._cusp_data[cj]['width'])
+            x3 = x/wi;y3 = y/wi
+            cj = use_cj
+        #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
+        res=0
+        twopi=RF(2)*RF.pi()
+        maxc = max(self._coeffs[0][0])
+        if numc == 'max':
+            numc = maxc
+        elif numc == 0:
+            numc = self._M0
+        elif numc > maxc:
+            numc = maxc
 
-
+        if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):
+            f = 1.0
+            if self._sym_type==0:
+                fun=cos
+                f = 2.0
+            elif self._sym_type==1:
+                fun=sin
+                f = CC(0,2.0)
+            arx=twopi*x3
+            ary=twopi*y3
+            for n in range(1,numc):
+                term=self.kbes(ary*n)*fun(arx*n)
+                res=res+self._coeffs[fi][cj][n]*term           
+            res = res*sqrt(y3)
+        else:
+            #print "use exp!"
+            arx=twopi*x3
+            ary=twopi*y3
+            if exceptional:
+                ## Sum up small terms first to avoid cancellation... 
+                for n in range(numc,0,-1):
+                    c_pos = self._coeffs[fi][cj].get(n,0)
+                    c_neg = self._coeffs[fi][cj].get(-n,0)
+                    fnval = self.kbes(ary*abs(n))
+                    term=fnval*( CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg) 
+                    res=res+term
+            else:
+                for n in range(-numc+1,numc):
+                    if n== 0:
+                        continue
+                    #term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
+                    term=my_kbes(R,ary*abs(n))*CC(0,arx*n).exp()
+                    res=res+self._coeffs[fi][cj][n]*term
+            #if res == 0.0:
+            #    continue #print "value = 0"
+            res = res*sqrt(y3)
+        if exceptional:
+            return res
+        return res*exp(RR.pi()*R*0.5)
 
 from numpy import array
 

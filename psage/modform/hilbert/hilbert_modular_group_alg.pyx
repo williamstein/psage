@@ -1277,7 +1277,7 @@ cdef double delta_cusp_c(double *x, double *y,double* rho, double* sigma,double 
 
 
 from sage.combinat.combination import IntegerVectors
-from sage.combinat.integer_list import IntegerListsLex
+from sage.combinat.integer_lists import IntegerListsLex
 cpdef get_vectors_integer_in_range(length,liml,limu,verbose=0):
     r"""
     Gives a list of vectors of length len with components integers betweek liml and limu

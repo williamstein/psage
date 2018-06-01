@@ -2454,7 +2454,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
         else:
             return ctx.besselk(self._s_minus_half,y)
         
-    def eval(self,x,y=None,version=1,use_cj=-1,use_pb=1,verbose=0,numc=0):
+    def eval(self,x,y=None,version=1,use_cj=-1,use_pb=1,fi=0,verbose=0,numc=0):
         r"""
         Evaluate self.
         """

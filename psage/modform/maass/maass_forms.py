@@ -2512,12 +2512,12 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
         #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
         res=0
         twopi=RF(2)*RF.pi()
-        maxc = max(self._coeffs[0][0])
+        maxc = max(self._coeffs[fi][0][0])
         if numc == 'max':
             numc = maxc
         elif numc == 0:
             numc = self._M0
-        elif numc > maxc:
+        if numc > maxc:  # We only have this many coefficients
             numc = maxc
 
         if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):

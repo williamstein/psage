@@ -56,7 +56,7 @@ from logging import warning,error
 
 ## Namingscheme: oldX is more recent with higher number of X
 
-cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_strict=0,int check=0):
+cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_rep=0,int congruence=-1,int do_strict=0,int check=0,int limit=0):
     r"""
     List all possible pairs (up to conjugacy) of admissible permutations E,R
     corresponding to groups G with signature = sig
@@ -234,7 +234,8 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     cdef int* Rptr
     Rptr = <int*>sig_malloc(sizeof(int*)*mu)
     cdef list Rlist = [0 for j in range(mu)]
-    while mpz_cmp(counter.value,PRI._max_num.value)<=0:        
+    while (mpz_cmp(counter.value,PRI._max_num.value)<=0 and
+           (limit<=0 or counter<limit)):        
         if t==1:
             break
         # TEST: pR = MyPermutation(length=mu,init=0)        

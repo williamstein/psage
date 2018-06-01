@@ -2445,7 +2445,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
             C = Eisenstein_series_one_cusp(self._space,self._sigma,self._R,Y,M,self._verbose)
         else:
             C = eisenstein_series.eisenstein_series(self.space(),float(self._sigma),float(self._R),Y,M,M+10)
-        self._coeffs = {0: C}
+        self._coeffs = C
 
     @cached_method
     def kbes(self,y):

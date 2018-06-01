@@ -2414,6 +2414,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
         self._Y = None
         self._M0 = None
         self._s = CF(self._sigma,self._R)
+        self._one_minus_s = CF(1-self._sigma,self._R)        
         self._ndigs = nd
         self._nd = nd
         self._eps = 2.0**(1-nd)
@@ -2510,7 +2511,9 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
             x3 = x/wi;y3 = y/wi
             cj = use_cj
         #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
-        res=0
+        # Constant term
+        
+        res=y3**self._s+CC(self._coeffs[fi][cj][0])*(y3**self._one_minus_s)
         twopi=RF(2)*RF.pi()
         maxc = max(self._coeffs[fi][0])
         if numc == 'max':

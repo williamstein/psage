@@ -2414,6 +2414,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
         self._Y = None
         self._M0 = None
         self._s = CF(self._sigma,self._R)
+        self._one_minus_s = CF(1-self._sigma,self._R)        
         self._ndigs = nd
         self._nd = nd
         self._eps = 2.0**(1-nd)
@@ -2445,7 +2446,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
             C = Eisenstein_series_one_cusp(self._space,self._sigma,self._R,Y,M,self._verbose)
         else:
             C = eisenstein_series.eisenstein_series(self.space(),float(self._sigma),float(self._R),Y,M,M+10)
-        self._coeffs = {0: C}
+        self._coeffs = C
 
     @cached_method
     def kbes(self,y):
@@ -2454,7 +2455,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
         else:
             return ctx.besselk(self._s_minus_half,y)
         
-    def eval(self,x,y=None,version=1,use_cj=-1,use_pb=1,verbose=0,numc=0):
+    def eval(self,x,y=None,version=1,use_cj=-1,use_pb=1,fi=0,verbose=0,numc=0):
         r"""
         Evaluate self.
         """
@@ -2510,14 +2511,16 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
             x3 = x/wi;y3 = y/wi
             cj = use_cj
         #[x3,y3] = normalize_point_to_cusp_dp(G,(ca,cb),x2,y2,inv=1)
-        res=0
+        # Constant term
+        
+        res=y3**self._s+CC(self._coeffs[fi][cj][0])*(y3**self._one_minus_s)
         twopi=RF(2)*RF.pi()
-        maxc = max(self._coeffs[0][0])
+        maxc = max(self._coeffs[fi][0])
         if numc == 'max':
             numc = maxc
         elif numc == 0:
             numc = self._M0
-        elif numc > maxc:
+        if numc > maxc:  # We only have this many coefficients
             numc = maxc
 
         if self._sym_type in [0,1] and G.is_symmetrizable_even_odd(cj):

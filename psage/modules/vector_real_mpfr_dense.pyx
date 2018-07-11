@@ -26,9 +26,13 @@ TESTS:
 
 
 # set rounding to be nearest integer
-# TODO: make t possible to change rounding 
+# TODO: make t possible to change rounding
+from sage.libs.mpfr.types cimport MPFR_RNDN
+from sage.libs.mpfr cimport *
+from sage.libs.mpfr cimport mpfr_init2,mpfr_set_si,mpfr_sub
+
 cdef mpfr_rnd_t rnd
-rnd = GMP_RNDN
+rnd = MPFR_RNDN
 
 from sage.structure.element cimport Element, ModuleElement, RingElement, Vector
 from sage.all import FreeModule

@@ -3601,8 +3601,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def coset_representative(self,A):
         r"""
         Indata: A in PSL(2,Z) 
-        Returns the coset representative of A in
-        PSL(2,Z)/self.G
+        Returns the right coset representative of A in
+        self \ PSL(2,Z)
 
         EXAMPLES::
 

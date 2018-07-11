@@ -5,8 +5,8 @@ Test parallell algorithms.
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off  
 from sage.libs.gmp.all cimport *
-
-from sage.libs.mpfr cimport *
+from sage.libs.mpfr.types cimport mpfr_prec_t
+from sage.libs.mpfr cimport mpfr_set
 
 from psage.rings.mpfr_nogil cimport *
 
@@ -83,8 +83,8 @@ cdef int incgamma_nint_c(mpfr_t res, int n, mpfr_t x):
     """
     if n!=0:
         return -1
-    cdef mp_prec_t prec
-    cdef mp_prec_t wp
+    cdef mpfr_prec_t prec
+    cdef mpfr_prec_t wp
     prec=mpfr_get_prec(x)
     cdef int ok = 1
     cdef mpfr_t xabs_t, wp_t
@@ -124,7 +124,7 @@ cdef int ei_asymp_c(mpfr_t res, mpfr_t x):
     """
     cdef mpfr_t tmp,tmp2,summa,r,eps
     cdef int k
-    cdef mp_prec_t prec
+    cdef mpfr_prec_t prec
     #cdef RealField_class RF
     cdef int ok = 1
     prec = mpfr_get_prec(x)
@@ -180,7 +180,7 @@ cdef int ei_asymp_c(mpfr_t res, mpfr_t x):
 cdef int ei_taylor_c(mpfr_t res, mpfr_t x):
     cdef int ok=1
     cdef mpfr_t lnx
-    cdef mp_prec_t prec = mpfr_get_prec(x)
+    cdef mpfr_prec_t prec = mpfr_get_prec(x)
     mpfr_init2(lnx, prec)
     ok = Ei_ml_c(res, x)
     #if verbose>0:
@@ -200,7 +200,7 @@ cdef int Ei_ml_c(mpfr_t res,mpfr_t x):
     """
     cdef mpfr_t tmp,summa,eps
     cdef int k
-    cdef mp_prec_t prec
+    cdef mpfr_prec_t prec
     cdef mpfr_t ec
     cdef int ok = 1
     prec=mpfr_get_prec(x)

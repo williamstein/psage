@@ -23,7 +23,7 @@ Used by routines in maass_forms.py
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *
-
+from sage.libs.mpfr.types cimport MPFR_RNDZ
 from sage.all import save,incomplete_gamma,load,bessel_K,vector
 import mpmath    
 
@@ -1357,14 +1357,14 @@ cdef mpfr_from_mpfval(mpfr_t res, tuple x):
     cdef long bc
     sign, man, exp, bc = x
     if man.__nonzero__():
-        mpfr_set_z(res, man.value, GMP_RNDZ)
+        mpfr_set_z(res, man.value, MPFR_RNDZ)
         if sign:
-            mpfr_neg(res, res, GMP_RNDZ)
-        mpfr_mul_2si(res, res, exp, GMP_RNDZ)
+            mpfr_neg(res, res, MPFR_RNDZ)
+        mpfr_mul_2si(res, res, exp, MPFR_RNDZ)
         return
     from mpmath.libmp import finf, fninf
     if exp == 0:
-        mpfr_set_ui(res, 0, GMP_RNDZ)
+        mpfr_set_ui(res, 0, MPFR_RNDZ)
     elif x == finf:
         mpfr_set_inf(res, 1)
     elif x == fninf:

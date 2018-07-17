@@ -64,11 +64,6 @@ from sage.rings.complex_double import CDF
 from sage.arith.all import gcd,valuation
 from sage.matrix.matrix import is_Matrix
 from sage.structure.element import is_Vector
-from sage.matrix.matrix2 import cmp_pivots, decomp_seq
-from sage.matrix.matrix0 import Matrix as Matrix_base
-
-from sage.misc.misc import verbose, get_verbose
-from sage.misc.all import prod
 
 ## #########################################################
 

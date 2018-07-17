@@ -26,11 +26,10 @@ All the code in this file is meant to be highly optimized.
 """
 
 from cysignals.memory cimport sig_free,sig_malloc
-from cysignals.signals cimport sig_on,sig_off
-from sage.libs.gmp.all cimport *
+from sage.libs.gmp.all cimport mpz_init,mpz_mod_ui,mpz_set_si,mpz_si_kronecker,mpz_t
 from stdsage cimport PY_NEW
 
-from cpython cimport *
+from cpython cimport Py_LT,Py_GE,Py_NE,Py_LE,Py_GT,Py_EQ
 from sqrt5_fast cimport residue_element
 
 from sage.rings.all import Integers, ZZ, QQ

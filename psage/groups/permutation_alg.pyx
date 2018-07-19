@@ -315,7 +315,11 @@ cdef class MyPermutation(SageObject):
         Try to make a list out of a string  returned by the above function
         """
         base = 10
-        if s.count(".")==1:
+        if s.count(",")>0:
+            sep=","
+            s = s.replace('[','')
+            s = s.replace(']','')
+        elif s.count(".")==1:
             s,sep = s.split(".")
         elif s.count("0")>0:
             sep = "0"

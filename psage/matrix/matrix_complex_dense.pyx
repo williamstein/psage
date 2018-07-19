@@ -42,7 +42,7 @@ from psage.rings.mp_cimports cimport *
 
 
 from sage.rings.real_mpfr import RealField as RFF
-from sage.matrix.matrix cimport Matrix
+from sage.matrix.matrix2 cimport Matrix
 from sage.matrix.matrix_dense cimport Matrix_dense
 from sage.rings.complex_mpc import MPComplexField
 
@@ -62,7 +62,7 @@ from sage.rings.ring import is_Ring
 from sage.rings.rational_field import QQ
 from sage.rings.complex_double import CDF
 from sage.arith.all import gcd,valuation
-from sage.matrix.matrix import is_Matrix
+from sage.structure.element import is_Matrix
 from sage.structure.element import is_Vector
 
 ## #########################################################

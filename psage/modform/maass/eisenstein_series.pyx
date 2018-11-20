@@ -996,10 +996,10 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
                                 raise ArithmeticError
                         kbesvec[icusp][l][j]=sqrt(ypb)*kbes*fak
                     else:
-                        #if abs(s-0.5)>1E-14:
-                        kbesvec[icusp][l][j]=ypb**one_minus_s
-                        #else:
-                        #    #kbesvec[icusp][l][j]=sqrt(ypb)*log(ypb)
+                        if abs(s-0.5)>1E-15:
+                            kbesvec[icusp][l][j]=ypb**one_minus_s
+                        else:
+                            kbesvec[icusp][l][j]=sqrt(ypb)*log(ypb)
                     #print "ypb,besarg=",ypb,besarg
                     #print "kbesvec[",icusp,jcusp,l+Mv[jcusp][0],j+Qv[jcusp][0],'=',kbesvec[icusp][l][j]
     #cdef double complex cuspev
@@ -1040,11 +1040,10 @@ cdef compute_V_cplx_eis_dp_sym(double complex **V,
             ni=cusp_offsets[icusp]+n
             #print "({0},{1})={2}".format(icusp,n,ni)
             if nr==0.0:
-                #if abs(s-0.5)>1E-14:
-                #kbes=Y**one_minus_s
-                kbes= Y_1minus_s
-                #else:
-                #    kbes=sqrtY*log(Y)
+                if abs(s-0.5)>1E-15:
+                    kbes= Y_1minus_s
+                else:
+                    kbes=sqrtY*log(Y)
             else:
                 besarg=nr*Y2pi
                 if on_half_line:

@@ -20,12 +20,10 @@ Cython algorithms for scalar-valued Poincare series.
 TODO: add proven error estimates
 
 """
-from cysignals.signals import sig_on,sig_off
 from psage.rings.mp_cimports cimport *
 
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField
-#from sage.all import Bessel_J
 import mpmath
 import cython
 

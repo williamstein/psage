@@ -28,6 +28,9 @@ AUTHOR:
 
 """
 
+cdef extern from "stdio.h":
+    cdef extern void printf(char *fmt,...) nogil
+
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *    
@@ -87,6 +90,9 @@ cdef class MyPermutation(SageObject):
         cdef int* used=NULL
         cdef int i,ok,ei
         cdef str s
+        ok = 0
+        ei = 0
+        i = 0
         self._entries = NULL
         self._str=''
         self._rep=rep
@@ -839,7 +845,8 @@ cdef class MyPermutation(SageObject):
 
         
     def _mult_list(self,list other):
-        cdef int *entries, N
+        cdef int *entries
+        cdef int N
         cdef MyPermutation res
         cdef int *res_ent=NULL
         N = len(other)
@@ -927,6 +934,7 @@ cdef class MyPermutation(SageObject):
         cdef int l,i
         cdef MyPermutation res
         cdef int *entries=NULL
+        l = 0
         if isinstance(other,type(self)):
             l = (<MyPermutation>other)._N
         elif isinstance(other,list):
@@ -2286,6 +2294,8 @@ cdef class MyPermutationIterator(SageObject):
         cdef int i,j,k,test_o,test_f
         cdef int *fixed_pts
         cdef int *tmplist
+        test_f = 0
+        test_o = 0
         tmplist=<int*>check_allocarray(sizeof(int),self._N)        
         if self._verbose>1:
             print "lista=",printf("%p ", lista)
@@ -2396,8 +2406,10 @@ cdef class MyPermutationIterator(SageObject):
         More or less directly copied from permutation_cython.pyx
         A less efficient way of generating all permutations, but we can use 'next_swap' to iterate over permutations.
         """
-        cdef int *c, *o, N, m,t,i
-        cdef int *perm,perm_new
+        cdef int *c
+        cdef int *o
+        cdef int N, m,t,i
+        cdef int *perm
         cdef list T
         if self._N <= 1:
             return []
@@ -3026,7 +3038,7 @@ cdef MyPermutation perm_power_c(MyPermutation perm,int k):
     #res = MyPermutation(length=self._N)
     cdef int p,m,j,o
     if k==0:
-        return MyPermutation(length=p._N)
+        return MyPermutation(length=perm._N)
     if k==1:
         return perm
     if k==-1:
@@ -3520,7 +3532,8 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
     
     cdef int i,j,ii,cont
     cdef MyPermutationIterator PONEI
-    cdef int *epp, *rpp
+    cdef int *epp
+    cdef int *rpp
     cdef int fixS,fixR,res
     epp = NULL
     rpp=NULL

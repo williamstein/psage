@@ -16,7 +16,8 @@ from sage.plot.line import Line
 from sage.plot.point import Point
 from sage.plot.primitive import GraphicPrimitive
 from sage.plot.colors import to_mpl_color
-from sage.plot.misc import options, rename_keyword
+from sage.plot.plot import options
+from sage.misc.decorators import rename_keyword
 from sage.plot.all import text
 from sage.plot.hyperbolic_polygon import HyperbolicPolygon, hyperbolic_triangle
 from sage.plot.hyperbolic_arc import hyperbolic_arc

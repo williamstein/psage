@@ -5,7 +5,7 @@ Standard cimports for working with multiprecision numbers.
 """
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-from stdsage cimport PY_NEW
+from sage.ext.stdsage cimport PY_NEW
 from sage.libs.gmp.all cimport *
 from sage.libs.mpfr cimport *
 

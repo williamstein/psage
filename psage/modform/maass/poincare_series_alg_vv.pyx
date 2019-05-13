@@ -31,7 +31,7 @@ AUTHOR:
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-include 'cysignals/signals.pxi'
+from cysignals.signals cimport *
 from psage.rings.mp_cimports cimport *
 
 from sage.modules.all import vector

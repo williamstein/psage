@@ -156,8 +156,7 @@ from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,pri
 from mpmath import mpf
 from psage.modform.arithgroup.mysubgroup import *
 from automorphic_forms_alg import *
-from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing
-from sage.arith.misc import next_prime,lcm
+from sage.all import I,dumps,loads,ComplexField,LaurentPolynomialRing,next_prime,lcm
 from sage.rings.fast_arith import prime_range
 from sage.functions.other import real
 

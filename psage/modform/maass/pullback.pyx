@@ -19,7 +19,7 @@ Various algorithms for pulling back points to a fundamental domain.
 """
 include 'sage/ext/stdsage.pxi'
 from sage.libs.gmp.all cimport *
-include 'cysignals/signals.pxi'
+from cysignals.signals cimport *
 include "sage/ext/gmp.pxi"
 include "sage/rings/mpc.pxi"
 

@@ -30,11 +30,12 @@ from cysignals.signals cimport sig_on,sig_off
 import sys
 import mpmath    
 import cython
-
+from sage.libs.gmp.mpz cimport *
 from psage.rings.mp_cimports cimport *
 
 from psage.rings.mpfr_nogil cimport *
-from sage.all import save,incomplete_gamma,load
+from sage.all import save,load
+from sage.all import gamma_inc as incomplete_gamma
 
 from libc.stdlib cimport abort, malloc, free
 from sage.libs.flint.fmpz_mat cimport *
@@ -889,7 +890,7 @@ cdef setup_Gauss_c(mpc_t** A, mpfr_t s, mpfr_t t, mpfr_t alpha, mpfr_t rho,int r
             mpfr_pow_si(rtemp,rho,n-k+r1-k1,rnd_re)
             if verbose>1:
                 #mpc_set(z.value,AA,rnd)
-                printf("A[%d][%d]=%d+i%d",n,k,mpfr_get_d(AA.re,rnd_re),mpfr_get_d(AA.im,rnd_re))
+                printf("A[%d][%d]=%f+i%f",n,k,mpfr_get_d(AA.re,rnd_re),mpfr_get_d(AA.im,rnd_re))
                 #    print "A[{0}][{1}]={2}".format(n,k,z)
                 #mpfr_set(tmpx.value,rtemp,rnd_re)
                 #printf("A[%d][%d]=%d",n,k,z)

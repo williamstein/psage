@@ -23,7 +23,7 @@
 Fast Cython code to choose a canonical minimal model.
 """
 
-from stdsage cimport PY_NEW
+from sage.ext.stdsage cimport PY_NEW
 from sage.libs.gmp.all cimport *
 
 from sage.schemes.elliptic_curves.constructor import EllipticCurve

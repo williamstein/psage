@@ -1089,55 +1089,56 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                                     ## If none of them are variables this means
                                     ## that they are both set in the principal parts
                                     mpfr_set_si(besv[icusp][jcusp][n][j],0,rnd_re)
-    for i in range(num_ppminus):
-        jcusp = PPminus_cusp[k][i]
-        n = PPminus_n[k][i]
-        if n < 0:
-            raise ValueError,"invalid - principal part"
-        if verbose>0:
-            print "PP- at cusp={0} and n={1}".format(jcusp,n)
-        for icusp in range(nc):
-            mpfr_set(nr,nvec[jcusp][n-Ms],rnd_re)
-            mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
-            #nrfourpi=nr*fourpi
-            for j in xrange(Ql):
-                ## ef1 contains -Xpb*l
-                if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
-                    #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re) 
-                    continue
-                if n==0:
-                    if verbose>0:
-                        printf("Ypb=%f \n",mpfr_get_d(Ypb[icusp][jcusp][j],rnd_re))
-                        printf("kint_t=%f \n",mpfr_get_d(kint_t,rnd_re))
-                    mpfr_pow(tmpr_t,Ypb[icusp][jcusp][j],kint_t,rnd_re)
-                    mpc_set_fr(besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
-                    if verbose>0:
-                        mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][n-Ms][j],rnd)
-                        print "besv_minus0[",icusp,jcusp,n-Ms,j,"]=",tmpcplx
-                       
-                else:
-                    # Gamma(1-k,-4piny)+(-1)^{1-k}\pi i/Gamma(k)
-                    #  x e^(-2*pi*Ypb*n)
-                    ##
-                    mpfr_mul(tmpr_t,twopi,Ypb[icusp][jcusp][j],rnd_re) # 2pi y
-                    mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re) # 2pi y*n
-                    mpfr_neg(tmpr_t,tmpr_t,rnd_re)  # -2pi y*n
-                    mpfr_exp(tmpr_t,tmpr_t,rnd_re) # e^(-2pi y*n)
+    for k in range(d):
+        for i in range(num_ppminus):
+            jcusp = PPminus_cusp[k][i]
+            n = PPminus_n[k][i]
+            if n < 0:
+                raise ValueError,"invalid - principal part"
+            if verbose>0:
+                print "PP- at cusp={0} and n={1}".format(jcusp,n)
+            for icusp in range(nc):
+                mpfr_set(nr,nvec[jcusp][n-Ms],rnd_re)
+                mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
+                #nrfourpi=nr*fourpi
+                for j in xrange(Ql):
+                    ## ef1 contains -Xpb*l
+                    if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
+                        #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
+                        continue
+                    if n==0:
+                        if verbose>0:
+                            printf("Ypb=%f \n",mpfr_get_d(Ypb[icusp][jcusp][j],rnd_re))
+                            printf("kint_t=%f \n",mpfr_get_d(kint_t,rnd_re))
+                        mpfr_pow(tmpr_t,Ypb[icusp][jcusp][j],kint_t,rnd_re)
+                        mpc_set_fr(besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
+                        if verbose>0:
+                            mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][n-Ms][j],rnd)
+                            print "besv_minus0[",icusp,jcusp,n-Ms,j,"]=",tmpcplx
 
-                    mpfr_mul(tmpr,nrfourpi,Ypb[icusp][jcusp][j],rnd_re)
-                    mpfr_neg(tmpr,tmpr,rnd_re)
-                    mpfr_set(tmpreal1.value,tmpr,rnd_re)
-                    tmpcplx = CF(kint).gamma_inc(tmpreal1)   ## gamma(1-k,4pi |n| y)
-                    tmpcplx2 = CF(weight).gamma() #(mptmp.real,mptmp.imag)
-                    tmpcplx = tmpcplx+CF(0,1)**(3-2*weight)*pi/tmpcplx2
-                    mpc_set(besv_minus[icusp][jcusp][n-Ms][j],tmpcplx.value,rnd)
-                    mpc_mul_fr(besv_minus[icusp][jcusp][n-Ms][j],besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
-                    #mpc_mul_fr(besv_minus[icusp][jcusp][n-Ms][j],besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
-                    if verbose>0:
-                        print "tmpcplx=",tmpcplx
-                        print "tmpcplx2=",tmpcplx2
-                        mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][n-Ms][j],rnd)
-                        print "besv_minus1[",icusp,jcusp,n-Ms,j,"]=",tmpcplx
+                    else:
+                        # Gamma(1-k,-4piny)+(-1)^{1-k}\pi i/Gamma(k)
+                        #  x e^(-2*pi*Ypb*n)
+                        ##
+                        mpfr_mul(tmpr_t,twopi,Ypb[icusp][jcusp][j],rnd_re) # 2pi y
+                        mpfr_mul(tmpr_t,tmpr_t,nr,rnd_re) # 2pi y*n
+                        mpfr_neg(tmpr_t,tmpr_t,rnd_re)  # -2pi y*n
+                        mpfr_exp(tmpr_t,tmpr_t,rnd_re) # e^(-2pi y*n)
+
+                        mpfr_mul(tmpr,nrfourpi,Ypb[icusp][jcusp][j],rnd_re)
+                        mpfr_neg(tmpr,tmpr,rnd_re)
+                        mpfr_set(tmpreal1.value,tmpr,rnd_re)
+                        tmpcplx = CF(kint).gamma_inc(tmpreal1)   ## gamma(1-k,4pi |n| y)
+                        tmpcplx2 = CF(weight).gamma() #(mptmp.real,mptmp.imag)
+                        tmpcplx = tmpcplx+CF(0,1)**(3-2*weight)*pi/tmpcplx2
+                        mpc_set(besv_minus[icusp][jcusp][n-Ms][j],tmpcplx.value,rnd)
+                        mpc_mul_fr(besv_minus[icusp][jcusp][n-Ms][j],besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
+                        #mpc_mul_fr(besv_minus[icusp][jcusp][n-Ms][j],besv_minus[icusp][jcusp][n-Ms][j],tmpr_t,rnd)
+                        if verbose>0:
+                            print "tmpcplx=",tmpcplx
+                            print "tmpcplx2=",tmpcplx2
+                            mpc_set(tmpcplx.value,besv_minus[icusp][jcusp][n-Ms][j],rnd)
+                            print "besv_minus1[",icusp,jcusp,n-Ms,j,"]=",tmpcplx
             
                                     
     cdef int nrows,ncols

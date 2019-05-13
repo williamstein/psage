@@ -58,6 +58,8 @@ cpdef cusp_coordinates_gen(G,cuspi,z,int verbose=0):
         else:
             cuspp = G.get_cusp(cuspi)
             cuspii = G.cusps().index(cuspp)
+    else:
+        cuspii = <int>cuspi
     return cusp_coordinates(G,cuspii,zz,verbose)
 
 cpdef cusp_coordinates(G,int cuspi,Hn z,int verbose=0):
@@ -130,11 +132,18 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
     cdef double GdeltaK=G.deltaK()
     cdef gen F
     F = G._K.pari_bnf()
-    cdef double *xv, *yv
+    cdef double *xv
+    cdef double *yv
     cdef int inrhomax,inrhomin,break_rho,break_sigma
     cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
-    cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
-    cdef double *c1=NULL,*c2=NULL,*c3=NULL
+    cdef double *nrhomax_loc=NULL
+    cdef double *nrhomin_loc=NULL
+    cdef double *s2y2=NULL
+    cdef double *rhoemb=NULL
+    cdef double *semb=NULL
+    cdef double *c1=NULL
+    cdef double *c2=NULL
+    cdef double *c3=NULL
     cdef double *nsigmamax_loc
     cdef int np,do_cont
     nsigmamax_loc = <double *>sig_malloc(degree*sizeof(double))
@@ -186,7 +195,8 @@ cpdef get_closest_cusp_old(Hn z,G,int denom_max=3,int verbose=0):
         print "cK={0}".format(cK)
         print "N(y)=",ny
     delta0 = 2.0**(3-G._prec)
-    cdef int *rho_v, *sigma_v
+    cdef int *rho_v
+    cdef int *sigma_v
     rho_v = <int*>sig_malloc(degree*sizeof(int))
     sigma_v = <int*>sig_malloc(degree*sizeof(int))
     cdef double *** cusp_reps=NULL
@@ -503,11 +513,18 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
     cdef double GdeltaK=G.deltaK()
     cdef gen F
     F = G._K.pari_bnf()
-    cdef double *xv, *yv
+    cdef double *xv
+    cdef double *yv
     cdef int inrhomax,inrhomin,break_rho,break_sigma
     cdef double nrhomax,nrhomin,tmp,tmp1,tmp2,tmpH,tmpL
-    cdef double *nrhomax_loc=NULL, *nrhomin_loc=NULL,*s2y2=NULL,*rhoemb=NULL,*semb=NULL
-    cdef double *c1=NULL,*c2=NULL,*c3=NULL
+    cdef double *nrhomax_loc=NULL
+    cdef double *nrhomin_loc=NULL
+    cdef double *s2y2=NULL
+    cdef double *rhoemb=NULL
+    cdef double *semb=NULL
+    cdef double *c1=NULL
+    cdef double *c2=NULL
+    cdef double *c3=NULL
     cdef double *nsigmamax_loc
     cdef int num_pair,do_cont
     nsigmamax_loc = <double *>sig_malloc(degree*sizeof(double))
@@ -559,7 +576,8 @@ cpdef get_closest_cusp(Hn z,G,int denom_max=3,int verbose=0):
         print "cK={0}".format(cK)
         print "N(y)=",ny
     delta0 = 2.0**(3-G._prec)
-    cdef int *rho_v, *sigma_v
+    cdef int *rho_v
+    cdef int *sigma_v
     rho_v = <int*>sig_malloc(degree*sizeof(int))
     sigma_v = <int*>sig_malloc(degree*sizeof(int))
     cdef double *** cusp_reps=NULL

@@ -21,7 +21,7 @@
 
 
 include 'stdsage.pxi'
-include 'cysignals/signals.pxi'
+from cysignals.signals cimport *
 
 from sage.rings.all import ZZ, Zp, Qp, Integers, infinity, binomial, Mod, O
 

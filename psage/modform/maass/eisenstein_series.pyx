@@ -24,8 +24,9 @@ from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *
 from sage.libs.mpfr.types cimport MPFR_RNDZ
-from sage.all import save,incomplete_gamma,load,bessel_K,vector
-import mpmath    
+from sage.all import save,load,bessel_K,vector
+from sage.all import gamma_inc as incomplete_gamma
+import mpmath
 
 from lpkbessel import besselk_dp
 

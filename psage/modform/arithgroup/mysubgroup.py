@@ -83,7 +83,8 @@ from psage.groups.permutation_alg import are_mod1_equivalent
 from sage.plot.all import Graphics
 from sage.plot.circle import circle
 from sage.plot.colors import to_mpl_color
-from sage.plot.misc import options, rename_keyword
+from sage.plot.plot import options
+from sage.misc.decorators import rename_keyword
 #from sage.plot.all import hyperbolic_arc, hyperbolic_triangle, text
 
 import types

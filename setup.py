@@ -98,7 +98,8 @@ def run_cythonize():
     if os.environ.get('SAGE_PROFILE', None) == 'yes':
         print('Enabling Cython profiling support')
         profile = True
-   
+    Cython.Compiler.Options.get_directive_defaults()['language_level'] = 2
+
     # Sage uses these directives (mostly for historical reasons).
     Cython.Compiler.Options.embed_pos_in_docstring = True
     Cython.Compiler.Options.get_directive_defaults()['autotestdict'] = False
@@ -119,7 +120,7 @@ def run_cythonize():
         force=FORCE,
         include_path = include_dirs,
         aliases=aliases,
-        #exclude_failures=True,
+        exclude_failures=True,
         compiler_directives={
             'embedsignature': True,
             'profile': profile,
@@ -129,17 +130,14 @@ import time
 t = time.time()
 run_cythonize()
 print("Finished Cythonizing, time: %.2f seconds." % (time.time() - t))
-import distutils
-#for m in ext_modules:
-#    print m,isinstance(m,distutils.extension.Extension)
-#from distutils.core import setup
+
 from setuptools import setup
 code = setup(
     name = 'psage',
-    version = "2016.1.0",
+    version = "2019.1.0",
     description = "PSAGE: Software for Arithmetic Geometry",
-    author = 'William Stein',
-    author_email = 'wstein@gmail.com',
+    author = 'Stephan Ehlen, William Stein,Fredrik Stromberg, et. al.',
+    author_email = 'fredrik314@gmail.com',
     url = 'http://purple.sagemath.org',
     license = 'GPL v2+',
     packages = ['psage',

@@ -27,15 +27,10 @@ AUTHORS:
 #===============================================================================
 
 
-from cysignals.memory cimport sig_free,sig_malloc
+#from sage.libs.gmp.all cimport *
 from cysignals.signals cimport sig_on,sig_off
-from sage.libs.gmp.all cimport *
-from stdsage cimport PY_NEW
-from cysignals.signals cimport sig_on,sig_off
-
-
+from sage.libs.gmp.mpz cimport mpz_sqrt,mpz_get_si,mpz_set_si,mpz_init,mpz_t,mpz_mul,mpz_add,mpz_cmp,mpz_set,mpz_clear,mpz_neg
 from sage.rings.integer cimport Integer
-from sage.rings.ring cimport Ring
 
 cdef struct jac_index_sgn :
     int n

@@ -1,6 +1,6 @@
 include 'sage/ext/stdsage.pxi'
 include 'sage/ext/cdefs.pxi'
-include "cysignals/signals.pxi"
+from cysignals.signals cimport *
 
 from sage.rings.ring cimport Ring
 from sage.rings.polynomial.polynomial_ring import is_PolynomialRing

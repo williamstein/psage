@@ -1,4 +1,4 @@
-include 'cysignals/signals.pxi'
+from cysignals.signals cimport *
 
 cdef extern from "rankbound.h":
     double rankbound(char * curve_string,

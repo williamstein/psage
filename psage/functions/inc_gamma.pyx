@@ -40,7 +40,7 @@ cdef int nmax = 10000
 from sage.rings.real_mpfr cimport RealNumber
 from sage.rings.real_mpfr cimport RealField_class
 from sage.rings.real_mpfr import RealField
-from sage.functions.special import error_fcn as erfc
+#from sage.all import erfc
 
 
 cdef extern from "math.h":

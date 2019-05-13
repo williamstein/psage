@@ -23,7 +23,8 @@ Used by routines in maass_forms.py
 from psage.rings.mp_cimports cimport *
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-from sage.all import save,incomplete_gamma,load,bessel_K
+from sage.all import save,load,bessel_K
+#from sage.functions.gamma import gamma_inc as incomplete_gamma
 import mpmath
 
 from sage.rings.complex_mpc import MPComplexField

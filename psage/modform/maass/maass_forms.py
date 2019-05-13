@@ -16,23 +16,31 @@
 
 
 import mpmath as mpmath
-from sage.structure.element import Element
-from sage.structure.parent import Parent
-from sage.structure.sage_object import SageObject,cPickle
 from sage.functions.all import ln,sqrt,floor
 from sage.arith.all import divisors,gcd,inverse_mod
 from sage.modular.dirichlet import DirichletGroup
 from sage.rings.all import RR
-from sage.modular.arithgroup.all import Gamma0
-from sage.all import trivial_character,timeit,log,is_squarefree,prime_range,next_prime,deepcopy
-from maass_forms_alg import *
+from sage.all import timeit, prime_range
 from lpkbessel import *
 from automorphic_forms import *
 import eisenstein_series
 from eisenstein_series import Eisenstein_series_one_cusp
 #from mysubgroup import is_Hecke_triangle_group
-import matplotlib
 import warnings
+# from mysubgroup import is_Hecke_triangle_group
+import warnings
+
+import mpmath as mpmath
+from sage.all import timeit, prime_range
+from sage.arith.all import divisors, gcd, inverse_mod
+from sage.functions.all import ln, sqrt, floor
+from sage.modular.dirichlet import DirichletGroup
+from sage.rings.all import RR
+
+import eisenstein_series
+from automorphic_forms import *
+from eisenstein_series import Eisenstein_series_one_cusp
+from lpkbessel import *
 
 r"""
 
@@ -1719,7 +1727,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
 
         """
-        from sage.all import Infinity,log_b
+        from sage.all import log_b
         # If we have a Gamma_0(N) we can use Hecke operators
         if method not in ['Hecke','pcoeff','eval','TwoY','CV']:
             raise ValueError,"Method : {0} is not recognized!".format(method)
@@ -2038,8 +2046,6 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         or if a Q is specified of that many points.
 
         """
-        from psage.modform.arithgroup.plot_dom import get_contour
-        import matplotlib.pyplot as plt
         from sage.all import list_plot
         version = kwds.pop('version',0)
         model = kwds.pop('model','H')
@@ -2079,10 +2085,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         --'do_pullback'' -- set to False if you want to 
         """
         from sage.all import xsrange,Infinity
-        from sage.plot.all import Graphics
         from sage.plot.misc import setup_for_eval_on_grid
+        from matplotlib.path import Path
+        from matplotlib.transforms import Transform
+        from matplotlib.patches import PathPatch
         import matplotlib.pyplot as plt
-        from sage.plot.density_plot import DensityPlot
         from psage.modform.arithgroup.plot_dom import get_contour
         G = self.group()
         w = G.cusp_width(Infinity)
@@ -2134,6 +2141,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         if not isinstance(cmap,list):
             cmap = [cmap]
         res = []
+        c = None
         for cmap0 in cmap:
             g = plt.figure(figsize=(xsize,ysize))
             ax = g.add_subplot(111)
@@ -2158,11 +2166,16 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     ax.add_patch(fdom)
                 if clip:
                     im.set_clip_path(fdom)
+            elif model=='D': # clip to circle
+                c = Path.circle((0.0, 0.0), radius=1.0)
+                c = PathPatch(c, facecolor='none')
+                ax.add_patch(c)
+                im.set_clip_path(c)
             if not show_axis:
                 ax.set_frame_on(False)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-            if model == 'D':
+            if model == 'D' and c is None:
                 c = patches.Circle((0.0,0.0),radius=1.0,fc='none')
                 ax.add_patch(c)
             res.append(g)
@@ -2459,7 +2472,6 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
         r"""
         Evaluate self.
         """
-        import scipy
         from sage.functions.trig import cos,sin
         if y == None:
             y = float(x.imag())
@@ -2561,9 +2573,8 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
             res = res*sqrt(y3)
         if exceptional:
             return res
-        return res*exp(RR.pi()*R*0.5)
+        return res*exp(RR.pi() * R * 0.5)
 
-from numpy import array
 
 def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None,dim=1,set_c=None):
     r"""

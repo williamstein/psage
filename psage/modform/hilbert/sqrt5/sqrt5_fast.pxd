@@ -19,7 +19,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
     cdef bint is_unit(self, residue_element op)
     cdef void neg(self, residue_element rop, residue_element op)
     cdef ResidueRingElement new_element(self)
-    cdef int coefficients(self, long* v0, long* v1, NumberFieldElement_quadratic x) except -1    
+    cdef int coefficients(self, long* v0, long* v1, NumberFieldElement_quadratic x) except -1
     cdef int coerce_from_nf(self, residue_element r, NumberFieldElement_quadratic x) except -1
     cdef bint element_is_1(self, residue_element op)
     cdef bint element_is_0(self, residue_element op)
@@ -41,7 +41,7 @@ cdef class ResidueRing_abstract(CommutativeRing):
     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1
     cdef bint is_last_element_in_P(self, residue_element op)
     cdef element_to_str(self, residue_element op)
-    
+
 
 cdef class ResidueRingElement:
     cdef residue_element x
@@ -52,7 +52,7 @@ cdef class ResidueRingElement:
     cpdef bint is_unit(self)
     cpdef bint is_square(self)
     cpdef sqrt(self)
-    
-    
-    
-    
+
+
+
+

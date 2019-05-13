@@ -59,9 +59,9 @@ class MultiplierSystem(SageObject):
         If char_nr = -1  = > kronecker_character
         If char_nr = -2  = > kronecker_character_upside_down
         """
-        #print "kwargs0=",kwargs
         self._group = group
-        self._weight = None
+        if not hasattr(self,'_weight'):
+            self._weight = None
         self._dim = dimension
         self._ambient_rank=kwargs.get('ambient_rank',None)
         self._kwargs = kwargs
@@ -328,7 +328,6 @@ class ThetaMultiplier(MultiplierSystem):
         MultiplierSystem.__init__(self,group,dchar=dchar,dual=dual,is_trivial=is_trivial,dimension=dimension,**kwargs)
         self._i = CyclotomicField(4).gen()
         self._one = self._i**4
-        #print "weight=",weight
         self._weight= QQ(kwargs.get("weight",QQ(1)/QQ(2)))
         ## We have to make sure that we have the correct multiplier & character 
         ## for the desired weight

@@ -181,7 +181,7 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
     cdef int nc_sym=0
     for jcusp  in range(nc):
         if verbose>0:
-            printf("cusp_evs[%d]=%d \n",jcusp,cusp_evs[jcusp])
+            printf("cusp_evs[%d]=%f +i%f \n",jcusp,creal(cusp_evs[jcusp]),cimag(cusp_evs[jcusp]))
         if jcusp==0 or cusp_evs[jcusp]<>0:
             nc_sym+=1
     for jcusp in range(nc):

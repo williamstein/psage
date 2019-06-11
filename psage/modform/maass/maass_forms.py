@@ -19,7 +19,6 @@ import mpmath as mpmath
 from sage.functions.all import ln,sqrt,floor
 from sage.arith.all import divisors,gcd,inverse_mod
 from sage.modular.dirichlet import DirichletGroup
-from sage.rings.all import RR
 from sage.all import timeit, prime_range
 from lpkbessel import *
 from automorphic_forms import *
@@ -31,11 +30,11 @@ import warnings
 import warnings
 
 import mpmath as mpmath
-from sage.all import timeit, prime_range
+from sage.all import timeit, prime_range,Cusp
 from sage.arith.all import divisors, gcd, inverse_mod
 from sage.functions.all import ln, sqrt, floor
 from sage.modular.dirichlet import DirichletGroup
-from sage.rings.all import RR
+from sage.rings.all import RR,CC,Integer
 
 import eisenstein_series
 from automorphic_forms import *
@@ -241,7 +240,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         - ''evs'' -- dict or integer.
         """
         if isinstance(evs,(int,Integer)):
-            evs={0:int(eigenvalues)}
+            evs={0:int(evs)}
         elif not isinstance(evs,(dict,list)):
             raise TypeError,"Could not get cusp eigenvalues from {0}!".format(evs)
         self._atkin_lehner_evs={}
@@ -1926,6 +1925,13 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             if format=='float':
                 return er
             return d
+    @cached_method
+    def kbes(self,y):
+        import scipy
+        if self._space._exceptional:
+            return scipy.special.kv(self._R, y)
+        else:
+            return  my_kbes(self._R, y)
 
     def eval(self,x,y=None,version=1,fi=0,use_cj=-1,use_pb=1,verbose=0,numc=0):
         r"""
@@ -2005,11 +2011,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             ary=twopi*y3
             if exceptional:
                 for n in range(1,numc):
-                    term=scipy.special.kv(R,ary*n)*fun(arx*n)
+                    term=self.kbes(ary*n)*fun(arx*n)
                     res=res+self._coeffs[fi][cj][n]*term
             else:
                 for n in range(1,numc):
-                    term=my_kbes(R,ary*n)*fun(arx*n)
+                    term=self.kbes(ary*n)*fun(arx*n)
                     res=res+self._coeffs[fi][cj][n]*term
             res = res*sqrt(y3)
         else:
@@ -2021,7 +2027,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 for n in range(numc,0,-1):
                     c_pos = self._coeffs[fi][cj].get(n,0)
                     c_neg = self._coeffs[fi][cj].get(-n,0)
-                    fnval = scipy.special.kv(R,ary*abs(n))
+                    fnval = self.kbes(ary*abs(n))
                     term=fnval*( CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg) 
                     res=res+term
             else:
@@ -2029,7 +2035,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     if n== 0:
                         continue
                     #term=besselk_dp(R,ary*abs(n))*CC(0,arx*n).exp()
-                    term=my_kbes(R,ary*abs(n))*CC(0,arx*n).exp()
+                    term=self.kbes(ary*abs(n))*CC(0,arx*n).exp()
                     res=res+self._coeffs[fi][cj][n]*term
             #if res == 0.0:
             #    continue #print "value = 0"
@@ -2084,7 +2090,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         --'axis' -- set to False if you do not want to show the axis
         --'do_pullback'' -- set to False if you want to 
         """
-        from sage.all import xsrange,Infinity
+        from sage.all import xsrange,Infinity,numerical_approx
         from sage.plot.misc import setup_for_eval_on_grid
         from matplotlib.path import Path
         from matplotlib.transforms import Transform
@@ -2104,7 +2110,17 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         cmap=kwds.pop('cmap','jet')
         ccolor=kwds.pop('contour_color','black')
         cthickness=kwds.pop('cthickness',2)
+        translates = kwds.pop('translates',1) # The number of trnslates to include in the plot
         eps = 1e-10
+        @cached_function
+        def evalF(x,y):
+            """
+            Define this here to enable caching
+            :param x:
+            :param y:
+            :return:
+            """
+            return F.eval(x,y,version=version)
         def fun(x,y):
             z = CC(x,y)
             if model == 'D':
@@ -2115,11 +2131,10 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
             if y <= 0.005:
                 return 0.0
             xx,yy,a,b,c,d = G.pullback(x,y,version=version)
-            #print "x,y    =",x,y
-            #print "xpb,ypb=",xx,yy,a,b,c,d
-            zpb = CC(xx,yy)
-            if clip is True and abs(z-zpb)>eps:
+            if clip is True and translates == 1 and abs(z - CC(xx, yy)) > eps:
                 return 0.0
+            xx = numerical_approx(xx, digits=3)
+            yy = numerical_approx(yy, digits=3)
             w = self.eval(xx,yy,version=version)
             #print "f=",w
             #abs(f.eval(xx,yy))**2
@@ -2134,9 +2149,9 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         g, ranges = setup_for_eval_on_grid([fun], [xrange, yrange], options['plot_points'])
         g = g[0]
         xrange,yrange=[r[:2] for r in ranges]
-        xy_data_array = [[fun(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
+        xy_data_array = [[g(x, y) for x in xsrange(*ranges[0], include_endpoint=True)] for y in xsrange(*ranges[1], include_endpoint=True)]
         xsize = (xlim[1]-xlim[0]); ysize = (ylim[1]-ylim[0])
-        #print "size=",xsize,ysize
+        #print "size=",xsize,ysiz
         ## From here we can have more than one figure with the same data
         if not isinstance(cmap,list):
             cmap = [cmap]
@@ -2159,9 +2174,11 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                 im = ax.contourf(X,Y,Z,levels,cmap=cmap)
             if add_contour or clip:
                 if model=='H':
-                    fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness,ymax=y1)
+                    fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness,
+                                       ymax=y1,translates=translates)
                 else:
-                    fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness)          
+                    fdom = get_contour(G,version=version,model=model,color=ccolor,as_patch=True,thickness=cthickness,
+                                       translates=translates)
                 if add_contour:
                     ax.add_patch(fdom)
                 if clip:

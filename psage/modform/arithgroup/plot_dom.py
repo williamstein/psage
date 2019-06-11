@@ -834,22 +834,38 @@ def nice_coset_reps(G):
                 # we exit
                 break
         # If we missed something (which is unlikely)        
-        if(len(cl)<>G.index()):
+        if len(cl) != G.index():
             print "cl=",cl
-            raise ValueError,"Problem getting coset reps! Need %s and got %s" %(G.index(),len(cl))
+            raise ValueError("Problem getting coset reps! Need %s and got %s" %(G.index(),len(cl)))
         return cl
 
-def get_contour(G,version=1,model='D',standalone=False,as_patch=True,**kwds):
-    #if G.index()>1:
+def get_contour(G,version=1,model='D',standalone=False,as_patch=True,translates=1,**kwds):
+    r"""
+    Compute the contour of a fundamental domain of G.
+    :param G:
+    :param version:
+    :param model:
+    :param standalone:
+    :param as_patch:
+    :param as_translated: if positive gives a number of translates of the given fundamental domain to include
+    :param kwds:
+    :return:
+    """
+    from .mysubgroups_alg import SL2Z_elt
     ymax = kwds.get('ymax',None)
+    if translates > 1:
+        original_reps = G.coset_reps()
+        T = SL2Z_elt(1, 1, 0, 1)
+        G._coset_reps_v0 = sum(
+            [[(T ** j) * x for x in original_reps] for j in range(int(-translates / 2), int(translates / 2 + 1))], [])
     if ymax is None:
         P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
     else:
         P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True,ymax=ymax)
-        
+    if translates > 1:
+        # reset the representatives.
+        G._coset_reps_v0 = original_reps
         #    #return P
-    #else:
-    #    P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False)
     l=build_connected_path(P,**kwds) #,model=model)
     if standalone:
         fig=pyplot.Figure()

@@ -322,7 +322,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     #Y = get_Y_for_M(S,R2in,M,tol)
     flogger.debug("R3in={0}, min hieight: {1}, M={2}, tol={3}".format(R3in,S.group().minimal_height(),M,tol))
     
-    M,Y=get_M_and_Y(R3in,S.group().minimal_height(),M,tol)
+    M,Y=get_M_and_Y(R3in,S.group().minimal_height(),M,tol,cuspidal=1)
     flogger.debug("Got M={0} and Y={1}".format(M,Y))
     # start slightly lower?
     #if Y<0: # If the required precision needs a larger M

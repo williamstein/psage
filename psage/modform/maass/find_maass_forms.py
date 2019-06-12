@@ -1080,10 +1080,10 @@ def check_if_out_of_range(R1v,R3v,Rnew,diffs,h,errest_x,errest_x_old,errest_h,er
     if abs(h[2])>hmax:
         return True
     # Check if we got larger error estimate in x or h (shouldn't happen)
-    if errest_x > errest_x_old or errest_h > errest_h_old:
+    if errest_x > errest_x_old: # or errest_h > errest_h_old:
         if verbose>0:
             flogger.debug("Got larger error estimate: {0} > {1}".format(errest_x,errest_x_old))
-            flogger.debug("Got larger error estimate: {0} > {1}".format(errest_h,errest_h_old))
+#            flogger.debug("Got larger error estimate: {0} > {1}".format(errest_h,errest_h_old))
         return True
     # Check if the R doesn't move but we have too large functional values.
     # Normally the funciton is much smaller.
@@ -1307,7 +1307,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     flogger.debug(" R1in-2tol={0}".format(R1in-2*tol))
     if Rnew > R3in+2*tol or Rnew<R1in-2*tol:
         ## Try to take an average prediction instead
-        Rnew = sum([prediction(diffs[1 ][j],diffs[3 ][j],R1in,R3in) for j in range(1,4)])
+        Rnew = sum([prediction(diffs[1][j],diffs[3][j],R1in,R3in) for j in range(1,4) if diffs[1][j] != diffs[3][j]])
         Rnew = Rnew/RF(3)
         flogger.debug("Try a new Rnew = {0}".format(Rnew))
         if Rnew > R3in+10*tol or Rnew<R1in-10*tol:

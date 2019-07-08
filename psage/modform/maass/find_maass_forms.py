@@ -41,7 +41,7 @@ except:
     flogger = logging.getLogger(__name__)
     logger2 = logging.getLogger('detailed log')
 #flogger.setLevel(logging.WARNING)
-#logger2.setLevel(logging.WARNING)
+logger2.setLevel(logging.DEBUG)
 
 
 def get_element_in_range(H,R1,R2,Mset=0,Yset=0,dim=1,ndigs=12,set_c=[],fnr=0,neps=10,hmax=100,method='TwoY',split=0,get_c=0,verbose=0,maxit=20,force=False,db=None,tol=1e-12,hecke_ef=True,sloppy=0,return_bad=False):
@@ -323,7 +323,6 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     flogger.debug("R3in={0}, min hieight: {1}, M={2}, tol={3}".format(R3in,S.group().minimal_height(),M,tol))
     
     M,Y=get_M_and_Y(R3in,S.group().minimal_height(),M,tol,cuspidal=1)
-    flogger.debug("Got M={0} and Y={1}".format(M,Y))
     # start slightly lower?
     #if Y<0: # If the required precision needs a larger M
     #    Y,M = get_Y_and_M_dp(S,R2in,tol)
@@ -335,6 +334,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     Y = RF(Y)
     if Mset and Mset>0:
         M=Mset
+    flogger.debug("Got M={0} and Y={1}".format(M, Y))
     signs=dict();diffs=dict()
     c=dict(); h=dict()
     is_trivial=S.multiplier().is_trivial()
@@ -344,7 +344,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
         mod=x.modulus()
     else:
         mod=S.group().generalised_level()
-    flogger.debug("Computing Maass form wirth these paramters: R={0}, dim={1} and set_C={2}".format(R1in,dim,set_c))
+    flogger.debug("Computing Maass form witth these paramters: R={0}, dim={1} and set_C={2}".format(R1in,dim,set_c))
     F=S.get_element(R1in,Yset=Y,Mset=M,dim=dim,set_c=set_c,phase2=False)
     if isinstance(F,list):
         F = F[fnr]
@@ -758,7 +758,9 @@ def get_coefficients_for_functional(S,r,Y,M,Q,dim=1,fnr=0,do_parallel=False,ncpu
     :param do_cplx:
     :return:
     """
+    logger2.info("Complex={0}".format(do_cplx))
     if not do_cplx:
+        logger2.info("GEt coeff real fast: {0},{1},{2},{3},norm={4}".format(RR(r), RR(Y), int(M), int(Q), Norm))
         C1 = get_coeff_fast_real_dp(S, RR(r), RR(Y), int(M), int(Q), Norm)
         return C1[fnr][0]
     logger2.info("Get coefficients: r,Y1,M,Q={0}".format((r, Y, M, Q)))
@@ -837,7 +839,10 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         hecke_ef = 0
     Q=M+20
     do_cplx=1
-    do_cplx= True 
+    if S.group().level()>1:
+        do_cplx= True
+    else:
+        do_cplx = False
     if do_cplx:
         chi = S.multiplier()._character
         mod   = chi.modulus()
@@ -852,7 +857,6 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         raise NotImplementedError
     C1 = get_coefficients_for_functional(S,r,Y1,M,Q,dim=dim,fnr=fnr,do_parallel=do_parallel,ncpus=ncpus,set_c=set_c,do_cplx=do_cplx,
                                              Norm=Norm,hecke_ef=hecke_ef,used_coefficients=c,diffsx=diffsx)
-#    print "C1=",C1
     if method=='TwoY':
         diffsx2 = {}
         C2 = get_coefficients_for_functional(S, r, Y2, M, Q, dim=dim, fnr=fnr, do_parallel=do_parallel, ncpus=ncpus,
@@ -861,7 +865,6 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         if diffsx.get(-1):
             diffsx[-2]=diffsx[-1]
 
-#        print "C2=", C2
         # if do_cplx:
         #     logger2.info("do_cplx: r,Y2,M,Q={0}".format(r,Y2,M,Q,Norm,cusp_evs))
         #         #logger2.info("sqch={0}".format(sqch
@@ -928,7 +931,7 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         if sym_type == -1:
             numt = len(c.keys())
             for j in c.keys():  # 
-                den = abs(C1[0][c[j]])+abs(C2[0][c[j]])
+                den = min(1,abs(C1[0][c[j]])+abs(C2[0][c[j]]))
                 if isinstance(C1[0][c[j]],ComplexNumber):
                     diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real()/den
                     diffsx[numt+j]=(C1[0][c[j]]-C2[0][c[j]]).imag()/den
@@ -951,7 +954,7 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
                 elif isinstance(C1[0][c[j]],complex):
                     diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real
                 else:
-                    raise ArithmeticError,"Got coefficients of unknown type {0}".format(type(C1[0][c[j]]))
+                    raise ArithmeticError("Got coefficients of unknown type {0}".format(type(C1[0][c[j]])))
         h=0.0
         for j in [1,2,3]:
             logger2.debug("C1:2[{0}]={1} : {2}".format(c[j],C1[0][c[j]],C2[0][c[j]]))

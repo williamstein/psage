@@ -208,7 +208,7 @@ class PeriodPolynomial(SageObject):
             if n in SL2Z:
                 n = self._get_coset_n(n)
             else:
-                raise ValueError,"{0} not in SL(2,Z)".format(n)
+                raise ValueError("{0} not in SL(2,Z)".format(n))
         return self._polynomials.get(n,None)
 
     def polynomials(self):
@@ -228,7 +228,7 @@ class PeriodPolynomial(SageObject):
         RF = RealField(self._prec)
         CF = ComplexField(self._prec)
         if n < 0 or n>self._w+1:
-            print "{0} is not a special point for this f!".format(n)
+            print("{0} is not a special point for this f!".format(n))
             return 
         if not self._polynomials:
             self._get_polynomials()
@@ -269,7 +269,7 @@ class PeriodPolynomial(SageObject):
         for k odd.
         See e.g. Thm 3.3. in Pasol - Popa "Modular forms and period polynomials"
         """
-        if self._peterson_norm<>0:
+        if self._peterson_norm != 0:
             return self._peterson_norm
         T=SL2Z([1,1,0,1])
         Ti=SL2Z([1,-1,0,1])
@@ -414,7 +414,7 @@ class PeriodPolynomial(SageObject):
                 if A*An**-1 in G:
                     return n
                 n+=1
-        raise ArithmeticError,"Can not find coset of A={0}".format(A)
+        raise ArithmeticError("Can not find coset of A={0}".format(A))
 
 
     def _get_shifted_coset_m(self,n,A):
@@ -428,7 +428,7 @@ class PeriodPolynomial(SageObject):
             AE = SL2Z([An[0,0],-An[0,1],-An[1,0],An[1,1]])
             m = self._get_coset_n(AE)
         else:
-            raise ValueError,"Call with SL2Z element or [-1,0,1,0]. Got:{0}".format(E)
+            raise ValueError("Call with SL2Z element or [-1,0,1,0]. Got:{0}".format(E))
         return m
         
     def slash_action(self,n,gamma,sym='none'):
@@ -546,7 +546,7 @@ class PeriodPolynomial(SageObject):
             if hasattr(self._f,"O"):
                 self._base_coeffs = self._f.coefficients()
                 if len(self._base_coeffs)<M0:
-                    raise ValueError,"Too few coefficients available!"
+                    raise ValueError("Too few coefficients available!")
             else:
                 self._base_coeffs = self._f.coefficients(ZZ(M0))
             self._base_coeffs_embedding=[]
@@ -690,7 +690,7 @@ class PeriodPolynomial(SageObject):
         if self._shift.has_key(n) and self._width.has_key(n):
             return self._shift[n],self._width[n]
         if not is_squarefree(self._level):
-            raise NotImplementedError,"Only square-free levels implemented"
+            raise NotImplementedError("Only square-free levels implemented")
         G = Gamma0(self._level)
         A = self.coset_rep(n)
         a = A[0,0]; c=A[1,0]
@@ -709,7 +709,7 @@ class PeriodPolynomial(SageObject):
                 h = j
                 break
         if h<0:
-            raise ArithmeticError,"Could not find shift!"
+            raise ArithmeticError("Could not find shift!")
         self._shift[n]=h
         self._width[n]=width
         return h,width        

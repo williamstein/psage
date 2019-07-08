@@ -4953,8 +4953,8 @@ cdef SMAT_cplx_dp(double complex** U,int N,int num_rhs,int num_set,double comple
         used[maxi]=1
         temp2=U[maxi][m]
         if cabs(temp2)==0.0:
-            print 'ERROR: pivot(',m,') == 0, system bad!!!'
-            raise ArithmeticError
+            msg = 'ERROR: pivot({0}) == 0, system bad!!!'.format(m)
+            raise ArithmeticError(msg)
         for j in range(m+1,N+num_rhs): # do j=M+1,N+1
             U[maxi][j]=U[maxi][j]/temp2
             #! eliminate from all other rows

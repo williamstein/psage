@@ -20,10 +20,9 @@ Used by routines in atomorphic_forms.py
 
 """
 from libc.stdint cimport uint64_t
-
 from psage.rings.mpfr_nogil cimport *
 from cysignals.memory cimport sig_free,sig_malloc,check_allocarray
-from cysignals.signals cimport sig_on,sig_off
+from cysignals.signals cimport sig_on,sig_off,sig_check
 
 import logging
 log = logging.getLogger(__name__)
@@ -692,6 +691,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     cdef int is_int=0
     cdef int is_half_int=0
     ## Test if the weight is integral
+    kinti = 0
     if floor(kint)==pceil(kint):
         kinti = int(kint); is_int = 1
     if verbose>0:

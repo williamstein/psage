@@ -994,7 +994,10 @@ cdef list elements_of_norm_2(gen F,int n,int degree,double ** basis,int* numres,
         elts = F.bnfisintnorm(n)
         elements_of_F_with_norm[n]=[]
         for a in elts:
-            v = a.list()
+            try:
+                v = a.list()
+            except TypeError:
+                v = [a]
             numv = len(v)
             if numv<degree:
                 for i in range(numv,degree):

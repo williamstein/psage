@@ -34,6 +34,8 @@ from cpython cimport Py_LT,Py_GE,Py_NE,Py_LE,Py_GT,Py_EQ
 
 from sage.rings.all import Integers, ZZ, QQ
 from sage.rings.ideal import is_Ideal
+from sage.rings.number_field.number_field_element_quadratic cimport NumberFieldElement_quadratic
+from sage.rings.ring cimport CommutativeRing
 from sage.matrix.all import MatrixSpace, zero_matrix
 
 from sage.rings.integer cimport Integer
@@ -106,277 +108,277 @@ class ResidueRingIterator:
             return self.R[self.i-1]
         else:
             raise StopIteration
-#
-# cdef class ResidueRing_abstract(CommutativeRing):
-#     def __init__(self, P, p, e):
-#         """
-#         INPUT:
-#
-#             - P -- prime ideal of O_F
-#             - e -- positive integer
-#         """
-#         self.P = P
-#         self.e = e
-#         self.p = p
-#         self.F = P.number_field()
-#
-#     # Do not just change the definition of compare.
-#     # It is used by the ResidueRing_ModN code to ensure that the prime
-#     # over 2 appears first. If you totally changed the ordering, that
-#     # would suddenly break.
-#     def __richcmp__(ResidueRing_abstract left, right, int op):
-#         if left is right:
-#             # Make case of easy equality fast
-#             return _rich_to_bool(op, 0)
-#         if not isinstance(right, ResidueRing_abstract):
-#             return _rich_to_bool(op, cmp(ResidueRing_abstract, type(right)))
-#         cdef ResidueRing_abstract r = right
-#         # slow
-#         return _rich_to_bool(op,
-#                    cmp((left.p,left.e,left.P), (r.p,r.e,r.P)))
-#
-#     def __hash__(self):
-#         return hash((self.p,self.e,self.P))
-#
-#     def residue_field(self):
-#         if self._residue_field is None:
-#             self._residue_field = self.P.residue_field()
-#         return self._residue_field
-#
-#     cdef object element_to_residue_field(self, residue_element x):
-#         raise NotImplementedError
-#
-#     def _moduli(self):
-#         # useful for testing purposes
-#         return self.n0, self.n1
-#
-#     def __call__(self, x):
-#         cdef NumberFieldElement_quadratic y
-#         cdef ResidueRingElement z
-#         try:
-#             y = x
-#             z = self.new_element()
-#             self.coerce_from_nf(z.x, y)
-#             return z
-#         except TypeError:
-#             pass
-#
-#         if hasattr(x, 'parent'):
-#             P = x.parent()
-#         else:
-#             P = None
-#         if P is self:
-#             return x
-#         elif P is not self.F:
-#             x = self.F(x)
-#         return self(x)
-#
-#     cdef ResidueRingElement new_element(self):
-#         raise NotImplementedError
-#
-#     cdef int coefficients(self, long* v0, long* v1, NumberFieldElement_quadratic x) except -1:
-#         # The attributes of x are x.a, x.b and x.denom, defined by
-#         #         x = (x.a + x.b*sqrt(5))/x.denom.
-#         # Let n be the characteristic of self, and assume n is odd. Set
-#         #       a = x.a (mod n),   b = x.b (mod n),   e = x.denom^(-1) (mod n).
-#         # all long ints.
-#         #   We have x = (a+sqrt(5)*b)*e (mod n).
-#         # The r[0] and r[1] we want are the coefficients of 1 and (1+sqrt(5))/2.
-#         #    c + d*(1+sqrt(5))/2 = a*e + sqrt(5)*b*e
-#         #    c + d/2 + (d/2)*sqrt(5) = a*e + sqrt(5)*b*e
-#         # So
-#         #    *v0 = c = a*e - d/2 = a*e - b*e
-#         #    *v1 = d = 2*b*e
-#         #
-#         # The above works fine when n is not a power of 2.  When n is a power of 2,
-#         # it fails, since x.denom is often divisible by 2.  Write
-#         #         x = (x.a + x.b*sqrt(5))/(2*f), so 2*f=x.denom.
-#         # If x is 2-integral, then f is not divisible by 2.  We have
-#         #     e = 1/x.denom = 1/(2*f).
-#         # Let f' = 1/f (mod n).
-#         # We have from the algebra above that in case x.denom % 2 == 0:
-#         #    *v0 = c =(a-b)*e = (a-b)/(2*f) = ((a-b)/2)/f = (a-b)/2 * f'
-#         #    *v1 = 2*e*b = b/f = b*f'
-#         # Thus an integrality condition is that a=b(mod 2).
-#         # If x.denom % 2 != 0, we just proceed as before.
-#
-#         cdef long a, b, e, t, f, n
-#         n = self.n0 if (self.n0 > self.n1) else self.n1
-#         cdef int is_even = n%2==0
-#         e = mpz_mod_ui(temp1.value, x.denom, n)
-#         if e == 0 or (is_even and e%2==0):
-#             if is_even:
-#                 a = mpz_mod_ui(temp1.value, x.a, 2*n)
-#                 b = mpz_mod_ui(temp1.value, x.b, 2*n)
-#                 # Special 2-power case, as described in comment above.
-#                 f = mpz_mod_ui(temp1.value, x.denom, 2*n) / 2
-#                 if f == 0:
-#                     raise ZeroDivisionError, "x = %s"%x
-#                 else:
-#                     t = a - b
-#                     if t%2 != 0:
-#                         raise ZeroDivisionError, "x = %s"%x
-#                     else:
-#                         if t < 0:
-#                             t += 2*n
-#                         if f != 1:
-#                             f = invmod_long(f, n)
-#                         v0[0] = ((t/2) * f)%n
-#                         v1[0] = (b * f)%n
-#                         return 0 # success
-#             else:
-#                 raise ZeroDivisionError, "x = %s"%x
-#
-#         a = mpz_mod_ui(temp1.value, x.a, n)  # all are guaranteed >= 0 by GMP docs
-#         b = mpz_mod_ui(temp1.value, x.b, n)
-#         if e != 1:
-#             e = invmod_long(e, n)
-#         v0[0] = (a*e)%n - (b*e)%n
-#         if v0[0] < 0:
-#             v0[0] += n
-#         v1[0] = (2*b*e)%n
-#
-#
-#         return 0  # success
-#
-#     cdef int coerce_from_nf(self, residue_element r, NumberFieldElement_quadratic x) except -1:
-#         raise NotImplementedError
-#
-#     def __repr__(self):
-#         return "Residue class ring of %s^%s of characteristic %s"%(
-#             self.P._repr_short(), self.e, self.p)
-#
-#     def lift(self, x): # for consistency with residue fields
-#         if x.parent() is self:
-#             return x.lift()
-#         raise TypeError
-#
-#     cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
-#         raise NotImplementedError
-#     cdef void sub(self, residue_element rop, residue_element op0, residue_element op1):
-#         raise NotImplementedError
-#     cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
-#         raise NotImplementedError
-#     cdef int inv(self, residue_element rop, residue_element op) except -1:
-#         raise NotImplementedError
-#     cdef bint is_unit(self, residue_element op):
-#         raise NotImplementedError
-#     cdef void neg(self, residue_element rop, residue_element op):
-#         raise NotImplementedError
-#
-#     cdef bint element_is_1(self, residue_element op):
-#         return op[0] == 1 and op[1] == 0
-#
-#     cdef bint element_is_0(self, residue_element op):
-#         return op[0] == 0 and op[1] == 0
-#
-#     cdef void set_element_to_1(self, residue_element op):
-#         op[0] = 1
-#         op[1] = 0
-#
-#     cdef void set_element_to_0(self, residue_element op):
-#         op[0] = 0
-#         op[1] = 0
-#
-#     cdef void set_element(self, residue_element rop, residue_element op):
-#         rop[0] = op[0]
-#         rop[1] = op[1]
-#
-#     cdef int set_element_from_tuple(self, residue_element rop, x) except -1:
-#         rop[0] = x[0]%self.n0; rop[1] = x[1]%self.n1
-#         return 0
-#
-#     cdef int cmp_element(self, residue_element left, residue_element right):
-#         if left[0] < right[0]:
-#             return -1
-#         elif left[0] > right[0]:
-#             return 1
-#         elif left[1] < right[1]:
-#             return -1
-#         elif left[1] > right[1]:
-#             return 1
-#         else:
-#             return 0
-#
-#     cdef int pow(self, residue_element rop, residue_element op, long e) except -1:
-#         cdef residue_element op2
-#         if e < 0:
-#             self.inv(op2, op)
-#             return self.pow(rop, op2, -e)
-#         self.set_element_to_1(rop)
-#         cdef residue_element z
-#         self.set_element(z, op)
-#         while e:
-#             if e & 1:
-#                 self.mul(rop, rop, z)
-#             e /= 2
-#             if e:
-#                 self.mul(z, z, z)
-#
-#     cdef bint is_square(self, residue_element op) except -2:
-#         raise NotImplementedError
-#     cdef int sqrt(self, residue_element rop, residue_element op) except -1:
-#         raise NotImplementedError
-#
-#     def __getitem__(self, i):
-#         cdef ResidueRingElement z = PY_NEW(self.element_class)
-#         z._parent = self
-#         self.ith_element(z.x, i)
-#         return z
-#
-#     def __iter__(self):
-#         return ResidueRingIterator(self)
-#
-#     def is_finite(self):
-#         return True
-#
-#     cdef int ith_element(self, residue_element rop, long i) except -1:
-#         if i < 0 or i >= self.cardinality(): raise IndexError
-#         self.unsafe_ith_element(rop, i)
-#
-#     cpdef long cardinality(self):
-#         return self._cardinality
-#
-#     cdef void unsafe_ith_element(self, residue_element rop, long i):
-#         # This assumes 0 <=i < self._cardinality.
-#         pass # no point in raising exception...
-#
-#     cdef int next_element(self, residue_element rop, residue_element op) except -1:
-#         # Raises ValueError if there is no next element.
-#         # op is assumed valid.
-#         raise NotImplementedError
-#
-#     cdef bint is_last_element(self, residue_element op):
-#         raise NotImplementedError
-#
-#     cdef long index_of_element(self, residue_element op) except -1:
-#         # Return the index of the given residue element.
-#         raise NotImplementedError
-#
-#     cdef long index_of_element_in_P(self, residue_element op) except -1:
-#         # Return the index of the given residue element, which is
-#         # assumed to be in the maximal ideal P.  This is the index, as
-#         # an element of P.
-#         raise NotImplementedError
-#
-#     cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
-#         # Sets rop to next element in the enumeration of self that is in P, assuming
-#         # that op is in P.
-#         # Raises ValueError if there is no next element.
-#         # op is assumed valid (i.e., is in P, etc.).
-#         raise NotImplementedError
-#
-#     cdef bint is_last_element_in_P(self, residue_element op):
-#         raise NotImplementedError
-#
-#     cdef element_to_str(self, residue_element op):
-#         cdef ResidueRingElement z = PY_NEW(self.element_class)
-#         z._parent = self
-#         z.x[0] = op[0]
-#         z.x[1] = op[1]
-#         return str(z)
-#
-#
+
+cdef class ResidueRing_abstract(CommutativeRing):
+    def __init__(self, P, p, e):
+        """
+        INPUT:
+
+            - P -- prime ideal of O_F
+            - e -- positive integer
+        """
+        self.P = P
+        self.e = e
+        self.p = p
+        self.F = P.number_field()
+
+    # Do not just change the definition of compare.
+    # It is used by the ResidueRing_ModN code to ensure that the prime
+    # over 2 appears first. If you totally changed the ordering, that
+    # would suddenly break.
+    def __richcmp__(ResidueRing_abstract left, right, int op):
+        if left is right:
+            # Make case of easy equality fast
+            return _rich_to_bool(op, 0)
+        if not isinstance(right, ResidueRing_abstract):
+            return _rich_to_bool(op, cmp(ResidueRing_abstract, type(right)))
+        cdef ResidueRing_abstract r = right
+        # slow
+        return _rich_to_bool(op,
+                   cmp((left.p,left.e,left.P), (r.p,r.e,r.P)))
+
+    def __hash__(self):
+        return hash((self.p,self.e,self.P))
+
+    def residue_field(self):
+        if self._residue_field is None:
+            self._residue_field = self.P.residue_field()
+        return self._residue_field
+
+    cdef object element_to_residue_field(self, residue_element x):
+        raise NotImplementedError
+
+    def _moduli(self):
+        # useful for testing purposes
+        return self.n0, self.n1
+
+    def __call__(self, x):
+        cdef NumberFieldElement_quadratic y
+        cdef ResidueRingElement z
+        try:
+            y = x
+            z = self.new_element()
+            self.coerce_from_nf(z.x, y)
+            return z
+        except TypeError:
+            pass
+
+        if hasattr(x, 'parent'):
+            P = x.parent()
+        else:
+            P = None
+        if P is self:
+            return x
+        elif P is not self.F:
+            x = self.F(x)
+        return self(x)
+
+    cdef ResidueRingElement new_element(self):
+        raise NotImplementedError
+
+    cdef int coefficients(self, long* v0, long* v1, NumberFieldElement_quadratic x) except -1:
+        # The attributes of x are x.a, x.b and x.denom, defined by
+        #         x = (x.a + x.b*sqrt(5))/x.denom.
+        # Let n be the characteristic of self, and assume n is odd. Set
+        #       a = x.a (mod n),   b = x.b (mod n),   e = x.denom^(-1) (mod n).
+        # all long ints.
+        #   We have x = (a+sqrt(5)*b)*e (mod n).
+        # The r[0] and r[1] we want are the coefficients of 1 and (1+sqrt(5))/2.
+        #    c + d*(1+sqrt(5))/2 = a*e + sqrt(5)*b*e
+        #    c + d/2 + (d/2)*sqrt(5) = a*e + sqrt(5)*b*e
+        # So
+        #    *v0 = c = a*e - d/2 = a*e - b*e
+        #    *v1 = d = 2*b*e
+        #
+        # The above works fine when n is not a power of 2.  When n is a power of 2,
+        # it fails, since x.denom is often divisible by 2.  Write
+        #         x = (x.a + x.b*sqrt(5))/(2*f), so 2*f=x.denom.
+        # If x is 2-integral, then f is not divisible by 2.  We have
+        #     e = 1/x.denom = 1/(2*f).
+        # Let f' = 1/f (mod n).
+        # We have from the algebra above that in case x.denom % 2 == 0:
+        #    *v0 = c =(a-b)*e = (a-b)/(2*f) = ((a-b)/2)/f = (a-b)/2 * f'
+        #    *v1 = 2*e*b = b/f = b*f'
+        # Thus an integrality condition is that a=b(mod 2).
+        # If x.denom % 2 != 0, we just proceed as before.
+
+        cdef long a, b, e, t, f, n
+        n = self.n0 if (self.n0 > self.n1) else self.n1
+        cdef int is_even = n%2==0
+        e = mpz_mod_ui(temp1.value, x.denom, n)
+        if e == 0 or (is_even and e%2==0):
+            if is_even:
+                a = mpz_mod_ui(temp1.value, x.a, 2*n)
+                b = mpz_mod_ui(temp1.value, x.b, 2*n)
+                # Special 2-power case, as described in comment above.
+                f = mpz_mod_ui(temp1.value, x.denom, 2*n) / 2
+                if f == 0:
+                    raise ZeroDivisionError, "x = %s"%x
+                else:
+                    t = a - b
+                    if t%2 != 0:
+                        raise ZeroDivisionError, "x = %s"%x
+                    else:
+                        if t < 0:
+                            t += 2*n
+                        if f != 1:
+                            f = invmod_long(f, n)
+                        v0[0] = ((t/2) * f)%n
+                        v1[0] = (b * f)%n
+                        return 0 # success
+            else:
+                raise ZeroDivisionError, "x = %s"%x
+
+        a = mpz_mod_ui(temp1.value, x.a, n)  # all are guaranteed >= 0 by GMP docs
+        b = mpz_mod_ui(temp1.value, x.b, n)
+        if e != 1:
+            e = invmod_long(e, n)
+        v0[0] = (a*e)%n - (b*e)%n
+        if v0[0] < 0:
+            v0[0] += n
+        v1[0] = (2*b*e)%n
+
+
+        return 0  # success
+
+    cdef int coerce_from_nf(self, residue_element r, NumberFieldElement_quadratic x) except -1:
+        raise NotImplementedError
+
+    def __repr__(self):
+        return "Residue class ring of %s^%s of characteristic %s"%(
+            self.P._repr_short(), self.e, self.p)
+
+    def lift(self, x): # for consistency with residue fields
+        if x.parent() is self:
+            return x.lift()
+        raise TypeError
+
+    cdef void add(self, residue_element rop, residue_element op0, residue_element op1):
+        raise NotImplementedError
+    cdef void sub(self, residue_element rop, residue_element op0, residue_element op1):
+        raise NotImplementedError
+    cdef void mul(self, residue_element rop, residue_element op0, residue_element op1):
+        raise NotImplementedError
+    cdef int inv(self, residue_element rop, residue_element op) except -1:
+        raise NotImplementedError
+    cdef bint is_unit(self, residue_element op):
+        raise NotImplementedError
+    cdef void neg(self, residue_element rop, residue_element op):
+        raise NotImplementedError
+
+    cdef bint element_is_1(self, residue_element op):
+        return op[0] == 1 and op[1] == 0
+
+    cdef bint element_is_0(self, residue_element op):
+        return op[0] == 0 and op[1] == 0
+
+    cdef void set_element_to_1(self, residue_element op):
+        op[0] = 1
+        op[1] = 0
+
+    cdef void set_element_to_0(self, residue_element op):
+        op[0] = 0
+        op[1] = 0
+
+    cdef void set_element(self, residue_element rop, residue_element op):
+        rop[0] = op[0]
+        rop[1] = op[1]
+
+    cdef int set_element_from_tuple(self, residue_element rop, x) except -1:
+        rop[0] = x[0]%self.n0; rop[1] = x[1]%self.n1
+        return 0
+
+    cdef int cmp_element(self, residue_element left, residue_element right):
+        if left[0] < right[0]:
+            return -1
+        elif left[0] > right[0]:
+            return 1
+        elif left[1] < right[1]:
+            return -1
+        elif left[1] > right[1]:
+            return 1
+        else:
+            return 0
+
+    cdef int pow(self, residue_element rop, residue_element op, long e) except -1:
+        cdef residue_element op2
+        if e < 0:
+            self.inv(op2, op)
+            return self.pow(rop, op2, -e)
+        self.set_element_to_1(rop)
+        cdef residue_element z
+        self.set_element(z, op)
+        while e:
+            if e & 1:
+                self.mul(rop, rop, z)
+            e /= 2
+            if e:
+                self.mul(z, z, z)
+
+    cdef bint is_square(self, residue_element op) except -2:
+        raise NotImplementedError
+    cdef int sqrt(self, residue_element rop, residue_element op) except -1:
+        raise NotImplementedError
+
+    def __getitem__(self, i):
+        cdef ResidueRingElement z = PY_NEW(self.element_class)
+        z._parent = self
+        self.ith_element(z.x, i)
+        return z
+
+    def __iter__(self):
+        return ResidueRingIterator(self)
+
+    def is_finite(self):
+        return True
+
+    cdef int ith_element(self, residue_element rop, long i) except -1:
+        if i < 0 or i >= self.cardinality(): raise IndexError
+        self.unsafe_ith_element(rop, i)
+
+    cpdef long cardinality(self):
+        return self._cardinality
+
+    cdef void unsafe_ith_element(self, residue_element rop, long i):
+        # This assumes 0 <=i < self._cardinality.
+        pass # no point in raising exception...
+
+    cdef int next_element(self, residue_element rop, residue_element op) except -1:
+        # Raises ValueError if there is no next element.
+        # op is assumed valid.
+        raise NotImplementedError
+
+    cdef bint is_last_element(self, residue_element op):
+        raise NotImplementedError
+
+    cdef long index_of_element(self, residue_element op) except -1:
+        # Return the index of the given residue element.
+        raise NotImplementedError
+
+    cdef long index_of_element_in_P(self, residue_element op) except -1:
+        # Return the index of the given residue element, which is
+        # assumed to be in the maximal ideal P.  This is the index, as
+        # an element of P.
+        raise NotImplementedError
+
+    cdef int next_element_in_P(self, residue_element rop, residue_element op) except -1:
+        # Sets rop to next element in the enumeration of self that is in P, assuming
+        # that op is in P.
+        # Raises ValueError if there is no next element.
+        # op is assumed valid (i.e., is in P, etc.).
+        raise NotImplementedError
+
+    cdef bint is_last_element_in_P(self, residue_element op):
+        raise NotImplementedError
+
+    cdef element_to_str(self, residue_element op):
+        cdef ResidueRingElement z = PY_NEW(self.element_class)
+        z._parent = self
+        z.x[0] = op[0]
+        z.x[1] = op[1]
+        return str(z)
+
+
 cdef class ResidueRing_split(ResidueRing_abstract):
     cdef ResidueRingElement new_element(self):
         cdef ResidueRingElement_split z = PY_NEW(ResidueRingElement_split)
@@ -1045,96 +1047,96 @@ cdef class ResidueRing_ramified_odd(ResidueRing_abstract):
         return op[0]/self.p + op[1] * (self.n0/self.p)
 
 
-# ###########################################################################
-# # Ring elements
-# ###########################################################################
-# cdef inline bint _rich_to_bool(int op, int r):  # copied from sage.structure.element...
-#     if op == Py_LT:  #<
-#         return (r  < 0)
-#     elif op == Py_EQ: #==
-#         return (r == 0)
-#     elif op == Py_GT: #>
-#         return (r  > 0)
-#     elif op == Py_LE: #<=
-#         return (r <= 0)
-#     elif op == Py_NE: #!=
-#         return (r != 0)
-#     elif op == Py_GE: #>=
-#         return (r >= 0)
-#
-#
-# cdef class ResidueRingElement:
-#     cpdef parent(self):
-#         return self._parent
-#     cdef new_element(self):
-#         raise NotImplementedError
-#
-#     cpdef long index(self):
-#         """
-#         Return the index of this element in the enumeration of
-#         elements of the parent.
-#         """
-#         return self._parent.index_of_element(self.x)
-#
-#     def __add__(ResidueRingElement left, ResidueRingElement right):
-#         cdef ResidueRingElement z = left.new_element()
-#         left._parent.add(z.x, left.x, right.x)
-#         return z
-#     def __sub__(ResidueRingElement left, ResidueRingElement right):
-#         cdef ResidueRingElement z = left.new_element()
-#         left._parent.sub(z.x, left.x, right.x)
-#         return z
-#     def __mul__(ResidueRingElement left, ResidueRingElement right):
-#         cdef ResidueRingElement z = left.new_element()
-#         left._parent.mul(z.x, left.x, right.x)
-#         return z
-#     def __div__(ResidueRingElement left, ResidueRingElement right):
-#         cdef ResidueRingElement z = left.new_element()
-#         left._parent.inv(z.x, right.x)
-#         left._parent.mul(z.x, left.x, z.x)
-#         return z
-#     def __neg__(ResidueRingElement self):
-#         cdef ResidueRingElement z = self.new_element()
-#         self._parent.neg(z.x, self.x)
-#         return z
-#     def __pow__(ResidueRingElement self, e, m):
-#         cdef ResidueRingElement z = self.new_element()
-#         self._parent.pow(z.x, self.x, e)
-#         return z
-#
-#     def __invert__(ResidueRingElement self):
-#         cdef ResidueRingElement z = self.new_element()
-#         self._parent.inv(z.x, self.x)
-#         return z
-#
-#     def __richcmp__(ResidueRingElement left, ResidueRingElement right, int op):
-#         cdef int c
-#         if left.x[0] < right.x[0]:
-#             c = -1
-#         elif left.x[0] > right.x[0]:
-#             c = 1
-#         elif left.x[1] < right.x[1]:
-#             c = -1
-#         elif left.x[1] > right.x[1]:
-#             c = 1
-#         else:
-#             c = 0
-#         return _rich_to_bool(op, c)
-#
-#     def __hash__(self):
-#         return self.x[0] + self._parent.n0*self.x[1]
-#
-#     cpdef bint is_unit(self):
-#         return self._parent.is_unit(self.x)
-#
-#     cpdef bint is_square(self):
-#         return self._parent.is_square(self.x)
-#
-#     cpdef sqrt(self):
-#         cdef ResidueRingElement z = self.new_element()
-#         self._parent.sqrt(z.x, self.x)
-#         return z
-#
+###########################################################################
+# Ring elements
+###########################################################################
+cdef inline bint _rich_to_bool(int op, int r):  # copied from sage.structure.element...
+    if op == Py_LT:  #<
+        return (r  < 0)
+    elif op == Py_EQ: #==
+        return (r == 0)
+    elif op == Py_GT: #>
+        return (r  > 0)
+    elif op == Py_LE: #<=
+        return (r <= 0)
+    elif op == Py_NE: #!=
+        return (r != 0)
+    elif op == Py_GE: #>=
+        return (r >= 0)
+
+
+cdef class ResidueRingElement:
+    cpdef parent(self):
+        return self._parent
+    cdef new_element(self):
+        raise NotImplementedError
+
+    cpdef long index(self):
+        """
+        Return the index of this element in the enumeration of
+        elements of the parent.
+        """
+        return self._parent.index_of_element(self.x)
+
+    def __add__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new_element()
+        left._parent.add(z.x, left.x, right.x)
+        return z
+    def __sub__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new_element()
+        left._parent.sub(z.x, left.x, right.x)
+        return z
+    def __mul__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new_element()
+        left._parent.mul(z.x, left.x, right.x)
+        return z
+    def __div__(ResidueRingElement left, ResidueRingElement right):
+        cdef ResidueRingElement z = left.new_element()
+        left._parent.inv(z.x, right.x)
+        left._parent.mul(z.x, left.x, z.x)
+        return z
+    def __neg__(ResidueRingElement self):
+        cdef ResidueRingElement z = self.new_element()
+        self._parent.neg(z.x, self.x)
+        return z
+    def __pow__(ResidueRingElement self, e, m):
+        cdef ResidueRingElement z = self.new_element()
+        self._parent.pow(z.x, self.x, e)
+        return z
+
+    def __invert__(ResidueRingElement self):
+        cdef ResidueRingElement z = self.new_element()
+        self._parent.inv(z.x, self.x)
+        return z
+
+    def __richcmp__(ResidueRingElement left, ResidueRingElement right, int op):
+        cdef int c
+        if left.x[0] < right.x[0]:
+            c = -1
+        elif left.x[0] > right.x[0]:
+            c = 1
+        elif left.x[1] < right.x[1]:
+            c = -1
+        elif left.x[1] > right.x[1]:
+            c = 1
+        else:
+            c = 0
+        return _rich_to_bool(op, c)
+
+    def __hash__(self):
+        return self.x[0] + self._parent.n0*self.x[1]
+
+    cpdef bint is_unit(self):
+        return self._parent.is_unit(self.x)
+
+    cpdef bint is_square(self):
+        return self._parent.is_square(self.x)
+
+    cpdef sqrt(self):
+        cdef ResidueRingElement z = self.new_element()
+        self._parent.sqrt(z.x, self.x)
+        return z
+
 cdef class ResidueRingElement_split(ResidueRingElement):
     def __init__(self, ResidueRing_split parent, x):
         self._parent = parent
@@ -1247,86 +1249,86 @@ cdef class ResidueRingElement_nonsplit(ResidueRingElement):
         # TODO: test...
         return self._parent.F([self.x[0], self.x[1]])
 
-# cdef class ResidueRingElement_ramified_odd(ResidueRingElement):
-#     """
-#     Element of residue class ring R = O_F / P^(2f-1), where e=2f-1 is
-#     odd, and P=sqrt(5)O_F is the ramified prime.
-#
-#     Computing with this ring is trickier than all the rest,
-#     since it's not a quotient of Z[x] of the form Z[x]/(m,g),
-#     where m is an integer and g is a polynomial.
-#     The ring R is the quotient of
-#         O_F/P^(2f) = O_F/5^f = (Z/5^fZ)[x]/(x^2-x-1),
-#     by the ideal x^e.  We have
-#         O_F/P^(2f-2) subset R subset O_F/P^(2f)
-#     and each successive quotient has order 5 = #(O_F/P).
-#     Thus R has cardinality 5^(2f-1) and characteristic 5^f.
-#     The ring R can't be a quotient of Z[x] of the
-#     form Z[x]/(m,g), since such a quotient has
-#     cardinality m^deg(g) and characteristic m, and
-#     5^(2f-1) is not a power of 5^f.
-#
-#     We thus view R as
-#
-#         R = (Z/5^fZ)[x] / (x^2 - 5,  5^(f-1)*x).
-#
-#     The elements of R are pairs (a,b) in (Z/5^fZ) x (Z/5^(f-1)Z),
-#     which correspond to the class of a + b*x.  The arithmetic laws
-#     are thus:
-#
-#        (a,b) + (c,d) = (a+c mod 5^f, b+d mod 5^(f-1))
-#
-#     and
-#
-#        (a,b) * (c,d) = (a*c+b*d*5 mod 5^f, a*d+b*c mod 5^(f-1))
-#
-#     The element omega = F.gen(), which is (1+sqrt(5))/2 maps to
-#     (1+x)/2 = (1/2, 1/2), which is the generator of this ring.
-#     """
-#     def __init__(self, ResidueRing_ramified_odd parent, x):
-#         self._parent = parent
-#         assert x.parent() is parent.F
-#         # We can assume that the defining poly of F is T^2-T-1 (this is asserted
-#         # in some code above), so the gen is (1+sqrt(5))/2.  We can also
-#         # assume x has no denom. Then sqrt(5)=2*x-1, so need to find c,d such that:
-#         #   a + b*x = c + d*(2*x-1)
-#         # ===> c = a + b/2,  d = b/2
-#         cdef long a, b
-#         v = x._coefficients()
-#         if len(v) == 0:
-#             self.x[0] = 0; self.x[1] = 0
-#             return
-#         if len(v) == 1:
-#             self.x[0] = v[0]
-#             self.x[1] = 0
-#         else:
-#             a = v[0]; b = v[1]
-#             self.x[0] = a + b*parent.two_inv
-#             self.x[1] = b*parent.two_inv
-#         self.x[0] = self.x[0] % self._parent.n0
-#         self.x[1] = self.x[1] % self._parent.n1
-#
-#     cdef new_element(self):
-#         cdef ResidueRingElement_ramified_odd z = PY_NEW(ResidueRingElement_ramified_odd)
-#         z._parent = self._parent
-#         return z
-#
-#     def __repr__(self):
-#         if self.x[0]:
-#             if self.x[1]:
-#                 if self.x[1] == 1:
-#                     return '%s + s'%self.x[0]
-#                 else:
-#                     return '%s + %s*s'%(self.x[0], self.x[1])
-#             return str(self.x[0])
-#         else:
-#             if self.x[1]:
-#                 if self.x[1] == 1:
-#                     return 's'
-#                 else:
-#                     return '%s*s'%self.x[1]
-#             return '0'
-#
+cdef class ResidueRingElement_ramified_odd(ResidueRingElement):
+    """
+    Element of residue class ring R = O_F / P^(2f-1), where e=2f-1 is
+    odd, and P=sqrt(5)O_F is the ramified prime.
+
+    Computing with this ring is trickier than all the rest,
+    since it's not a quotient of Z[x] of the form Z[x]/(m,g),
+    where m is an integer and g is a polynomial.
+    The ring R is the quotient of
+        O_F/P^(2f) = O_F/5^f = (Z/5^fZ)[x]/(x^2-x-1),
+    by the ideal x^e.  We have
+        O_F/P^(2f-2) subset R subset O_F/P^(2f)
+    and each successive quotient has order 5 = #(O_F/P).
+    Thus R has cardinality 5^(2f-1) and characteristic 5^f.
+    The ring R can't be a quotient of Z[x] of the
+    form Z[x]/(m,g), since such a quotient has
+    cardinality m^deg(g) and characteristic m, and
+    5^(2f-1) is not a power of 5^f.
+
+    We thus view R as
+
+        R = (Z/5^fZ)[x] / (x^2 - 5,  5^(f-1)*x).
+
+    The elements of R are pairs (a,b) in (Z/5^fZ) x (Z/5^(f-1)Z),
+    which correspond to the class of a + b*x.  The arithmetic laws
+    are thus:
+
+       (a,b) + (c,d) = (a+c mod 5^f, b+d mod 5^(f-1))
+
+    and
+
+       (a,b) * (c,d) = (a*c+b*d*5 mod 5^f, a*d+b*c mod 5^(f-1))
+
+    The element omega = F.gen(), which is (1+sqrt(5))/2 maps to
+    (1+x)/2 = (1/2, 1/2), which is the generator of this ring.
+    """
+    def __init__(self, ResidueRing_ramified_odd parent, x):
+        self._parent = parent
+        assert x.parent() is parent.F
+        # We can assume that the defining poly of F is T^2-T-1 (this is asserted
+        # in some code above), so the gen is (1+sqrt(5))/2.  We can also
+        # assume x has no denom. Then sqrt(5)=2*x-1, so need to find c,d such that:
+        #   a + b*x = c + d*(2*x-1)
+        # ===> c = a + b/2,  d = b/2
+        cdef long a, b
+        v = x._coefficients()
+        if len(v) == 0:
+            self.x[0] = 0; self.x[1] = 0
+            return
+        if len(v) == 1:
+            self.x[0] = v[0]
+            self.x[1] = 0
+        else:
+            a = v[0]; b = v[1]
+            self.x[0] = a + b*parent.two_inv
+            self.x[1] = b*parent.two_inv
+        self.x[0] = self.x[0] % self._parent.n0
+        self.x[1] = self.x[1] % self._parent.n1
+
+    cdef new_element(self):
+        cdef ResidueRingElement_ramified_odd z = PY_NEW(ResidueRingElement_ramified_odd)
+        z._parent = self._parent
+        return z
+
+    def __repr__(self):
+        if self.x[0]:
+            if self.x[1]:
+                if self.x[1] == 1:
+                    return '%s + s'%self.x[0]
+                else:
+                    return '%s + %s*s'%(self.x[0], self.x[1])
+            return str(self.x[0])
+        else:
+            if self.x[1]:
+                if self.x[1] == 1:
+                    return 's'
+                else:
+                    return '%s*s'%self.x[1]
+            return '0'
+
 #
 # ####################################################################
 # # misc arithmetic needed elsewhere

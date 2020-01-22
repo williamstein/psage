@@ -2,13 +2,22 @@
 """ Excerpt from my MySubgroup class. Contains routines to draw fundamental domains.
 
 r"""
+from __future__ import print_function
 import matplotlib
 import matplotlib.patches as patches
 import matplotlib.path as path
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-
+from matplotlib.backends.backend_agg import FigureCanvasAgg, FigureCanvas
+from sage.all import deepcopy,hyperbolic_arc
 from sage.all import I,Gamma0,Gamma1,Gamma,SL2Z,ZZ,RR,ceil,sqrt,CC,line,text,latex,exp,pi,infinity
+from sage.all import deepcopy
+from sage.plot.all import Graphics
+from sage.plot.plot import (Graphics,line)
+from sage.functions.trig import (cos,sin)
+from sage.plot.plot import line
+from sage.functions.trig import arcsin
 
+
+from matplotlib import pyplot
 
 from sage.plot.all import Graphics,arc
 from sage.plot.arc import Arc
@@ -49,9 +58,9 @@ def draw_fundamental_domain(N,group='Gamma0',model="H",axes=None,filename=None,*
         g=draw_funddom_d(coset_reps,format,I)
     else:
         g=draw_funddom(coset_reps,format)
-    if(axes<>None):
+    if axes!=None:
         [x0,x1,y0,y1]=axes
-    elif(model=="D"):
+    elif model=="D":
         x0=-1 ; x1=1 ; y0=-1.1 ; y1=1 
     else:
         # find the width of the fundamental domain
@@ -62,7 +71,7 @@ def draw_fundamental_domain(N,group='Gamma0',model="H",axes=None,filename=None,*
         for V in coset_reps:
             ## we also compare the real parts of where rho and infinity are mapped
             r1 = (V.acton(rho)).real()
-            if(V[1,0]<>0):
+            if V[1,0] != 0:
                 inf1 = RR(V[0,0] / V[1,0])
             else:
                 inf1 = 0
@@ -91,7 +100,7 @@ def draw_fundamental_domain(N,group='Gamma0',model="H",axes=None,filename=None,*
         g.set_aspect_ratio(1)
         g.set_axes_range(x0,x1,y0,y1)
         g.axes(False)
-        if(filename<>None):
+        if(filename!=None):
             fig = g.matplotlib()
             fig.set_canvas(FigureCanvasAgg(fig))
             axes = fig.get_axes()[0]
@@ -119,8 +128,6 @@ def draw_funddom(coset_reps,format="S"):
     """
     pi=RR.pi()
     pi_3 = pi / RR(3.0)
-    from sage.plot.plot import (Graphics,line)
-    from sage.functions.trig import (cos,sin)
     g=Graphics()
     x1=RR(-0.5) ; y1=RR(sqrt(3 )/2 )
     x2=RR(0.5) ; y2=RR(sqrt(3 )/2 )
@@ -146,8 +153,6 @@ def draw_transformed_triangle_H(A,xmax=20):
     #print "A=",A,type(A)
     pi=RR.pi()
     pi_3 = pi / RR(3.0)
-    from sage.plot.plot import (Graphics,line)
-    from sage.functions.trig import (cos,sin)
     x1=RR(-0.5) ; y1=RR(sqrt(3 )/2 )
     x2=RR(0.5) ; y2=RR(sqrt(3 )/2 )
     a,b,c,d = A #[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
@@ -156,7 +161,7 @@ def draw_transformed_triangle_H(A,xmax=20):
     else:
         a=RR(a); b=RR(b); c=RR(c); d=RR(d) 
     if c==0: # then this is easier
-        if a*d<>0:
+        if a*d != 0:
             a=a/d; b=b/d; 
         L0 = [[a*cos(pi_3*RR(i/100.0))+b,a*sin(pi_3*RR(i/100.0))] for i in range(100 ,201 )]
         L1 = [[a*x1+b,a*y1],[a*x1+b,xmax]]
@@ -224,29 +229,29 @@ class HyperbolicTriangle(HyperbolicPolygon):
         sides.sort()
         if sides == [1]:
             if verbose>0:
-                print "Drawing A - B!"
-            self._hyperbolic_arc(A, B, True);
+                print("Drawing A - B!")
+            self._hyperbolic_arc(A, B, True)
         elif sides == [2]:
             if verbose>0:
-                print "Drawing B - C!"                
-            self._hyperbolic_arc(B, C, True);
+                print("Drawing B - C!")                
+            self._hyperbolic_arc(B, C, True)
         elif sides == [3]:
             if verbose>0:
-                print "Drawing C - A!"                
-            self._hyperbolic_arc(C, A, True);
+                print("Drawing C - A!")                
+            self._hyperbolic_arc(C, A, True)
         elif sides == [1,2]:
             if verbose>0:
-                print "Drawing A - B! & B - C!"
+                print("Drawing A - B! & B - C!")
             self._hyperbolic_arc(A, B, True);
-            self._hyperbolic_arc(B, C, False);
+            self._hyperbolic_arc(B, C, False)
         elif sides == [1,3]:
             if verbose>0:
-                print "Drawing C - A! & A - B"
+                print("Drawing C - A! & A - B")
             self._hyperbolic_arc(C, A,True)
             self._hyperbolic_arc(A, B, False)
         elif sides == [2,3]:
             if verbose>0:
-                print "Drawing B - C! & C - A"
+                print("Drawing B - C! & C - A")
             self._hyperbolic_arc(B, C,True)
             self._hyperbolic_arc(C, A, False)            
         else:
@@ -291,29 +296,29 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         sides.sort()
         if sides == [1]:
             if verbose>0:
-                print "Drawing A - B!"
-            self._hyperbolic_arc_d(A, B, True);
+                print("Drawing A - B!")
+            self._hyperbolic_arc_d(A, B, True)
         elif sides == [2]:
             if verbose>0:
-                print "Drawing B - C!"                
-            self._hyperbolic_arc_d(B, C, True);
+                print("Drawing B - C!")                
+            self._hyperbolic_arc_d(B, C, True)
         elif sides == [3]:
             if verbose>0:
-                print "Drawing C - A!"                
-            self._hyperbolic_arc_d(C, A, True);
+                print("Drawing C - A!")                
+            self._hyperbolic_arc_d(C, A, True)
         elif sides == [1,2]:
             if verbose>0:
-                print "Drawing A - B! & B - C!"
-            self._hyperbolic_arc_d(A, B, True);
-            self._hyperbolic_arc_d(B, C,False);
+                print("Drawing A - B! & B - C!")
+            self._hyperbolic_arc_d(A, B, True)
+            self._hyperbolic_arc_d(B, C,False)
         elif sides == [1,3]:
             if verbose>0:
-                print "Drawing C - A! & A - B"
+                print("Drawing C - A! & A - B")
             self._hyperbolic_arc_d(C, A,True)
             self._hyperbolic_arc_d(A, B, False)
         elif sides == [2,3]:
             if verbose>0:
-                print "Drawing B - C! & C - A"
+                print("Drawing B - C! & C - A")
             self._hyperbolic_arc_d(B, C,True)
             self._hyperbolic_arc_d(C, A, False)            
         else:
@@ -345,8 +350,8 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         w0 = self._cayley_transform(z0)
         w3 = self._cayley_transform(z3)
         if self._verbose>0:
-            print "in plane z0,z3=",z0,z3
-            print "in disc: ",w0,w3
+            print("in plane z0,z3={0},{1}".format(z0,z3))
+            print("in disc: {0},{1}".format(w0,w3))
         npts = self._npts
         if z0 == infinity or z0==CC(infinity):
             zm = [z3 + CC(0,j+0.5) for j in range(npts-2)]
@@ -390,10 +395,10 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
                 t0 = CC(z0 - p).argument()
                 t3 = CC(z3 - p).argument()
                 if self._verbose>1:
-                    print "x0,x3=",x0,x3
-                    print "t0,t3=",t0,t3
-                    print "r=",r
-                    print "opt=",self._options
+                    print("x0,x3={0},{1}".format(x0,x3))
+                    print("t0,t3={0},{1}".format(t0,t3))
+                    print("r={0}".format(r))
+                    print("opt={0}".format(self._options))
                 if x0 <= x3:
                     zm = [p + r*CC(0,(t0+t*(t3-t0)/(npts-1))).exp() for t in range(npts)]
                 else:
@@ -408,7 +413,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             #w3 = self._cayley_transform(z3)
 
             if self._verbose>2:
-                print "pts=",pts
+                print("pts={0}".format(pts))
             self._graphics.add_primitive(BezierPath([[(x.real(),x.imag()) for x in pts ]],opt))
             return 
             #print "z0_test=",(p+r*exp(t0*I))
@@ -423,15 +428,15 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             w2 = self._cayley_transform(z3)
             c = self._cayley_transform(CC(p,0)) # center of circle on the unit disk.
             if self._verbose>2:
-                print "p,r=",p,r     
-                print "zm=",zm
+                print("p,r={0},{1}".format(p,r))
+                print("zm={0}".format(zm))
                 #print "t=",t
                 #print "tt=",(8*zm-4*(z0+z3)).imag()/3/(z3-z0).real()
 
-                print "C(c)=",pp
-                print "C(zm)=",wm
-                print "C(z0)=",w1
-                print "C(z3)=",w2
+                print("C(c)={0}".format(pp))
+                print("C(zm)={0}".format(wm))
+                print("C(z0)={0}".format(w1))
+                print("C(z3)={0}".format(w2))
                 #print "z2=",z2
             
             r = abs(w1-c) # radius
@@ -439,7 +444,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
             t3 = CC(w3 - pp).argument()
             t = abs(t0-t3)
         if self._verbose>0:
-            print "adding a:rc ",zm.real(),zm.imag(),r,r,t,t0,t3
+            print("adding a:rc {0}".format((zm.real(),zm.imag(),r,r,t,t0,t3)))
         self._graphics.add_primitive(Line([w1.real(),w2.real(),wm.real()],[w1.imag(),w2.imag(),wm.imag()],{'thickness':2,'alpha':1,
                                                                                        'rgbcolor':'blue',
                                                                                                          'legend_label':""}))
@@ -500,7 +505,6 @@ def my_hyperbolic_triangle(a, b, c, **options):
     
          sage: hyperbolic_triangle(0, 1, 2+i, fill=true, rgbcolor='red')
     """
-    from sage.plot.all import Graphics
     g = Graphics()
     g._set_extra_kwds(g._extract_kwds_for_show(options))
     model = options['model']
@@ -518,14 +522,14 @@ def my_hyperbolic_triangle(a, b, c, **options):
         options.pop('npts',None)
         if sides == [1,2,3]:
             if verbose>0:
-                print "adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
+                print("adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options))
             options.pop('verbose',0)
             ## check if We need my class or the original class
             g.add_primitive(HyperbolicTriangle(a, b, c, options))
         else:
             options['sides']=sides
             if verbose>0:
-                print "adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options)
+                print("adding HyperbolicTriangle({0}, {1}, {2},options={3})".format(a,b,c,options))
             g.add_primitive(HyperbolicTriangle(a, b, c, options))                           
     g.set_aspect_ratio(1)
     return g
@@ -566,7 +570,7 @@ def draw_funddom_d(coset_reps,format="MP",z0=I,verbose=0):
         if a<0:
             a=-a; b=-b; c=-c; d=-d 
         if verbose>0:
-                print "a,b,c,d=",a,b,c,d
+                print("a,b,c,d={0},{1},{2},{3}".format(a,b,c,d))
         if c==0: # then this is easier
             l1 = _geodesic_between_two_points_d(x1+b,y1,x1+b,infinity)
             l2 = _geodesic_between_two_points_d(x2+b,y2,x2+b,infinity)
@@ -583,11 +587,11 @@ def draw_funddom_d(coset_reps,format="MP",z0=I,verbose=0):
             y2_t=y2/den            
             inf_t=a/c
             if verbose>0:
-                    print "x1_t=",x1_t
-                    print "y1_t=",y1_t
-                    print "x2_t=",x2_t
-                    print "y2_t=",y2_t
-                    print "inf_t=",inf_t
+                    print("x1_t=",x1_t)
+                    print("y1_t=",y1_t)
+                    print("x2_t=",x2_t)
+                    print("y2_t=",y2_t)
+                    print("inf_t=",inf_t)
             c0=_geodesic_between_two_points_d(x1_t,y1_t,x2_t,y2_t)
             c1=_geodesic_between_two_points_d(x1_t,y1_t,inf_t,1.0 )
             c2=_geodesic_between_two_points_d(x2_t,y2_t,inf_t,1.0 )
@@ -625,8 +629,6 @@ def _geodesic_between_two_points(x1,y1,x2,y2):
     
     """
     pi=RR.pi()
-    from sage.plot.plot import line
-    from sage.functions.trig import arcsin
     #print "z1=",x1,y1
     #print "z2=",x2,y2
     if( abs(x1-x2)< 1E-10):
@@ -682,7 +684,7 @@ def _geodesic_between_two_points_d(x1,y1,x2,y2,z0=I):
     from sage.functions.trig import (cos,sin)    
     # First compute the points
     if(y1<0  or y2<0 ):
-        raise ValueError,"Need points in the upper half-plane! Got y1=%s, y2=%s" %(y1,y2)
+        raise ValueError("Need points in the upper half-plane! Got y1=%s, y2=%s" %(y1,y2))
     if(y1==infinity):
         P1=CC(1 )
     else:
@@ -809,7 +811,7 @@ def nice_coset_reps(G):
                 # just make sure they are inequivalent
                 try:
                     for V in cl:
-                        if((A<>V and A*V**-1  in G) or cl.count(A)>0 ):
+                        if((A!=V and A*V**-1  in G) or cl.count(A)>0 ):
                             raise StopIteration()
                     cl.append(A)
                 except StopIteration:
@@ -835,7 +837,7 @@ def nice_coset_reps(G):
                 break
         # If we missed something (which is unlikely)        
         if len(cl) != G.index():
-            print "cl=",cl
+            print("cl=",cl)
             raise ValueError("Problem getting coset reps! Need %s and got %s" %(G.index(),len(cl)))
         return cl
 
@@ -881,7 +883,6 @@ def get_contour(G,version=1,model='D',standalone=False,as_patch=True,translates=
 
         
 def build_connected_path(P,**kwds):
-    from sage.all import deepcopy,hyperbolic_arc
     paths = []
     ymax = P._axes_range.get('ymax',kwds.get('ymax',10000))
     xmax = P._axes_range.get('xmax',kwds.get('xmax',0))
@@ -944,7 +945,7 @@ def build_connected_path(P,**kwds):
                     else:
                         continue
 
-                print paths
+                print(paths)
                 raise ArithmeticError("Could not connect from {0}".format(current))
             except StopIteration:
                 pass
@@ -979,12 +980,11 @@ def build_connected_path2(P,verbose=0,model='H'):
     Takes a path P consisting of a list of segments (not necessarily in correct order) and constructs a connected path.
     
     """
-    from sage.all import deepcopy
     ## This is the only place where we allow for coddes to be = 1 (i.e. starting a path)
     if len(P)==0:
         return P
-    print "P=",P
-    print "P0=",P[0]
+    print("P=",P)
+    print("P0=",P[0])
     ## Begin by locating left most path
     if model == 'H':
         xmin = P[0].vertices.min()
@@ -1006,14 +1006,14 @@ def build_connected_path2(P,verbose=0,model='H'):
                     if w.real()< testmin:
                         testmin = w.real()
                 if verbose>0:
-                    print "testmin[{0}]={1}".format(P[i],testmin)
+                    print("testmin[{0}]={1}".format(P[i],testmin))
             if xmin==None:
                 xmin = testmin
             if testmin < xmin:
                 imin = i
                 xmin = testmin
             if verbose>0:
-                print  "xmin=",xmin
+                print("xmin=",xmin)
         except AttributeError:
             pass
     codes = deepcopy(P[imin].codes)
@@ -1027,7 +1027,7 @@ def build_connected_path2(P,verbose=0,model='H'):
     used = [imin]
     current = imin
     if verbose>0:
-        print "left most path is nr. {0}".format(imin)
+        print("left most path is nr. {0}".format(imin))
     ii = 0
     x,y = P[imin].A
     eps = 1e-12
@@ -1036,22 +1036,22 @@ def build_connected_path2(P,verbose=0,model='H'):
     while len(res)<len(P) and ii<len(P):
         ii+=1
         if verbose>0:
-            print "ii=",ii
-            print "current=",current
+            print("ii=",ii)
+            print("current=",current)
         if ii == len(P):
             x1,y1=P[current].A
             if verbose > 0:
-                print "x,y=",x,y
-                print "x1,y1=",x1,y1
+                print("x,y=",x,y)
+                print("x1,y1=",x1,y1)
             if x==x1 and y==y1:
                 x,y=P[current].B
                 ii = 0
         if verbose>0:
-            print "x,y=",x,y
-            print "res=",res
+            print("x,y=",x,y)
+            print("res=",res)
         for j in range(len(P)):
             if verbose>0:
-                print "++++++++++++++++++++++++++++++++++++++j=",j
+                print("++++++++++++++++++++++++++++++++++++++j=",j)
             if j in used:
                 continue
             if not hasattr(P[j],"vertices"):
@@ -1064,8 +1064,8 @@ def build_connected_path2(P,verbose=0,model='H'):
             #    xx,yy = P[j].B
             if abs(xx-x)<eps and abs(yy-y)<eps:
                 if verbose>0:
-                    print "connect prevsious segment with {0}".format(j)
-                    print "segment =",P[j]
+                    print("connect prevsious segment with {0}".format(j))
+                    print("segment =",P[j])
                 #print "xx=x,yy=y"
                 vertices = P[j].vertices; codes = deepcopy(P[j].codes)
                 if not isinstance(vertices,list):
@@ -1080,14 +1080,14 @@ def build_connected_path2(P,verbose=0,model='H'):
                             codes[jjj]=4                        
                     #print "vertex=",vertices[jjj]
                     if model=='D' and abs(vertices[jjj][0]+0.34)<1e-2 and abs(vertices[jjj][1]+0.52)<1e-2:
-                        print "==========Changing to 2"
+                        print("==========Changing to 2")
                         codes[jjj]=2
 
                 if ii < len(P) and model=='H':
                     vertices.pop(); codes.pop()
                 if verbose>0 and j==3:
-                    print "vertices=",vertices
-                    print "codes=",codes
+                    print("vertices=",vertices)
+                    print("codes=",codes)
                 pt = patches.Path(vertices,codes)
                 res.append(pt)
                 used.append(j)
@@ -1100,15 +1100,15 @@ def build_connected_path2(P,verbose=0,model='H'):
             #    print "xx,yy(-1)=",xx,yy
             if abs(xx-x)<eps and abs(yy-y)<eps:
                 if verbose>0:
-                    print "connect previous segment with {0} reversed".format(j)                
-                    print "segment =",P[j]
+                    print("connect previous segment with {0} reversed".format(j))                
+                    print("segment =",P[j])
                 vertices = P[j].vertices; codes = deepcopy(P[j].codes)
                 if not isinstance(vertices,list):
                     vertices = vertices.tolist()
                 vertices.reverse()
                 if not isinstance(codes,list):
                     codes = codes.tolist()
-                if codes[0]<>1 and codes[-1]==1:
+                if codes[0]!=1 and codes[-1]==1:
                     codes.reverse()
                 for jjj in range(len(codes)):
                     if codes[jjj]==10:
@@ -1118,15 +1118,15 @@ def build_connected_path2(P,verbose=0,model='H'):
                         else:
                             codes[jjj]=3
                 if verbose>0 and j==2:
-                    print "vertices=",vertices
-                    print "codes=",codes
+                    print("vertices=",vertices)
+                    print("codes=",codes)
                     #for jjj in range(len(vertices)-1):
                     #    print "dy/dx({0},{1})={2}".format(jjj,jjj+1,(vertices[jjj][1]-vertices[jjj+1][1])/(vertices[jjj][0]-vertices[jjj+1][0]))
 #                    if model=='D' and abs(vertices[jjj][0]+0.098)<1e-3 and abs(vertices[jjj][1]+0.328)<1e-2:
 #                        print "Changing to 2"
 #                        codes[jjj]=2
-                if codes[0]<>1:
-                    raise ValueError,"Startpoint of path needs a code 1. got {0}".format(codes[0])
+                if codes[0]!=1:
+                    raise ValueError("Startpoint of path needs a code 1. got {0}".format(codes[0]))
                 #print "codes[0]=",codes[0]
                 #print "codes[-1]=",codes[-1]
                 if ii < len(P) and model=='H':
@@ -1138,7 +1138,7 @@ def build_connected_path2(P,verbose=0,model='H'):
                 x,y = P[j].vertices[0]
                 break
     if len(used) < len(P):
-        print "Could not connect all paths!"
+        print("Could not connect all paths!")
     res = patches.Path.make_compound_path(*res)
     # Now we have to make this into a closed path.
     #codes = [max(res.codes[j],13) for j in range(len(res.codes))]
@@ -1150,8 +1150,8 @@ def build_connected_path2(P,verbose=0,model='H'):
     else:
         res.codes[-1] = patches.Path.CLOSEPOLY
     if verbose>0:
-        print "vertices=",res.vertices
-        print "codes=",res.codes
+        print("vertices=",res.vertices)
+        print("codes=",res.codes)
         
     #return patches.PathPatch(res)
     #res.codes = codes

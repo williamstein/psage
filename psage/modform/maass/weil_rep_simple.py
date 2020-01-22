@@ -23,7 +23,8 @@ from __future__ import print_function
 
 from sage.all import Parent,QQ,ZZ,Integer,SL2Z,CyclotomicField,lcm,odd_part,kronecker,gcd,IntegerModRing,matrix,is_odd,\
     valuation,sqrt,MatrixSpace,CC,powerset,squarefree_part,is_even,floor,QuadraticField,is_fundamental_discriminant,\
-    is_square,latex,numerator,denominator,prime_divisors,fundamantal_discriminants
+    is_square,latex,numerator,denominator,prime_divisors
+from sage.arith.all import fundamental_discriminant
 from sage.rings.complex_mpc import MPComplexField
 from sage.misc.cachefunc import cached_function,cached_method
 from psage.matrix.matrix_complex_dense import Matrix_complex_dense
@@ -837,3 +838,24 @@ def class_nr_pos_def_qf(D):
         h=QQ(h*h0*D2*w)/QQ(w0)
         return h
     
+def _get_w(D):
+    """
+    The number of roots of unity in a quadratic field with discriminant D
+    :param D:
+    :return:
+    """
+    if D == -3:
+        return 6
+    if D == -4:
+        return 4
+    else:
+        return 2
+
+def red_mod1(z):
+    """
+    Compute z mod 1 in [0,1)
+    :param z:
+    :return:
+    """
+    if z > 0:
+        return z - floor(z)

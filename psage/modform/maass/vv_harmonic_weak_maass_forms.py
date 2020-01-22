@@ -53,8 +53,8 @@ import random
 import tempfile,os
 from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign,Newforms,RealField,save,load,\
     latex,log_b,vector,dimension_new_cusp_forms,dimension_cusp_forms,is_square,kronecker,numerator,denominator,\
-    cached_function
-from sage.rings.complex_mpc import MPComplexField,MPComplexNumber,is_odd,MatrixSpace,is_fundamental_discriminant
+    cached_function,is_odd,MatrixSpace,is_fundamental_discriminant
+from sage.rings.complex_mpc import MPComplexField,MPComplexNumber
 
 from psage.modform.arithgroup.mysubgroup import *
 from .automorphic_forms import *

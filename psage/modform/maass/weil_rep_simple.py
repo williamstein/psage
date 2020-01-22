@@ -19,8 +19,11 @@ r"""
 The Weil representation corresponding to the discriminant form $D$ of a rank-one lattice $L=(ZZ, q:x-> Nx**2)$, i.e. $D=(Z/NZ,q mod 1)$.
 
 """
+from __future__ import print_function
 
-from sage.all import Parent,QQ,ZZ,Integer,SL2Z,CyclotomicField,lcm,odd_part,kronecker,gcd,IntegerModRing,matrix,is_odd,valuation,sqrt,MatrixSpace,CC,powerset,squarefree_part,is_even,floor,QuadraticField,is_fundamental_discriminant
+from sage.all import Parent,QQ,ZZ,Integer,SL2Z,CyclotomicField,lcm,odd_part,kronecker,gcd,IntegerModRing,matrix,is_odd,\
+    valuation,sqrt,MatrixSpace,CC,powerset,squarefree_part,is_even,floor,QuadraticField,is_fundamental_discriminant,\
+    is_square,latex,numerator,denominator,prime_divisors,fundamantal_discriminants
 from sage.rings.complex_mpc import MPComplexField
 from sage.misc.cachefunc import cached_function,cached_method
 from psage.matrix.matrix_complex_dense import Matrix_complex_dense
@@ -92,21 +95,21 @@ class WeilRepDiscriminantForm(Parent):
         self._rank = N2
         self._weight = None
         self._sym_type = sym_type
-        if sym_type==0 and k<>None: # Then we set it
+        if sym_type==0 and k != None: # Then we set it
             self._weight = QQ(k)
             if ((self._weight-QQ(1/2)) % 2) == 0:
                 sym_type = sig
             elif ((self._weight-QQ(3/2)) % 2) == 0:
                 sym_type = -sig
             else:
-                raise ValueError,"Got incompatible weight and signature!"
-        elif sym_type<>0 and k==None:  ## Set the weight
+                raise ValueError("Got incompatible weight and signature!")
+        elif sym_type != 0 and k == None:  ## Set the weight
             if sig==sym_type:
                 self._weight = QQ(1)/QQ(2)
             elif sig==-sym_type:
                 self._weight = QQ(3)/QQ(2)
             else:
-                raise ValueError,"Got incompatible symmetry type and signature!"
+                raise ValueError("Got incompatible symmetry type and signature!")
         elif sym_type==0 and k==None:  ## Set the weight
             ## We make a choice
             self._sym_type = sig
@@ -120,7 +123,7 @@ class WeilRepDiscriminantForm(Parent):
                 pass
 
             else:
-                raise ValueError,"Need either sym type or weight!"
+                raise ValueError("Need either sym type or weight!")
             
 
 
@@ -309,7 +312,7 @@ class WeilRepDiscriminantForm(Parent):
         elif r in self._D_as_integers:
             minus_r = self._N*2 - r 
         else:
-            raise ValueError,"Need element in the abelian group of self! Got {0}".format(r)
+            raise ValueError("Need element in the abelian group of self! Got {0}".format(r))
         return minus_r
             
     def Qc(self,c,x):
@@ -317,7 +320,7 @@ class WeilRepDiscriminantForm(Parent):
         """
         Dcstar=self._D_times_c_star(c)
         if (not x in Dcstar):
-            raise ValueError," Call only for x in D^c*! Got x=%s and D^c*=%s" %(x,Dcstar)
+            raise ValueError(" Call only for x in D^c*! Got x={0} and D^c*={1}".format(x,Dcstar))
         xc=0
         if(valuation(c,2)==valuation(2*self._N,2)):
             xc=QQ(1)/QQ(2)
@@ -458,12 +461,12 @@ class WeilRepDiscriminantForm(Parent):
             else:
                 chi=CF(self.xi(A).complex_embedding(prec))
             if(silent>0):
-                print "fz=",fz
-                print "chi=",chi
-        elif c==0: # then we use the simple formula
-            if d<0:
+                print("fz={0}".format(fz))
+                print("chi={0}".format(chi))
+        elif c == 0: # then we use the simple formula
+            if d < 0:
                 sig=-1
-                if numeric==0:
+                if numeric == 0:
                     fz=CyclotomicField(4).gen()
                 else:
                     fz=CF(0,1)
@@ -493,10 +496,10 @@ class WeilRepDiscriminantForm(Parent):
             xc=Integer(N)
         else:
             xc=0
-        if(silent>0):
-            print "c=",c
-            print "xc=",xc
-            print "chi=",chi
+        if silent>0:
+            print("c={0}".format(c))
+            print("xc={0}".format(xc))
+            print("chi={0}".format(chi))
         for alpha in range(D):
             al=QQ(alpha)/QQ(D)
             for beta in range(D):
@@ -506,21 +509,21 @@ class WeilRepDiscriminantForm(Parent):
                     alpha_minus_dbeta=(alpha-d*beta) % D
                 else:
                     alpha_minus_dbeta=(alpha-d*beta-xc) % D
-                if(silent > 0): # and alpha==7 and beta == 7):
-                    print "alpha,beta=",alpha,',',beta
-                    print "c,d=",c,',',d
-                    print "alpha-d*beta=",alpha_minus_dbeta
+                if silent > 0: # and alpha==7 and beta == 7):
+                    print("alpha,beta={0},{1}".format(alpha,beta))
+                    print("c,d={0},{1}".format(c,d))
+                    print("alpha-d*beta={0}".format(alpha_minus_dbeta))
                 invers=0
                 for r in range(D):
-                    if((r*c - alpha_minus_dbeta) % D ==0):
+                    if (r*c - alpha_minus_dbeta) % D ==0:
                         c_div=True
                         invers=r
                         break
                 if c_div and silent > 0:
-                    print "invers=",invers
-                    print " inverse(alpha-d*beta) mod c=",invers
+                    print("invers={0}".format(invers))
+                    print(" inverse(alpha-d*beta) mod c={0}".format(invers))
                 elif(silent>0):
-                    print " no inverse!"
+                    print(" no inverse!")
                 if(c_div):
                     y=invers
                     if xc==0:
@@ -530,13 +533,13 @@ class WeilRepDiscriminantForm(Parent):
                     argu = argu % D2
                     tmp1=z**argu  # exp(2*pi*I*argu)
                     if silent>0:# and alpha==7 and beta==7):
-                        print "a,b,c,d=",a,b,c,d
-                        print "xc=",xc
-                        print "argu=",argu
-                        print "exp(...)=",tmp1
-                        print "chi=",chi
-                        print "sig=",sig
-                    if sig==-1:
+                        print("a,b,c,d={0},{1},{2},{3}".format(a,b,c,d))
+                        print("xc={0}".format(xc))
+                        print("argu={0}".format(argu))
+                        print("exp(...)={0}".format(tmp1))
+                        print("chi={0}".format(chi))
+                        print("sig={0}".format(sig))
+                    if sig == -1:
                         minus_alpha = (D - alpha) % D
                         rho[minus_alpha,beta]=tmp1*chi
                     else:
@@ -564,7 +567,7 @@ class WeilRepDiscriminantForm(Parent):
             x=self.Qv[j]
             n=QQ(D)/QQ(self._level)-QQ(x)
             if(n % self._level == 0):
-                print "D/4N-q(v)=",n
+                print("D/4N-q(v)={0}".format(n))
                 return (self._D[j],ZZ(QQ(n)/QQ(self._level)))
 
 
@@ -683,7 +686,7 @@ class WeilRepDiscriminantForm(Parent):
         """
         S=list()
         for a in self._D:
-            if(self.Q(a)==0 and a<>0):
+            if self.Q(a) == 0 and a != 0:
                 S.append(a)
         # S is now a list of all isotropic elements except 0
         PS=list(powerset(S))
@@ -705,7 +708,7 @@ class WeilRepDiscriminantForm(Parent):
             if(ok):
                 A.sort()
                 return A
-        raise ArithmeticError, "Could not find maximal isotropic subgroup!"
+        raise ArithmeticError("Could not find maximal isotropic subgroup!")
     
 
     def dimension_cusp_forms(self,k,eps=1):
@@ -766,31 +769,31 @@ class WeilRepDiscriminantForm(Parent):
             else:
                 h = class_nr_pos_def_qf(-d)
             if self._verbose>1:
-                print "h({0})={1}".format(d,h)
-            if h<>0:
+                print("h({0})={1}".format(d,h))
+            if h!=0:
                 P= P + h
         P = QQ(P)/QQ(4)
         if self._verbose>0:
-            print "P=",P
+            print("P={0}".format(P))
         P=P + QQ(ep)*kronecker(-4,N)/QQ(8)
         if eps==-1:
             P = -P
         if self._verbose>0:
-            print "P=",P
+            print("P={0}".format(P))
         # P = -2*N**2 + N*(twok+10-ep*3) +(twok+10)*ep-1
         if self._verbose>0:
-            print "ID=",ID
+            print("ID={0}".format(ID))
         P =  P - QQ(1)/QQ(2*K0)
         # P = QQ(P)/QQ(24) - K0
         # P = P - K0
         res = ID + P + e2 + e3
         if self._verbose>1:
-            print "twok=",twok
-            print "K0=",K0
-            print "ep=",ep
-            print "e2=",e2
-            print "e3=",e3
-            print "P=",P
+            print("twok={0}".format(twok))
+            print("K0={0}".format(K0))
+            print("ep={0}".format(ep))
+            print("e2={0}".format(e2))
+            print("e3={0}".format(e3))
+            print("P={0}".format(P))
         if cuspidal==0:
             res = res + K0
         return res   #,ep
@@ -819,7 +822,7 @@ def class_nr_pos_def_qf(D):
         D0 = K.discriminant()
         Df = ZZ(D).divide_knowing_divisible_by(D0)
         if not is_square(Df):
-            raise ArithmeticError,"DId not get a discrinimant * square! D={0} disc(D)={1}".format(D,D0)
+            raise ArithmeticError("Did not get a discrimimant * square! D={0} disc(D)={1}".format(D,D0))
         D2 = sqrt(Df)
         h0 = QuadraticField(D0).class_number()
         w0 = _get_w(D0)

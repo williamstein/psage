@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2010 Fredrik Stroemberg
@@ -28,7 +29,7 @@ def test_vv(N=11):
     M=VVHarmonicWeakMaassForms(WR,0.5,15)
     PP={(7/22,0):1}
     F=M.get_element(PP,12)
-    print F
+    print(F)
 
 
 def test_construction_of_space(N=1):

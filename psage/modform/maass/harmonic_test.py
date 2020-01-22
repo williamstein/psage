@@ -4,7 +4,9 @@ Python routines for calculating Harmonic Weak Maass forms
 
 
 """
+from __future__ import print_function
 from sage.all import *
+from sage.all import MPComplexField,RealField, MatrixSpace,RR,ceil,log_b,sqrt,exp,gamma
 from psage import *
 import mpmath
 from psage.matrix.matrix_complex_dense import Matrix_complex_dense
@@ -36,7 +38,7 @@ def Wk(k,l,y,var_a0_plus=False,var_a0_minus=False):
     """
     CF = MPComplexField(y.prec())
     if y < 0:
-        raise ValueError,"Here we should have y>0!"
+        raise ValueError("Here we should have y>0!")
     if l==0:
         if var_a0_plus:
             return CF(1)
@@ -52,7 +54,7 @@ def Wk(k,l,y,var_a0_plus=False,var_a0_minus=False):
     if l > 0:
         return CF(-x).exp()
     elif l<0:
-        print "HERE"
+        print("HERE")
         return CF(1-k).gamma_inc(-2*x)*CF(-x).exp()
 
         
@@ -74,17 +76,17 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
         prec = Y.parent().prec()
     RF = RealField(prec)
     CF = MPComplexField(prec)
-    print "pb"
+    print("pb")
     pb = pullback_pts_mp(S,Qs,Qf,Y)
-    print "after pb"
+    print("after pb")
     if ret_pb==1:        
         return pb
     xm = pb['xm']; xpb=pb['xpb']; ypb=pb['ypb']; cvec=pb['cvec']
-    print cvec[0][0]
+    print(cvec[0][0])
     verbose = S._verbose
     if S._verbose>0:
-        print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,{})    
-        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,{})
+        print("Cvec[0,1,0]={0}".format(cvec.get(0,{}).get(1,{}).get(0,{})))
+        print("Ypb[0,1,0]={0}".format(ypb.get(0,{}).get(1,{}).get(0,{})))
     size_of_matrix = Ml*S.group().ncusps()
     V = Matrix_complex_dense(MatrixSpace(CF, size_of_matrix, size_of_matrix),0)
     RHS = Matrix_complex_dense(MatrixSpace(CF, size_of_matrix,1),0)
@@ -106,7 +108,7 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
     ##
     ## Setup the matrix entries V_nl
     ##
-    print pp_info
+    print(pp_info)
     for l in range(Ms,Mf+1):
         for jcusp in range(nc):
             lj = l-Ms+jcusp*Ml
@@ -132,9 +134,9 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                         #z1*cv*kappa*f2d[n][icusp][j]
                         V[ni,lj]+=vtmp
                         if S._verbose>2 and ni==0 and lj==11:
-                            print "-------------------"
-                            print "V[1,1](",j,")=",V[ni,lj]
-                            print "ef1(",j,")=",f1,'*',cvec[icusp][jcusp][j],'*',f2d[n][icusp][j]
+                            print("-------------------")
+                            print("V[1,1](",j,")={0}".format(V[ni,lj]))
+                            print("ef1({0}) = {1} * {2} * {3}".format(j,RF(x-nr*xm[j]).cos(),cvec[icusp][jcusp][j],f2d[n][icusp][j]))
 
     Qfak = RF(1)/RF(2*Q)
     for n in range(V.nrows()):
@@ -153,8 +155,8 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
     ## Setting up the right hand side
     pp_plus = pp_info['PPplus'][0]
     pp_minus = pp_info['PPminus'][0]
-    print "Ms=",Ms
-    print "Mf=",Mf
+    print("Ms={0}".format(Ms))
+    print("Mf={0}".format(Mf))
     for n in range(Ms,Mf+1):
         for icusp in range(nc):
             ni = n -Ms + icusp*Ml
@@ -167,7 +169,7 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                 if ppc==0 or (lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1):
                     continue
                 if lr >0:
-                    raise ValueError,"Invalid holomorphic principal part! lr={0}".format(lr) 
+                    raise ValueError("Invalid holomorphic principal part! lr={0}".format(lr)) 
                 for j in range(Ql):
                     y = ypb[icusp][jcusp][j]                    
                     if y==0:     # this indicates a pull-back not belonging to these cusps... 
@@ -178,14 +180,14 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                     tmpc = kappa*f2*cvec[icusp][jcusp][j]
                     summa = summa + tmpc
                 if verbose>1:
-                    print "Making RHS! summma({9}) ={1} ".format(n,summa)
+                    print("Making RHS! summma({9}) ={1} ".format(n,summa))
                 summa = summa*Qfak
                 RHS[ni,0] = RHS[ni,0] + summa*ppc
                 ## Subtract off the potential principal parts from the right-hand-side as well.
                 if l==n and icusp==jcusp:
                     if verbose>0:
-                        print "Subtract! ni,n,nr=",ni,n,nr
-                        print "ppc=",ppc
+                        print("Subtract! ni,n,nr={0},{1},{2}".format(ni,n,nr))
+                        print("ppc={0}".format(ppc))
                     kappa =  Wk(k,nr,Y,var_a0_plus=True)
                     RHS[ni,0] = RHS[ni,0] - kappa*ppc
             # Set the non-holomorphic principal part
@@ -195,8 +197,8 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                 if ppc==0 or (lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1):
                     continue
                 if lr<0:
-                    raise ValueError,"Invalid non-holomorphic principal part l={0}".format(lr)
-                print (jcusp,l),ppc
+                    raise ValueError("Invalid non-holomorphic principal part l={0}".format(lr))
+                print((jcusp,l),ppc)
                 #print "Ql=",Ql
                 for j in xrange(Ql):
                     #print j
@@ -214,11 +216,11 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                 summa = summa*ppc*Qfak
                 #print "summa[{0}]={1}".format(ni,summa),"*",ppc,"*",Qfak
                 RHS[ni,0] +=summa                                
-                print "RHS[{0}]={1}".format(ni,RHS[ni,0])
+                print("RHS[{0}]={1}".format(ni,RHS[ni,0]))
                 if l==n and icusp==jcusp:
                     kappa = Wk(k,l,Y)
                     RHS[ni,0] -= kappa*ppc
-            print "RHS[{0}]={1}".format(ni,RHS[ni,0])
+            print("RHS[{0}]={1}".format(ni,RHS[ni,0]))
 
     #if setc==None:
     #    return V,RHS
@@ -304,15 +306,15 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
     PP=W.get('PP',[])
     H = W.get('space',None)
     if not H:
-        raise TypeError,"Need a space together with our W!"
+        raise TypeError("Need a space together with our W!")
     verbose = H._verbose
     #alphas=W['alphas']
     alphas = H.alphas()
     Ml=W['Ml'] #Mf-Ms+1
     variable_a_plus=W['var_a+']
     variable_a_minus=W['var_a-']
-    if(V.ncols()<>Ml*nc or V.nrows()<>Ml*nc):
-        raise Exception," Wrong dimension of input matrix!"
+    if(V.ncols()!=Ml*nc or V.nrows()!=Ml*nc):
+        raise Exception(" Wrong dimension of input matrix!")
     # we have to assume that all normalizations use the same coefficients
     maxit=1000
     SetCs=N['SetCs']
@@ -324,11 +326,11 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
     SetClist=dict()
     for j in range(0,comp_dim):
         SetClist[j]=dict()
-    if len(PP)>0 and ((comp_dim<>len(SetCs.keys()) and comp_dim<>len(PP))):
-        print "comp_dim=",comp_dim
-        print "SetC=",SetCs
-        print "PP=",PP
-        raise ValueError," Inconsistent normalization SetCs:%s" % SetCs
+    if len(PP)>0 and ((comp_dim!=len(SetCs.keys()) and comp_dim!=len(PP))):
+        print("comp_dim={0}".format(comp_dim))
+        print("SetC={0}".format(SetCs))
+        print("PP={0}".format(PP))
+        raise ValueError(" Inconsistent normalization SetCs:%s" % SetCs)
     num_set=0
     for j in range(0,comp_dim):
         # # First we treat set values of coefficients not corresponsing to the principal part
@@ -336,64 +338,64 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
             nr = r*Ml+n
             if nr>=0 or not H.is_holomorphic():
                 SetClist[j][nr]=SetCs[j][(r,n)]
-            elif PP[j]['+'].has_key((r,n)) and PP[j]['-'].has_key((r,n)):
+            elif (r,n) in PP[j]['+'] and (r,n) in PP[j]['-']:
                 SetClist[j][nr]=0
         if verbose>0:
-            print "SetClist_pos=",SetClist
-            print "var_a+=",variable_a_plus[j]
-            print "var_a-=",variable_a_minus[j]
+            print("SetClist_pos={0}".format(SetClist))
+            print("var_a+={0}".format(variable_a_plus[j]))
+            print("var_a-={0}".format(variable_a_minus[j]))
         ## Then we check the zeroth coefficients
         for r in range(nc):
             if(alphas[r][1]==1):
                 if( (not variable_a_plus[j][r]) and (not variable_a_minus[j][r])):
                     nr = r*Ml
-                    if(SetCs_neg.get(j,{}).has_key((r,0))):
+                    if((r,0) in SetCs_neg.get(j,{})):
                         SetClist[j][nr]=CF(SetCs_neg[j][(r,0)]) 
         num_set=len(SetClist[0].keys())
     if verbose>0:
-        print "SetClist_tot=",SetClist
+        print("SetClist_tot={0}".format(SetClist))
     t=V[0,0]
     if(isinstance(t,float)):
         mpmath_ctx=mpmath.fp
     else:  
         mpmath_ctx=mpmath.mp
     if verbose>0:
-        print "mpmath_ctx=",mpmath_ctx
+        print("mpmath_ctx={0}".format(mpmath_ctx))
     #use_symmetry=False
     MS = MatrixSpace(CF,int(Ml*nc-num_set),int(comp_dim))
     RHS = Matrix_complex_dense(MS,0,True,True)
     # We allow for either a variation of principal parts or of set coefficients
-    if(W.has_key('RHS')):
+    if('RHS' in W):
         l=W['RHS'].ncols()
-        if(l>1 and l<>comp_dim):
-            raise ValueError,"Incorrect number of right hand sides!"
+        if(l>1 and l!=comp_dim):
+            raise ValueError("Incorrect number of right hand sides!")
         
     MS2 = MatrixSpace(CF,int(Ml*nc-num_set),int(Ml*nc-num_set))
     LHS = Matrix_complex_dense(MS2,0,True,True)
     #LHS=mpmath_ctx.matrix(int(Ml*nc-num_set),int(Ml*nc-num_set))
     roffs=0
     if verbose>0:
-        print "Ml=",Ml
-        print "num_set=",num_set
-        print "SetCs=",SetCs
-        print "SetClist=",SetClist
+        print("Ml={0}".format(Ml))
+        print("num_set={0}".format(num_set))
+        print("SetCs={0}".format(SetCs))
+        print("SetClist={0}".format(SetClist))
         #print "Valslist=",Valslist
-        print "V.rows=",V.nrows()
-        print "V.cols=",V.ncols()
-        print "LHS.rows=",LHS.nrows()
-        print "LHS.cols=",LHS.ncols()
-        print "RHS.rows=",RHS.nrows()
-        print "RHS.cols=",RHS.ncols()
-        print "use_sym=",use_sym
+        print("V.rows={0}".format(V.nrows()))
+        print("V.cols={0}".format(V.ncols()))
+        print("LHS.rows={0}".format(LHS.nrows()))
+        print("LHS.cols={0}".format(LHS.ncols()))
+        print("RHS.rows={0}".format(RHS.nrows()))
+        print("RHS.cols={0}".format(RHS.ncols()))
+        print("use_sym={0}".format(use_sym))
     for r in range(V.nrows()):
         cr=r+Ms
         if(SetClist[0].keys().count(r+Ms)>0):
             roffs=roffs+1
             continue
         for fn_j in range(comp_dim):
-            if(W.has_key('RHS') and W['RHS'].ncols()>fn_j):
+            if('RHS' in W and W['RHS'].ncols()>fn_j):
                 RHS[r-roffs,fn_j]=CF(-W['RHS'][r,fn_j])
-            elif(W.has_key('RHS')):
+            elif('RHS' in W):
                 RHS[r-roffs,fn_j]=CF(-W['RHS'][r,0])
             else:
                 RHS[r-roffs,fn_j]=zero
@@ -409,19 +411,19 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
             try:                
                 LHS[r-roffs,k-coffs]=V[r,k]
             except IndexError:
-                print "r,k=",r,k
-                print "V.rows=",V.nrows()
-                print "V.cols=",V.ncols()
-                print "roffs,coffs=",roffs,coffs
-                print "r-roffs,k-coffs=",r-roffs,k-coffs
-                print "LHS.rows=",LHS.nrows()
-                print "LHS.cols=",LHS.ncols()                
-                raise IndexError,"Matrix / coefficients is set up wrong!"
+                print("r,k={0},{1}".format(r,k))
+                print("V.rows={0}".format(V.nrows()))
+                print("V.cols={0}".format(V.ncols()))
+                print("roffs,coffs={0},{1}".format(roffs,coffs))
+                print("r-roffs,k-coffs={0},{1}".format(r-roffs,k-coffs))
+                print("LHS.rows={0}".format(LHS.nrows()))
+                print("LHS.cols={0}".format(LHS.ncols()))
+                raise IndexError("Matrix / coefficients is set up wrong!")
             #print "LHS[",r,k,"]=",LHS[r-roffs,k-coffs]
     #return LHS,RHS
     smin=smallest_inf_norm(LHS)
     if verbose>0:
-        print "sminfn=",smin
+        print("sminfn={0}".format(smin))
     dps0=CF.prec()
     done=False
     i=1
@@ -435,25 +437,25 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
             t=int(ceil(-log_b(smallest_inf_norm(LHS),10)))
             dps=t+5*i; i=i+1
             if verbose>-1:
-                print "raising number of digits to:",dps
+                print("raising number of digits to:{0}".format(dps))
             LHS.set_prec(dps)
             # raise ZeroDivisionError,"Need higher precision! Use > %s digits!" % t
     if(i>=maxit):
-        raise ZeroDivisionError,"Can not raise precision enough to solve system! Should need > %s digits! and %s digits was not enough!" % (t,dps)
+        raise ZeroDivisionError("Can not raise precision enough to solve system! Should need > {0} digits! and {1} digits was not enough!".format(t,dps))
     X=dict()
     for fn_j in range(comp_dim):
         X[fn_j] = dict() 
         X[fn_j][0] = dict() 
         v = RHS.column(fn_j)
         if verbose>0:
-            print "len(B)=",len(v)
+            print("len(B)={0}".format(len(v)))
             #print "RHS=",v
         #b = mpmath_ctx.L_solve(A, RHS.column(fn_j), p)
         TMP = LHS.solve(v) #mpmath_ctx.U_solve(A, b)
         roffs=0
         res = (LHS*TMP-v).norm()
         if verbose>0:
-            print "res(",fn_j,")=",res
+            print("res({0})={1}".format(fn_j,res))
         #res = mpmath_ctx.norm(mpmath_ctx.residual(LHS, TMP, RHS.column(fn_j)))
         #print "res(",fn_j,")=",res
         for i in range(0,nc):
@@ -467,18 +469,18 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
                 #    print n,key
                 if(SetClist[fn_j].keys().count(nn)>0):
                     if verbose>1:
-                        print "We have set ",nn
+                        print("We have set: {0}".format(nn))
                     roffs=roffs+1
                     X[fn_j][0][i][key]=SetClist[fn_j][nn] 
                     if verbose>0:
-                        print "X[",fn_j,",",i,",",key,"]=",SetClist[fn_j][nn]
-                        print "nn=",nn
+                        print("X[{0},{1},{2}]={3}".format(fn_j,i,key,SetClist[fn_j][nn]))
+                        print("nn={0}".format(nn))
                     continue
                 try:
                     #X[fn_j][0][i][n-roffs2+Ms]=TMP[nn-Ms-roffs,0]
                     X[fn_j][0][i][key]=TMP[nn-Ms-roffs]
                 except IndexError:
-                    print "n*Mli-roffs=",n,'+',Ml,'*',i,'-',roffs,"=",n+Ml*i-roffs
+                    print("n*Mli-roffs={0} + {1} * {2} - {3} = {4}".format(n,Ml,i,roffs,n+Ml*i-roffs))
                 ## We also insert the principal part if it is applicable
     #mpmath.mp.dps=dpold
     # return x
@@ -502,7 +504,7 @@ def get_parameters(N,k,m,eps):
         ep = err_estimate(N,Y,k,m,M)
         if abs(ep)<eps:
               return M,Y
-    raise ArithmeticError,"Could not find good M!"
+    raise ArithmeticError("Could not find good M!")
 
 
 def err_estimate(N,Y,k,m,M):
@@ -538,7 +540,7 @@ def size_of_num_err_by_coeff_app(N,k,m,M,eps=1):
      return abs((f1+f2)*eps)
 
 
-def est_of_diagonal_det(N,k,m,M):
+def est_of_diagonal_det(N,k,m,M,Y):
      r""" 
      Gives a rough estimate of the determinant of the linear system (matrix) A based on taking a product over the dominant terms on the diagonal.
      The error in the solution of system A*X will more or less be inverse proportional to this number times the error in the initial matrix A.  This is used to estimate the necessary working precision when computing the special functions etc. in A.
@@ -569,8 +571,8 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
     assert S.group().ncusps() in [1,2]
     verbose = S._verbose
     if S._verbose>0:
-        print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,0)
-        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,0)
+        print("Cvec[0,1,0]={0}".format(cvec.get(0,{}).get(1,{}).get(0,0)))
+        print("Ypb[0,1,0]={0}".format(ypb.get(0,{}).get(1,{}).get(0,0)))
     sz = (2*M0+1)*S.group().ncusps()
     V = Matrix_complex_dense(MatrixSpace(CF,sz,sz),0)
     RHS = Matrix_complex_dense(MatrixSpace(CF,sz,1),0)
@@ -608,17 +610,17 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
         for jcusp in range(nc):
             sgnv[icusp][jcusp]={}
             if verbose>0:
-                print "i,j:",icusp,jcusp
+                print("i,j:{0},{1}".format(icusp,jcusp))
             for j in range(Ql):
                 sgnv[icusp][jcusp][j]={}
                 if ypb[icusp][jcusp][j] > ymax:
                     ymax = ypb[icusp][jcusp][j]
             if verbose>0:
-                print "icusp,jcusp=",icusp,jcusp
+                print("icusp,jcusp={0},{1}".format(icusp,jcusp))
             for j in range(Q+1):
                 if verbose>1:
-                    print "j=",j
-                    print "2Q-1-j=",2*Q-1-j
+                    print("j={0}".format(j))
+                    print("2Q-1-j={0}".format(2*Q-1-j))
                 x1 = xpb[icusp][jcusp][j]
                 x2 = xpb[icusp][jcusp][2*Q-1-j]
                 y1 = ypb[icusp][jcusp][j]
@@ -646,39 +648,39 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                 sgnv[icusp][jcusp][j] = (f1 + f2 +  f3) % 2
                 c2 = c2.conjugate()*RF((-1)**(f1+f2+f3))
                 if j==14 and icusp==0 and jcusp==1:
-                    print "ypb=",ypb[icusp][jcusp][j]
-                    print "sgnv=",sgnv[icusp][jcusp][j],
-                    print "f1,f2,f3=",f1 ,f2 , f3
+                    print("ypb={0}".format(ypb[icusp][jcusp][j]))
+                    print("sgnv={0}".format(sgnv[icusp][jcusp][j]))
+                    print("f1,f2,f3={0},{1},{2}".format(f1 ,f2 , f3))
                 #print "xm[j]-xm[1-j]=",xm[j]+xm[2*Q-1-j]
                 #print "|x1-x2|=",abs(x2+x1)
                 #print "|y1-y2|=",abs(y2-y1)
                 if verbose>2:
-                    print "cv[j]=",c1
-                    print "cv[1-j]=",c2
+                    print("cv[j]={0}".format(c1))
+                    print("cv[1-j]={0}".format(c2))
                 #print "|cv1-cv2|=",abs((c1+c2).imag())
                 if abs(c1-c2)>cvmax:
                     cvmax = abs(c1-c2)
                     #if abs(c1-c2)>0.01:
                     if verbose>0:
-                        print "CV diff=",cvmax
+                        print("CV diff={0}".format(cvmax))
                 if abs(y1-y2)>0.01:
-                    print "Y diff=",abs(y1-y2)
+                    print("Y diff={0}".format(abs(y1-y2)))
                 if abs(x1+x2)>0.01:
-                    print "X diff=",abs(x1+x2)
+                    print("X diff={0}".format(abs(x1+x2)))
                 #if cvmax > 1:
                 #    return 
                 if abs(x2+x1)>xdmax:
                     xdmax = abs(x2+x1)
 #    return
     if verbose>0:
-        print "xdmax=",xdmax
-        print "cvmax=",cvmax
+        print("xdmax={0}".format(xdmax))
+        print("cvmax={0}".format(cvmax))
     if max(xdmax,cvmax) <= 2.**(8-Y.prec()):
         use_sym = 1
         if verbose>0:
-            print "Use symmetry!"
+            print("Use symmetry!")
     else:
-        raise ArithmeticError,"Could not use symmetry!"
+        raise ArithmeticError("Could not use symmetry!")
         use_sym = 0
 #    return 
     if use_sym==0:
@@ -704,7 +706,7 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                         arg = RF.pi()*RF(4)*abs(lr)*ypb[icusp][jcusp][j]
                         bes = RF(mpmath.mp.gammainc(km1,arg))
                         if S._verbose>3 and icusp == 1 and l==Ms:
-                            print "arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,arg)
+                            print("arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,arg))
                     elif lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
                         bes = RF(1)
                     elif lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1:
@@ -742,8 +744,8 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                     #c2 = c2.conjugate()*RF(f2*(-1)**(f1+f3))
                     #cv = cvec[icusp][jcusp][j]+cvec[icusp][jcusp][2*Q-1-j]
                     if S._verbose>3 and icusp == 1 and l==Ms:
-                        print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,f1*f11)
-                        print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,bes)
+                        print("f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,f1*f11))
+                        print("be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,bes))
                     bes = bes*f11  
                     for n in range(Ms,Mf+1):
                         nr = RF(n)+S.alpha(icusp)[0]
@@ -761,41 +763,41 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                         #    print "vtm=",f1,":",f2,":",bes
                         V[ni,lj]+=vtmp
                         if S._verbose>0 and ni==0 and lj==11:
-                            print "-------------------"
-                            print "n=",n
-                            print "V[1,1](",j,")=",V[ni,lj]
-                            print "ef1(",j,")=",f1
-                            print "ef2(",2*Q-j-1,")=",f2
-                            print "sgn[v]=",sgnv[icusp][jcusp][j]
-                            print "vtmp=",vtmp
+                            print("-------------------")
+                            print("n={0}".format(n))
+                            print("V[1,1]({0})={1}".format(j,V[ni,lj]))
+                            print("ef1({0})={1}".format(j,f1))
+                            print("ef2({0})={1}".format(2*Q-j-1,f2))
+                            print("sgn[v]={0}".format(sgnv[icusp][jcusp][j]))
+                            print("vtmp={0}".format(vtmp))
                             #print "cv(",j,")=",cv
                             #print "ef2(",j,")=",f2d[n][icusp][j]
-                            print "fd2[{0}][{1}][{2}]={3}".format(n,icusp,j,f2d[n][icusp][j])
+                            print("fd2[{0}][{1}][{2}]={3}".format(n,icusp,j,f2d[n][icusp][j]))
 #    if use_sym ==1:
 #        Qfak = RF(1)/RF(Q)
 #    else:
     Qfak = RF(1)/RF(2*Q)
     if verbose>0:
-        print "V[0,0]0=",V[0,0]
-        print "V[1,0]0=",V[1,0]
-        print "V[0,1]0=",V[0,1]
-        print "V[1,1]0=",V[1,1]
+        print("V[0,0]0={0}".format(V[0,0]))
+        print("V[1,0]0={0}".format(V[1,0]))
+        print("V[0,1]0={0}".format(V[0,1]))
+        print("V[1,1]0={0}".format(V[1,1]))
         if V.nrows()>11:
-            print "V[0,11] 1=",V[0,11]
+            print("V[0,11] 1={0}".format(V[0,11]))
         if V.nrows()>16:
-            print "V[16,16] 1=",V[16,16]
-        print "Y=",Y
-        print "Q=",Q
+            print("V[16,16] 1={0}".format(V[16,16]))
+        print("Y={0}".format(Y))
+        print("Q={0}".format(Q))
     for n in range(V.nrows()):
         for l in range(V.ncols()):
             V[n,l]=V[n,l]*Qfak
             #print "V[0,11] 1=",V[0,11]
     if verbose>0:
-        print "V[0,0]1=",V[0,0]
-        print "V[1,0]1=",V[1,0]
-        print "V[0,1]1=",V[0,1]
-        print "V[1,1]1=",V[1,1]
-        print "pp_info=",pp_info
+        print("V[0,0]1={0}".format(V[0,0]))
+        print("V[1,0]1={0}".format(V[1,0]))
+        print("V[0,1]1={0}".format(V[0,1]))
+        print("V[1,1]1={0}".format(V[1,1]))
+        print("pp_info={0}".format(pp_info))
     ## Setting up the right hand side and subtracting left-hand side
     pp_plus = pp_info['PPplus'][0]
     pp_minus = pp_info['PPminus'][0]
@@ -828,12 +830,12 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
             V[ni,ni]-=bes
                 #raise ArithmeticError,"a0 not correct set!"
             if verbose>1:
-                print "n=",n
+                print("n={0}".format(n))
             for jcusp,l in pp_plus.keys():
                 ppc = CF(pp_plus[(jcusp,l)])
                 lr = RF(l)+S.alpha(jcusp)[0]
                 if verbose>1:
-                    print "l=",l
+                    print("l={0}".format(l))
                 summa = CF(0)
                 if lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
                     continue
@@ -848,7 +850,7 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                     elif lr==0:
                         bes = RF(1)
                     else:
-                        raise ArithmeticError,"This princpal part should be holomorphic!"
+                        raise ArithmeticError("This princpal part should be holomorphic!")
                     z = cvec[icusp][jcusp][j]
                     arg = lr*xpb[icusp][jcusp][j] - nr*xm[j] + z.argument()
                     ab1 = z.abs()
@@ -859,16 +861,16 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                         f2 = RF(2)*arg.cos()
                     tmpc = bes*f2*ab1
                     if verbose>3:
-                        print "tmpc = (",j,")",y,bes,"*",f2,"*",cvec[icusp][jcusp][j],"=",tmpc
+                        print("tmpc =({0}),{1},{2}*{3}*{4}={5}".format(j,y,bes,f2,cvec[icusp][jcusp][j],tmpc))
                     summa = summa + tmpc
                 if verbose>1:
-                    print "MAking RHS! summma = ",summa
+                    print("MAking RHS! summma = {0}".format(summa))
                 summa = summa*Qfak
                 RHS[ni,0] = RHS[ni,0] + summa*ppc
                 if l==n and icusp==jcusp:
                     if verbose>0:
-                        print "Subtract! ni,n,nr=",ni,n,nr
-                        print "ppc=",ppc
+                        print("Subtract! ni,n,nr={0},{1},{2}".format(ni,n,nr))
+                        print("ppc={0}".format(ppc))
                     if nr<0:
                         bes = RF(-Y*twopi*nr).exp()
                         RHS[ni,0] = RHS[ni,0] - bes*ppc
@@ -885,8 +887,8 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                     continue
                 if lr==0 and int(pp_info['variable_a0_minus'][0][icusp])==1:
                     continue
-                if lr<>0:
-                    raise NotImplementedError,"Only implemented n=0 in non-holom. principal part!"
+                if lr!=0:
+                    raise NotImplementedError("Only implemented n=0 in non-holom. principal part!")
                 for j in range(0,Q):
                     if ypb[icusp][jcusp][j]==0:
                         continue
@@ -914,7 +916,7 @@ def setup_harmonic_matrix_sym(S,pp,Y,M0,setc=None,ret_pb=0):
                         bes = Y**RF(1-k)
                     RHS[ni,0] -= bes*ppc
     if verbose>0:
-        print "ymax = ",ymax
+        print("ymax = {0}".format(ymax))
 
     if setc==None:
         return V,RHS
@@ -954,8 +956,8 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
     assert S.group().ncusps()==2
     verbose = S._verbose
     if S._verbose>0:
-        print "Cvec[0,1,0]=",cvec.get(0,{}).get(1,{}).get(0,0)
-        print "Ypb[0,1,0]=",ypb.get(0,{}).get(1,{}).get(0,0)
+        print("Cvec[0,1,0]={0}".format(cvec.get(0,{}).get(1,{}).get(0,0)))
+        print("Ypb[0,1,0]={0}".format(ypb.get(0,{}).get(1,{}).get(0,0)))
     sz = (2*M0+1)*S.group().ncusps()
     V = Matrix_complex_dense(MatrixSpace(CF,sz,sz),0)
     RHS = Matrix_complex_dense(MatrixSpace(CF,sz,1),0)
@@ -963,7 +965,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
     k = S.weight()
     km1 = 1-k
     twopi=RF.pi()*RF(2)
-    pp_info = check_principal_parts(H,[pp])
+    pp_info = check_principal_parts(S,[pp])
     if S._holomorphic==1:
         Ms=0; Mf=M0
     else:
@@ -994,7 +996,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
         for jcusp in range(nc):
             sgnv[icusp][jcusp]={}
             if verbose>0:
-                print "i,j:",icusp,jcusp
+                print("i,j:{0},{1}".format(icusp,jcusp))
             for j in range(Q):
                 sgnv[icusp][jcusp][j]={}
                 if ypb[icusp][jcusp][j] > ymax:
@@ -1047,14 +1049,14 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
             #     if abs(x2+x1)>xdmax:
             #         xdmax = abs(x2+x1)
     if verbose>0:
-        print "xdmax=",xdmax
-        print "cvmax=",cvmax
+        print("xdmax=",xdmax)
+        print("cvmax=",cvmax)
     if max(xdmax,cvmax) <= 2.**(8-Y.prec()):
         use_sym = 1
         if verbose>0:
-            print "Use symmetry!"
+            print("Use symmetry!")
     else:
-        raise ArithmeticError,"Could not use symmetry!"
+        raise ArithmeticError("Could not use symmetry!")
         use_sym = 0
 #    return 
 #    if use_sym==1:
@@ -1081,7 +1083,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                         arg = RF.pi()*RF(4)*abs(lr)*y
                         bes = RF(mpmath.mp.gammainc(km1,arg))
                         if S._verbose>3 and icusp == 1 and l==Ms:
-                            print "arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,arg)
+                            print("arg[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,arg))
                     elif lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
                         bes = RF(1)
                     elif lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1:
@@ -1121,8 +1123,8 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                     #c2 = c2.conjugate()*RF(f2*(-1)**(f1+f3))
                     #cv = cvec[icusp][jcusp][j]+cvec[icusp][jcusp][2*Q-1-j]
                     if S._verbose>3 and icusp == 1 and l==Ms:
-                        print "f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,f1*f11)
-                        print "be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,bes)
+                        print("f1[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,f1*f11))
+                        print("be[{0},{1},{2},{3}]={4}".format(icusp,jcusp,l-Ms,j,bes))
                     bes = bes*f11  
                     for n in range(Ms,Mf+1):
                         nr = RF(n)+S.alpha(icusp)[0]
@@ -1133,7 +1135,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                         elif (cvec[icusp][jcusp][j][2] % 2)==0:
                             f1 = RF(2)*(ar1 + f2d[n][icusp][j]).cos()
                         else:
-                            raise ArithmeticError,"need cos or sine!!"
+                            raise ArithmeticError("need cos or sine!!")
                         #f1 = CF(0,lr*xpb[icusp][jcusp][j]+f2d[n][icusp][j]).exp()*cvec[icusp][jcusp][j]
                         vtmp = f1*bes #*f2d[n][icusp][j]
                         #f2 = CF(0,lr*xpb[icusp][jcusp][2*Q-1-j]+f2d[n][icusp][2*Q-j-1]).exp()*cvec[icusp][jcusp][2*Q-j-1]
@@ -1142,41 +1144,41 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                         #    print "vtm=",f1,":",f2,":",bes
                         V[ni,lj]+=vtmp
                         if S._verbose>0 and ni==0 and lj==11:
-                            print "-------------------"
-                            print "n=",n
-                            print "V[1,1](",j,")=",V[ni,lj]
-                            print "ef1(",j,")=",f1
-                            print "sgn[v]=",cvec[icusp][jcusp][j][2]
+                            print("-------------------")
+                            print("n={0}".format(n))
+                            print("V[1,1](",j,")={0}".format(V[ni,lj]))
+                            print("ef1(",j,")={0}".format(f1))
+                            print("sgn[v]={0}".format(cvec[icusp][jcusp][j][2]))
                             #print "ef2(",2*Q-j-1,")=",f2
-                            print "vtmp=",vtmp
+                            print("vtmp={0}".format(vtmp))
                             #print "cv(",j,")=",cv
                             #print "ef2(",j,")=",f2d[n][icusp][j]
-                            print "fd2[{0}][{1}][{2}]={3}".format(n,icusp,j,f2d[n][icusp][j])
+                            print("fd2[{0}][{1}][{2}]={3}".format(n,icusp,j,f2d[n][icusp][j]))
 #    if use_sym ==1:
 #        Qfak = RF(1)/RF(Q)
 #    else:
     Qfak = RF(1)/RF(2*Q)
     if verbose>0:
-        print "V[0,0]0=",V[0,0]
-        print "V[1,0]0=",V[1,0]
-        print "V[0,1]0=",V[0,1]
-        print "V[1,1]0=",V[1,1]
+        print("V[0,0]0={0}".format(V[0,0]))
+        print("V[1,0]0={0}".format(V[1,0]))
+        print("V[0,1]0={0}".format(V[0,1]))
+        print("V[1,1]0={0}".format(V[1,1]))
         if V.nrows()>11:
-            print "V[0,11] 1=",V[0,11]
+            print("V[0,11] 1={0}".format(V[0,11]))
         if V.nrows()>16:
-            print "V[16,16] 1=",V[16,16]
-        print "Y=",Y
-        print "Q=",Q
+            print("V[16,16] 1={0}".format(V[16,16]))
+        print("Y={0}".format(Y))
+        print("Q={0}".format(Q))
     for n in range(V.nrows()):
         for l in range(V.ncols()):
             V[n,l]=V[n,l]*Qfak
             #print "V[0,11] 1=",V[0,11]
     if verbose>0:
-        print "V[0,0]1=",V[0,0]
-        print "V[1,0]1=",V[1,0]
-        print "V[0,1]1=",V[0,1]
-        print "V[1,1]1=",V[1,1]
-        print "pp_info=",pp_info
+        print("V[0,0]1={0}".format(V[0,0]))
+        print("V[1,0]1={0}".format(V[1,0]))
+        print("V[0,1]1={0}".format(V[0,1]))
+        print("V[1,1]1={0}".format(V[1,1]))
+        print("pp_info={0}".format(pp_info))
     ## Setting up the right hand side and subtracting left-hand side
     pp_plus = pp_info['PPplus'][0]
     pp_minus = pp_info['PPminus'][0]
@@ -1209,12 +1211,12 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
             V[ni,ni]-=bes
                 #raise ArithmeticError,"a0 not correct set!"
             if verbose>1:
-                print "n=",n
+                print("n={0}".format(n))
             for jcusp,l in pp_plus.keys():
                 ppc = CF(pp_plus[(jcusp,l)])
                 lr = RF(l)+S.alpha(jcusp)[0]
                 if verbose>1:
-                    print "l=",l
+                    print("l={0}".format(l))
                 summa = CF(0)
                 if lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1:
                     continue
@@ -1229,7 +1231,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                     elif lr==0:
                         bes = RF(1)
                     else:
-                        raise ArithmeticError,"This princpal part should be holomorphic!"
+                        raise ArithmeticError("This princpal part should be holomorphic!")
                     z = cvec[icusp][jcusp][j][1]
                     arg = lr*xpb[icusp][jcusp][j] - nr*xm[j] + z
                     ab1 = z.abs()
@@ -1240,16 +1242,16 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                         f2 = RF(2)*arg.cos()
                     tmpc = bes*f2*ab1
                     if verbose>3:
-                        print "tmpc = (",j,")",y,bes,"*",f2,"*",cvec[icusp][jcusp][j],"=",tmpc
+                        print("tmpc = ({0}), {1}, {2}* {3} *{4} = {5}".format(j,y,bes,f2,cvec[icusp][jcusp][j],tmpc))
                     summa = summa + tmpc
                 if verbose>1:
-                    print "MAking RHS! summma = ",summa
+                    print("MAking RHS! summma = {0}".format(summa))
                 summa = summa*Qfak
                 RHS[ni,0] = RHS[ni,0] + summa*ppc
                 if l==n and icusp==jcusp:
                     if verbose>0:
-                        print "Subtract! ni,n,nr=",ni,n,nr
-                        print "ppc=",ppc
+                        print("Subtract! ni,n,nr={0},{1},{2}".format(ni,n,nr))
+                        print("ppc={0}".format(ppc))
                     if nr<0:
                         bes = RF(-Y*twopi*nr).exp()
                         RHS[ni,0] = RHS[ni,0] - bes*ppc
@@ -1266,8 +1268,8 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                     continue
                 if lr==0 and int(pp_info['variable_a0_minus'][0][icusp])==1:
                     continue
-                if lr<>0:
-                    raise NotImplementedError,"Only implemented n=0 in non-holom. principal part!"
+                if lr!=0:
+                    raise NotImplementedError("Only implemented n=0 in non-holom. principal part!")
                 for j in range(0,Q):
                     if ypb[icusp][jcusp][j]==0:
                         continue
@@ -1296,7 +1298,7 @@ def setup_harmonic_matrix_sym2(S,pp,Y,M0,setc=None,ret_pb=0):
                         bes = Y**RF(1-k)
                     RHS[ni,0] -= bes*ppc
     if verbose>0:
-        print "ymax = ",ymax
+        print("ymax = {0}".format(ymax))
 
     if setc==None:
         return V,RHS

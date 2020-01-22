@@ -3,6 +3,7 @@ r"""
 Algorithms for locating Maass waveforms.
 
 """
+from __future__ import print_function
 
 import logging
 
@@ -65,8 +66,8 @@ def get_element_in_range(H,R1,R2,Mset=0,Yset=0,dim=1,ndigs=12,set_c=[],fnr=0,nep
     F=Maasswaveform(H,R2,dim=dim,compute=False)
     e1 = RR(10)**-RR(neps)
     if verbose>0:
-        print "R2,Mset,Yset,ndigs=",R2,Mset,Yset,ndigs
-        print "set_c=",set_c
+        print("R2,Mset,Yset,ndigs={0}".format(R2,Mset,Yset,ndigs))
+        print("set_c={0}".format(set_c))
     param=H.set_default_parameters(R2,Mset,Yset,ndigs)
     Y=param['Y']
     Q=param['Q']
@@ -75,7 +76,7 @@ def get_element_in_range(H,R1,R2,Mset=0,Yset=0,dim=1,ndigs=12,set_c=[],fnr=0,nep
         M = H.smallest_M0()
         Y = get_Y_for_M_dp(H,R2,M,e1)
         if verbose>0:
-            print "Recompute Y. Got:{0}".format(Y)
+            print("Recompute Y. Got:{0}".format(Y))
         Q = M+10
     Rl=list()
 
@@ -84,21 +85,21 @@ def get_element_in_range(H,R1,R2,Mset=0,Yset=0,dim=1,ndigs=12,set_c=[],fnr=0,nep
     if H._verbose==-2:
         P=Graphics()
     if H._verbose>0:
-        print "Y=",Y
-        print "M=",M
-        print "Q=",Q
-        print "tol=",tol
+        print("Y={0}".format(Y))
+        print("M={0}".format(M))
+        print("Q={0}".format(Q))
+        print("tol={0}".format(tol))
     if split==1:
         # Split interval on zeros of the K-Bessel function
         l=H.split_interval(R1,R2)
         if verbose>0:
-            print "Split into intervals:"
-            print "l=",l
+            print("Split into intervals:")
+            print("l={0}".format(l))
             for [r1,r2,y] in l:
-                print "[",r1,",",r2,"]:",y
+                print("[{0},{1}]:{2}".format(r1,r2,y))
         for [r1,r2,y] in l:
             [R,er]=find_single_ev(H,r1,r2,Yset=y,neps=neps,method=method,dim=dim,verbose=verbose,maxit=maxit,set_c=set_c,fnr=fnr,hecke_ef=hecke_ef,Mset=Mset,sloppy=sloppy,tol_in=tol)
-            if R<>0 and er<>0:
+            if R!=0 and er!=0:
                 Rl.append([R,er])
     else:
         r2=0
@@ -133,7 +134,7 @@ def get_element_in_range(H,R1,R2,Mset=0,Yset=0,dim=1,ndigs=12,set_c=[],fnr=0,nep
             else:
                 try:
                     R,er,Y,M=l
-                except ValueError,TypeError:
+                except (ValueError, TypeError):
                     R,er,Y,M=-1,0,0,0
 
             if R >=0 and er>0:  # Remember that a close but non-zero is often recognized by negative value of r
@@ -235,7 +236,7 @@ def find_single_ev(S,R1in,R2in,Yset=None,neps=10,method='TwoY',dim=1,verbose=Non
 
             else:
                 return l
-        elif l<>None:
+        elif l != None:
             return l
         else:
             return 0,0,0,0
@@ -260,7 +261,7 @@ def find_single_ev(S,R1in,R2in,Yset=None,neps=10,method='TwoY',dim=1,verbose=Non
         data['message']='Location routine failed!'
     else:
         data['message']='Location routine failed! '+message
-    print data['message']
+    print(data['message'])
 
 
 
@@ -384,7 +385,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     if verbose>1:
         for n in list(c.keys()): #.sort():
             for j in list(diffs.keys()): #.sort():
-                if diffs[j].has_key(n):
+                if n in diffs[j]:
                     flogger.debug("diff[{0}][{1}]={2}".format(j,c[n],diffs[j][n]))
 
     ### Checking results
@@ -451,16 +452,16 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     for k in [1,3]:
         h[k]=0
         for j in range(1,3+1):
-            if not diffs[k].has_key(j):
+            if j not in diffs[k]:
                 continue
             h[k]=h[k]+signs[j]*diffs[k][j]
     Rnew=prediction(h[1 ],h[3 ],R1in,R3in)
     Rnew_old=Rnew ## Keep track of the previous estimate
     flogger.debug(" new h={0}".format(h))
     flogger.debug(" Prediction 1={0}".format(prediction(diffs[1 ][1],diffs[3 ][1],R1v[0],R3v[0])))
-    if diffs[1].has_key(2):
+    if 2 in diffs[1]:
         flogger.debug(" Prediction 2={0}".format(prediction(diffs[1 ][2],diffs[3 ][2],R1v[0],R3v[0])))
-    if diffs[1].has_key(3):
+    if 3 in diffs[1]:
         flogger.debug(" Prediction 3={0}".format(prediction(diffs[1 ][3],diffs[3 ][3],R1v[0],R3v[0])))
     flogger.debug(" tol={0}".format(tol))
     flogger.debug(" Rnew={0}".format(Rnew))
@@ -507,7 +508,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
         [diffs[2],h[2]]=functional(S,Rnew,M,Y1,Y2,signs,c,first_time=False,method=met,dim=dim,set_c=set_c,fnr=fnr,verbose=verbose,hecke_ef=hecke_ef)
         errest_h_old = errest_h; errest_x_old = errest_x
         errest_h = sum(map(abs,h.values()))/3.0
-        if method=='Hecke' and diffs[1].has_key(-1):
+        if method == 'Hecke' and -1 in diffs[1]:
             errest_h = max([errest_h,abs(diffs[1][-1]),abs(diffs[3][-1]),abs(diffs[2][-1])])
             flogger.debug("R1,R3v[0],Rnew,errest_h,tol={0}".format((R1v[0],R3v[0],Rnew,errest_h,tol)))
         ## The prediction tries to find zero but now we see how close we actually were:
@@ -782,7 +783,7 @@ def get_coefficients_for_functional(S,r,Y,M,Q,dim=1,fnr=0,do_parallel=False,ncpu
             diffsx[-1] = S.test_Hecke_relation(C1, signed=True)
             logger2.info("Hecke C1(a)C1(b)-C1(ab)={0}".format(diffsx[-1]))
             logger2.info("C1.keys={0}".format(C1[0].keys()))
-        if C1[0].has_key(used_coefficients[1] * used_coefficients[2]):
+        if (used_coefficients[1] * used_coefficients[2]) in C1[0]:
             logger2.info("C1({0})={1}".format(used_coefficients[1] * used_coefficients[2], C1[0][used_coefficients[1] * used_coefficients[2]]))
         for j in used_coefficients.keys():
             logger2.debug("C1_Hecke0[0][{0}]={1}".format(used_coefficients[j], C1[0][used_coefficients[j]]))
@@ -849,7 +850,7 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         sqch   = {}
         o = chi.order()
         for j in range(mod):
-            if chi(j)<>1:
+            if chi(j) != 1:
                 sqch[j]=chi(j).complex_embedding(prec).sqrt()
             else:
                 sqch[j]=1
@@ -972,7 +973,7 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
                 if signs.keys()==[]:
                     # We use the sign of the first test.
                     for k in c.keys():
-                        if diffsx[1]<>0:
+                        if diffsx[1] != 0:
                             signs[k]=sign(diffsx[k])/sign(diffsx[1])
                         else:
                             signs[k]=sign(diffsx[k])
@@ -1016,10 +1017,10 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
                 if not first_time and signs.keys().count(j)>0:
                     htmp=signs[j]*diffsx[j]
                 else:
-                    if signs.keys()==[]:
+                    if signs.keys() == []:
                         # We use the sign of the first test.
                         for k in c.keys():
-                            if diffsx[1]<>0:
+                            if diffsx[1] != 0:
                                 signs[k]=sign(diffsx[k])/sign(diffsx[1])
                             else:
                                 signs[k]=sign(diffsx[k])
@@ -1146,8 +1147,8 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     M,Y=get_M_and_Y(R3in,S.group().minimal_height(),M,tol)
     flogger.debug("Got M={0} and Y={1}".format(M,Y))
     if Y<0:
-        raise ArithmeticError,"Can not find Y for this precision!"
-    if Yset<>None:
+        raise ArithmeticError("Can not find Y for this precision!")
+    if Yset!=None:
         if Yset < Y and Yset>0:
             Y = Yset
     Y = RF(Y)
@@ -1168,7 +1169,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
         if len(set_c)>fnr:
             setc = set_c[fnr]
             for (ci,n) in setc:
-                if setc[(ci,n)]<>0:
+                if setc[(ci,n)] != 0:
                     for i in range(2,100):
                         if (0,i) in setc:
                             continue
@@ -1226,7 +1227,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     if verbose>1:
         for n in list(c.keys()): #.sort():
             for j in list(diffs.keys()): #.sort():
-                if diffs[j].has_key(n):
+                if n in diffs[j]:
                     flogger.debug("diff[{0}][{1}]={2}".format(j,c[n],diffs[j][n]))
     ### Checking results
     if abs(h[1])>hmax or abs(h[3])>hmax:
@@ -1253,7 +1254,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     nsgn=0
     for j in range(1 ,3 +1 ):
         signs[j]=1
-        if not diffs[1].has_key(j):
+        if j not in diffs[1]:
             continue
         if diffs[1 ][j]*diffs[3][j]<tol:
             nsgn+=1
@@ -1271,7 +1272,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     flogger.debug("Number of sign changes={0}".format(nsgn))
 
     for j in range(1,4):
-        if not diffs[1].has_key(j):
+        if j not in diffs[1]:
             continue
         if diffs[1 ][j]*diffs[3 ][j]<tol:
             if diffs[1 ][j]>0:
@@ -1293,16 +1294,16 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     for k in [1,3]:
         h[k]=0
         for j in range(1,3+1):
-            if not diffs[k].has_key(j):
+            if j not in diffs[k]:
                 continue
             h[k]=h[k]+signs[j]*diffs[k][j]
     Rnew=prediction(h[1 ],h[3 ],R1in,R3in)
     Rnew_old=Rnew ## Keep track of the previous estimate
     flogger.debug(" new h={0}".format(h))
     flogger.debug(" Prediction 1={0}".format(prediction(diffs[1 ][1],diffs[3 ][1],R1v[0],R3v[0])))
-    if diffs[1].has_key(2):
+    if 2 in diffs[1]:
         flogger.debug(" Prediction 2={0}".format(prediction(diffs[1 ][2],diffs[3 ][2],R1v[0],R3v[0])))
-    if diffs[1].has_key(3):
+    if 3 in diffs[1]:
         flogger.debug(" Prediction 3={0}".format(prediction(diffs[1 ][3],diffs[3 ][3],R1v[0],R3v[0])))
     flogger.debug(" tol={0}".format(tol))
     flogger.debug(" Rnew={0}".format(Rnew))
@@ -1350,7 +1351,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
         [diffs[2 ],h[2 ]]=functional_noncong(S,Rnew,M,Y1,Y2,signs,c,first_time=False,method=met,dim=dim,set_c=set_c,fnr=fnr,verbose=verbose,hecke_ef=hecke_ef)
         errest_h_old = errest_h; errest_x_old = errest_x
         errest_h = sum(map(abs,h.values()))/3.0
-        if method=='Hecke' and diffs[1].has_key(-1):
+        if method=='Hecke' and -1 in diffs[1]:
             errest_h = max([errest_h,abs(diffs[1][-1]),abs(diffs[3][-1]),abs(diffs[2][-1])])
             flogger.debug("R1,R3v[0],Rnew,errest_h,tol={0}".format((R1v[0],R3v[0],Rnew,errest_h,tol)))
 
@@ -1601,7 +1602,7 @@ def functional_noncong(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,
                     diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real/den
                     diffsx[numt+j]=(C1[0][c[j]]-C2[0][c[j]]).imag/den
             else:
-                raise TypeError,"Got coefficients of unknown type {0}".format(type(C1[0][c[j]]))
+                raise TypeError("Got coefficients of unknown type {0}".format(type(C1[0][c[j]])))
             logger2.debug("C1[{0}]={1}".format(c[j],C1[0][c[j]]))
             logger2.debug("C2[{0}]={1}".format(c[j],C2[0][c[j]]))
             logger2.debug("abs(C1[{0}])+abs(C2[{0}])={1}".format(c[j],den))
@@ -1622,7 +1623,7 @@ def functional_noncong(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,
                 if signs.keys()==[]:
                     # We use the sign of the first test.
                     for k in diffsx.keys():
-                        if diffsx[1]<>0:
+                        if diffsx[1] != 0:
                             signs[k]=sign(diffsx[k])/sign(diffsx[1])
                         else:
                             signs[k]=sign(diffsx[k])
@@ -1776,9 +1777,9 @@ def is_zero_in(st,h,diffs,tol=1E-12,verbose=0):
             i=1
         else:
             i=0
-        if toll==0 and i<>0:
+        if toll==0 and i != 0:
             break
-        if toll>0 and i<>0:
+        if toll>0 and i != 0:
             ## make extra check
             logger2.debug("Check extra:i={0}".format(i))
             if i==-1:

@@ -1,15 +1,16 @@
-import rational
-import hilbert
-import siegel 
-import fourier_expansion_framework
-import arithgroup 
-import maass
-import jacobi 
-import vector_valued 
-import periods 
+from __future__ import absolute_import
+from . import rational
+from . import hilbert
+from . import siegel 
+from . import fourier_expansion_framework
+from . import arithgroup 
+from . import maass
+from . import jacobi 
+from . import vector_valued 
+from . import periods 
 
 
-from arithgroup.all import MySubgroup,HeckeTriangleGroup,SL2Z_elt
+from .arithgroup.all import MySubgroup,HeckeTriangleGroup,SL2Z_elt
     
 from psage.modform.maass.all import (AutomorphicFormSpace,
                                      MaassWaveForms,

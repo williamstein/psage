@@ -43,6 +43,7 @@ AUTHORS:
     - Adam Sorkin (very early version: http://trac.sagemath.org/sage_trac/ticket/9402)
 
 """
+from __future__ import absolute_import
 
 import math
 
@@ -84,7 +85,7 @@ def anlist_over_sqrt5(E, bound):
         sage: v = anlist_over_sqrt5(E, 10^4)
         sage: assert cputime(t) < 5
     """
-    import aplist_sqrt5
+    from . import aplist_sqrt5
     from psage.number_fields.sqrt5.prime import primes_of_bounded_norm, Prime
 
     # Compute all of the prime ideals of the ring of integers up to the given bound
@@ -363,7 +364,7 @@ def lseries_dokchitser(E, prec=53):
     # Check that we're over a number field.
     K = E.base_field()
     if not is_NumberField(K):
-        raise TypeError, "base field must be a number field"
+        raise TypeError("base field must be a number field")
 
     # Compute norm of the conductor -- awkward because QQ elements have no norm method (they should).
     N = E.conductor()
@@ -414,7 +415,7 @@ def lseries_dokchitser(E, prec=53):
         # there is definitely some other subtle bug, probably in computed
         # the Dirichlet series coefficients.  
         if abs(L.check_functional_equation()) > tiny: 
-            raise RuntimeError, "Functional equation not numerically satisfied for either choice of sign"
+            raise RuntimeError("Functional equation not numerically satisfied for either choice of sign")
         
     L.rename('Dokchitser L-function of %s'%E)
     return L

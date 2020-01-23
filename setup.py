@@ -27,13 +27,13 @@ from sage.env import sage_include_directories,SAGE_INC,SAGE_LIB,SAGE_LOCAL
 import subprocess 
 
 if sys.maxint != 2**63 - 1:
-    print "*"*70
-    print "The PSAGE library only works on 64-bit computers.  Terminating build."
-    print "*"*70
+    print("*"*70)
+    print("The PSAGE library only works on 64-bit computers.  Terminating build.")
+    print("*"*70)
     sys.exit(1)
 
 if '-ba' in sys.argv:
-    print "Rebuilding all Cython extensions."
+    print("Rebuilding all Cython extensions.")
     sys.argv.remove('-ba')
     FORCE = True
 else:
@@ -110,7 +110,7 @@ def run_cythonize():
     # enclosing Python scope (e.g. to perform variable injection).
     Cython.Compiler.Options.old_style_globals = True
     Cython.Compiler.Main.default_options['cache'] = False
-    print "include_dirs1=",include_dirs
+    print("include_dirs1={0}".format(include_dirs))
     global ext_modules
     ext_modules = cythonize(
         ext_modules,

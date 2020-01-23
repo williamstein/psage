@@ -153,7 +153,7 @@ def an_dict_from_ap(ap, N, B):
     for n in sorted(A.keys()):
         X = A[n]
         for I in X:
-            if an.has_key(reduced_rep(I)):
+            if reduced_rep(I) in an:
                 # prime case, already done
                 pass
             else:

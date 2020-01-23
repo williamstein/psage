@@ -1,1 +1,2 @@
-from inc_gamma import incgamma_int,incgamma_hint, pochammer
+from __future__ import absolute_import
+from .inc_gamma import incgamma_int,incgamma_hint, pochammer

@@ -23,6 +23,7 @@ r"""
 
 
 """
+from __future__ import print_function
 
 import math, os, sys
 
@@ -75,7 +76,8 @@ from sage.all import (
     walltime,
     zeta,
     zeta_zeros,
-    ZZ
+    ZZ,
+    cached_method
     )
 
 TimeSeries = finance.TimeSeries
@@ -90,11 +92,11 @@ def draw(fig=None, dir='illustrations/',ext='pdf', in_parallel=True):
         os.makedirs(dir)
         
     if isinstance(fig, str):
-        print "Drawing %s... "%fig,
+        print("Drawing {0}... ".format(fig))
         sys.stdout.flush()
         t = walltime()
-        G = eval('fig_%s(dir,ext)'%fig)
-        print " (time = %s seconds)"%walltime(t)
+        G = eval('fig_{0}(dir,ext)'.format(fig))
+        print(" (time = {0} seconds)".format(walltime(t)))
         return G
     
     if fig is None:
@@ -106,7 +108,7 @@ def draw(fig=None, dir='illustrations/',ext='pdf', in_parallel=True):
         def f(x):
             return draw(x, dir=dir, ext=ext, in_parallel=False)
         for x in f(figs):
-            print x
+            print(x)
     else:
         for fig in figs:
             draw(fig)
@@ -313,7 +315,7 @@ def bag_of_primes(steps):
     for i in range(steps):
         for p in prime_divisors(prod(bag)+1):
             bag.append(p)
-    print bag
+    print(bag)
 
 
 ##############################################################
@@ -363,7 +365,7 @@ def number_grid(c, box_args=None, font_args=None, offset=0):
     try:
         n = sqrt(ZZ(len(c)))
     except ArithmeticError:
-        raise ArithmeticError, "c must have square length"
+        raise ArithmeticError("c must have square length")
     G = Graphics()
     k = 0
     for j in reversed(range(n)):
@@ -716,7 +718,7 @@ def mult_parities_python(bound, verbose=False):
         cur = []
         cur_parity = (last_parity+int(1))%int(2)
         if verbose:
-            print "loop %s (of %s);  last = %s"%(k,loops, len(last))
+            print("loop {0} (of {1});  last = {2}".format(k,loops, len(last)))
         for n in last:
             for p in P:
                 m = n * p
@@ -1216,6 +1218,7 @@ def symbolic_phihat(bound):
 
 def plot_symbolic_phihat(bound, xmin, xmax, plot_points=1000, zeros=True):
     f = symbolic_phihat(bound)
+    t = var('t')
     P = plot(f, (t,xmin, xmax), plot_points=plot_points)
     if not zeros:
         return P
@@ -1275,7 +1278,7 @@ def A_C_theta(Cmax):
                 a += g(t)
             else:
                 return a
-        raise ValueError, "C must be at most %s"%Cmax
+        raise ValueError("C must be at most {0}".format(Cmax))
 
     return f
 
@@ -1314,9 +1317,9 @@ def fig_B_C_theta(dir, ext, verbose=False):
     for C in [5, 20, 50, 100]:
         p.append(plot_B_C_theta(C, 2, 100))
         if verbose:
-            print "Finished with C=%s"%C
+            print("Finished with C={0}".format(C))
     g = graphics_array([[a] for a in p],len(p),1)
-    g.save(dir+'/Bc_all.%s'%ext, ymin=0, ymax=1.1)
+    g.save(dir+'/Bc_all.{0}'.format(ext), ymin=0, ymax=1.1)
 
 
 def B_C_theta_tilde(Cmax):
@@ -1346,9 +1349,9 @@ def fig_B_C_theta_tilde(dir, ext, verbose=False):
     for C in [5, 20, 50, 100]:
         p.append(plot_B_C_theta_tilde(C, 2, 100))
         if verbose:
-            print "Finished with C=%s"%C
+            print("Finished with C={0}".format(C))
     g = graphics_array([[a] for a in p],len(p),1)
-    g.save(dir+'/Bctilde_all.%s'%ext, ymin=0, ymax=1.1)
+    g.save(dir+'/Bctilde_all.{0}'.format(ext), ymin=0, ymax=1.1)
 
     
 
@@ -1500,12 +1503,12 @@ def phi_interval_plot(xmin, xmax, zeros=1000,fontsize=12,drop=20):
 
 
 def phi_approx(m, positive_only=False, symbolic=False):
+    from math import cos, log
     if symbolic:
         assert not positive_only
         s = var('s')
         return -sum(cos(log(s)*t) for t in zeta_zeros()[:m])
     
-    from math import cos, log
     v = [float(z) for z in zeta_zeros()[:m]]
     def f(s):
         s = log(float(s))
@@ -1652,9 +1655,9 @@ class RiemannPiApproximation:
     
     def _check(self, x, k):
         if x > self.xmax:
-             raise ValueError, "x (=%s) must be at most %s"%(x, self.xmax)
+             raise ValueError("x (={0}) must be at most {1}".format(x, self.xmax))
         if k > self.kmax:
-            raise ValueError, "k (=%s) must be at most %s"%(k, self.kmax)
+            raise ValueError("k (={0}) must be at most {1}".format(k, self.kmax))
 
     @cached_method
     def R(self, x):
@@ -1721,9 +1724,9 @@ class RiemannPiApproximation:
             xmax = self.xmax
         else:
             if xmax > self.xmax:
-                raise ValueError, "xmax must be at most %s"%self.xmax
+                raise ValueError("xmax must be at most {0}".format(self.xmax))
             xmax = min(self.xmax, xmax)
-        if kwds.has_key('plot_points'):
+        if 'plot_points' in kwds:
             plot_points = kwds['plot_points']
             del kwds['plot_points']
         else:
@@ -1741,13 +1744,13 @@ def fig_Rk(dir, ext):
     R = RiemannPiApproximation(50, 500, 50)
     for k,xmin,xmax in [(1,2,100), (10,2,100), (25,2,100),
                         (50,2,100), (50,2,500) ]:
-        print "plotting k=%s"%k
+        print("plotting k={0}".format(k))
         g = R.plot_Rk(k, xmin, xmax, plot_points=300, thickness=0.65)
-        g.save(dir + '/Rk_%s_%s_%s.%s'%(k,xmin,xmax,ext))
+        g.save(dir + '/Rk_{0}_{1}_{2}.{3}'.format(k,xmin,xmax,ext))
     # 
     g = R.plot_Rk(50, 350, 400, plot_points=200)
     g += plot(Li,350,400,rgbcolor='green')
-    g.save(dir + '/Rk_50_350_400.%s'%ext)
+    g.save(dir + '/Rk_50_350_400.{0}'.format(ext))
 
 
 
@@ -1757,8 +1760,8 @@ def fig_Rk(dir, ext):
 
 try:
     from psage.rh.mazur_stein.book_cython import mult_parities
-except ImportError, msg:
-    print msg
-    print "Cython versions of some functions not available."
+except ImportError as msg:
+    print(msg)
+    print("Cython versions of some functions not available.")
     mult_parieties = mult_parities_python
 

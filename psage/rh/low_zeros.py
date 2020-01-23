@@ -23,8 +23,9 @@
 We study low zeros.
 """
 
-from sage.all import is_fundamental_discriminant, ZZ, parallel, var
-
+from sage.all import is_fundamental_discriminant, ZZ, parallel, var, sgn, fundamental_discriminant, kronecker_character,\
+                       log,find_root
+import os
 from sage.libs.lcalc.lcalc_Lfunction import (
     Lfunction_from_character,
     Lfunction_from_elliptic_curve)
@@ -108,7 +109,7 @@ class EllCurveZeros(LowZeros):
         d = {}
         for E in curves:
             N = E.conductor()
-            if d.has_key(N):
+            if N in d:
                 d[N].append(E)
             else:
                 d[N] = [E]
@@ -159,11 +160,11 @@ def quadratic_twist_zeros(D, n, algorithm='clib'):
         return L.find_zeros_via_N(n)
     elif algorithm == 'subprocess':
         assert is_fundamental_discriminant(D)
-        cmd = "lcalc -z %s --twist-quadratic --start %s --finish %s"%(n, D, D)
+        cmd = "lcalc -z {0} --twist-quadratic --start {1} --finish {2}".format(n, D, D)
         out = os.popen(cmd).read().split()
         return [float(out[i]) for i in range(len(out)) if i%2!=0]
     else:
-        raise ValueError, "unknown algorithm '%s'"%algorithm
+        raise ValueError("unknown algorithm '{0}'".format(algorithm))
     
         
         

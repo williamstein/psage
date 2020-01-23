@@ -62,7 +62,7 @@ class J_generic:
         ans = K(0)
         i = 0
         if N > self.N_max:
-            raise ValueError, "J not defined for N > %s"%self.N_max
+            raise ValueError("J not defined for N > {0}".format(self.N_max))
         while 1:
             if self.pv[i] >= N:
                 return ans
@@ -79,7 +79,7 @@ class J_generic:
         ans = K(0); F = K(0)
         i = 0
         if N > self.N_max:
-            raise ValueError, "J not defined for N > %s"%self.N_max
+            raise ValueError("J not defined for N > {0}".format(self.N_max))
         n = 1
         while 1:
             if self.pv[i] > N:
@@ -118,7 +118,7 @@ class J_generic:
         ans = K(0); F = K(0); ans2 = K(0)
         i = 0
         if N > self.N_max:
-            raise ValueError, "J not defined for N > %s"%self.N_max
+            raise ValueError("J not defined for N > {0}".format(self.N_max))
         n = 1
         while 1:
             if self.pv[i] > N:

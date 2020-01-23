@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -58,7 +59,7 @@ def populate_db(address, level_min, level_max, num_zeros=100,
             C.update({'_id':v['_id']}, {'$set':{'L0s':L0s}})
 
     for ans in f(blocks):
-        print ans
+        print(ans)
 
 
 """

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -165,7 +167,7 @@ class FunctionFieldIdeal_module(FunctionFieldIdeal):
         if not isinstance(other, FunctionFieldIdeal_module):
             other = self.ring().ideal(other)
         if self.ring() != other.ring():
-            raise ValueError, "rings must be the same"
+            raise ValueError("rings must be the same")
         return FunctionFieldIdeal_module(self.ring(), self.module().intersection(other.module()))
 
     def __cmp__(self, other):
@@ -190,7 +192,7 @@ class FunctionFieldIdeal_module(FunctionFieldIdeal):
         if not isinstance(other, FunctionFieldIdeal_module):
             other = self.ring().ideal(other)
         if self.ring() != other.ring():
-            raise ValueError, "rings must be the same"
+            raise ValueError("rings must be the same")
         return cmp(self.module(), other.module())
 
     def __invert__(self):
@@ -257,15 +259,15 @@ def ideal_with_gens_over_base(R, gens):
     # We handle the case of a rational function field separately,
     # since this is the base case and is used, e.g,. internally
     # by the linear algebra Hermite form code. 
-    import function_field_order
+    from . import function_field_order
     if isinstance(R, function_field_order.FunctionFieldOrder_rational):
         try:
             v = R._ring.ideal([x.element() for x in gens]).gens_reduced()
             assert len(v) == 1
             basis = [to_V(v[0])]
             M = V.span_of_basis(basis, check=False, already_echelonized=True, base_ring=R)
-        except Exception, msg:
-            print msg   # TODO --for debugging
+        except Exception as msg:
+            print(msg)   # TODO --for debugging
             raise
     else:
         # General case

@@ -23,11 +23,12 @@
 r"""
 
 """
+from __future__ import absolute_import
 
 from sage.categories.map import Map
 from sage.categories.homset import Hom
 
-from function_field_order import FunctionFieldOrder
+from .function_field_order import FunctionFieldOrder
 
 class FunctionFieldIsomorphism(Map):
     r"""
@@ -250,7 +251,7 @@ class FunctionFieldMorphism(Map):
             v = [base_morphism(a) for a in v]
         f = R(v)
         if f(im_gen):
-            raise ValueError, "invalid morphism"
+            raise ValueError("invalid morphism")
     
     def is_injective(self):
         """

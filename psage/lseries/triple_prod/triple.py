@@ -74,7 +74,7 @@ class TripleProductLseries(object):
         """
         self._N = ZZ(N)
         if not (self._N.is_squarefree() and self._N > 0):
-            raise ValueError, "N (=%s) must be a squarefree positive integer"%self._N
+            raise ValueError("N (={0}) must be a squarefree positive integer".format(self._N))
         self._newforms = (f,g,h)
         self._gen = RDF['X'].gen()
         self._genC = CDF['X'].gen()
@@ -246,9 +246,9 @@ class TripleProductLseries(object):
             return -prod(self.epsilon(p) for p in self.level().prime_divisors())
         else:
             if not ZZ(p).is_prime():
-                raise ValueError, "p must be prime"
+                raise ValueError("p must be prime")
             if self.level() % p != 0:
-                raise ValueError, "p must divide the level"
+                raise ValueError("p must divide the level")
             # Equation (1.3) in [Gross-Kudla]
             a_p, b_p, c_p = [f[p] for f in self._newforms]
             return -a_p*b_p*c_p

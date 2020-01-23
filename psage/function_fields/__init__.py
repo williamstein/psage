@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -22,6 +23,6 @@
 
 # Function fields
 
-from constructor import FunctionField
-from function_field import is_FunctionField
+from .constructor import FunctionField
+from .function_field import is_FunctionField
 

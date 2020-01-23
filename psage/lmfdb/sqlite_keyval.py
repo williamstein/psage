@@ -47,7 +47,7 @@ class SQLiteKeyValueStore:
         self._file = file
         self._compress = compress
         try:
-            self._cursor.execute("select * from sqlite_master").next()
+            next(self._cursor.execute("select * from sqlite_master"))
         except StopIteration:
             # This exception will occur if the database is brand new (has no tables yet)
             try: 
@@ -74,10 +74,10 @@ class SQLiteKeyValueStore:
         """Return item in the database with given key, or raise KeyError."""        
         s = self._cursor.execute( "SELECT value,compressed FROM cache WHERE key=?", (self._dumps(key),) )
         try:
-            v = s.next()
+            v = next(s)
             return self._loads(str(v[0]), bool(v[1]))
         except StopIteration:
-            raise KeyError, str(key)
+            raise KeyError(str(key))
         
     def __setitem__(self, key, value):
         """Sets an item in the database.  Call commit to make this permanent."""
@@ -131,8 +131,8 @@ def test_sqlite_keyval_1():
             assert db[10] == {1:5, '17a':[2,5]}
             assert db[2] == 3
 
-            assert db.has_key(2)
-            assert not db.has_key(3)
+            assert 2 in db
+            assert 3 not in db
             del db
             import os; os.unlink(file)
 

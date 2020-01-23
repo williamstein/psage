@@ -38,16 +38,20 @@ EXAMPLES::
 
    
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #from sage.all_cmdline import *   # import sage library
 
-from sage.all import Integer,RR,CC,QQ,ZZ,sgn,cached_method,copy,CyclotomicField,lcm,is_square,matrix,SL2Z,MatrixSpace,floor,ceil,is_odd,is_even,hilbert_symbol,sqrt,inverse_mod
+from sage.all import Integer,RR,CC,QQ,ZZ,sgn,cached_method,copy,CyclotomicField,lcm,is_square,matrix,SL2Z,MatrixSpace,\
+    floor,ceil,is_odd,is_even,hilbert_symbol,sqrt,inverse_mod,xgcd,latex,kronecker,gcd,divisors,odd_part,gcd,valuation,\
+    vector
 from sage.structure.formal_sum import FormalSums
 from sage.structure.formal_sum import FormalSum
 from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z
 from sage.modules.vector_integer_dense import Vector_integer_dense
-from weil_module_alg import *
-from finite_quadratic_module import FiniteQuadraticModuleElement,FiniteQuadraticModule
+from .weil_module_alg import *
+from .finite_quadratic_module import FiniteQuadraticModuleElement,FiniteQuadraticModule
 
 #_sage_const_3 = Integer(3);
 #_sage_const_2 = Integer(2);
@@ -93,11 +97,11 @@ class WeilModule (FormalSums):
                self._QM = copy(A)
                #self._QM = A
             else:
-                raise TypeError," is degenerate!"
+                raise TypeError(" is degenerate!")
         except AttributeError:
-            raise TypeError," Argument must be a nondegenerate Finite Quadratic module. Got \n %s" %(A)
+            raise TypeError(" Argument must be a nondegenerate Finite Quadratic module. Got \n {0}".format(A))
         except TypeError:
-            raise TypeError," Argument must be a nondegenerate Finite Quadratic module. Got *degenerate* module:\n %s" %(A)
+            raise TypeError(" Argument must be a nondegenerate Finite Quadratic module. Got *degenerate* module:\n {0}".format(A))
         # Recall that we have elements in CyclotomicField (A.level())
         # times the sigma invariant
         self._verbose = 0 
@@ -188,9 +192,9 @@ class WeilModule (FormalSums):
         Return the index of the element c in self.
         """
         if not isinstance(c,(list,Vector_integer_dense)):
-            raise ValueError,"Need element of list form! Got c={0} of type={1}".format(c,type(c))
+            raise ValueError("Need element of list form! Got c={0} of type={1}".format(c,type(c)))
         if not len(c)==len(self._gen_orders):
-            raise ValueError,"Need element of list of the same length as orders={0}! Got c={1}".format(self._gen_orders,c)
+            raise ValueError("Need element of list of the same length as orders={0}! Got c={1}".format(self._gen_orders,c))
         return cython_el_index(c,self._gen_orders)
     
     @cached_method
@@ -241,7 +245,7 @@ class WeilModule (FormalSums):
         r"""
         EXAMPLES
         """
-        return "Weil module associated to %s" % self._QM
+        return "Weil module associated to {0}".format(self._QM)
  
 
     ###################################
@@ -270,7 +274,7 @@ class WeilModule (FormalSums):
         #print "x=",x
         return  WeilModuleElement(x,parent=self)
 
-        raise TypeError, "argument must be an element of %s" %self._QM
+        raise TypeError("argument must be an element of {0}".format(self._QM))
 
 
     ###################################
@@ -312,7 +316,7 @@ class WeilModule (FormalSums):
         e=WeilModuleElement(self._QM.gens()[0 ],self,verbose=self._verbose)
         #print "e=",e
         if(by_factoring==False):
-            if filter<>None:
+            if filter!=None:
                 [r,fac]=e._action_of_SL2Z_formula(A,filter,**kwds)
             else:
                 [r,fac]=e._action_of_SL2Z_formula(A,**kwds)
@@ -353,13 +357,13 @@ class WeilModule (FormalSums):
         for c in range(self._QM.level()):
             for d in range(c):
                 # we only want d=0 if c=1
-                if(d==0  and c<>1 ): 
+                if d == 0  and c != 1:
                     continue
-                elif(d==0  and c==1 ):
+                elif d == 0  and c == 1:
                     a=0 ; b=1 
                 else:
                     [g,b,a]=xgcd(c,d)
-                    if(g<>1 ):
+                    if g != 1:
                         continue
                 [t,f]=self.trace([a,-b,c,d])
                 #print "a,b,c,d:trace=",a,-b,c,d,':',t
@@ -379,7 +383,7 @@ class WeilModule (FormalSums):
             xc=0 
             p,k,r,d = c[1 ][:4 ]
             t = None if 4  == len(c[1 ]) else c[1 ][4 ]
-            if(p<>2  or t==None): 
+            if p != 2  or t == None:
                 continue
             q=2 **k # = 2^n
             JC=J.constituent(q)
@@ -425,11 +429,11 @@ class WeilModule (FormalSums):
                 k=1 
             else:
                 k=0 
-            if p!=2:
+            if p != 2:
                 pexc[q]=(r*(q-1 )+4 *k) % 8 
             else:
                 odts[q]=((t+4 *k) % 8 ) # Can we have more than one 2-adic component at one time?
-                if t<>0:
+                if t != 0:
                     types[q]="I" # odd
                 else:
                     types[q]="II" # even
@@ -453,9 +457,9 @@ class WeilModule (FormalSums):
         return self._inv['signature']
 
     def invariant(self,s):
-        if self._inv.has_key(s):
+        if s in self._inv:
             return  self._inv[s]
-        raise ValueError,"Invariant {0} is not defined! Got:{1}".format(s,self._inv.keys())
+        raise ValueError("Invariant {0} is not defined! Got:{1}".format(s,self._inv.keys()))
 
     def finite_quadratic_module(self):
         return self._QM
@@ -492,11 +496,11 @@ class WeilModule (FormalSums):
         Compute the submodule of self which is C-spanned by
         e_{gamma} + sign*e_{-gamma} for gamma in self._QM
         """
-        if sign==1 and self._even_submodule<>None:
+        if sign == 1 and self._even_submodule != None:
             return self._even_submodule
-        if sign==-1 and self._odd_submodule<>None:
+        if sign == -1 and self._odd_submodule != None:
             return self._odd_submodule
-        if sign==1:
+        if sign == 1:
             basis = [self(self.finite_quadratic_module()(0))]            
         else:
             basis = []
@@ -528,11 +532,11 @@ class WeilModule (FormalSums):
         Compute the submodule of self which is C-spanned by
         e_{gamma} + sign*e_{-gamma} for gamma in self._QM
         """
-        if sign==1 and self._even_submodule_ix<>None:
+        if sign == 1 and self._even_submodule_ix != None:
             return self._even_submodule_ix
-        if sign==-1 and self._odd_submodule_ix<>None:
+        if sign == -1 and self._odd_submodule_ix != None:
             return self._odd_submodule_ix
-        if sign==1:
+        if sign == 1:
             basis = [0]
         else:
             basis = []
@@ -566,7 +570,7 @@ class WeilModule (FormalSums):
         r"""
         Compute and store parameters which are used in the dimension formula.
         """
-        if self._dim_param<>{}:
+        if self._dim_param != {}:
             return self._dim_param
         res = {}
         F = self.finite_quadratic_module()
@@ -643,7 +647,7 @@ class WeilModule (FormalSums):
         r"""
         Compute and store parameters which are used in the dimension formula.
         """
-        if self._dim_param_numeric<>{}:
+        if self._dim_param_numeric != {}:
             return self._dim_param_numeric
         res = {}
         F = self.finite_quadratic_module()
@@ -714,11 +718,11 @@ class WeilModule (FormalSums):
 
         """
         if k<=2:
-            raise ValueError,"Only weight k>2 implemented! Got k={0}".format(k)
+            raise ValueError("Only weight k>2 implemented! Got k={0}".format(k))
         s = (sgn*self.signature()) % 8
         t = (2*k-s) % 4
         if verbose>0:
-            print "k = {0}, (2k-{1}) % 4 = {2}".format(k,s,t)
+            print("k = {0}, (2k-{1}) % 4 = {2}".format(k,s,t))
         ep = 0
         if t == 0: ep = 1
         if t == 2: ep = -1
@@ -751,10 +755,10 @@ class WeilModule (FormalSums):
         elliptic_term_e2 = elliptic_term_e2 * par['f2'] 
         arg = (4*k+2-3*s) % 24
         if verbose>1:
-            print "z8=",z8,CC(z8)
-            print "s1=",CC(s1)
-            print "s2=",CC(s2)
-            print "s3=",CC(s3)
+            print("z8={0}".format(z8,CC(z8)))
+            print("s1={0}".format(CC(s1)))
+            print("s2={0}".format(CC(s2)))
+            print("s3={0}".format(CC(s3)))
         zf = z24**arg
         e31 = s1*zf
         e32 = s3*zf
@@ -768,28 +772,28 @@ class WeilModule (FormalSums):
 
         parabolic_term = - par[ep]['parabolic'][sgn]
         if verbose>0:
-            print "ep=",ep
-            print "sgn=",sgn
-            print "signature=",s
-            print "Id = ",identity_term
-            print "E(2)=",elliptic_term_e2,CC(elliptic_term_e2)
-            print "E(3)=",elliptic_term_e3,CC(elliptic_term_e3)
-            print "P=",parabolic_term
+            print("ep={0}".format(ep))
+            print("sgn={0}".format(sgn))
+            print("signature={0}".format(s))
+            print("Id = {0}".format(identity_term))
+            print("E(2)={0}".format(elliptic_term_e2,CC(elliptic_term_e2)))
+            print("E(3)={0}".format(elliptic_term_e3,CC(elliptic_term_e3)))
+            print("P={0}".format(parabolic_term))
         res = identity_term + elliptic_term_e2 + elliptic_term_e3 + parabolic_term
         ## We want to simplify as much as possible but "res.simplify is too slow"
         if hasattr(res,"coefficients") and not numeric:
             co = res.coefficients()
-            if len(co)>1 or co[0][1]<>0:
-                raise ArithmeticError,"Got non-real dimension: d={0} = {1}".format(res,res.simplify())
+            if len(co)>1 or co[0][1]!=0:
+                raise ArithmeticError("Got non-real dimension: d={0} = {1}".format(res,res.simplify()))
             return co[0][0],ep
         else:
             if not numeric:
                 return res,ep
             if abs(res.imag())>1e-10:
-                raise ArithmeticError,"Got non-real dimension: {0}".format(res)
+                raise ArithmeticError("Got non-real dimension: {0}".format(res))
             d1 = ceil(res.real()-1e-5); d2 = floor(res.real()+1e-5)
-            if d1<>d2:
-                raise ArithmeticError,"Got non-integral dimension: d={0}".format(res)
+            if d1!=d2:
+                raise ArithmeticError("Got non-integral dimension: d={0}".format(res))
             return d1,ep
 
 
@@ -833,7 +837,7 @@ ss    Describes an element of a Weil module $K[A]$.
         if parent==None:
             parent = WeilModule(d.parent())
         if not hasattr(parent,'_is_WeilModule'):
-            raise TypeError, "Call as WeilModuleElement(W,d) where W=WeilModule. Got W=%s" % parent
+            raise TypeError("Call as WeilModuleElement(W,d) where W=WeilModule. Got W={0}".format(parent))
         if not isinstance(d,list):            
             if hasattr(d.parent(),"_is_FiniteQuadraticModule_ambient"):
                 # print "Is instance!"
@@ -843,14 +847,14 @@ ss    Describes an element of a Weil module $K[A]$.
                 d=[(1,0)]
             else:
                 s="d={0} Is not instance! Is:{1}".format(d,type(d))
-                raise TypeError,s
+                raise TypeError(s)
         elif isinstance(d[0],tuple):
             try:
                 par = d[0 ][1 ].parent()
                 if(not parent._QM):
-                    raise TypeError, "Need element of self._QM! got %s" % (d[0 ][1 ].parent())
+                    raise TypeError("Need element of self._QM! got {0}".format(d[0 ][1 ].parent()))
             except :
-                raise  TypeError, "Need element of self._QM! to construct WeilModuleElement! got %s" % (d)
+                raise  TypeError("Need element of self._QM! to construct WeilModuleElement! got {0}".format(d))
         elif len(d)==parent.rank():
             ## d should be a list of coordinates.
             dd = []
@@ -859,7 +863,7 @@ ss    Describes an element of a Weil module $K[A]$.
                 dd.append((d[i],list(parent.finite_quadratic_module())[i]))
             d = dd
         else:
-            raise ValueError,"Could not interpret {0} as a Weil module element!".format(d)
+            raise ValueError("Could not interpret {0} as a Weil module element!".format(d))
         ## Init with a formal sum
         
         FormalSum.__init__(self,d, parent, check, True)
@@ -960,7 +964,7 @@ ss    Describes an element of a Weil module $K[A]$.
         EXAMPLES
         """
         if A not in SL2Z:
-            raise TypeError, "%s must be an element of SL2Z" %A
+            raise TypeError("{0} must be an element of SL2Z".format(A))
 
         #if A[1,0] % self._level == 0:
         #    return self._action_of_Gamma0(A)
@@ -1002,7 +1006,7 @@ ss    Describes an element of a Weil module $K[A]$.
         if obj in SL2Z:
             return self.action_of_SL2Z(obj,act)
         # #         # TODO: obj can also be an element of the orthogonal group of $A$
-        raise TypeError, "action of %s on %s not defined" %(obj, self)
+        raise TypeError("action of {0} on {1} not defined".format(obj, self))
     
 
     # def __eq__(self,other):
@@ -1020,7 +1024,7 @@ ss    Describes an element of a Weil module $K[A]$.
         r"""
         Add self and other. We use this since FormalSum does not reduce properly
         """
-        if other.parent()<>self.parent(): raise ValueError,"Can not add {0} to {1}".format(self,other)
+        if other.parent()!=self.parent(): raise ValueError("Can not add {0} to {1}".format(self,other))
         v1 = self._coordinates
         v2 = other._coordinates
         v_new = [v1[i]+v2[i] for i in range(len(v1))]
@@ -1030,7 +1034,7 @@ ss    Describes an element of a Weil module $K[A]$.
         r"""
         Add self and other. We use this since FormalSum does not reduce properly
         """
-        if other.parent()<>self.parent(): raise ValueError,"Can not add {0} to {1}".format(self,other)
+        if other.parent()!=self.parent(): raise ValueError("Can not add {0} to {1}".format(self,other))
         v1 = self._coordinates
         v2 = other._coordinates
         v_new = [v1[i]-v2[i] for i in range(len(v1))]
@@ -1124,7 +1128,7 @@ ss    Describes an element of a Weil module $K[A]$.
         else:
             si=1
         for ii in range(0 ,self._n):
-            if filter<>None and filter[ii,ii]<>1:
+            if filter!=None and filter[ii,ii]!=1:
                 continue
             if sign==1:
                 r[ii,ii] = self._zl**(ZZ(b)*self._level*self.Q(ii))
@@ -1146,7 +1150,7 @@ ss    Describes an element of a Weil module $K[A]$.
             si = self._K(self._QM.sigma_invariant())
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
-                if filter<>None and filter[ii,jj]<>1:
+                if filter != None and filter[ii,jj] != 1:
                     continue
                 arg = -sign*self._level*self.Bi(ii,jj)
                 #arg = -self._level*self._QM.B(self._L[ii],self._L[jj])
@@ -1173,7 +1177,7 @@ ss    Describes an element of a Weil module $K[A]$.
             for jj in range(self._n):
                 argl=self._level*(pow*self.Q(jj)-sign*self.Bi(ii,jj))
                 #ii = self._L.index(x); jj= self._L.index(j)
-                if filter<>None and filter[ii,jj]<>1:
+                if filter != None and filter[ii,jj] != 1:
                     continue
                 r[ii,jj] = si*self._zl**argl
         fac = self._parent._sqn**-1
@@ -1186,7 +1190,7 @@ ss    Describes an element of a Weil module $K[A]$.
         ## Have to find a basefield that also contains the sigma invariant
         r = matrix(self._K,self._n)
         for ii in range(0 ,self._n):
-            if filter<>None and filter[ii,ii]<>1:
+            if filter != None and filter[ii,ii] != 1:
                 continue
             jj=self._W._neg_index(ii)
             r[ii,jj]=1 
@@ -1200,7 +1204,7 @@ ss    Describes an element of a Weil module $K[A]$.
         ## Have to find a basefield that also contains the sigma invariant
         r = matrix(self._K,self._n)
         for ii in range(0 ,self._n):
-            if filter<>None and filter[ii,ii]<>1:
+            if filter != None and filter[ii,ii] != 1:
                 continue
             r[ii,ii]=1 
         #r = r*self._QM.sigma_invariant()**2 
@@ -1220,8 +1224,8 @@ ss    Describes an element of a Weil module $K[A]$.
                          of the matrix rho_{Q}(A) 
         """
         a=A[0 ,0 ]; b=A[0 ,1 ]; c=A[1 ,0 ]; d=A[1 ,1 ] #[a,b,c,d]=elts(A)
-        if(c % self._level <>0 ):
-            raise ValueError, "Must be called with Gamma0(l) matrix! not A=" %(A)
+        if c % self._level != 0:
+            raise ValueError("Must be called with Gamma0(l) matrix! not A=" %(A))
         r = matrix(self._K,self._n, sparse=True)
         for ii in range(0 ,self._n):
             for jj in range(0 ,self._n):
@@ -1230,20 +1234,20 @@ ss    Describes an element of a Weil module $K[A]$.
                     r[ii,jj]=self._zl**argl
         # Compute the character 
         signature = self._inv['signature']
-        if( self._level % 4  == 0 ):
+        if self._level % 4  == 0:
             test = (signature + kronecker(-1 ,self._n)) % 4
-            if(is_even(test)):
-                if(test==0 ):
+            if is_even(test):
+                if test == 0:
                     power=1 
-                elif(test==2 ):
+                elif test == 2:
                     power=-1 
-                if( d % 4  == 1 ):
+                if d % 4 == 1:
                     chi = 1 
                 else:
                     chi=self._z8**(power*2)
                 chi=chi*kronecker(c,d)
             else:
-                if(test==3 ):
+                if test == 3:
                     chi= kronecker(-1 ,d)
                 else:
                     chi=1 
@@ -1285,7 +1289,7 @@ ss    Describes an element of a Weil module $K[A]$.
             return self._action_of_Gamma0(A)
         if abs(c)==1 and a==0:
             if self._verbose>0:
-                print "call STn with pos={0} and sign={1}".format(abs(d),sgn(c))
+                print("call STn with pos={0} and sign={1}".format(abs(d),sgn(c)))
             sic = sgn(c)
             return self._action_of_STn(pow=d*sic,sign=sic,filter=filter)        
         # These are all known easy cases
@@ -1303,10 +1307,10 @@ ss    Describes an element of a Weil module $K[A]$.
         norms_c=self._get_all_norm_alpha_cs(c)
         #norms_c_old=self._get_all_norm_alpha_cs_old(c)
         if self._verbose>0:
-            print "c=",c
-            print "xis=",xis
-            print "xi=",xi,CC(xi)
-            print "norms=",norms_c
+            print("c={0}".format(c))
+            print("xis={0}".format(xis))
+            print("xi={0},{1}".format(xi,CC(xi)))
+            print("norms={0}".format(norms_c))
         #print "11"
         r = matrix(self._K,self._n)
         if sign==-1:
@@ -1318,8 +1322,8 @@ ss    Describes an element of a Weil module $K[A]$.
         else:
             si=1
         if self._verbose>0:
-            print "si=",si
-            print "sign=",sign
+            print("si={0}".format(si))
+            print("sign={0}".format(sign))
         for na in range(0 ,self._n):
             #print "na=",na
             #alpha=self._L[na]
@@ -1327,9 +1331,9 @@ ss    Describes an element of a Weil module $K[A]$.
             #    na=self._minus_element[na] #-alpha
             #na=self._L.index(-alpha)
             for nb in range(0 ,self._n):
-                if filter <> None and filter[na,nb]==0:
+                if filter is not None and filter[na,nb] == 0:
                     continue
-                if sign==-1:
+                if sign == -1:
                     #print type(nb)
                     nbm=self._minus_element(nb) #-alpha
                 else:
@@ -1351,21 +1355,21 @@ ss    Describes an element of a Weil module $K[A]$.
                 arg=a*ngamma_c+b*self.Bi(na,nbm)-b*d*self.Q(nbm)
                 larg=arg*self._level
                 if self._verbose>0 and na==0 and nb==1:
-                    print "na,nb,nbm=",na,nb,nbm
-                    print "gi=",gi
-                    print "ngamma_c[{0}]={1}".format(gi,ngamma_c)
-                    print "b*B(na,nbm)=",b*self.Bi(na,nbm)
-                    print "arg=",               a,"*",ngamma_c,"+",b,"*",self.Bi(na,nbm),"-",b,"*",d,"*",self.Q(nbm)
-                    print "arg=",arg
-                    print "e(arg)=",CC(0,arg*RR.pi()*2).exp()
-                    print "e_L(arg)=",CC(self._zl**(larg))
+                    print("na,nb,nbm={0},{1},{2}".format(na,nb,nbm))
+                    print("gi={0}".format(gi))
+                    print("ngamma_c[{0}]={1}".format(gi,ngamma_c))
+                    print("b*B(na,nbm)={0}".format(b*self.Bi(na,nbm)))
+                    print("arg={0}*{1}+{2}*{3}-{4}*{5}*{6}".format(a,ngamma_c,b,self.Bi(na,nbm),b,d,self.Q(nbm)))
+                    print("arg={0}".format(arg))
+                    print("e(arg)={0}".format(CC(0,arg*RR.pi()*2).exp()))
+                    print("e_L(arg)={0}".format(CC(self._zl**(larg))))
                 #if na==nb:
                 #    print "arg[",na,"]=",a*ngamma_c,'+',b*self.B(gi,nbm),'-',b*d*self.Q(nbm),'=',arg
 
                 r[na,nb]=si*xi*self._zl**(larg)
                 if self._verbose>0 and na==0 and nb==1:
-                    print "r[",na,nb,"]=",r[na,nb]
-                    print "r[",na,nb,"]=",r[na,nb].complex_embedding(53)
+                    print("r[{0},{1}]={2}".format(na,nb,r[na,nb]))
+                    print("r[{0},{1}]={2}".format(na,nb,r[na,nb].complex_embedding(53)))
                 #print "xi=",xi
                 #print "zl=",self._zl
         fac = self._get_lenDc(c)
@@ -1436,8 +1440,8 @@ ss    Describes an element of a Weil module $K[A]$.
         else:
             a=A; b=B; c=C; d=D
         if self._verbose>0:
-            print "pset=",pset
-            print "JD=",JD
+            print("pset={0}".format(pset))
+            print("JD={0}".format(JD))
         #info=get_factors2(JD)
         oddity=self._inv['total oddity']
         oddities=self._inv['oddity']
@@ -1450,9 +1454,9 @@ ss    Describes an element of a Weil module $K[A]$.
             p=comp[1][0]
             xis[p]=1
             if self._verbose>0:
-                print "p=",p
-        if a*d<>0:
-            if(is_even(sign)):
+                print("p={0}".format(p))
+        if a*d != 0:
+            if is_even(sign):
                 argl=- 2 *sign
                 xis[0]=z8**argl
             else:
@@ -1466,7 +1470,7 @@ ss    Describes an element of a Weil module $K[A]$.
             xis[0]=z8**argl
             if pset==0:
                 return {0:xis[0]}
-            elif pset<>None:
+            elif pset != None:
                 return {0:1}
             return xis
         if pset==-1 or pset==0:
@@ -1478,17 +1482,17 @@ ss    Describes an element of a Weil module $K[A]$.
                 argl=(-(1+a)*oddity) % 8 
             xis[2]=z8**argl
             if self._verbose>0:
-                print "oddity(Q)=",oddity
+                print("oddity(Q)={0}".format(oddity))
                 if(is_odd(c)):                
-                    print "c*oddity=",argl
+                    print("c*oddity={0}".format(argl))
                 else:
-                    print "-(a+1)oddity=",argl
+                    print("-(a+1)oddity={0}".format(argl))
             if pset==2:
                 return {2:xis[2]}
         for comp in JD:
             [p,n,r,ep]=comp[1 ][:4 ]
             if self._verbose>0:
-                print "comp:p,n,r,ep=",p,n,r,ep
+                print("comp:p,n,r,ep={0},{1},{2},{3}".format(p,n,r,ep))
             t = None if (len(comp[1 ])==4 ) else comp[1 ][4 ]
             q=p**n
             qc=gcd(q,c)
@@ -1501,31 +1505,31 @@ ss    Describes an element of a Weil module $K[A]$.
             #    continue
             if p==2:
                 if is_even(c) :
-                    if c % q <> 0:
+                    if c % q != 0:
                         odt=self._get_oddity(p,nq,r,ep,t)
                         argl=-a*ccq*odt
                         gammaf=z8**argl
                         if self._verbose>0:
-                            print "odt({q})_{t}^{e},{r}={o}".format(t=t,o=odt,e=ep,r=r,q=p**nq)
-                            print "argl=",argl
+                            print("odt({q})_{t}^{e},{r}={o}".format(t=t,o=odt,e=ep,r=r,q=p**nq))
+                            print("argl={0}".format(argl))
                         dc=kronecker(-a*ccq,qqc**r)
                         if self._verbose>0:
-                            print "kron(-ac_q/q_c^r)=",dc
+                            print("kron(-ac_q/q_c^r)={0}".format(dc))
                     dc=dc*kronecker(-a,q**r)
                     xis[ 2 ]=xis[ 2 ]*gammaf*dc
                     if self._verbose>0:
-                        print "xis2=",xis[2]
+                        print("xis2=",xis[2])
                 else:
                     dc=kronecker(c,q**r)
                     xis[ 2 ]=xis[ 2 ]*dc
             else:
-                if(c%q <>0 ):
+                if(c%q !=0 ):
                     exc=self._get_pexcess(p,nq,r,ep)
                     argl=-exc
                     gammaf=z8**argl
                     dc=kronecker(ccq,qqc**r)
                     if self._verbose>0:
-                        print "gamma_{p}={g}".format(p=p,g=gammaf)
+                        print("gamma_{p}={g}".format(p=p,g=gammaf))
                 dc=dc*kronecker(-d,qc**r)
                 xis[p]=xis[p]*gammaf*dc
             if pset==p:
@@ -1560,7 +1564,7 @@ ss    Describes an element of a Weil module $K[A]$.
             xc=0 
             p,k,r,d = c[1 ][:4 ]
             t = None if 4  == len(c[1 ]) else c[1 ][4 ]
-            if(p<>2  or t==None): 
+            if p != 2  or t is None:
                 continue
             q=2 **k # = 2^n
             JC=J.constituent(q)
@@ -1587,7 +1591,7 @@ ss    Describes an element of a Weil module $K[A]$.
         for ai in range(self._n):
             #for alpha in self._L:
             nc=self._get_norm_alpha_c(ai,c)
-            if nc<>None:
+            if nc is not None:
                 res[ai]=nc
         return res
     
@@ -1599,7 +1603,7 @@ ss    Describes an element of a Weil module $K[A]$.
         """
         alpha=self._QM(self._W._elt(ai), can_coords=True)
         xc=self._get_xc(c)
-        if xc<>0:
+        if xc != 0:
             gammatmp=alpha-xc
         else:
             gammatmp=alpha
@@ -1618,36 +1622,36 @@ ss    Describes an element of a Weil module $K[A]$.
                         break
             if len(gamma)<len(self._QM.gens()):
                 if self._verbose>1:
-                    print "c=",c
-                    print "x_c=",xc
-                    print "gammatmp=",gammatmp
-                    print "y=gamma/c=",gamma
+                    print("c={0}".format(c))
+                    print("x_c={0}".format(xc))
+                    print("gammatmp={0}".format(gammatmp))
+                    print("y=gamma/c={0}".format(gamma))
                 return None
         #gamma=y #vector(y)
         #    # raise ValueError, "Found no inverse (alpha-xc)/c: alpha=%s, xc=%s, c=%s !" %(alpha,xc,c) 
         if self._verbose>0:
-            print "xc=",xc
+            print("xc={0}".format(xc))
             #print "orders=",self._W._gen_orders
             #print "gamma=",gamma
-        if len(gamma)<>len(self._W._gen_orders):
-            print "W=",self._W
-            print "F=",list(self._W._QM)
-            print "F.gens=",self._W._QM.gens()
-            print "F.gram=",self._W._QM.gram()
-            print "is_nondeg=",self._W._QM.is_nondegenerate()
-            print "ai=",ai
-            print "c=",c
+        if len(gamma)!=len(self._W._gen_orders):
+            print("W={0}".format(self._W))
+            print("F={0}".format(list(self._W._QM)))
+            print("F.gens={0}".format(self._W._QM.gens()))
+            print("F.gram{0}".format(self._W._QM.gram()))
+            print("is_nondeg={0}".format(self._W._QM.is_nondegenerate()))
+            print("ai={0}".format(ai))
+            print("c={0}".format(c))
         gi = self._W._el_index(gamma)
         if self._verbose>0:
-            print "gi=",gi
+            print("gi={0}".format(gi))
         #res=c*self._QM.Q(gamma)
         res=c*self.Q(gi)
-        if xc<>0:
+        if xc != 0:
             #res=res+self._QM.B(xc,gamma)
             if self._verbose>0:
-                print "xc=",xc
-                print "xc.c_list=",xc.c_list()
-                print "orders=",self._W._gen_orders
+                print("xc={0}".format(xc))
+                print("xc.c_list={0}".format(xc.c_list()))
+                print("orders={0}".format(self._W._gen_orders))
             xci = self._W._el_index(xc.c_list())
             res=res+self.Bi(xci,gi)
         return res
@@ -1661,7 +1665,7 @@ ss    Describes an element of a Weil module $K[A]$.
         res=dict()
         for alpha in self._L:
             nc=self._get_norm_alpha_c_old(alpha,c)
-            if(nc<>None):
+            if nc is not None:
                 res[alpha]=nc
         return res
     
@@ -1676,13 +1680,13 @@ ss    Describes an element of a Weil module $K[A]$.
         #    raise ValueError, "alpha=%s is not in D^c* for c=%s, D^c*=%s" %(alpha,c,Dcs)
         xc=self._get_xc(c)
         # print "xc=",xc
-        if xc<>0:
+        if xc != 0:
             gammatmp=alpha-xc
         else:
             gammatmp=alpha
         # first a simple test to see if gammatmp is not in D^c
         test = gammatmp*Integer(self._n/gcd(self._n,c))
-        if test<>self._QM(0):
+        if test != self._QM(0):
             return None
         # We need to find its inverse mod c
         # i.e. gammatmp/c
@@ -1700,7 +1704,7 @@ ss    Describes an element of a Weil module $K[A]$.
             return None
             # raise ValueError, "Found no inverse (alpha-xc)/c: alpha=%s, xc=%s, c=%s !" %(alpha,xc,c)
         res=c*self._QM.Q(gamma)
-        if xc<>0:
+        if xc != 0:
             res=res+self._QM.Bi(xc,gamma)
         return res
     
@@ -1717,7 +1721,7 @@ ss    Describes an element of a Weil module $K[A]$.
                      rho(A) = fact*r
         """
         if A not in SL2Z:
-            raise TypeError, "%s must be an element of SL2Z" %A
+            raise TypeError("{0} must be an element of SL2Z".format(A))
         #[fak,sgn]=self._factor_sl2z(A)
         sgn,n,fak=factor_matrix_in_sl2z(A)
         #[fak,sgn]=self._factor_sl2z(A)
@@ -1725,8 +1729,8 @@ ss    Describes an element of a Weil module $K[A]$.
         [r,fact,M]=self._weil_matrix_from_list(fak,sgn)
         for i in range(2):
             for j in range(2):
-                if A[i,j]<>M[i,j] and A[i,j]<>-M[i,j]:
-                    raise ValueError, "\n A=\n%s <> M=\n%s, \n factor=%s " % (A,M,fak)
+                if A[i,j]!=M[i,j] and A[i,j]!=-M[i,j]:
+                    raise ValueError("\n A=\n{0} <> M=\n{1}, \n factor={2} ".format(A,M,fak))
         return [r,fact]
 
     def _weil_matrix_from_list(self,fak,sgn):
@@ -1756,8 +1760,8 @@ ss    Describes an element of a Weil module $K[A]$.
             r,fac=self._action_of_T(fak[0 ])
             M=T**fak[0 ]
         if self._verbose>2:
-            print "M=",M
-            print "r=",r
+            print("M={0}".format(M))
+            print("r={0}".format(r))
         A=SL2Z([1 ,0 ,0 ,1 ]) # Id
         for j in range(1 ,len(fak)):
             A=A*S*T**fak[j]
@@ -1783,7 +1787,7 @@ ss    Describes an element of a Weil module $K[A]$.
             fact=fact*self._n
         r=r*sfak
         if self._verbose>0:
-            print "sfak=",sfak
+            print("sfak={0}".format(sfak))
         #print "|D|=",self._n
         #print "fact=",fact
         if hasattr(fact,"sqrt"):
@@ -1821,11 +1825,11 @@ ss    Describes an element of a Weil module $K[A]$.
                 k=1 
             else:
                 k=0 
-            if(p!=2 ):
+            if p != 2:
                 pexc[q]=(r*(q-1 )+4 *k) % 8 
             else:
                 odts[q]=((t+4 *k) % 8 ) # Can we have more than one 2-adic component at one time?
-                if(t<>0 ):
+                if t != 0:
                     types[q]="I" # odd
                 else:
                     types[q]="II" # even
@@ -1851,11 +1855,11 @@ ss    Describes an element of a Weil module $K[A]$.
         if n==0  or p==1:
             return 0 
         k=0 
-        if n % 2 <>0  and ep==-1:  # q not a square and sign=-1
+        if n % 2 != 0  and ep == -1:  # q not a square and sign=-1
             k=1 
         else:
             k=0 
-        if(t):
+        if t:
             odt=(t+k*4 ) % 8 
         else:
             odt=(k*4 ) % 8 
@@ -1935,17 +1939,17 @@ def sigma_cocycle(A,B):
     """
     [a1,b1,c1,d1]=_entries(A)
     [a2,b2,c2,d2]=_entries(B)
-    if c2*c1<>0:
+    if c2*c1 != 0:
         C=A*B
         [a3,b3,c3,d3]=_entries(C)
-        if c3<>0:
+        if c3 != 0:
             # print "here",c3*c1,c3*c2
             return hilbert_symbol(c3*c1,c3*c2,-1 )
         else:
             return hilbert_symbol(c2,d3,-1 )
-    elif c1<>0:
+    elif c1 != 0:
         return hilbert_symbol(-c1,d2,-1 )
-    elif c2<>0:
+    elif c2 != 0:
         return hilbert_symbol(-c2,d1,-1 )
     else:
         return hilbert_symbol(d1,d2,-1 )
@@ -1979,7 +1983,7 @@ def kubota_cocycle(A,B):
     sA = kubota_sigma_symbol(c1,d1)
     sB = kubota_sigma_symbol(c2,d2)
     sC = kubota_sigma_symbol(c3,d3)
-    res = hilbert_symbol(sA,sB,-1)*hilbert_symbol(-sA*sB,sAB,-1)
+    res = hilbert_symbol(sA,sB,-1)*hilbert_symbol(-sA*sB,sC,-1)
     return res
 
     
@@ -1990,12 +1994,12 @@ def kubota_sigma_symbol(c,d):
     Compute sigma_A=sigma(c,d) for A = (a b // c d)
     given by sigma_A = c if c<>0 else = d
     """
-    if c<>0:
+    if c != 0:
         return c
     else:
         return d
 
-from finite_quadratic_module import FiniteQuadraticModuleRandom
+from .finite_quadratic_module import FiniteQuadraticModuleRandom
     
 def test_dimensions_1(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbose=0,test=1,numeric=False):
     r"""
@@ -2014,22 +2018,22 @@ def test_dimensions_1(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,
             g = FQ.jordan_decomposition().genus_symbol()
             s = W.signature()
             if verbose>0:                
-                print "Check genus=",g,"sign=",s
+                print("Check genus={0} sign={1}".format(g,s))
             for twok in range(2*kmin+1,2*kmax+1):
                 k = QQ(twok)/QQ(2)
                 if verbose>1:
-                    print "k=",k
+                    print("k={0}".format(k))
                 ## There is a built-in integrality test already
                 try:
                     d1,ep1 = W.dimension_cusp_forms(k,sgn=1,verbose=verbose-2,numeric=numeric)
                     d2,ep2 = W.dimension_cusp_forms(k,sgn=-1,verbose=verbose-2,numeric=numeric)
                 except ArithmeticError:
-                    print "Fail 2"
-                    print "d=",d
-                    print "genus:",g
-                    print "FQ=",FQ
-                    print "dimS(rho,{0})={1}".format(k,CC(d1))
-                    print "dimS(rho*,{0})={1}".format(k,CC(d2))
+                    print("Fail 2")
+                    print("k={0}".format(k))
+                    print("genus:{0}".format(g))
+                    print("FQ={0}".format(FQ))
+                    print("dimS(rho,{0})={1}".format(k,CC(d1)))
+                    print("dimS(rho*,{0})={1}".format(k,CC(d2)))
                     return False,W,d1,d2
     return True
 ### testing functions
@@ -2052,26 +2056,26 @@ def test_formula(fqbound=100,nbound=10,cbound=10,size_bd=50,kmin=2,kmax=10,verbo
             g = FQ.jordan_decomposition().genus_symbol()
             s = W.signature()
         if verbose>0:
-            print "signature=",s
-            print "genus=",g
-            print "is_nondeg=",FQ.is_nondegenerate()
-            print "gram=",FQ.gram()
+            print("signature={0}".format(s))
+            print("genus={0}".format(g))
+            print("is_nondeg={0}".format(FQ.is_nondegenerate()))
+            print("gram={0}".format(FQ.gram()))
         w = W.an_element()
         i = 0
         j = 0
         while (i<cbound):
             A = SL2Z.random_element()
-            if gamma0_test==1 and A[1,0] % W.level() <>0:
+            if gamma0_test==1 and A[1,0] % W.level() !=0:
                 j+=1
                 if j>2000:
-                    raise  ArithmeticError,"Error in random elements of SL2Z!"
+                    raise  ArithmeticError("Error in random elements of SL2Z!")
                 continue
             j = 0
             i = i + 1
             t = compare_formula_for_one_matrix(W,A,verbose)
             if not t:
                 if verbose>0:
-                    print "A=",A
+                    print("A={0}".format(A))
                     return W,A
             
             
@@ -2092,9 +2096,9 @@ def compare_formula_for_one_matrix(W,A,verbose=0):
             t2 = f2*r2[0][i,j].complex_embedding()
             if abs(t1-t2)>1e-10:
                 if verbose>0:
-                    print "i,j=",i,j
-                    print "t1=",t1
-                    print "t2=",t2
+                    print("i,j={0},{1}".format(i,j))
+                    print("t1={0}".format(t1))
+                    print("t2={0}".format(t2))
                 return False
     return True
 

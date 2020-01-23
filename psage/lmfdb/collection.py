@@ -24,6 +24,7 @@
 This module defines a light wrapper around a MongoDB collection in the
 MFDB database.
 """
+from __future__ import print_function
 
 class Collection:
     def __init__(self, collection, db):
@@ -39,7 +40,7 @@ class Collection:
             outdir = os.path.join('backup',time.strftime('%Y%m%d-%H%M'))
         cmd = 'time mongodump -c "%s" -h %s:%s -d mfdb -o "%s"'%(
             self.collection.name, self.db.host, self.db.port, outdir)
-        print cmd
+        print(cmd)
         os.system(cmd)
 
     def find(self, *args, **kwds):

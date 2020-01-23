@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -20,7 +21,7 @@
 #################################################################################
 
 
-import function_field
+from . import function_field
 
 def FunctionField(X, names=None):
     """

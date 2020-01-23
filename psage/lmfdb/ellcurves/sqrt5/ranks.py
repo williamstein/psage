@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -59,14 +61,14 @@ def compute_conjectural_ranks(level_norms, address='localhost:29000'):
     """
     from sage.all import sage_eval
 
-    import util
+    from . import util
     C = util.ellcurves_sqrt5(address)
     for N in level_norms:
         for E in C.find({'Nlevel':int(N), 'r?':{'$exists':False}, 'weq':{'$exists':True}}):
-            print E
+            print(E)
             weq = sage_eval(E['weq'], {'a':F.gen()})
             E['r?'] = int(rank(weq))
-            print E
+            print(E)
             C.update({'_id':E['_id']}, E, safe=True)
             
             

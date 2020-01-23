@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 Fredrik Stroemberg
@@ -21,8 +22,8 @@
 
 from sage.rings.complex_mpc import MPComplexField
 from sage.all import ZZ,MatrixSpace,Matrix
-from linalg_complex_dense import *
-from matrix_complex_dense import *
+from .linalg_complex_dense import *
+from .matrix_complex_dense import *
 
 
 def test_eigenvalues(prec=100,nmax=10,dimmax=10):

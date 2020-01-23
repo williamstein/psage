@@ -1,1 +1,2 @@
-from matrix_complex_dense import Matrix_complex_dense
+from __future__ import absolute_import
+from .matrix_complex_dense import Matrix_complex_dense

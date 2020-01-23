@@ -34,6 +34,8 @@ data about such newforms.
 
 The backup method backs up the whole mfdb database.
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 class MFDB:
     def __init__(self, host='localhost', port=29000):
@@ -43,7 +45,7 @@ class MFDB:
         self.db = self.connection.mfdb
         self.port = port
         self.host = host
-        from objectdb import ObjectDB
+        from .objectdb import ObjectDB
         self.objectdb = ObjectDB(self.db)
 
     def __repr__(self):
@@ -52,7 +54,7 @@ class MFDB:
     def newforms(self):
         """Returns object that can be used for querying about GL2
         newforms over QQ and populating the database with them."""
-        from newforms import NewformCollection
+        from .newforms import NewformCollection
         return NewformCollection(self.db.newforms, self)
 
     def backup(self, outdir=None):
@@ -64,7 +66,7 @@ class MFDB:
             outdir = os.path.join('backup',time.strftime('%Y%m%d-%H%M'))
         cmd = 'time mongodump -h %s:%s -d mfdb -o "%s"'%(
             self.host, self.port, outdir)
-        print cmd
+        print(cmd)
         os.system(cmd)
 
     

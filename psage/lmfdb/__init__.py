@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -20,12 +21,12 @@
 #################################################################################
 
 
-from mfdb import MFDB
+from .mfdb import MFDB
 
 def reload():
     reload = __builtins__['reload']
-    import mfdb; reload(mfdb)
-    import collection; reload(collection)
-    import converter; reload(converter)
-    import newforms; reload(newforms)
-    import objectdb; reload(objectdb)
+    from . import mfdb; reload(mfdb)
+    from . import collection; reload(collection)
+    from . import converter; reload(converter)
+    from . import newforms; reload(newforms)
+    from . import objectdb; reload(objectdb)

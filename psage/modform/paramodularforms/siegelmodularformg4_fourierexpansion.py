@@ -37,6 +37,7 @@ from sage.misc.functional import isqrt
 from sage.misc.latex import latex
 from sage.rings.infinity import infinity
 from sage.rings.integer_ring import ZZ
+from functools import reduce
 
 #===============================================================================
 # SiegelModularFormG4Indices_diagonal_lll
@@ -306,7 +307,7 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
 
     def __iter__(self) :
         if self.index() is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
 
         if self.is_reduced() :
             ## We only iterate positive definite matrices

@@ -263,8 +263,8 @@ class SiegelModularFormG2Factory_class( SageObject ) :
             g = PS(g(qexp_prec), qexp_prec)
                 
         if k is None :
-            raise ValueError, "if neither f nor g are not ModularFormElements " + \
-                              "you must pass k"
+            raise ValueError("if neither f nor g are not ModularFormElements " + \
+                              "you must pass k")
             
         fderiv = f.derivative().shift(1)
         f *= Integer(k/2)
@@ -393,31 +393,31 @@ class SiegelModularFormG2Factory_class( SageObject ) :
 
     def maass_eisensteinseries(self, k) :
         if not isinstance(k, (int, Integer)) :
-            raise TypeError, "k must be an integer"
+            raise TypeError("k must be an integer")
         if k % 2 != 0 or k < 4 :
-            raise ValueError, "k must be even and greater than 4"
+            raise ValueError("k must be even and greater than 4")
         
         return self.maass_form(ModularForms(1,k).eisenstein_subspace().gen(0), 0)
   
     ## TODO: Rework these functions
     def from_gram_matrix( self, gram, name = None) :
-        raise NotImplementedError, "matrix argument not yet implemented"
+        raise NotImplementedError("matrix argument not yet implemented")
 
     def _SiegelModularForm_borcherds_lift( self, f, prec = 100, name = None):
     
-        raise NotImplementedError, "matrix argument not yet implemented"
+        raise NotImplementedError("matrix argument not yet implemented")
 
     def _SiegelModularForm_yoshida_lift( self, f, g, prec = 100, name = None):
     
-        raise NotImplementedError, "matrix argument not yet implemented"
+        raise NotImplementedError("matrix argument not yet implemented")
 
     def _SiegelModularForm_from_weil_representation( self, gram, prec = 100, name = None):
     
-        raise NotImplementedError, "matrix argument not yet implemented"
+        raise NotImplementedError("matrix argument not yet implemented")
 
     def _SiegelModularForm_singular_weight( self, gram, prec = 100, name = None):
     
-        raise NotImplementedError, "matrix argument not yet implemented"
+        raise NotImplementedError("matrix argument not yet implemented")
 
     def _repr_(self) :
         return "Factory class for Siegel modular forms of genus 2 with precision %s" % \

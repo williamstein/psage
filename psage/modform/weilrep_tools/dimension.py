@@ -9,6 +9,7 @@ AUTHORS:
 ...
 
 """
+from __future__ import print_function
 
 #*****************************************************************************
 #       Copyright (C) 2012 Stephan Ehlen <ehlen@mathematik.tu-darmstadt.de>
@@ -20,7 +21,8 @@ AUTHORS:
 
 #from psage.modules import *
 from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, \
-                     RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, round
+                     RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, round, prime_range, dimension_cusp_forms, \
+                     kronecker_character, Matrix
 #import sys
 from .weight_one_half import *
 
@@ -65,10 +67,10 @@ class VectorValuedModularForms(SageObject):
     def __init__(self, A, use_genus_symbols = False, aniso_formula = False, use_reduction = False):
         try:
             from sfqm.fqm.genus_symbol import GenusSymbol
-        except ImportError, e:
-            print e
+        except ImportError as e:
+            print(e)
             use_genus_symbols = False
-            print "Not using genus symbols."
+            print("Not using genus symbols.")
         self._use_reduction = use_reduction
         if use_genus_symbols:
             if isinstance(A, str):
@@ -123,7 +125,7 @@ class VectorValuedModularForms(SageObject):
             raise ValueError("k has to be integral or half-integral")
         if (2*k+s)%4 != 0 and not ignore:
             raise NotImplementedError("2k has to be congruent to -signature mod 4")
-        if self._v2.has_key(0):
+        if 0 in self._v2:
             v2 = self._v2[0]
         else:
             v2 = 1
@@ -144,7 +146,7 @@ class VectorValuedModularForms(SageObject):
         CC = ComplexField(prec)
         d = self._d
         m = self._m
-        if debug > 0: print d,m
+        if debug > 0: print(d,m)
             
         if self._alpha3 == None:
             if self._aniso_formula:
@@ -163,23 +165,23 @@ class VectorValuedModularForms(SageObject):
                 self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
         alpha3 = self._alpha3
         alpha4 = self._alpha4
-        if debug > 0: print alpha3, alpha4
+        if debug > 0: print(alpha3, alpha4)
         g1=M.char_invariant(1)
         g1=CC(g1[0]*g1[1])
         #print g1
         g2=M.char_invariant(2)
         g2=RR(real(g2[0]*g2[1]))
-        if debug > 0: print g2, g2.parent()
+        if debug > 0: print(g2, g2.parent())
         g3=M.char_invariant(-3)
         g3=CC(g3[0]*g3[1])
-        if debug > 0: print RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8)))
+        if debug > 0: print(RR(d) / RR(4), sqrt(RR(m)) / RR(4), CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8))))
         alpha1 = RR(d) / RR(4) - (sqrt(RR(m)) / RR(4)  * CC(exp(2 * CC.pi() * CC(0,1) * (2 * k + s) / Integer(8))) * g2)
-        if debug > 0: print alpha1
+        if debug > 0: print(alpha1)
         alpha2 = RR(d) / RR(3) + sqrt(RR(m)) / (3 * sqrt(RR(3))) * real(exp(CC(2 * CC.pi() * CC(0,1) * (4 * k + 3 * s - 10) / 24)) * (g1+g3))
-        if debug > 0: print alpha1, alpha2, g1, g2, g3, d, k, s
+        if debug > 0: print(alpha1, alpha2, g1, g2, g3, d, k, s)
         dim = real(d + (d * k / Integer(12)) - alpha1 - alpha2 - alpha3)
         if debug > 0:
-            print "dimension:", dim
+            print("dimension:", dim)
         if abs(dim-round(dim)) > 1e-6:
             raise RuntimeError("Error ({0}) too large in dimension formula for {1} and k={2}".format(abs(dim-round(dim)), self._M if self._M is not None else self._g, k))
         dimr = dim
@@ -191,16 +193,16 @@ class VectorValuedModularForms(SageObject):
     def dimension_cusp_forms(self, k, ignore=False, no_inv = False, test_positive = False, proof = False, debug=1):
         if debug>0:
             if self._g is not None:
-                print "Computing dimension for {}".format(self._g)
+                print("Computing dimension for {}".format(self._g))
             else:
-                print "Computing dimension for {}".format(self._M)
+                print("Computing dimension for {}".format(self._M))
         if k == Integer(3)/2:
             dim = self.dimension(k, True, debug=debug) - self._alpha4
             if not test_positive or dim <= 0:
                 if self._M == None:
                     self._M = self._g.finite_quadratic_module()
                 corr = weight_one_half_dim(self._M, self._use_reduction, proof = proof)
-                if debug > 0: print "weight one half: {0}".format(corr)
+                if debug > 0: print("weight one half: {0}".format(corr))
                 dim += corr
         else:
             dim = self.dimension(k, ignore, debug=debug) - self._alpha4
@@ -220,7 +222,7 @@ class VectorValuedModularForms(SageObject):
 def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
     for p in prime_range(minp,maxp):
         if p%4==1:
-            print "p = ", p
+            print("p = ", p)
             gram=Matrix(ZZ,2,2,[2,1,1,(1-p)/2])
             M=VectorValuedModularForms(gram)
             if is_odd(minwt):
@@ -228,13 +230,13 @@ def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
             for kk in range(minwt,round(maxwt/2-minwt)):
                 k = minwt+2*kk
                 if M.dimension_cusp_forms(k)-dimension_cusp_forms(kronecker_character(p),k)/2 != 0:
-                    print "ERROR: ", k, M.dimension_cusp_forms(k), dimension_cusp_forms(kronecker_character(p),k)/2
+                    print("ERROR: {0},{1},{2},{3}".format(k, M.dimension_cusp_forms(k), dimension_cusp_forms(kronecker_character(p),k)/2))
                     return False
-    return true
+    return True
 
 #sys.path.append('/home/stroemberg/Programming/Sage/sage-add-ons3/nils')
 #from jacobiforms.all import *
-
+# TODO: add the dimension_jac_forms routines to this file.
 def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
     m=index
     gram=Matrix(ZZ,1,1,[-eps*2*m])
@@ -243,7 +245,7 @@ def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
         minwt=minwt+1
     for kk in range(0,round(maxwt/2-minwt)+2):
         k = minwt+2*kk+(1+eps)/2
-        print "Testing k = ", k
+        print("Testing k = {0}".format(k))
         if eps==-1:
             dimJ=dimension_jac_forms(k,m,-1)
             dimV=M.dimension(k-1/2)
@@ -251,6 +253,6 @@ def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
             dimJ=dimension_jac_cusp_forms(k,m,1)
             dimV=M.dimension_cusp_forms(k-1/2)
         if dimJ-dimV != 0:
-            print "ERROR: ", k, dimJ, dimV
+            print("ERROR: {0},{1},{2}".format(k, dimJ, dimV))
             return False
-    return true
+    return True

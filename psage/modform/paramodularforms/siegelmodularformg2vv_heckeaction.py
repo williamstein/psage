@@ -75,7 +75,7 @@ class SiegelModularFormG2VVFourierExpansionHeckeAction_class (SageObject):
             try :
                 (sym_weight, det_weight) = expansion.weight()
             except AttributeError :
-                raise ValueError, "weight must be defined for the Hecke action"
+                raise ValueError("weight must be defined for the Hecke action")
         else :
             (sym_weight, det_weight) = weight
             
@@ -91,17 +91,18 @@ class SiegelModularFormG2VVFourierExpansionHeckeAction_class (SageObject):
             for ch in characters :
                 hecke_expansion[ch] = dict( (k, self.hecke_coeff_polynomial(expansion, ch, k, sym_weight, det_weight)) for k in precision )
         else :
-            raise TypeError, "Unknown representation type"
+            raise TypeError("Unknown representation type")
         
         result = expansion.parent()._element_constructor_(hecke_expansion)
         result._set_precision(expansion.precision()._hecke_operator(self.__l))
         
         return result
         
-    def hecke_coeff_polynomial(self, expansion, ch, (a,b,c), j, k) :
+    def hecke_coeff_polynomial(self, expansion, ch, a_b_c, j, k) :
         r"""
         Computes the coefficient indexed by $(a,b,c)$ of $T(\ell) (F)$
         """
+        (a,b,c) = a_b_c
         character_eval = expansion.parent()._character_eval_function()
         x = expansion.parent().coefficient_domain().gen(0)
         y = expansion.parent().coefficient_domain().gen(1)
@@ -119,8 +120,8 @@ class SiegelModularFormG2VVFourierExpansionHeckeAction_class (SageObject):
                                                              (ell*bprime) //t1//t2,
                                                              (ell*cprime) //t2**2) )] ( ell//t1 * V[0] * x + ell//t1 * V[1] * y,
                                                                                         ell//t2 * V[2] * x + ell//t2 * V[3] * y )
-                        except KeyError, msg:
-                            raise ValueError, '%s' %(expansion,msg)
+                        except KeyError as msg:
+                            raise ValueError('{0},{1}'.format(expansion,msg))
         return coeff
 
     @cached_method
@@ -148,12 +149,14 @@ class SiegelModularFormG2VVFourierExpansionHeckeAction_class (SageObject):
         return rep_list
 
     @staticmethod
-    def change_variables((a,b,c,d), (n,r,m)):
+    def change_variables(a_b_c_d, n_r_m):
         r"""
         A helper function used in hecke_coeff that computes the
         quadratic form [nprime,rprime,mprime] given by $Q((x,y) V)$
         where $Q=[n,r,m]$ and $V$ is a 2 by 2 matrix given by (a,b,c,d)
         """        
+        (a,b,c,d) = a_b_c_d
+        (n,r,m) = n_r_m
         return ( n*a**2 + r*a*b + m*b**2, 2*(n*a*c + m*b*d) + r*(a*d + c*b), \
                  n*c**2 + r*c*d + m*d**2 )
 

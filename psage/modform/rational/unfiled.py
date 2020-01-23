@@ -29,6 +29,7 @@ WARNING: Depend on this code at your own risk!  It will get moved to
 another module at some point, probably.
 
 """
+from __future__ import print_function
 
 
 def modular_symbols_from_curve(C, N, num_factors=3):
@@ -72,9 +73,9 @@ def modular_symbols_from_curve(C, N, num_factors=3):
 
     f, f2 = C.hyperelliptic_polynomials()
     if f2 != 0:
-        raise NotImplementedError, "curve must be of the form y^2 = f(x)"
+        raise NotImplementedError("curve must be of the form y^2 = f(x)")
     if f.degree() % 2 == 0:
-        raise NotImplementedError, "curve must be of the form y^2 = f(x) with f(x) odd"
+        raise NotImplementedError("curve must be of the form y^2 = f(x) with f(x) odd")
 
     prec = 1
     
@@ -110,7 +111,7 @@ def modular_symbols_from_curve(C, N, num_factors=3):
             F = R(A.hecke_polynomial(p))
             # Compute charpoly of Frobenius from F(X)
             G = R(F.parent()(X**g * F(X + p/X)))
-            if get_verbose(): print (p, G, H)
+            if get_verbose(): print((p, G, H))
             if G == H:
                 D2.append(A)
         D = D2

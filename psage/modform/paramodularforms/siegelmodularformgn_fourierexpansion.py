@@ -42,6 +42,7 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
 from sage.structure.sage_object import SageObject
 import itertools
+from functools import reduce
 
 #===============================================================================
 # SiegelModularFormGnIndices_diagonal_lll
@@ -103,7 +104,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
             t.set_immutable()
             return t
             
-        raise ValueError, "Generator not defined"
+        raise ValueError("Generator not defined")
     
     def gens(self) :    
         return [self.gen(i) for i in xrange(self.ngens())]
@@ -139,7 +140,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         if len(ls) == 0 or len(rs) == 0 :
             return SiegelModularFormGnFilter_diagonal_lll(self.__n, 0, self.__reduced)
 
-        maxd = flatten( map(lambda (ml, mr): [ml[i,i] + mr[i,i] for i in xrange(self.__n)],
+        maxd = flatten( map(lambda ml_mr: [ml_mr[0][i,i] + ml_mr[1][i,i] for i in xrange(self.__n)],
                                 itertools.product(ls, rs) ) )
 
         return SiegelModularFormGnFilter_diagonal_lll(self.__n, maxd + 1, self.__reduced)
@@ -418,7 +419,7 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
     
     def __iter__(self) :
         if self.__bound is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
 
         if self.__reduced :
             ##TODO: This is really primitive. We barely reduce arbitrary forms.

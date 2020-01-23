@@ -46,6 +46,7 @@ from sage.rings.power_series_ring import PowerSeriesRing
 from sage.rings.rational_field import QQ
 from sage.structure.sequence import Sequence
 from sage.modular.all import ModularForms
+from functools import reduce
 
 #===============================================================================
 # ParamodularFormsD2
@@ -65,7 +66,7 @@ def ParamodularFormsD2(A, type, precision, *args, **kwds) :
         if isinstance(type,ParamodularFormD2_Gamma) :
             M = ModularFormsModule_generic(A, type, precision)
         else :
-            raise TypeError, "%s must be a paramodular form type" % (type,)
+            raise TypeError("{0} must be a paramodular form type".format(type))
         
         _paramodularforms_cache[k] = M
         return M
@@ -80,10 +81,10 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
     """
     def __init__(self, level, weight) :
         if weight % 2 != 0 :
-            raise NotImplementedError, "Only even weight forms are implemented."
+            raise NotImplementedError("Only even weight forms are implemented.")
   
         if level != 1 and not Integer(level).is_prime() :
-            raise NotImplementedError, "Only prime level or level 1 is implemented."
+            raise NotImplementedError("Only prime level or level 1 is implemented.")
   
         self.__level = Integer(level)
         self.__weight = weight        
@@ -302,7 +303,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             if len(gens) == self._rank(QQ) :
                 return Sequence( gens, universe = ParamodularFormD2FourierExpansionRing(QQ, self.__level) )
             
-            raise ArithmeticError, "Gritsenko products do not span this space."
+            raise ArithmeticError("Gritsenko products do not span this space.")
             
         raise NotImplementedError
     
@@ -328,7 +329,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             try :
                 return R.gen(self._generator_names(K).index(name))
             except ValueError :
-                raise ValueError, "name %s doesn't exist for %s" % (name, K)
+                raise ValueError("name {0} doesn't exist for {1}".format(name, K))
         
         raise NotImplementedError
     

@@ -142,8 +142,8 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
     if len(pvs) == dim :
         return [(preims[i], ring(ss(all_coords[i])).polynomial()) for i in pvs]
     else :        
-        raise RuntimeError, "The products of at most two Maass lifts don't span " + \
-                            "this space"
+        raise RuntimeError("The products of at most two Maass lifts don't span " + \
+                            "this space")
 
 def construct_from_maass_products(ring, weight, products, is_basis = True,
                                   provides_maass_spezialschar = False,
@@ -203,7 +203,7 @@ def construct_from_maass_products(ring, weight, products, is_basis = True,
             if len(products) == dim :
                 break
         else :
-            raise ValueError, "products don't provide a basis"
+            raise ValueError("products don't provide a basis")
     
     basis = []
      

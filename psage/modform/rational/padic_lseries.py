@@ -16,6 +16,7 @@ AUTHORS:
   - William Stein and Jennifer Balakrishnan (2010-07-01): first version
 
 """
+from __future__ import print_function
 
 ######################################################################
 #       Copyright (C) 2010 William Stein <wstein@gmail.com>
@@ -80,7 +81,7 @@ class pAdicLseries(SageObject):
         self._p = ZZ(p)
         self._normalize = normalize
         if not self._p.is_prime():
-            raise ValueError, "p (=%s) must be a prime"%p
+            raise ValueError("p (={0}) must be a prime".format(p))
         A = self._J.modular_symbols(sign=1)
         self._modular_symbols_subspace = A   
         v = A.dual_eigenvector()
@@ -586,14 +587,15 @@ class pAdicLseries(SageObject):
             raise NotImplementedError
         E = self.elliptic_curve()
         if not E.is_good(self.prime()):
-            raise ValueError, "prime must be of good reduction"
+            raise ValueError("prime must be of good reduction")
         r = E.rank()
         n = 1
         while True:
             f = self.series(n)
             v = f.valuation()
             if v < r:
-                raise RuntimeError, "while computing p-adic order of vanishing, got a contradiction: the curve is %s, the curve has rank %s, but the p-adic L-series vanishes to order <= %s"%(E, r, v)
+                raise RuntimeError("while computing p-adic order of vanishing, got a contradiction: the curve is {0}".format(E)+ \
+                                   ", the curve has rank {0}, but the p-adic L-series vanishes to order <= {1}".format(r, v))
             if v == r:
                 self.__ord = v
                 return v
@@ -782,30 +784,30 @@ class pAdicLseriesOrdinary(pAdicLseries):
         """
         n = ZZ(n)
         if n < 1:
-            raise ValueError, "n (=%s) must be a positive integer"%n
+            raise ValueError("n (={0}) must be a positive integer".format(n))
         if not self.is_ordinary():
-            raise ValueError, "p (=%s) must be an ordinary prime"%p
+            raise ValueError("p (={0}) must be an ordinary prime".format(self._p))
         # check if the conditions on quadratic_twist are satisfied
         D = ZZ(quadratic_twist)
         if D != 1:
             if D % 4 == 0:
                 d = D//4
                 if not d.is_squarefree() or d % 4 == 1:
-                    raise ValueError, "quadratic_twist (=%s) must be a fundamental discriminant of a quadratic field"%D
+                    raise ValueError("quadratic_twist (={0}) must be a fundamental discriminant of a quadratic field".format(D))
             else:
                 if not D.is_squarefree() or D % 4 != 1:
-                    raise ValueError, "quadratic_twist (=%s) must be a fundamental discriminant of a quadratic field"%D
+                    raise ValueError("quadratic_twist (={0}) must be a fundamental discriminant of a quadratic field".format(D))
             if gcd(D,self._p) != 1:
-                raise ValueError, "quadratic twist (=%s) must be coprime to p (=%s) "%(D,self._p)
-            if gcd(D,self._E.conductor())!= 1:
+                raise ValueError("quadratic twist (={0}) must be coprime to p (={1}) ".format(D,self._p))
+            if gcd(D,self._E.conductor()) != 1:
                 for ell in prime_divisors(D):
                     if valuation(self._E.conductor(),ell) > valuation(D,ell) :
-                        raise ValueError, "can not twist a curve of conductor (=%s) by the quadratic twist (=%s)."%(self._E.conductor(),D)
+                        raise ValueError("can not twist a curve of conductor (={0}) by the quadratic twist (={1}).".format(self._E.conductor(),D))
                     
             
         p = self._p
         if p == 2 and self._normalize :
-            print 'Warning : For p=2 the normalization might not be correct !'
+            print('Warning : For p=2 the normalization might not be correct !')
         #verbose("computing L-series for p=%s, n=%s, and prec=%s"%(p,n,prec))
         
 #        bounds = self._prec_bounds(n,prec)

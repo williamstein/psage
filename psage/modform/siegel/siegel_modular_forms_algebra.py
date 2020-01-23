@@ -1,4 +1,5 @@
-from siegel_modular_form import SiegelModularForm, SiegelModularForm_class, SMF_DEFAULT_PREC
+from __future__ import absolute_import
+from .siegel_modular_form import SiegelModularForm, SiegelModularForm_class, SMF_DEFAULT_PREC
 from sage.algebras.algebra import Algebra
 from sage.misc.all import cached_method
 from sage.rings.all import ZZ
@@ -37,27 +38,27 @@ class SiegelModularFormsAlgebraFactory(UniqueFactory):
         """
         from sage.rings.ring import is_Ring
         if not is_Ring(coeff_ring):
-            raise TypeError, 'The coefficient ring must be a ring'
+            raise TypeError('The coefficient ring must be a ring')
         if not (isinstance(group, str) or group is None):
-            raise TypeError, 'The group must be given by a string, or None'
+            raise TypeError('The group must be given by a string, or None')
         if not weights in ('even', 'all'):
-            raise ValueError, "The argument weights must be 'even' or 'all'" 
+            raise ValueError("The argument weights must be 'even' or 'all'") 
         try:
             degree = int(degree)
         except TypeError:
-            raise TypeError, 'The degree must be a positive integer'
+            raise TypeError('The degree must be a positive integer')
         if degree < 1:
-            raise ValueError, 'The degree must be a positive integer'
+            raise ValueError('The degree must be a positive integer')
         if degree == 1:
-            raise ValueError, 'Use ModularForms if you want to work with Siegel modular forms of degree 1'
+            raise ValueError('Use ModularForms if you want to work with Siegel modular forms of degree 1')
         if degree > 2:
-            raise NotImplementedError, 'Siegel modular forms of degree > 2 are not yet implemented'
+            raise NotImplementedError('Siegel modular forms of degree > 2 are not yet implemented')
         try:
             default_prec = int(default_prec)
         except TypeError:
-            raise TypeError, 'The default precision must be a positive integer'
+            raise TypeError('The default precision must be a positive integer')
         
-        from pushout import SiegelModularFormsAlgebraFunctor
+        from .pushout import SiegelModularFormsAlgebraFunctor
         F = SiegelModularFormsAlgebraFunctor(group=group, weights=weights, degree=degree, default_prec=default_prec) 
 
         while hasattr(coeff_ring, 'construction'):
@@ -80,7 +81,7 @@ class SiegelModularFormsAlgebraFactory(UniqueFactory):
             Algebra of Siegel modular forms of degree 2 and all weights on Gamma0(5) over Rational Field
         """
         C, R = key
-        from pushout import CompositConstructionFunctor, SiegelModularFormsAlgebraFunctor
+        from .pushout import CompositConstructionFunctor, SiegelModularFormsAlgebraFunctor
         if isinstance(C, CompositConstructionFunctor):
             F = C.all[-1]
             if len(C.all) > 1:
@@ -88,7 +89,7 @@ class SiegelModularFormsAlgebraFactory(UniqueFactory):
         else:
             F = C
         if not isinstance(F, SiegelModularFormsAlgebraFunctor):
-            raise TypeError, "We expected a SiegelModularFormsAlgebraFunctor, not %s"%type(F)
+            raise TypeError("We expected a SiegelModularFormsAlgebraFunctor, not {0}".format(type(F)))
         return SiegelModularFormsAlgebra_class(coeff_ring=R, group=F._group, weights=F._weights, degree=F._degree, default_prec=F._default_prec)
                        
 SiegelModularFormsAlgebra = SiegelModularFormsAlgebraFactory('SiegelModularFormsAlgebra')
@@ -350,7 +351,7 @@ class SiegelModularFormsAlgebra_class(Algebra):
             from sage.rings.all import infinity
             return self.element_class(parent=self, weight=0, coeffs=d, prec=infinity, name=str(x))
         else:
-            raise TypeError, "Unable to construct an element of %s corresponding to %s" %(self, x)
+            raise TypeError("Unable to construct an element of {0} corresponding to {1}".format(self, x))
 
     Element = SiegelModularForm_class
 
@@ -385,7 +386,7 @@ class SiegelModularFormsAlgebra_class(Algebra):
         elif R.has_coerce_map_from(S):
             xS = R
         else:
-            raise TypeError, "cannot extend to %s" %R
+            raise TypeError("cannot extend to {0}".format(R))
         return SiegelModularFormsAlgebra(coeff_ring=xS, group=self.group(), weights=self.weights(), degree=self.degree(), default_prec=self.default_prec())
 
     def construction(self):
@@ -398,7 +399,7 @@ class SiegelModularFormsAlgebra_class(Algebra):
             sage: S.construction()
             (SMFAlg{"Sp(4,Z)", "even", 2, 101}, Rational Field)
         """
-        from pushout import SiegelModularFormsAlgebraFunctor
+        from .pushout import SiegelModularFormsAlgebraFunctor
         return SiegelModularFormsAlgebraFunctor(self.group(), self.weights(), self.degree(), self.default_prec()), self.coeff_ring()
 
 
@@ -461,7 +462,7 @@ def _siegel_modular_forms_generators(parent, prec=None, degree=0):
             b.append(F)
         if weights == 'even': return b
         if weights == 'all':
-            from fastmult import chi35
+            from .fastmult import chi35
             coeffs35 = chi35(prec, b[0], b[1], b[2], b[3])
             from sage.groups.all import KleinFourGroup
             G = KleinFourGroup()
@@ -472,7 +473,7 @@ def _siegel_modular_forms_generators(parent, prec=None, degree=0):
             E = E*det
             b.append(E)
             return b
-        raise ValueError, "weights = '%s': should be 'all' or 'even'" %weights
+        raise ValueError("weights = '{0}': should be 'all' or 'even'".format(weights))
     if group == 'Sp(4,Z)' and weights == 'even' and 2 == degree:
         b = _siegel_modular_forms_generators(parent=parent)
         c = []
@@ -481,5 +482,5 @@ def _siegel_modular_forms_generators(parent, prec=None, degree=0):
             for G in b[(i+1):]:
                 c.append(F.satoh_bracket(G))
         return c
-    raise NotImplementedError, "Not yet implemented"
+    raise NotImplementedError("Not yet implemented")
 

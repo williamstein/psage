@@ -69,7 +69,7 @@ class ParamodularFormD2FourierExpansionHeckeAction_class (SageObject):
             try :
                 weight = expansion.weight()
             except AttributeError :
-                raise ValueError, "weight must be defined for the Hecke action"
+                raise ValueError("weight must be defined for the Hecke action")
         
         precision = expansion.precision()
         if precision.is_infinite() :
@@ -80,7 +80,7 @@ class ParamodularFormD2FourierExpansionHeckeAction_class (SageObject):
         expansion_level = precision.level()
         
         if gcd(expansion_level, self.__l) != 1 :
-            raise ValueError, "Level of expansion and of Hecke operator must be coprime."
+            raise ValueError("Level of expansion and of Hecke operator must be coprime.")
         
         hecke_expansion = dict()
         for ch in characters :
@@ -93,10 +93,12 @@ class ParamodularFormD2FourierExpansionHeckeAction_class (SageObject):
         return result
         
     # TODO : reimplement in cython
-    def hecke_coeff(self, expansion, ch, ((a,b,c), l), k, N) :
+    def hecke_coeff(self, expansion, ch, a_b_c_l, k, N) :
         r"""
         Computes the coefficient indexed by $(a,b,c)$ of $T(\ell) (F)$
         """
+        (a,b,c) = a_b_c_l[0]
+        l = a_b_c_l[1]
         character_eval = expansion.parent()._character_eval_function()
         
         if N == 1 :
@@ -151,12 +153,14 @@ class ParamodularFormD2FourierExpansionHeckeAction_class (SageObject):
         return rep_list
 
     @staticmethod
-    def change_variables((a,b,c,d), (n,r,m)):
+    def change_variables(a_b_c_d, n_r_m):
         r"""
         A helper function used in hecke_coeff that computes the
         quadratic form [nprime,rprime,mprime] given by $Q((x,y) V)$
         where $Q=[n,r,m]$ and $V$ is a 2 by 2 matrix given by (a,b,c,d)
         """        
+        (a,b,c,d) = a_b_c_d
+        (n,r,m) = n_r_m
         return ( n*a**2 + r*a*b + m*b**2, 2*(n*a*c + m*b*d) + r*(a*d + c*b), \
                  n*c**2 + r*c*d + m*d**2 )
 

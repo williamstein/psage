@@ -44,6 +44,7 @@ from sage.rings.number_field.number_field import CyclotomicField
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.rings.rational_field import QQ
 from sage.structure.sequence import Sequence
+from functools import reduce
 
 
 #===============================================================================
@@ -66,7 +67,7 @@ def JacobiFormsD1NN(A, type, precision, *args, **kwds) :
         if isinstance(type, JacobiFormD1NN_Gamma) :
             M = ModularFormsModule_generic(A, type, precision)
         else :
-            raise TypeError, "%s must be a Jacobi form type" % (type,)
+            raise TypeError("{0} must be a Jacobi form type".format(type))
         
         _jacobiforms_cache[k] = M
         return M
@@ -92,7 +93,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
     """
     def __init__(self, index, weight) :
         if weight % 2 != 0 :
-            raise NotImplementedError, "Only even weight forms are implemented."
+            raise NotImplementedError("Only even weight forms are implemented.")
   
         self.__index = index
         self.__weight = weight        
@@ -195,7 +196,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
             try :
                 return R.gen(self._generator_names(K).index(name))
             except ValueError :
-                raise ValueError, "name %s doesn't exist for %s" % (name, K)
+                raise ValueError("name {0} doesn't exist for {1}".format(name, K))
         
         raise NotImplementedError
     

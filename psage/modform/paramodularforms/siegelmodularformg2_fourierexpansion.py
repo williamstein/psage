@@ -44,6 +44,7 @@ from psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion_cython 
                      mult_coeff_generic_without_character, \
                      reduce_GL, xreduce_GL
 from sage.rings.integer import Integer
+from functools import reduce
 
 #===============================================================================
 # SiegelModularFormG2Filter_discriminant
@@ -106,7 +107,7 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
     
     def __iter__(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         if self.__reduced :
             for c in xrange(0, self._indefinite_content_bound()) :
@@ -144,7 +145,7 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
 
     def iter_positive_forms_with_content(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         
         if self.__reduced :        
@@ -177,7 +178,7 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
     
     def iter_indefinite_forms(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         
         if self.__reduced :
@@ -233,7 +234,7 @@ class SiegelModularFormG2Indices_discriminant_xreduce( SageObject ) :
         elif not self.__reduced and i == 3 :
             return (1, -1, 1)
         
-        raise ValueError, "Generator not defined"
+        raise ValueError("Generator not defined")
     
     def gens(self) :    
         return [self.gen(i) for i in xrange(self.ngens())]
@@ -270,8 +271,8 @@ class SiegelModularFormG2Indices_discriminant_xreduce( SageObject ) :
             return SiegelModularFormG2Filter_discriminant(min(4*a*c - b**2 for (a,b,c) in ls) + 1,
                                       self.__reduced)
         
-        raise ArithmeticError, "Discriminant filter does not " + \
-                               "admit minimal composition filters"
+        raise ArithmeticError("Discriminant filter does not " + \
+                               "admit minimal composition filters")
         
     def _reduction_function(self) :
         return xreduce_GL
@@ -346,7 +347,7 @@ class SiegelModularFormG2VVRepresentation ( SageObject ) :
         if L.has_coerce_map_from(self.__K) :
             return SiegelModularFormG2VVRepresentation( L )
         
-        raise ValueError, "Base extension of representation is not defined"
+        raise ValueError("Base extension of representation is not defined")
         
     def extends(self, other) :
         if isinstance(other, TrivialRepresentation) :

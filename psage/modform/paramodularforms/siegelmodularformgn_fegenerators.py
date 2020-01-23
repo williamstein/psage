@@ -58,7 +58,7 @@ def DukeImamogluLift(f, f_weight, precision) :
         modular forms of even genus", Section 5, Theorem 1. 
     """
     if not isinstance(precision, SiegelModularFormGnFilter_diagonal_lll) :
-        raise TypeError, "precision must be an instance of SiegelModularFormGnFilter_diagonal_lll"
+        raise TypeError("precision must be an instance of SiegelModularFormGnFilter_diagonal_lll")
 
     ## TODO: Neatly check the input type.
     half_integral_weight = not isinstance(f, EquivariantMonoidPowerSeries_abstract)

@@ -1,1 +1,2 @@
-from jacobiformd1nn_types import JacobiFormsD1NN, JacobiFormD1NN_Gamma
+from __future__ import absolute_import
+from .jacobiformd1nn_types import JacobiFormsD1NN, JacobiFormD1NN_Gamma

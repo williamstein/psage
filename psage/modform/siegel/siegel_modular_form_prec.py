@@ -1,6 +1,7 @@
 """
 Precision for Fourier expansions of Siegel modular forms
 """
+from __future__ import absolute_import
 
 
 from copy import deepcopy
@@ -109,7 +110,7 @@ class SiegelModularFormPrecision (SageObject):
                 self.__prec = ( Integer(a), Integer(b), Integer(c))
                 
         else:
-            raise TypeError, "incorrect type %s for prec" % type(prec)
+            raise TypeError("incorrect type {0} for prec".format(type(prec)))
     
     def _repr_(self):
         r"""
@@ -130,10 +131,9 @@ class SiegelModularFormPrecision (SageObject):
         elif self.type() == 'box':
             n = "Box"
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
             
-        return "%s precision for Siegel modular form with bound %s" % \
-               (n, repr(self.__prec))
+        return "{0} precision for Siegel modular form with bound {1}".format(n, repr(self.__prec))
 
     
     def _latex_(self):
@@ -156,9 +156,9 @@ class SiegelModularFormPrecision (SageObject):
         elif self.__type == 'box':
             n = "Box"
         else:
-            raise ValueError, "Unexpected value of self.__type"
+            raise ValueError("Unexpected value of self.__type")
 
-        return "%s precision for Siegel modular form with bound $%s$" %(str(n),str(latex(self.__prec)))
+        return "{0} precision for Siegel modular form with bound ${1}$".format(str(n),str(latex(self.__prec)))
 
 
     def type(self):
@@ -233,7 +233,7 @@ class SiegelModularFormPrecision (SageObject):
         """
         (a, b, c) = t
 
-        from fastmult import reduce_GL
+        from .fastmult import reduce_GL
         if self.__type == 'infinity':
             return True        
         elif self.__type == 'disc':
@@ -249,7 +249,7 @@ class SiegelModularFormPrecision (SageObject):
             (a, b, c) = reduce_GL(a, b, c)
             return a < self.__prec[0] and b < self.__prec[1] and c < self.__prec[2]
         else:
-            raise RuntimeError, "Unexpected value of self.__type"        
+            raise RuntimeError("Unexpected value of self.__type")        
 
 
     def get_contents_bound_for_semi_definite_forms(self):
@@ -281,7 +281,7 @@ class SiegelModularFormPrecision (SageObject):
         elif self.__type == 'box':
             return self.__prec[2]
         else:
-            raise RuntimeError, "Unexpected value of self.__type"        
+            raise RuntimeError("Unexpected value of self.__type")        
 
 
     def __lt__(self, other):
@@ -309,7 +309,7 @@ class SiegelModularFormPrecision (SageObject):
 
         """
         if not isinstance(other, SiegelModularFormPrecision):
-            raise NotImplementedError, "can only compare with elements of the same class"
+            raise NotImplementedError("can only compare with elements of the same class")
 
         ## TODO: implement comparison of precisions of different types
         if self.__type != other.__type:
@@ -325,7 +325,7 @@ class SiegelModularFormPrecision (SageObject):
             return self.__prec < other.__prec
 
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
 
         
     def __le__(self, other):
@@ -383,7 +383,7 @@ class SiegelModularFormPrecision (SageObject):
         """
 
         if not isinstance(other, SiegelModularFormPrecision):
-            raise NotImplementedError, "can only compare with elements of the same class"
+            raise NotImplementedError("can only compare with elements of the same class")
         
         return ( self.__type == other.type() and self.__prec == other.prec())
 
@@ -487,7 +487,7 @@ class SiegelModularFormPrecision (SageObject):
                         yield (a,b,c)
 
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
             
         raise StopIteration
 
@@ -526,6 +526,6 @@ class SiegelModularFormPrecision (SageObject):
                         yield (a,b,c)
 
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
             
         raise StopIteration

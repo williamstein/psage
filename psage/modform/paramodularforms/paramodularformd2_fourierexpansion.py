@@ -45,6 +45,7 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.structure.sage_object import SageObject
 import itertools
+from functools import reduce
 
 #===============================================================================
 # ParamodularFormD2Indices_discriminant
@@ -86,7 +87,7 @@ class ParamodularFormD2Indices_discriminant( SageObject ) :
         elif not self.__reduced and i == 3 :
             return ((1, -1, 1), 0)
         
-        raise ValueError, "Generator not defined"
+        raise ValueError("Generator not defined")
     
     def gens(self) :    
         return [self.gen(i) for i in xrange(self.ngens())]
@@ -134,8 +135,8 @@ class ParamodularFormD2Indices_discriminant( SageObject ) :
                     min(4*self.__level*a*c - b**2 for (a,b,c) in ls),
                     self.__reduced)
         
-        raise ArithmeticError, "Discriminant filter does not " + \
-                               "admit minimal composition filters"
+        raise ArithmeticError("Discriminant filter does not " + \
+                               "admit minimal composition filters")
         
     def _reduction_function(self) :
         return lambda s: reduce_GL(s, self.__p1list)
@@ -300,7 +301,7 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
         
     def iter_positive_forms(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         if self.__reduced :
             for (l, (u,x)) in enumerate(self.__p1list) :
@@ -363,7 +364,7 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
     
     def iter_indefinite_forms(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         
         if self.__reduced :
@@ -381,7 +382,7 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
 
     def _iter_positive_forms_with_content_and_discriminant(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         if self.__reduced :
             for (l, (u,x)) in enumerate(self.__p1list) :
@@ -513,7 +514,7 @@ class ParamodularFormD2Filter_trace (SageObject) :
         
     def iter_positive_forms(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         if self.__reduced :
             for (l, (u,x)) in enumerate(self.__p1list) :
@@ -552,7 +553,7 @@ class ParamodularFormD2Filter_trace (SageObject) :
     
     def iter_indefinite_forms(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         if self.__reduced :
             for (l, (u,_)) in enumerate(self.__p1list) :

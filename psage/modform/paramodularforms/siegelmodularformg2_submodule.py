@@ -80,12 +80,12 @@ class SiegelModularFormG2SubmoduleVector_generic ( GradedExpansionSubmoduleVecto
         try :
             weight = self.parent().weight() 
         except AttributeError :
-            raise TypeError, "Can check cusps only for spaces of homogeneous weight"
+            raise TypeError("Can check cusps only for spaces of homogeneous weight")
         
         neccessary_precision = weight // 12 + 1 if weight % 12 != 2 \
                                                 else weight // 12
         if self.parent().ring().fourier_expansion_precision()._indefinite_content_bound() < neccessary_precision :
-            raise ValueError, "the parents precision doesn't suffice"
+            raise ValueError("the parents precision doesn't suffice")
         
         evc = self.fourier_expansion()
         return all([evc[(0,0,l)] == 0 for l in xrange(neccessary_precision)])

@@ -47,6 +47,7 @@ from sage.rings.rational_field import QQ
 from sage.structure.sage_object import SageObject
 import itertools
 import operator
+from functools import reduce
 
 
 #===============================================================================

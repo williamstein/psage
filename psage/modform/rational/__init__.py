@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -20,5 +21,5 @@
 #################################################################################
 
 
-from newforms import (degrees,
+from .newforms import (degrees,
                       eigenvalue_fields)

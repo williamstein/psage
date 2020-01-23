@@ -47,7 +47,7 @@ class SiegelModularFormG2_generic :
         neccessary_precision = weight // 12 + 1 if weight % 12 != 2 \
                                                 else weight // 12
         if self.parent().fourier_expansion_precision()._indefinite_content_bound() < neccessary_precision :
-            raise ValueError, "the parents precision doesn't suffice"
+            raise ValueError("the parents precision doesn't suffice")
         
         evc = self.fourier_expansion()
         return all([evc[(0,0,l)] == 0 for l in xrange(neccessary_precision)])

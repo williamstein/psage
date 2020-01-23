@@ -44,13 +44,14 @@ class ParamodularFormD2_classical ( ParamodularFormD2_generic, ModularForm_gener
     def is_gritsenko_form(self) :
         raise NotImplementedError    
 
-    def atkin_lehner_eigenvalue_numerical(self, (tau1, z, tau2)) :
+    def atkin_lehner_eigenvalue_numerical(self, t):
+        (tau1, z, tau2) = t
         from sage.libs.mpmath import mp
         from sage.libs.mpmath.mp import exp, pi
         from sage.libs.mpmath.mp import j as i
         
         if not Integer(self.__level()).is_prime() :
-            raise ValueError, "The Atkin Lehner involution is only unique if the level is a prime"
+            raise ValueError("The Atkin Lehner involution is only unique if the level is a prime")
         
         precision = ParamodularFormD2Filter_trace(self.precision())
         
@@ -78,13 +79,14 @@ class ParamodularFormD2_classical ( ParamodularFormD2_generic, ModularForm_gener
         
         return trans_value / self_value
     
-    def schmidt_t5_eigenvalue_numerical(self, (tau1, z, tau2)) :
+    def schmidt_t5_eigenvalue_numerical(self, t) :
+        (tau1, z, tau2) = t
         from sage.libs.mpmath import mp
         from sage.libs.mpmath.mp import exp, pi
         from sage.libs.mpmath.mp import j as i
         
         if not Integer(self.__level()).is_prime() :
-            raise ValueError, "T_5 is only unique if the level is a prime"
+            raise ValueError("T_5 is only unique if the level is a prime")
         
         precision = ParamodularFormD2Filter_trace(self.precision())
         
@@ -99,12 +101,12 @@ class ParamodularFormD2_classical ( ParamodularFormD2_generic, ModularForm_gener
         
         ## Prepare the operation for d_1(N)
         ## We have to invert the lifts since we will later use apply_GL_to_form
-        d1_matrices = [p1list.lift_to_sl2z(i) for i in xrange(len(p1list))]
-        d1_matrices = map(lambda (a,b,c,d): (d,-b,-c,a), d1_matrices)
+        d1_matrices = [p1list.lift_to_sl2z(i) for i in range(len(p1list))]
+        d1_matrices = map(lambda a_b_c_d: (a_b_c_d[3],-a_b_c_d[1],-a_b_c_d[2],a_b_c_d[0]), d1_matrices)
         
         ## Prepare the evaluation points corresponding to d_02(N)
         d2_points = list()
-        for i in xrange(len(p1list())) :
+        for i in range(len(p1list())) :
             (a, b, c, d) = p1list.lift_to_sl2z(i)
             tau1p = (a * tau1 + b) / (c * tau1 + d)
             zp = z / (c * tau1 + d)

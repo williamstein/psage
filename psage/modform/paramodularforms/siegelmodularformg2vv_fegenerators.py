@@ -118,14 +118,14 @@ def _satoh_bracket(f, g, f_weight, g_weight) :
     - The return value is a Equivariant monoid power series.
     """
     if not f.parent() == g.parent() :
-        raise ValueError, "The fourier expansions of f and g must" + \
-                          " have the same parent"
+        raise ValueError("The fourier expansions of f and g must" + \
+                          " have the same parent")
 
     base_ring = f.parent().coefficient_domain()
     if len(f.non_zero_components()) != 1 :
-        raise ValueError, "f must have only one non-vanishing character"
+        raise ValueError("f must have only one non-vanishing character")
     if len(g.non_zero_components()) != 1 :
-        raise ValueError, "g must have only one non-vanishing character"
+        raise ValueError("g must have only one non-vanishing character")
     
     fe_ring = SiegelModularFormG2VVFourierExpansionRing(base_ring)
     R = fe_ring.coefficient_domain()

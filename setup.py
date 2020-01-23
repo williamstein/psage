@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -26,7 +27,7 @@ import os, sys
 from sage.env import sage_include_directories,SAGE_INC,SAGE_LIB,SAGE_LOCAL
 import subprocess 
 
-if sys.maxint != 2**63 - 1:
+if sys.maxsize != 2**63 - 1:
     print("*"*70)
     print("The PSAGE library only works on 64-bit computers.  Terminating build.")
     print("*"*70)
@@ -42,11 +43,11 @@ else:
 from module_list import ext_modules,aliases
 
 include_dirs = sage_include_directories(use_sources=True)
-include_dirs = include_dirs + [SAGE_LIB]
+include_dirs = include_dirs + [SAGE_LIB] + ["/usr/local/lib"]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"cysignals/")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/ext/")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/cpython/")]
-extra_compile_args = [ "-fno-strict-aliasing" ]
+extra_compile_args = [ "-fno-strict-aliasing","-Wno-deprecated-register" ]
 extra_link_args = [ ]
 
 DEVEL = False

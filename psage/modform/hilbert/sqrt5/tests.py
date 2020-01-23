@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -23,8 +25,8 @@ _multiprocess_can_split_ = True
 
 import random
 from sage.all import set_random_seed, primes
-from sqrt5 import *
-from sqrt5_fast import *
+from .sqrt5 import *
+from .sqrt5_fast import *
 
 def prime_powers(B=100, emax=5):
     for p in primes(B+1):
@@ -174,7 +176,7 @@ def test_sqrt5b(emax=4):
 def test_local_splitting_maps(B=11,e=3, verbose=True):
     ans = []
     for p, P, e in prime_powers(B,e):
-        print p, P, e
+        print(p, P, e)
         r = ModN_Reduction(P**e)
 
 def test_local_splitting_maps_1():
@@ -212,15 +214,15 @@ def test_sqrtmod_long_2(e_max=15):
 ################################################################
 
 def test_hecke_commutes(Bmin=2, Bmax=50):
-    from tables import ideals_of_bounded_norm
-    from hmf import HilbertModularForms, next_prime_of_characteristic_coprime_to
+    from .tables import ideals_of_bounded_norm
+    from .hmf import HilbertModularForms, next_prime_of_characteristic_coprime_to
     for N in ideals_of_bounded_norm(Bmax):
         if N.norm() < Bmin: continue
-        print N.norm()
+        print(N.norm())
         H = HilbertModularForms(N)
         p = next_prime_of_characteristic_coprime_to(F.ideal(1), N)
         q = next_prime_of_characteristic_coprime_to(p, N)
-        print p, q
+        print(p, q)
         T_p = H.T(p)
         T_q = H.T(q)
         assert T_p*T_q == T_q*T_p, "Hecke operators T_{%s} and T_{%s} at level %s (of norm %s) don't commute"%(p, q, N, N.norm())
@@ -246,16 +248,16 @@ def test_hecke_commutes(Bmin=2, Bmax=50):
 
 
 def test_hecke_invariance_of_new_subspace(Bmin=2, Bmax=300):
-    from tables import ideals_of_bounded_norm
-    from hmf import HilbertModularForms, next_prime_of_characteristic_coprime_to
+    from .tables import ideals_of_bounded_norm
+    from .hmf import HilbertModularForms, next_prime_of_characteristic_coprime_to
     for N in ideals_of_bounded_norm(Bmax):
         if N.norm() < Bmin: continue
-        print N.norm()
+        print(N.norm())
         H = HilbertModularForms(N)
         NS = H.new_subspace()
         p = next_prime_of_characteristic_coprime_to(F.ideal(1), N)
         q = next_prime_of_characteristic_coprime_to(p, N)
-        print p, q
+        print(p, q)
         T_p = NS.T(p)
         T_q = NS.T(q)
         assert T_p*T_q == T_q*T_p, "Hecke operators T_{%s} and T_{%s} at level %s (of norm %s) don't commute"%(p, q, N, N.norm())

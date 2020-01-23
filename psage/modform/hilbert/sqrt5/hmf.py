@@ -22,19 +22,21 @@
 """
 Weight 2 Hilbert modular forms over F = Q(sqrt(5)).
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 from sage.misc.cachefunc import cached_method
 
-from sqrt5 import F, O_F
+from .sqrt5 import F, O_F
 
 from psage.number_fields.sqrt5 import primes_of_bounded_norm
 
 
-from sqrt5_fast import IcosiansModP1ModN
+from .sqrt5_fast import IcosiansModP1ModN
 from sage.rings.all import Integer, QQ, ZZ
 from sage.arith.all import prime_divisors,next_prime
 from sage.rings.ideal import is_Ideal
-from tables import ideals_of_norm
+from .tables import ideals_of_norm
 from sage.matrix.all import matrix
 from sage.structure.all import Sequence
 
@@ -145,14 +147,14 @@ class Space(object):
             p = next_prime_of_characteristic_coprime_to(p, self.level())
             if p.norm() > B:
                 break
-            if verbose: print p.norm()
+            if verbose: print(p.norm())
             T = self.hecke_matrix(p)
             D2 = []
             for X in D:
                 if X[1]:
                     D2.append(X)
                 else:
-                    if verbose: print T.restrict(X[0]).fcp()
+                    if verbose: print(T.restrict(X[0]).fcp())
                     for Z in T.decomposition_of_subspace(X[0]):
                         D2.append(Z)
             D = D2
@@ -171,14 +173,14 @@ class Space(object):
         D = T.decomposition_of_subspace(V)
         while len([X for X in D if not X[1]]) > 0:
             p = next_prime_of_characteristic_coprime_to(p, self.level())
-            if verbose: print p.norm()
+            if verbose: print(p.norm())
             T = self.hecke_matrix(p)
             D2 = []
             for X in D:
                 if X[1]:
                     D2.append(X)
                 else:
-                    if verbose: print T.restrict(X[0]).fcp()
+                    if verbose: print(T.restrict(X[0]).fcp())
                     for Z in T.decomposition_of_subspace(X[0]):
                         D2.append(Z)
             D = D2
@@ -243,7 +245,7 @@ class HilbertModularForms(Space):
         # to be transparent to see which matrices have been computed,
         # to clear the cache, etc.
         n = ideal(n)
-        if self._hecke_matrices.has_key(n):
+        if n in self._hecke_matrices:
             return self._hecke_matrices[n]
         t = self._icosians_mod_p1.hecke_matrix(n)
         t.set_immutable()
@@ -264,7 +266,7 @@ class HilbertModularForms(Space):
                     A = A.augment(self.degeneracy_matrix(p))
             return A
         p = ideal(p)
-        if self._degeneracy_matrices.has_key(p):
+        if p in self._degeneracy_matrices:
             return self._degeneracy_matrices[p]
         d = self._icosians_mod_p1.degeneracy_matrix(p)
         d.set_immutable()
@@ -475,7 +477,7 @@ class EllipticCurveFactor(object):
             if not P.divides(N):
                 T = H.hecke_matrix(P).transpose()
                 V = (T - self.ap(P)).kernel_on(V)
-        raise RuntimeError, "unable to isolate 1-dimensional space"
+        raise RuntimeError("unable to isolate 1-dimensional space")
 
     @cached_method
     def dual_eigenvector(self, B=None):
@@ -541,5 +543,5 @@ class EllipticCurveFactor(object):
                 aplist.append(ap)
             return aplist
         else:
-            raise ValueError, "unknown algorithm '%s'"%algorithm
+            raise ValueError("unknown algorithm '{0}'".format(algorithm))
 

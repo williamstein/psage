@@ -42,10 +42,11 @@ TODO: This implementation is slow.  This is since matrix arithmetic is
 generic, and generic matrix arithmetic is double dog slow (100 times
 too slow).  I think the algorithm itself is solid.
 """
+from __future__ import absolute_import
 
-from sqrt5_fast import ResidueRing
+from .sqrt5_fast import ResidueRing
 from sage.matrix.all import MatrixSpace, matrix
-from sqrt5 import F, B, icosian_ring_gens
+from .sqrt5 import F, B, icosian_ring_gens
 from sage.misc.all import cached_function
 
 @cached_function

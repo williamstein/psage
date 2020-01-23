@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -21,5 +22,5 @@
 
 
 #import sqrt5
-import hn_class
+from . import hn_class
 #from hilbert_modular_group_alg import *

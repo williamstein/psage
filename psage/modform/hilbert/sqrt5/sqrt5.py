@@ -99,6 +99,8 @@ This relies on having TH from above (say from the level 31 block above)::
     11 a + 3 (x - 12) * (x + 3)^2 * (x^4 - 17*x^2 + 68)
     11 2*a + 3 (x - 12) * (x^2 + 5*x + 5) * (x^4 - x^3 - 23*x^2 + 18*x + 52)
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 
 from sage.all import NumberField, polygen, QQ, ZZ, QuaternionAlgebra, cached_function, disk_cached_function
@@ -151,12 +153,12 @@ def modp_splitting(p):
     # Inspired by the code in the function
     # modp_splitting_data in algebras/quatalg/quaternion_algebra.py
     if p.number_field() != B.base():
-        raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
+        raise ValueError("p must be a prime ideal in the base field of the quaternion algebra")
     if not p.is_prime():
-        raise ValueError, "p must be prime"
+        raise ValueError("p must be prime")
     
     if F is not p.number_field():
-        raise ValueError, "p must be a prime of %s"%F
+        raise ValueError("p must be a prime of {0}".format(F))
     
     k = p.residue_field()
 
@@ -626,7 +628,7 @@ def P1_orbits(p):
     while len(orbits) < len(P1):
         for u in ICO:
             s = act(u, cur)
-            if not orbits.has_key(s):
+            if s not in orbits:
                 orbits[s] = cur
         if len(orbits) < len(P1):
             # choose element of P1 not a key
@@ -719,7 +721,7 @@ def totally_pos_gen(p):
     assert F.degree() == 2 and F.discriminant() > 0
     G = p.gens_reduced()
     if len(G) != 1:
-        raise ValueError, "ideal not principal"
+        raise ValueError("ideal not principal")
     g = G[0]
 
     from sage.all import RR
@@ -736,14 +738,14 @@ def totally_pos_gen(p):
         if ue[0] < 0 and ue[1] > 0:
             return u*g
         else:
-            raise ValueError, "no totally positive generator"
+            raise ValueError("no totally positive generator")
     elif e[0] > 0 and e[1] > 0:
         return g
     elif e[0] > 0 and e[1] < 0:
         if ue[0] < 0 and ue[1] > 0:
             return -u*g
         else:
-            raise ValueError, "no totally positive generator"
+            raise ValueError("no totally positive generator")
     assert False, "bug"
 
 def gram_matrix_of_maximal_order(R):
@@ -849,7 +851,7 @@ def bounded_elements(N):
         V.append(sum(w[j]*R[j] for j in range(8)))
     return V
 
-from tables import primes_of_bounded_norm
+from .tables import primes_of_bounded_norm
 
 def THETA(N):
     r"""
@@ -909,7 +911,7 @@ def THETA(N):
 
     # Find totally positive generators pi_p
     pi = [totally_pos_gen(p) for p in S]
-    print "pi =",pi
+    print("pi ={0}".format(pi))
 
     # Compute traces of the generators, since that's what
     # the bounded_elements command computes up to.
@@ -940,7 +942,7 @@ def THETA(N):
     # the dictionary for pi_p has keys reduced vectors
     # in (OF/p)^2.  Here "reduced" just means "reduced
     # row echelon form", so scaled so first entry is 1.
-    print "Sorting through %s elements"%len(X)
+    print("Sorting through {0} elements".format(len(X)))
     for a in X:
         nrm = a.reduced_norm()
         if nrm in pi_set:
@@ -953,7 +955,7 @@ def THETA(N):
             # v = theta_map[nrm](a).echelon_form()[0]
             
             z = Theta[nrm]
-            if z.has_key(v):
+            if v in z:
                 pass
             else:
                 z[v] = a
@@ -988,15 +990,15 @@ def hecke_ops2(c, X):
         z = X[pi]
         mat = []
         for x in reps:
-            print "x = %s,  card = %s"%(x, len([M for M in reduce.keys() if reduce[M]==x]))
+            print("x = {0},  card = {1}".format(x, len([M for M in reduce.keys() if reduce[M]==x])))
             row = [0]*len(reps)
             for _, w in z.iteritems():
                 w_c = theta_c(w)
                 y = w_c**(-1) * x
-                print "y =", y
+                print("y ={0}".format(y))
                 y_red = reduce[P1(y)]
                 row[reps.index(y_red)] += 1
-                print "y_red =", y_red
+                print("y_red ={0}".format(y_red))
             mat.append(row)
         from sage.all import matrix
         return matrix(ZZ, mat)
@@ -1100,7 +1102,7 @@ class AlphaZ:
             a = sum([W[i]*r[i] for i in range(8)])
             if a.reduced_norm() == self.pi:
                 return a
-        raise ValueError, "bug"
+        raise ValueError("bug")
 
     def all_alpha(self):
         return [self.alpha(z) for z in P1ModList(self.P)]
@@ -1113,8 +1115,8 @@ path = '/tmp/hmf-%s'%os.environ['USER']
 # We want to avoid a race condition... 
 try: 
     os.makedirs(path)
-except OSError, e:
-    if e.errno <> 17:
+except OSError as e:
+    if e.errno != 17:
         raise e
 
     
@@ -1132,7 +1134,7 @@ def hecke_elements(P):
 #  [[-a-1,0,a-2,1], [-a-1,a-1,-a+1,a-1], [-a-1,-a+1,-a+1,a-1], [-a-1,-a+2,-1,0], [-a-1,a-2,-1,0]]
 def hecke_elements_2():
     P = F.primes_above(2)[0]
-    from sqrt5_fast import ModN_Reduction
+    from .sqrt5_fast import ModN_Reduction
     from sage.matrix.all import matrix
         
     f = ModN_Reduction(P)
@@ -1157,7 +1159,7 @@ def hecke_elements_2():
         z = sum(v[i]*G[i] for i in range(4))
         if z.reduced_norm() == 2:
             t = pi(z)
-            if not ans.has_key(t):
+            if t not in ans:
                 ans[t] = z
             if len(ans) == 5:
                 return [x for _, x in ans.iteritems()]
@@ -1208,7 +1210,7 @@ class HMF:
 def residue_ring(N):
     fac = N.factor()
     if len(fac) != 1:
-        raise NotImplementedError, "P must be a prime power"
+        raise NotImplementedError("P must be a prime power")
     from sage.rings.all import kronecker_symbol
 
     P, e = fac[0]
@@ -1266,7 +1268,7 @@ class ResidueRing_split(ResidueRing_base):
         elif gen - roots[1] in N:
             im_gen = roots[1]
         else:
-            raise RuntimError, 'bug'
+            raise RuntimError('bug')
         self._ring = ZZ.quotient(p**e)
         self._im_gen = self._ring(im_gen)
 
@@ -1456,16 +1458,16 @@ class Mod_P_reduction_map:
     def _compute_IJ(self, p, e):
         global B, F
         if p.number_field() != B.base():
-            raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
+            raise ValueError("p must be a prime ideal in the base field of the quaternion algebra")
         if not p.is_prime():
-            raise ValueError, "p must be prime"
+            raise ValueError("p must be prime")
 
         if p.number_field() != B.base():
-            raise ValueError, "p must be a prime ideal in the base field of the quaternion algebra"
+            raise ValueError("p must be a prime ideal in the base field of the quaternion algebra")
         if not p.is_prime():
-            raise ValueError, "p must be prime"
+            raise ValueError("p must be prime")
         if F is not p.number_field():
-            raise ValueError, "p must be a prime of %s"%F
+            raise ValueError("p must be a prime of {0}".format(F))
 
         R = residue_ring(p**e)
         if isinstance(R, ResidueRing_base):

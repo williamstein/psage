@@ -26,7 +26,8 @@ MFDB database.
 """
 from __future__ import print_function
 
-class Collection:
+from builtins import object
+class Collection(object):
     def __init__(self, collection, db):
         self.collection = collection
         self.db = db

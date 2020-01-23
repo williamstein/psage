@@ -38,6 +38,8 @@ compute the Dirichlet series coefficients of the triple product.
 #################################################################################
 
 
+from builtins import range
+from builtins import object
 from sage.all import ZZ, RDF, CDF
 R_cdf = CDF['x']
 

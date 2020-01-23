@@ -20,6 +20,7 @@ from __future__ import print_function
 #
 #################################################################################
 
+from builtins import range
 def str_to_apdict(s, labels):
     return dict([(labels[a], int(b)) for a,b in enumerate(s.split()) if b != '?'])
 

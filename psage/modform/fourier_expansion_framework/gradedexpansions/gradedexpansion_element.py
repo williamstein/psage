@@ -24,6 +24,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.fourierexpansionwrapper import FourierExpansionWrapper
 from itertools import groupby
 from sage.structure.element import AlgebraElement
@@ -167,7 +170,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
         else :
             normalize = lambda e: e
             vars = self.__polynomial.parent().gens()
-            monomial = lambda e: prod( map(operator.pow, vars, e) )
+            monomial = lambda e: prod( list(map(operator.pow, vars, e)) )
              
         for e in self.__polynomial.exponents() :
             ne = normalize(e)
@@ -206,9 +209,9 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
             [(1,)]
         """
         if self.polynomial().parent().ngens() == 1 :
-            return map(lambda e: (e,), self.polynomial().exponents())
+            return [(e,) for e in self.polynomial().exponents()]
         else :
-            return map(tuple, self.polynomial().exponents())
+            return list(map(tuple, self.polynomial().exponents()))
 
     def grading_index(self) :
         r"""
@@ -246,7 +249,7 @@ class GradedExpansion_abstract ( FourierExpansionWrapper ) :
         elif len(cps) != 1 :
             raise ValueError( "No homogeneous weight." )
         
-        return cps.keys()[0]
+        return list(cps.keys())[0]
     
     def _add_(left, right) :
         r"""
@@ -536,7 +539,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
         
         exps = poly.exponents()
         if poly.parent().ngens() == 1 :
-            exps = map(lambda e: (e,), exps)
+            exps = [(e,) for e in exps]
         exps = sorted(map(tuple, exps), reverse = True)
         
         coefficient_monomials = poly.parent().gens()[:self.parent().nbasegens()]
@@ -549,7 +552,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
             ind = v.index(1)
             c = 0
             for e in es :
-                c += poly[e] * prod(map(operator.pow, coefficient_monomials, e[:self.parent().nbasegens()]))
+                c += poly[e] * prod(list(map(operator.pow, coefficient_monomials, e[:self.parent().nbasegens()])))
             vector_repr[ind] += c
         
         return "Graded expansion vector %s" % (tuple(vector_repr),)
@@ -575,7 +578,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
         
         exps = poly.exponents()
         if poly.parent().ngens() == 1 :
-            exps = map(lambda e: (e,), exps)
+            exps = [(e,) for e in exps]
         exps = sorted(map(tuple, exps), reverse = True)
         
         coefficient_monomials = poly.parent().gens()[:self.parent().nbasegens()]
@@ -588,7 +591,7 @@ class GradedExpansionVector_class ( GradedExpansion_abstract, ModuleElement ) :
             ind = v.index(1)
             c = 0
             for e in es :
-                c += poly[e] * prod(map(operator.pow, coefficient_monomials, e[:self.parent().nbasegens()]))
+                c += poly[e] * prod(list(map(operator.pow, coefficient_monomials, e[:self.parent().nbasegens()])))
             vector_repr[ind] += c
                 
         return r"\text{Graded expansion vector }%s" % (latex(tuple(vector_repr)),)

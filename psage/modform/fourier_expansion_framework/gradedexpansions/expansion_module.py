@@ -24,6 +24,9 @@ AUTHOR:
 #
 #===============================================================================
 
+from builtins import str
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import LazyFourierExpansionEvaluation
 from psage.modform.fourier_expansion_framework.gradedexpansions.fourierexpansionwrapper import FourierExpansionWrapper
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesAmbient_abstract, MonoidPowerSeriesAmbient_abstract
@@ -134,7 +137,7 @@ def ExpansionModule(forms) :
 # ExpansionModule_abstract
 #===============================================================================
 
-class ExpansionModule_abstract :
+class ExpansionModule_abstract(object) :
     r"""
     An abstract implementation of a module with expansions associated to its basis elements.
     """
@@ -300,7 +303,7 @@ class ExpansionModule_abstract :
                 indices = [i for (i,k) in enumerate(total_precision) if k in precision]
             else :
                 indices = [i for (i,(k,_)) in enumerate(
-                  itertools.product(total_precision, range(self._abstract_basis().universe().coefficient_domain().rank())) )
+                  itertools.product(total_precision, list(range(self._abstract_basis().universe().coefficient_domain().rank()))) )
                              if k in precision]
             basis_fe_expansion = basis_fe_expansion.matrix_from_columns(indices)
         
@@ -533,7 +536,7 @@ class ExpansionModule_abstract :
         expansion_matrix = self.fourier_expansion_homomorphism().matrix().transpose()
 
         if expansion_matrix.rank() == self.rank() :
-            return range(self.rank())
+            return list(range(self.rank()))
         else :
             return list(expansion_matrix.pivots())
                   
@@ -1123,7 +1126,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: em.basis()
             [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
         """
-        return map(lambda b: self._element_class(self, b), FreeModule_ambient_pid.basis(self))    
+        return [self._element_class(self, b) for b in FreeModule_ambient_pid.basis(self)]    
         
     def change_ring(self, R):
         r"""
@@ -1211,12 +1214,11 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
                 self._element_class = ExpansionModuleVector_generic
 
         if ambient.precision().is_infinite() :
-            ExpansionModule_abstract.__init__(self, Sequence( map( lambda g: g.fourier_expansion(), gens ),
+            ExpansionModule_abstract.__init__(self, Sequence( [g.fourier_expansion() for g in gens],
                                                               universe = ambient._abstract_basis().universe() ))
         else :
-            ExpansionModule_abstract.__init__(self, Sequence( map( lambda g: LazyFourierExpansionEvaluation( ambient._abstract_basis().universe(), g,
-                                                                                                             ambient.precision() ),
-                                                                   gens ),
+            ExpansionModule_abstract.__init__(self, Sequence( [LazyFourierExpansionEvaluation( ambient._abstract_basis().universe(), g,
+                                                                                                             ambient.precision() ) for g in gens],
                                                               universe = ambient._abstract_basis().universe() ))
         FreeModule_submodule_pid.__init__(self, ambient, gens)
 

@@ -29,7 +29,8 @@ the database with newforms.
 """
 from __future__ import print_function
 
-class Populate:
+from builtins import object
+class Populate(object):
     def __init__(self, collection):
         self.collection = collection
         

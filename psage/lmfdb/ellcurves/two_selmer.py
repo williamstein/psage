@@ -21,6 +21,7 @@ from __future__ import print_function
 #################################################################################
 
 
+from builtins import range
 from sage.all import mwrank_EllipticCurve
 from psage.lmfdb.auth import userpass
 

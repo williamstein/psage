@@ -20,6 +20,7 @@ from __future__ import absolute_import
 #
 #################################################################################
 
+from builtins import str
 def ellcurves_sqrt5(address='localhost:29000', username=None, password=None):
     from sage.databases.cremona import cremona_letter_code
     from psage.modform.hilbert.sqrt5.sqrt5 import F
@@ -48,7 +49,7 @@ def find_isogeneous_curves(ellcurves_sqrt5, E):
     """
     from .aplists import aplist
     w = aplist(E, 100)
-    v = dict([('ap.%s'%p, a) for p, a in w.items()])
+    v = dict([('ap.%s'%p, a) for p, a in list(w.items())])
     from psage.modform.hilbert.sqrt5.tables import canonical_gen    
     v['level'] = str(canonical_gen(E.conductor())).replace(' ','')
     return ellcurves_sqrt5.find(v)

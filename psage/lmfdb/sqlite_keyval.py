@@ -25,11 +25,20 @@ This module implements a simple key:value store using SQLite3 and
 cPickle, and other useful tools built on top of it.
 """
 
-import cPickle, sqlite3, zlib
-
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
+import sqlite3, zlib
+try:
+    import cPickle as pickle
+except:
+    import _pickle as pickle
 # A key:value store
 
-class SQLiteKeyValueStore:
+class SQLiteKeyValueStore(object):
     def __init__(self, file, compress=False):
         """
         Create or open the SQLite3-based key:value database stored in the given file.
@@ -90,7 +99,7 @@ class SQLiteKeyValueStore:
         
     def _dumps(self, x, compress=False):
         """Converts a Python object to a binary string that can be stored in the database."""
-        s = cPickle.dumps(x,2)
+        s = pickle.dumps(x,2)
         if compress:
             s = zlib.compress(s)
         return sqlite3.Binary(s)
@@ -99,7 +108,7 @@ class SQLiteKeyValueStore:
         """Used internally to turn a pickled object in the database into a Python object."""
         if compress:
             x = zlib.decompress(x)
-        return cPickle.loads(x)
+        return pickle.loads(x)
     
     def keys(self):
         """Return list of keys in the database."""
@@ -120,14 +129,14 @@ def test_sqlite_keyval_1():
 
             db[2] = 3
             db[10] = {1:5, '17a':[2,5]}
-            assert db.keys() == [2,10]
+            assert list(db.keys()) == [2,10]
             assert db[10] == {1:5, '17a':[2,5]}
             assert db[2] == 3
             db.commit()
             db[5] = 18  # does not get committed
 
             db = SQLiteKeyValueStore(file, not compress)
-            assert db.keys() == [2,10]
+            assert list(db.keys()) == [2,10]
             assert db[10] == {1:5, '17a':[2,5]}
             assert db[2] == 3
 
@@ -143,7 +152,7 @@ def test_sqlite_keyval_1():
 
 # A SQLite cached function decorator
 
-class sqlite_cached_function:
+class sqlite_cached_function(object):
     """
     Use this like so::
 
@@ -173,7 +182,7 @@ class sqlite_cached_function:
             self.db.commit()
             return x            
         def keys():
-            return self.db.keys()
+            return list(self.db.keys())
         g.keys = keys    
         g.db = self.db
         return g
@@ -242,7 +251,7 @@ def test_sqlite_cached_function_3():
                 return a + b
             return g(a, b)
 
-        for X in f(range(1,30)):
+        for X in f(list(range(1,30))):
             assert X[1] == X[0][0][0] + 10
 
     finally:

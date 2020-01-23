@@ -28,7 +28,7 @@ def examples():
                 p = Integer(p)
                 assert(p.divides(D)), "p is not bad"
                 while p.divides(D):
-                    D = D/p
+                    D = D.divide_knowing_divisible_by(p)
 
             assert abs(D) == 1, "Missing a bad prime."
 

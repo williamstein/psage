@@ -20,6 +20,7 @@ from __future__ import absolute_import
 #
 #################################################################################
 
+from builtins import range
 from sage.rings.complex_mpc import MPComplexField
 from sage.all import ZZ,MatrixSpace,Matrix
 from .linalg_complex_dense import *
@@ -52,7 +53,7 @@ def random_matrix_eigenvalues(F,n):
     M = MatrixSpace(F,n)
     U = Matrix(F,n)
     D = Matrix(F,n)
-    for i in xrange(n):
+    for i in range(n):
         x = F.random_element()
         l.append(x)
         D[i,i]=x

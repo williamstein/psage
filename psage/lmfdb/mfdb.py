@@ -37,7 +37,8 @@ The backup method backs up the whole mfdb database.
 from __future__ import print_function
 from __future__ import absolute_import
 
-class MFDB:
+from builtins import object
+class MFDB(object):
     def __init__(self, host='localhost', port=29000):
         # Open conection to the MongoDB
         from pymongo import Connection

@@ -29,7 +29,8 @@ a dictionary, except that objects are pickled and stored on disk in
 MongoDB.
 """
 
-class ObjectDB:
+from builtins import object
+class ObjectDB(object):
     def __init__(self, db):
         from gridfs import GridFS
         self.gridfs = GridFS(db)

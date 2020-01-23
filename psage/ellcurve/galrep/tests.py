@@ -1,5 +1,6 @@
 from __future__ import absolute_import
-def test_nonsurj(v=range(1,50)):
+from builtins import range
+def test_nonsurj(v=list(range(1,50))):
     """
     For each non CM curve of conductor in the list v, compute the
     primes where the representation isn't surjective using both galrep

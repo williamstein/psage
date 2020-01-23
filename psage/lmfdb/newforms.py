@@ -37,6 +37,8 @@ newforms with given level, weight, and character.  """
 from __future__ import print_function
 from __future__ import absolute_import
 
+from past.builtins import cmp
+from builtins import str
 from .collection import Collection
 
 class NewformCollection(Collection):

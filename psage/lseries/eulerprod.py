@@ -14,6 +14,7 @@ TODO:
     - Fast L-series of elliptic curves over number fields (not just sqrt(5)), via smalljac
     - Inverse of number_of_coefficients function.
 """
+from __future__ import division
 
 #################################################################################
 #
@@ -36,6 +37,10 @@ TODO:
 #
 #################################################################################
 
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+from builtins import object
 import copy, math, types
 
 from sage.all import prime_range, cached_method, sqrt, SR, vector
@@ -105,7 +110,7 @@ def tiny(prec):
     precision for various checks, e.g., of correctness of the
     functional equation.
     """
-    return max(1e-8, 1.0/2**(prec-1))
+    return max(1e-8, 2.0**(1-prec))
 
 def prime_below(P):
     """
@@ -458,8 +463,8 @@ class LSeriesAbstract(object):
     def _is_valid_parameters(self, prec=53, save=True, **kwds):
         valid = False
         try:
-            old = [(k, getattr(self, k)) for k in kwds.keys()]
-            for k,v in kwds.iteritems():
+            old = [(k, getattr(self, k)) for k in list(kwds.keys())]
+            for k,v in kwds.items():
                 setattr(self, k, v)
             self._function.clear_cache()
             self._function(prec=prec)
@@ -1162,7 +1167,7 @@ class LSeriesAbstract(object):
 
         if prec is not None:
             # check if numerically computed already to at least this precision
-            t = [z for z in self._anlist.iteritems() if z[0] >= prec and len(z[1]) > bound]
+            t = [z for z in self._anlist.items() if z[0] >= prec and len(z[1]) > bound]
             if len(t) > 0:
                 C = ComplexField(prec)
                 return [C(a) for a in t[0][1][:bound+1]]
@@ -1243,7 +1248,7 @@ class LSeriesAbstract(object):
         """
         s = R.var('s')
         a = self.anlist(bound, prec)
-        return sum(a[n]/n**s for n in range(1,bound+1))
+        return sum(a[n]*n**(-s) for n in range(1,bound+1))
 
     def __call__(self, s):
         """
@@ -1375,11 +1380,11 @@ class LSeriesAbstract(object):
              
         """
         if center is None:
-            center = ComplexField(prec)(self._weight)/2
+            center = ComplexField(prec)(self._weight) / ComplexField(prec)(2)
         return self._function(prec).taylor_series(center, degree, variable)
 
     def analytic_rank(self, tiny=1e-8, prec=53):
-        center = ComplexField(prec)(self._weight) / 2
+        center = ComplexField(prec)(self._weight) / ComplexField(prec)(2)
         degree = 4
         while True:
             f = self.taylor_series(center, degree, prec=prec)
@@ -1458,7 +1463,7 @@ class LSeriesAbstract(object):
         for coeffs in coeff_lists:
             # Define a string that when evaluated in PARI defines a function
             # a(k), which returns the Dirichlet coefficient a_k.
-            s = 'v=[%s]; a(k)=v[k];'%','.join([str(z) if isinstance(z, (int,long,Integer)) else z._pari_init_() for z in coeffs[1:]])
+            s = 'v=[%s]; a(k)=v[k];'%','.join([str(z) if isinstance(z, (int,int,Integer)) else z._pari_init_() for z in coeffs[1:]])
 
             # Tell the L-series / PARI about the coefficients.
 
@@ -2079,7 +2084,7 @@ class LSeriesDirichletCharacter(LSeriesAbstract):
             x = C(chi.modulus()).sqrt() / chi.gauss_sum_numerical(prec=prec)
             if chi.is_odd():
                 x *= C.gen()
-            return 1/x
+            return x**-1
         
     def _local_factor(self, P, prec):
         a = self._chi(P)

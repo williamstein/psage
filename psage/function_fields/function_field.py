@@ -60,7 +60,9 @@ that arithmetic with a tower of 3 fields is fully supported::
     
 """
 from __future__ import absolute_import
+from __future__ import division
 
+from builtins import range
 from sage.structure.category_object import CategoryObject
 from sage.rings.ring import Field
 from sage.rings.integer_ring import ZZ

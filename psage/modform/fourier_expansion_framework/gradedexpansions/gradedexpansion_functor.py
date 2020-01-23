@@ -25,6 +25,9 @@ from __future__ import absolute_import
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import next
+from builtins import map
 from itertools import groupby, dropwhile
 from sage.algebras.algebra import Algebra
 from sage.categories.morphism import Morphism
@@ -445,8 +448,8 @@ class GradedExpansionEvaluationHomomorphism ( Morphism ) :
         for imexps, exps in xexps :
             factor = self.__base_ring_images.universe().zero_element()
             for e in exps :
-                factor = factor + coeffs[e] * prod(map( operator.pow, self.__base_ring_images,
-                                                        ([e] if isinstance(e,int) else e)[:len(self.__base_ring_images)] ))
+                factor = factor + coeffs[e] * prod(list(map( operator.pow, self.__base_ring_images,
+                                                        ([e] if isinstance(e,int) else e)[:len(self.__base_ring_images)] )))
             
             imexps = tuple(imexps)
                 
@@ -461,6 +464,6 @@ class GradedExpansionEvaluationHomomorphism ( Morphism ) :
                 else :
                     res = res + factor * self.__images[i]**e
             else :
-                res = res + factor * prod(map(operator.pow, self.__images, imexps))
+                res = res + factor * prod(list(map(operator.pow, self.__images, imexps)))
                             
         return res

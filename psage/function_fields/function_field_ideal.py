@@ -22,6 +22,7 @@ from __future__ import absolute_import
 #################################################################################
 
 
+from past.builtins import cmp
 from sage.rings.ideal import Ideal_generic
 
 class FunctionFieldIdeal(Ideal_generic):

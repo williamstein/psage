@@ -20,6 +20,8 @@ from __future__ import print_function
 #
 #################################################################################
 
+from builtins import str
+from builtins import range
 import sage.parallel.ncpus
 from psage.lmfdb.auth import userpass
 

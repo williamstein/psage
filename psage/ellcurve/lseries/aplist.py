@@ -234,7 +234,7 @@ def _test_an_dict_over_Q(ainvs, B=100):
     EQ = EllipticCurve(QQ, ainvs)
     v = EQ.anlist(B)
     an = an_dict(E, B)
-    for i, j in an.iteritems():
+    for i, j in an.items():
         assert j == v[i[0]]
 
 def test_an_dict_over_Q():

@@ -40,6 +40,7 @@ Gamma^3
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -58,6 +59,9 @@ from __future__ import absolute_import
 
 #from sage.all_cmdline import *   # import sage library
 
+from builtins import str
+from builtins import map
+from builtins import range
 from sage.arith.all import xgcd,gcd,CRT_basis
 from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational,Infinity,RealField
 from sage.rings.real_mpfr import RealNumber as RealNumber_class
@@ -992,12 +996,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             l1a = self._symmetry_type_Ia; l1a = self._symmetry_type_Ib
             l2a = self._symmetry_type_IIa; l2b = self._symmetry_type_IIb        
             ## Check which (if any) of these symmetries preserve cusps
-            l1a = filter(lambda x: self.is_modular_correspondence(x) and self.is_involution(x),  self._symmetry_type_Ia)
-            l1b = filter(lambda x: self.is_modular_correspondence(x[2]) and self.is_involution(x[2]) ,  self._symmetry_type_Ib)
-            l2a = filter(lambda x: self.is_modular_correspondence(x) and self.is_involution(x),  self._symmetry_type_IIa)
-            l2b = filter(lambda x: self.is_modular_correspondence(x[2]) and self.is_involution(x[2]),  self._symmetry_type_IIb)
+            l1a = [x for x in self._symmetry_type_Ia if self.is_modular_correspondence(x) and self.is_involution(x)]
+            l1b = [x for x in self._symmetry_type_Ib if self.is_modular_correspondence(x[2]) and self.is_involution(x[2])]
+            l2a = [x for x in self._symmetry_type_IIa if self.is_modular_correspondence(x) and self.is_involution(x)]
+            l2b = [x for x in self._symmetry_type_IIb if self.is_modular_correspondence(x[2]) and self.is_involution(x[2])]
             self._modular_correspondences = {'tIa':l1a,'tIb':l1b,'tIIa':l2a,'tIIb':l2b}
-        return sum(map(len,self._modular_correspondences.values()))
+        return sum([len(x) for x in self._modular_correspondences.values()])
 
     def modular_correspondence(self,t):
         r"""
@@ -1382,9 +1386,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             N=lvl #self._level #G.level()
             if (N % 2) == 0:
                 #reprange=range(-N/2+1,N/2+1)
-                reprange=range(0,N)
+                reprange=list(range(0,N))
             else:
-                reprange=range(0,N)
+                reprange=list(range(0,N))
                 #reprange=range(-(N-1)/2,(N-1)/2+1)
             for j in reprange:
                 if j==0:
@@ -1744,7 +1748,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     if j == new_index:
                         continue
                     k = (j - new_index)
-                    if k <= r/2:
+                    if k <= r/2.0:
                         #_add_unique(coset_reps,cy[j],old_map*T**k)
                         coset_reps[cy[j]]=old_map*T**k
                     else:
@@ -2013,8 +2017,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         l=self.coset_reps()
         li=list()
         n=len(l)
-        ps=range(1 ,self._index+1 )
-        pr=range(1 ,self._index+1 )
+        ps=list(range(1 ,self._index+1))
+        pr=list(range(1 ,self._index+1))
         S=SL2Z_elt(0,-1,1,0); T=SL2Z_elt(1,1,0,1)
         R=SL2Z_elt(0,-1,1,1)
         #S,T=SL2Z.gens()
@@ -2025,12 +2029,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 li.append(l[i].inverse())
                 #li.append([l[i][3],-l[i][1],-l[i][2],l[i][0]])
                 #li.append( SL2Z(l[i])**-1 )
-            ixr=range(n)
+            ixr=list(range(n))
         else:
             for i in range(n):
                 li.append( l[i].inverse() )
-            ixr=range(n)
-        ixs=range(n)
+            ixr=list(range(n))
+        ixs=list(range(n))
         for i in range(n):
             [a,b,c,d]=l[i]
             VS=SL2Z_elt(b,-a,d,-c) # Vi*S
@@ -2427,7 +2431,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self._generalised_level==None:
             # compute the generalized level
-            self._generalised_level= lcm(map(len,self.permT.cycle_tuples()))
+            self._generalised_level= lcm([len(x) for x in self.permT.cycle_tuples()])
         return self._generalised_level
     #raise ArithmeticError, "Could not compute generalised level of %s" %(self)
 
@@ -3088,8 +3092,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             g = Graphics()
             cntr = Graphics()
-            A0 = CC(-0.5,sqrt(3.)/2)
-            B0 = CC(0.5,sqrt(3.)/2)
+            A0 = CC(-0.5,sqrt(3.)/2.)
+            B0 = CC(0.5,sqrt(3.)/2.)
             if model == 'D':
                 C0 = CC(infinity)
             else:
@@ -3203,14 +3207,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if model=='H':
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],ymax))
             if options.get('ticks'):
-                g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
+                g.SHOW_OPTIONS['ticks']=[list(range(int(d['xmin']),int(d['xmax'])+1)),[1,2]]
             else:
                 g.SHOW_OPTIONS['ticks']=[[],[]]
         else:
             if not ret_domain and draw_circle:
                 g+=circle((0,0),1,edgecolor=circle_color)
             g.set_axes_range(-1, 1, -1, 1)    
-            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        
+            g.SHOW_OPTIONS['ticks']=[list(range(int(d['xmin']),int(d['xmax'])+1)),[1,2]]        
         if draw_axes == 0:
             g.axes(False)
         return g
@@ -3336,7 +3340,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if self._verbose>0:
             print("permT.cycles={0}".format(lws))
         ## This is a set of all cusp widths which can occur
-        all_cusp_widths=map(len,lws)
+        all_cusp_widths=list([len(x) for x in lws])
         if self._verbose>0:
             print("all cusp widths={0}".format(all_cusp_widths))
         cusp_widths={} #
@@ -3696,7 +3700,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if y_in is None or isinstance(y_in,Expression) or (isinstance(y_in,Integer) and isinstance(x_in,Integer)):
                     use_mat = True
                 if y_in < 0.1:
-                    prec = max(53,3*log_b(1.0/y,2))
+                    prec = max(53,3*log_b(y**-1,2))
                     RF = RealField(prec)
                     use_mpfr = True
                 else:
@@ -3770,7 +3774,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self._generalised_level==None:
             # compute the generalized level
-            self._generalised_level= lcm(map(len,self.permT.cycle_tuples()))
+            self._generalised_level= lcm([len(x) for x in self.permT.cycle_tuples()])
         return self._generalised_level
     #raise ArithmeticError, "Could not compute generalised level of %s" %(self)
 
@@ -3824,7 +3828,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     latex_name = '\Gamma_1({0})'.format(N)
             if name == '': # Try some other alternatives
                 # Try to find if we have a Gamma_0(N,M)
-                bs = map( lambda x:x.b(), self.generators_as_slz_elts())
+                bs = [x.b() for x in self.generators_as_slz_elts()]
                 if self._verbose>0:
                     print("bs={0}".format(bs))
                 M = gcd(bs)
@@ -3999,7 +4003,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             # Pick the best one
             if self._verbose>0:
                 print("res>1={0}".format(res))
-            lista= map(lambda x:sum(map(abs,x[1].matrix().list())),res)
+            lista= [sum([abs(y) for y in x[1].matrix().list()]) for x in res]
             mina=min(lista)
             i=lista.index(mina)
             return res[i]
@@ -4603,13 +4607,13 @@ def get_perms_from_cycle_str(s,N,sep=' ',deb=False):
     """
     # First get the cycles (and remove the beginning and end of the string)
     cycles = s[1:-1].split(")(")
-    perm = range(1,N+1)
+    perm = list(range(1,N+1))
     if deb:
         print("N={0}".format(N))
     for c in cycles:
         if deb:
             print("c={0}".format(c))
-        l=map(int,c.split(sep)) # elements of the cycle are separated by "sep"
+        l = [int(x) for x in c.split(sep)] # elements of the cycle are separated by "sep"
         nn = len(l)-1
         if nn > 0:
             for i in range(nn):

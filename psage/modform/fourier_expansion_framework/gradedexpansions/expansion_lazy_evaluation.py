@@ -24,6 +24,7 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import object
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_lazyelement import EquivariantMonoidPowerSeries_lazy
 
 def LazyFourierExpansionEvaluation(parent, element, precision) :
@@ -58,7 +59,7 @@ def LazyFourierExpansionEvaluation(parent, element, precision) :
     return EquivariantMonoidPowerSeries_lazy(parent, precision, delayed_coeffs.getcoeff)
 
 
-class DelayedEvaluation_fourier_expansion :
+class DelayedEvaluation_fourier_expansion(object) :
     """
     Helper class which evaluates the a graded expansion on and returns its
     coefficients.

@@ -275,7 +275,7 @@ class FunctionFieldMorphism(Map):
         """
         return "Morphism of function fields defined by %s"%self._short_repr()
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         EXAMPLES::
 

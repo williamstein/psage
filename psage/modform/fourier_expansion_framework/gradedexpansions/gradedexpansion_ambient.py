@@ -24,6 +24,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_functor import \
             GradedExpansionFunctor, GradedExpansionEvaluationHomomorphism
 from operator import xor
@@ -44,7 +47,7 @@ GradedExpansionSubmodule_abstract = None
 # GradedExpansionAmbient_abstract
 #===============================================================================
 
-class GradedExpansionAmbient_abstract :
+class GradedExpansionAmbient_abstract(object) :
     r"""
     A ring of graded expansions. This is a polynomial ring with relations
     and a mapping to an (equivariant) monoid power series. These should
@@ -639,12 +642,12 @@ class GradedExpansionAmbient_abstract :
         except KeyError :
             pass
 
-        module_gens = flatten(map(self._graded_monoms, indices), max_level = 1)        
+        module_gens = flatten(list(map(self._graded_monoms, indices)), max_level = 1)        
         
         if self.has_relation_free_generators() :
             basis = module_gens
         else :
-            module_gens_poly = map(lambda g: g.polynomial(), module_gens) 
+            module_gens_poly = [g.polynomial() for g in module_gens] 
             basis = list()
             
             I = self.relations().ring().zero_ideal()
@@ -796,5 +799,5 @@ class GradedExpansionAmbient_abstract :
             921050467 # 32-bit
             3906772531912514915 # 64-bit
         """
-        return reduce(xor, map(hash, [self.__grading, self.__relations,
-                                      self.__all_relations, self.__base_gens, self.__gens]) )
+        return reduce(xor, list(map(hash, [self.__grading, self.__relations,
+                                      self.__all_relations, self.__base_gens, self.__gens])) )

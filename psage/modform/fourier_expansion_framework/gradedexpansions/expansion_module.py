@@ -49,6 +49,7 @@ from sage.rings.ring import Ring
 from sage.structure.element import Element
 from sage.structure.sequence import Sequence, Sequence_generic
 import itertools
+from functools import reduce
 
 #===============================================================================
 # ExpansionModule
@@ -278,12 +279,12 @@ class ExpansionModule_abstract :
             True
         """
         if lazy_rank_check and not( self.base_ring() is ZZ or self.base_ring() is QQ) :
-            raise NotImplemented, "lazy rank checks only implemented for ZZ and QQ" 
+            raise NotImplemented("lazy rank checks only implemented for ZZ and QQ") 
 
         if precision is None :
             precision = self.precision()
         elif not precision <= self.precision() :
-            raise ValueError, "precison must be less equal self.__graded_ambient.precision()"
+            raise ValueError("precison must be less equal self.__graded_ambient.precision()")
         
         if precision.is_infinite() :
             precision = self._bounding_precision()
@@ -747,9 +748,9 @@ class ExpansionModule_abstract :
                 
                     coords = magma(fe_matrix.transpose()).Solution(magma(x_fe_vector.transpose())).sage()
                     coords = coords.row(0)
-                except TypeError, msg :
-                    if "Runtime error in 'Solution': No solution exists" in msg :
-                        raise ArithmeticError( "%s is not contained in this space." % (x,) )
+                except TypeError as msg :
+                    if "Runtime error in 'Solution': No solution exists" in str(msg):
+                        raise ArithmeticError( "{0} is not contained in this space.".format(x))
 
                     if not force_ambigous and \
                        len(valid_indices) != self.fourier_expansion_homomorphism().matrix().ncols() and \
@@ -758,8 +759,8 @@ class ExpansionModule_abstract :
                     
                     try :
                         coords = fe_matrix.solve_right(x_fe_vector)
-                    except ValueError, msg :
-                        raise ArithmeticError( "%s is not contained in this space, %s" % (x, msg) )
+                    except ValueError as msg :
+                        raise ArithmeticError( "{0} is not contained in this space, {1}".format(x, msg) )
                     coords = coords.column(0)
                     
                     if self.precision() != self._bounding_precision() and \
@@ -1017,7 +1018,7 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
     if is_FreeModule(gens):
         gens = gens.gens()
     if not isinstance(gens, (list, tuple, Sequence)):
-        raise TypeError, "Argument gens (= %s) must be a list, tuple, or sequence." % (gens,)
+        raise TypeError("Argument gens (= {0}) must be a list, tuple, or sequence.".format(gens))
 
     if base_ring is None or base_ring == self.base_ring() :
         gens = Sequence(gens, check = check, universe = self.ambient_module())
@@ -1027,13 +1028,13 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
         try:
             M = self.ambient_module().change_ring(base_ring)
         except TypeError:
-            raise ValueError, "Argument base_ring (= %s) is not compatible " % (base_ring,) + \
-                "with the base field (= %s)." % (self.base_field(),)
+            raise ValueError("Argument base_ring (= {0}) is not compatible ".format(base_ring) + \
+                "with the base field (= {0}).".format(self.base_field()))
         try: 
             return M.span(gens)
         except TypeError:
-            raise ValueError, "Argument gens (= %s) is not compatible " % (gens,) + \
-                "with base_ring (= %s)." % (base_ring,)
+            raise ValueError("Argument gens (= {0}) is not compatible ".format(gens) + \
+                "with base_ring (= {0}).".format(base_ring))
 
 #===============================================================================
 # ExpansionModule_ambient_pid

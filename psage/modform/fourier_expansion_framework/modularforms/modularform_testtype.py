@@ -40,6 +40,7 @@ from sage.modules.all import FreeModule
 from sage.rings.all import Integer
 from sage.rings.all import ZZ, PolynomialRing
 from sage.structure.all import Sequence, SageObject
+from functools import reduce
 
 #===============================================================================
 # ModularFormTestType_scalar

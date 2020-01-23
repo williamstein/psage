@@ -4,6 +4,7 @@ Functor creating rings or modules of (equivariant) monoid power series.
 AUTHOR :
     -- Martin Raum (2009 - 07 - 25) Initial version
 """
+from __future__ import absolute_import
 
 #===============================================================================
 # 
@@ -96,7 +97,7 @@ class MonoidPowerSeriesRingFunctor ( ConstructionFunctor ) :
             sage: mps.coefficient_domain()
             Integer Ring
         """
-        from monoidpowerseries_ring import MonoidPowerSeriesRing
+        from .monoidpowerseries_ring import MonoidPowerSeriesRing
 
         return MonoidPowerSeriesRing(A, self.__S)
         
@@ -183,7 +184,7 @@ class MonoidPowerSeriesModuleFunctor ( ConstructionFunctor ) :
             sage: F(FreeModule(QQ, 3)).coefficient_domain()
             Vector space of dimension 3 over Rational Field
         """
-        from monoidpowerseries_module import MonoidPowerSeriesModule
+        from .monoidpowerseries_module import MonoidPowerSeriesModule
             
         return MonoidPowerSeriesModule(A, self.__S)
         
@@ -280,7 +281,7 @@ class EquivariantMonoidPowerSeriesRingFunctor ( ConstructionFunctor ) :
         else :
             R = self.__R
         
-        from monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
+        from .monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
 
         return EquivariantMonoidPowerSeriesRing( self.__O, self.__C, R )
 
@@ -427,7 +428,7 @@ class EquivariantMonoidPowerSeriesModuleFunctor ( ConstructionFunctor ) :
         else :
             R = self.__R
         
-        from monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+        from .monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
 
         return EquivariantMonoidPowerSeriesModule( self.__O, self.__C, R )
 
@@ -574,7 +575,7 @@ class MonoidPowerSeriesSymmetrisationRingFunctor ( ConstructionFunctor) :
         else :
             R = self.__R
         
-        from monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
+        from .monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
 
         return EquivariantMonoidPowerSeriesRing( self.__O, self.__C, R )
         
@@ -652,14 +653,14 @@ class MonoidPowerSeriesSymmetrisationModuleFunctor ( ConstructionFunctor) :
             sage: F = MonoidPowerSeriesSymmetrisationModuleFunctor(NNMonoid(), TrivialCharacterMonoid("1", ZZ), TrivialRepresentation("1", FreeModule(ZZ, 1)))
         """
         if O.group() != C.group() :
-            raise ValueError, "The action on S and the characters must have the same group"
+            raise ValueError("The action on S and the characters must have the same group")
         if R.base_ring() != C.codomain() :
             if C.codomain().has_coerce_map_from(R.base_ring()) :
                 pass
             elif R.base_ring().has_coerce_map_from(C.codomain()) :
                 pass
             else :
-                raise ValueError, "character codomain and representation base ring must be coercible"        
+                raise ValueError("character codomain and representation base ring must be coercible")        
         
         self.__O = O
         self.__C = C
@@ -698,7 +699,7 @@ class MonoidPowerSeriesSymmetrisationModuleFunctor ( ConstructionFunctor) :
         else :
             R = self.__R
         
-        from monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
+        from .monoidpowerseries_module import EquivariantMonoidPowerSeriesModule
 
         return EquivariantMonoidPowerSeriesModule( self.__O, self.__C, R )
 

@@ -214,7 +214,7 @@ class MonoidPowerSeriesAmbient_abstract :
                             dict( (k,coefficient_domain(c)) for (k,c) in x.coefficients().iteritems() ),
                             x.precision() )
         
-        raise (TypeError, "Cannot construct an element of %s" % (x))
+        raise TypeError("Cannot construct an element of {0}".format(x))
     
     def __cmp__(self, other) :
         r"""
@@ -594,12 +594,12 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
                     v2 = rcoeffs[rs2]
                 except KeyError :
                     continue
-                v1 = apply(g1, v1)
-                v2 = apply(g2, v2)
+                v1 = g1(*v1)
+                v2 = g2(*v2)
     
                 res += (character_ev(g1, cl) * character_ev(g2, cr)) * v1 * v2
                 
-            return character_ev(g, cl*cr) * apply(g, res)
+            return character_ev(g, cl*cr) * g(*res)
         #! def mul
         
         self.__multiply_function = mul
@@ -665,7 +665,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
                 else :
                     return self._element_class(
                             self, dict([(self.__characters.one_element(),
-                                         dict( (k,coefficient_domain(c)) for (k,c) in x.coefficients().iteritems()) )]),
+                                         dict( (k,self.coefficient_domain(c)) for (k,c) in x.coefficients().iteritems()) )]),
                             self.action().filter(x.precision()),
                             symmetrise = True  )
         elif isinstance(x, dict) :
@@ -681,7 +681,7 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
                     dict([(self.__characters.one_element(), x)]),
                     self.action().filter_all() )
         
-        raise TypeError, "can't convert %s into %s" % (x, self)
+        raise TypeError("can't convert {0} into {1}".format(x, self))
         
     def __cmp__(self, other) :
         r"""

@@ -224,9 +224,9 @@ class ModularFormsAmbient_abstract :
         for pred, fcn in self._submodule_classes :
             if pred(basis, **kwds) : return fcn(basis, **kwds)
         
-        raise RuntimeError, "submodule classes do not match %s, %s" % (basis, kwds)
+        raise RuntimeError("submodule classes do not match {0}, {1}".format(basis, kwds))
 
-    def construction(self) :
+    def construction(self):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import *

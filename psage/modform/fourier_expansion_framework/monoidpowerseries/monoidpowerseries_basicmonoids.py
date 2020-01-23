@@ -543,7 +543,7 @@ class TrivialMonoid ( SageObject ) :
         if i == 0 :
             return Integer(1)
         
-        raise ValueError, "Generator not defined."
+        raise ValueError("Generator not defined.")
     
     def gens(self) :
         r"""

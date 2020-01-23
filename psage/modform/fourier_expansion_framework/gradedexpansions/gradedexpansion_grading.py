@@ -33,6 +33,7 @@ from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
 from sage.structure.all import Sequence
 from sage.structure.sage_object import SageObject
+from functools import reduce
 
 class Grading_abstract ( SageObject ) :
     r"""

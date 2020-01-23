@@ -31,6 +31,7 @@ from sage.misc.misc import union
 from sage.modules.module import Module 
 from sage.structure.element import ModuleElement
 from sage.rings.ring import Ring
+from functools import reduce
 
 #===============================================================================
 # EquivariantMonoidPowerSeries_lazy
@@ -321,12 +322,12 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
             elif len(ns) == 1 :
                 ch = ns[0]
             else :
-                raise ValueError, "you must specify a character"
+                raise ValueError("you must specify a character")
             
             s = k
             
         if not s in self.precision() :
-            raise ValueError, "%s out of bound" % s
+            raise ValueError("{0} out of bound".format(s))
 
         try :
             return self.__coefficients[ch][s]
@@ -446,7 +447,7 @@ class EquivariantMonoidPowerseries_MultiplicationDelayedFactory :
         self.__left_coefficients = None
         self.__right_coefficients = None
 
-    def getcoeff(self, (ch, k)) :
+    def getcoeff(self, t) :
         r"""
         Return the `k`-th coefficient of the component ``ch`` of the product.
         
@@ -463,6 +464,7 @@ class EquivariantMonoidPowerseries_MultiplicationDelayedFactory :
             sage: EquivariantMonoidPowerSeries_LazyMultiplication(e, e).coefficients() # indirect doctest
             {0: 0, 1: 0, 2: 1}
         """        
+        (ch, k) = t
         res = self.__coefficient_ring(0)
         
         if self.__left_coefficients is None :
@@ -511,7 +513,7 @@ def EquivariantMonoidPowerSeries_LazyMultiplication(left, right) :
     # TODO: Insert coercing
     if not isinstance(left.parent(), EquivariantMonoidPowerSeriesAmbient_abstract) \
        or not isinstance(right.parent(), EquivariantMonoidPowerSeriesAmbient_abstract) :
-        raise TypeError, "both factors must be power series"
+        raise TypeError("both factors must be power series")
        
     if left.parent() != right.parent() :
         if left.parent() is right.parent().base_ring() :
@@ -519,7 +521,7 @@ def EquivariantMonoidPowerSeries_LazyMultiplication(left, right) :
         elif left.parent().base_ring() is right.parent() :
             parent = left.parent()
         
-        raise ValueError, "incorrect parents of the factors"
+        raise ValueError("incorrect parents of the factors")
     else :
         parent = left.parent()
     

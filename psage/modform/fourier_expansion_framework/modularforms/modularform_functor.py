@@ -4,6 +4,7 @@ A functor creating rings of orthogonal modular forms.
 AUTHOR :
     -- Martin Raum (2009 - 07 - 30) Initial version
 """
+from __future__ import absolute_import
 
 #===============================================================================
 # 
@@ -67,7 +68,7 @@ class ModularFormsFunctor ( ConstructionFunctor ) :
             sage: F(QQ)
             Graded expansion ring with generators g1, g2, g3, g4, g5
         """
-        from modularform_ambient import ModularFormsAmbient
+        from .modularform_ambient import ModularFormsAmbient
 
         return ModularFormsAmbient(A, self.__type, self.__precision)
         
@@ -97,7 +98,7 @@ class ModularFormsFunctor ( ConstructionFunctor ) :
                 if other.__type.vector_valued() == self.__type and \
                    self.__precision == other.__precision :
                     return self
-            except AttributeError, NotImplementedError :
+            except (AttributeError,NotImplementedError):
                 return None 
     
         return None

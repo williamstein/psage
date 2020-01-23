@@ -1,5 +1,6 @@
-from monoidpowerseries_ring import MonoidPowerSeriesRing, \
+from __future__ import absolute_import
+from .monoidpowerseries_ring import MonoidPowerSeriesRing, \
                                    EquivariantMonoidPowerSeriesRing
-from monoidpowerseries_module import MonoidPowerSeriesModule, \
+from .monoidpowerseries_module import MonoidPowerSeriesModule, \
                                      EquivariantMonoidPowerSeriesModule
-from monoidpowerseries_element import MonoidPowerSeries, EquivariantMonoidPowerSeries
+from .monoidpowerseries_element import MonoidPowerSeries, EquivariantMonoidPowerSeries

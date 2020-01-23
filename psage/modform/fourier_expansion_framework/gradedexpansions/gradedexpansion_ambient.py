@@ -34,6 +34,7 @@ from sage.rings.all import Integer
 from sage.structure.element import Element
 from sage.structure.parent import Parent
 from sage.structure.sequence import Sequence
+from functools import reduce
 
 ## late import in GradedExpansionAmbient_abstract
 GradedExpansionSubmodule = None 

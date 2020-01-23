@@ -35,6 +35,7 @@ from sage.rings.all import Integer
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.structure.element import Element
 import operator
+from functools import reduce
 
 #===============================================================================
 # GradedExpansionModule_class

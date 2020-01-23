@@ -245,7 +245,7 @@ def EquivariantMonoidPowerSeriesRing(O, C, R) :
 
     ## TODO: Implement optional checking of the relations of the characters
     if O.group() != C.group() :
-        raise ValueError, "The action on S and the characters must have the same group"
+        raise ValueError("The action on S and the characters must have the same group")
     if R.base_ring() != C.codomain() :
         if C.codomain().has_coerce_map_from(R.base_ring()) :
             K = C.codomain()
@@ -259,7 +259,7 @@ def EquivariantMonoidPowerSeriesRing(O, C, R) :
                 K = pushout(C.codomain(), R.base_ring())
                 R = R.base_extend(K)
             except :
-                raise ValueError, "character codomain and representation base ring have no common extension"
+                raise ValueError("character codomain and representation base ring have no common extension")
     
     global _equivariantmonoidpowerseries_ring_cache
     key = (O, C, R)

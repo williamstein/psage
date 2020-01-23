@@ -31,6 +31,7 @@ from sage.misc.misc import union
 from sage.modules.module import Module 
 from sage.structure.element import ModuleElement
 from sage.rings.ring import Ring
+from functools import reduce
 
 #===============================================================================
 # MonoidPowerSeries
@@ -70,7 +71,7 @@ def MonoidPowerSeries( parent, coefficients, precision, cleanup_coefficients = F
     if isinstance(parent, Ring) :
         return MonoidPowerSeries_algebraelement(parent, coefficients, precision, cleanup_coefficients)
 
-    raise TypeError, "Unexpected type of parent"
+    raise TypeError("Unexpected type of parent")
 
 #===============================================================================
 # MonoidPowerSeries_abstract
@@ -765,7 +766,7 @@ def EquivariantMonoidPowerSeries( parent, coefficients, precision, symmetrise = 
         return EquivariantMonoidPowerSeries_algebraelement( parent, coefficients, precision, symmetrise,
                                                             cleanup_coefficients )
 
-    raise TypeError, "Unexpected type of parent"
+    raise TypeError("Unexpected type of parent")
     
 #===============================================================================
 # EquivariantMonoidPowerSeries_abstract
@@ -1598,10 +1599,10 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             elif len(ns) == 1 :
                 ch = ns[0]
             else :
-                raise ValueError, "you must specify a character"
+                raise ValueError("you must specify a character")
         
         if not s in self.precision() :
-            raise ValueError, "%s out of bound" % (s,)
+            raise ValueError("{0} out of bound".format(s))
 
         try :
             return self.__coefficients[ch][s]

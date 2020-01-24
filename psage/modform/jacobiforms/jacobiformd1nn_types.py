@@ -4,6 +4,7 @@ Types of Jacobi forms of fixed index and weight.
 AUTHOR :
     - Martin Raum (2010 - 04 - 07) Initial version.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -24,6 +25,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from operator import xor
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import TrivialGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsModule_generic
@@ -123,7 +127,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
                 delta = 0
                 
             return sum( ModularForms(1, self.__weight + 2 * j).dimension() + j**2 // (4 * self.__index)
-                        for j in xrange(self.__index + 1) ) \
+                        for j in range(self.__index + 1) ) \
                    + delta
             
 
@@ -142,11 +146,11 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
             quadform = lambda x : 6 * x**2
             bilinform = lambda x,y : quadform(x + y) - quadform(x) - quadform(y)
             
-            T = diagonal_matrix([zeta**quadform(i) for i in xrange(2*m)])
-            S =   sum(zeta**(-quadform(x)) for x in xrange(2 * m)) / (2 * m) \
-                * matrix([[zeta**(-bilinform(j,i)) for j in xrange(2*m)] for i in xrange(2*m)])
-            subspace_matrix_1 = matrix( [ [1 if j == i or j == 2*m - i else 0 for j in xrange(m + 1) ]
-                                        for i in xrange(2*m)] )
+            T = diagonal_matrix([zeta**quadform(i) for i in range(2*m)])
+            S =   sum(zeta**(-quadform(x)) for x in range(2 * m)) / (2 * m) \
+                * matrix([[zeta**(-bilinform(j,i)) for j in range(2*m)] for i in range(2*m)])
+            subspace_matrix_1 = matrix( [ [1 if j == i or j == 2*m - i else 0 for j in range(m + 1) ]
+                                        for i in range(2*m)] )
             subspace_matrix_2 = zero_matrix(ZZ, m + 1, 2*m)
             subspace_matrix_2.set_block(0,0,identity_matrix(m+1))
             
@@ -154,14 +158,14 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
             S = subspace_matrix_2 * S * subspace_matrix_1
             
             sqrt3 = (zeta**(4*m) - zeta**(-4*m)) * zeta**(-6*m) 
-            rank =   (self.__weight - 1/2 - 1) / 2 * (m + 1) \
+            rank =   (self.__weight - QQ(1)/QQ(2) - 1) / QQ(2) * (m + 1) \
                    + 1/8 * (   zeta**(3*m * (2*self.__weight - 1)) * S.trace()
                              + zeta**(3*m * (1 - 2*self.__weight)) * S.trace().conjugate() ) \
                    + 2/(3*sqrt3) * (   zeta**(4 * m * self.__weight) * (S*T).trace()
                                      + zeta**(-4 * m * self.__weight) * (S*T).trace().conjugate() ) \
-                   - sum((j**2 % (m+1))/(m+1) -1/2 for j in range(0,m+1))
+                   - sum((j**2 % (m+1))/QQ(m+1) -QQ(1)/QQ(2) for j in range(0,m+1))
             
-            if self.__weight > 5 / 2 :
+            if self.__weight > 5 / 2:
                 return rank
             else :
                 raise NotImplementedError
@@ -172,7 +176,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
     def generators(self, K, precision) :
         if K is QQ or K in NumberFields() :
             return Sequence( [ jacobi_form_by_taylor_expansion(i, self.__index, self.__weight, precision)
-                               for i in xrange(self._rank(K)) ],
+                               for i in range(self._rank(K)) ],
                              universe = JacobiD1NNFourierExpansionModule(QQ, self.__index) )
         
         raise NotImplementedError
@@ -186,7 +190,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
 
     def _generator_names(self, K) :
         if K is QQ or K in NumberFields() :
-            return [ "TDE_%s" % (i,) for i in xrange(self._rank(K)) ]
+            return [ "TDE_{0}".format(i) for i in range(self._rank(K)) ]
         
         raise NotImplementedError
 
@@ -236,4 +240,4 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [type(self), self.__index, self.__weight]))
+        return reduce(xor, list(map(hash, [type(self), self.__index, self.__weight])))

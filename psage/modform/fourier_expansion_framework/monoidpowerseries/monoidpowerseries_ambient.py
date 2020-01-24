@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import object
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import MonoidPowerSeries, EquivariantMonoidPowerSeries
 from sage.rings.all import Integer
 from sage.structure.element import Element
@@ -32,7 +34,7 @@ from sage.structure.element import Element
 # MonoidPowerSeriesAmbient_abstract
 #===============================================================================
 
-class MonoidPowerSeriesAmbient_abstract :
+class MonoidPowerSeriesAmbient_abstract(object) :
     r"""
     Given some `K` module or algebra `A` and a monoid `S` filtered over
     a net `\Lambda` construct a module or ring of monoid power series.
@@ -211,7 +213,7 @@ class MonoidPowerSeriesAmbient_abstract :
                 else :
                     coefficient_domain = self.coefficient_domain()
                     return self._element_class( self,
-                            dict( (k,coefficient_domain(c)) for (k,c) in x.coefficients().iteritems() ),
+                            dict( (k,coefficient_domain(c)) for (k,c) in x.coefficients().items() ),
                             x.precision() )
         
         raise TypeError("Cannot construct an element of {0}".format(x))
@@ -245,7 +247,7 @@ class MonoidPowerSeriesAmbient_abstract :
 # EquivariantMonoidPowerSeriesAmbient_abstract
 #===============================================================================
 
-class EquivariantMonoidPowerSeriesAmbient_abstract :
+class EquivariantMonoidPowerSeriesAmbient_abstract(object) :
     r"""
     Given some ring or module `A`, a monoid `S` filtered over some originated
     net `\Lambda` such that all induced submonoids are finite, a group `G`, a
@@ -651,8 +653,8 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
                     coefficient_domain = self.coefficient_domain()
                     
                     return self._element_class( self,
-                                                dict( (ch, dict( (k,coefficient_domain(c)) for (k,c) in coeffs.iteritems()) )
-                                                       for (ch, coeffs) in x.coefficients(True).iteritems() ),
+                                                dict( (ch, dict( (k,coefficient_domain(c)) for (k,c) in coeffs.items()) )
+                                                       for (ch, coeffs) in x.coefficients(True).items() ),
                                                 x.precision() )
                     
             elif isinstance(P, MonoidPowerSeriesAmbient_abstract) :
@@ -665,13 +667,13 @@ class EquivariantMonoidPowerSeriesAmbient_abstract :
                 else :
                     return self._element_class(
                             self, dict([(self.__characters.one_element(),
-                                         dict( (k,self.coefficient_domain(c)) for (k,c) in x.coefficients().iteritems()) )]),
+                                         dict( (k,self.coefficient_domain(c)) for (k,c) in x.coefficients().items()) )]),
                             self.action().filter(x.precision()),
                             symmetrise = True  )
         elif isinstance(x, dict) :
             if len(x) != 0 :
                 try :
-                    if x.keys()[0].parent() is self.__characters :
+                    if list(x.keys())[0].parent() is self.__characters :
                         return self._element_class( self,
                                 x, self.action().filter_all() )
                 except AttributeError :

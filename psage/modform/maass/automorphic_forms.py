@@ -153,6 +153,9 @@ from __future__ import division
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from past.builtins import cmp
+from builtins import str
+from builtins import range
 import mpmath
 from sage.all import SageObject,Parent,ln,latex,random,divisors,ModularForms,prime_divisors,real,imag,PowerSeriesRing,\
     PolynomialRing,CyclotomicField,dimension_cusp_forms,dimension_modular_forms,CuspForms,ZZ,RealField,DirichletGroup,\
@@ -707,7 +710,7 @@ class AutomorphicFormSpace(Parent):
             wR2=self._multiplier(R2)[0].trace()
             evs = self._multiplier(T)[0].diagonal()
             wT=sum(evs) #self._multiplier(T).trace()
-            alphas = map(lambda x:log(CC(x))/CC(2/pi), evs)
+            alphas = [log(CC(x))/CC(2/pi) for x in evs]
         else:
             wS=self._multiplier(S)
             wR=self._multiplier(R)        
@@ -759,7 +762,7 @@ class AutomorphicFormSpace(Parent):
         N=dict()
         N['comp_dim']=1
         if isinstance(C,dict):
-            N['comp_dim']=max(1,len(C.keys()))
+            N['comp_dim']=max(1,len(list(C.keys())))
         else:
             N['comp_dim']=max(1,len(C))
         N['SetCs']=dict()
@@ -785,12 +788,12 @@ class AutomorphicFormSpace(Parent):
                     for j in range(N['comp_dim']):
                         N['SetCs'][j][(icusp,0)]=0
         if isinstance(C,dict) and C != {}:
-            for i in C.keys():
-                for (r,n) in C[i].keys():
+            for i in list(C.keys()):
+                for (r,n) in list(C[i].keys()):
                     N['SetCs'][i][(r,n)]=C[i][(r,n)]
         elif isinstance(C,list) and C != []:
             for i in range(len(C)):
-                for (r,n) in C[i].keys():
+                for (r,n) in list(C[i].keys()):
                     N['SetCs'][i][(r,n)]=C[i][(r,n)]
         return N
 
@@ -816,9 +819,9 @@ class AutomorphicFormSpace(Parent):
         if len(Cl)>0:
             if len(Cl)!=len(Pl):
                 raise ValueError("Need same number of principal parts and coefficients to set!")
-            keys = Cl[0].keys()
+            keys = list(Cl[0].keys())
             for j in range(1,N['comp_dim']):
-                if Cl[j].keys()!=keys:
+                if list(Cl[j].keys())!=keys:
                     raise ValueError("Need to set the same coefficients! (or call the method more than once)")
         else:
             Cl=[]
@@ -853,7 +856,7 @@ class AutomorphicFormSpace(Parent):
                     N['Vals'][i][(j,0)]=0 #P[(0,0)]            
 
             if isinstance(Cl[i],dict):
-                for (r,n) in Cl[i].keys():
+                for (r,n) in list(Cl[i].keys()):
                     if(N['SetCs'][i].count((r,n))==0):
                         N['SetCs'][i].append((r,n))
                         N['Vals'][i][(r,n)]=Cl[i][(r,n)] 
@@ -883,7 +886,7 @@ class AutomorphicFormSpace(Parent):
         maxn=0; maxa=1; maxr=0
         #print "pp1=",pp
         for P in pp: #rincipal_part:
-            for (r,n) in P.keys():
+            for (r,n) in list(P.keys()):
                 # Remember that the principal part (i,j):c means different things for scalar and vector-valued forms, i.e. i is the cusp in the first case and the component in the second
                 a = P[(r,n)]
                 if(a>maxa):
@@ -999,7 +1002,7 @@ class AutomorphicFormSpace(Parent):
             d['-']=pp.get('-',{}) # By default we have no princ. part
             d['+']=pp.get('+',{}) 
             #print "pp=",pp
-            if isinstance(pp.keys()[0],(list,tuple)):
+            if isinstance(list(pp.keys())[0],(list,tuple)):
                 d['+']=pp # If only one is given we assume it holomorphic
             # If self._holomorphic is True and we have a negative principal part we assume
             # that the only non-holomorphic part is the principal part
@@ -1040,9 +1043,9 @@ class AutomorphicFormSpace(Parent):
 
         solve_once = True
         if setc != None and len(setc) > 0:
-            d = setc[0].keys()
+            d = list(setc[0].keys())
             for c in setc:
-                if c.keys() != d:
+                if list(c.keys()) != d:
                     solve_once=False
                     break
 #                    raise ValueError," Inconsistent set coefficients. Need the same length in all entries! Got: %s" %(setc)
@@ -1886,7 +1889,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
                     cb[n]=cb[n]+1
             if(cb[n]<len(BB)):
                 cb[n]=0
-        if(cb.values().count(0)==len(cb.values())):
+        if(list(cb.values()).count(0)==len(list(cb.values()))):
             raise ValueError("Could not find good coefficients!")
         FF=list()
         setc=list()
@@ -1897,7 +1900,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
             p = self.xi_k_inverse_pp(G,digs=6,true_value=True)[0]
             # if we want to set some specific part of the principal parts
             if(pp_in):
-                for (r,n) in pp_in.keys():
+                for (r,n) in list(pp_in.keys()):
                     p[(r,n)]=pp_in[(r,n)]
             pp.append(p)                
             ## If G is in the + space we set some c's too...
@@ -1959,7 +1962,7 @@ class AutomorphicFormElement(SageObject):
         d2=len(M._group.cusps())
         if C != None:
             # We need the correct length of the coefficient vector
-            if len(C.keys()) > d1 or (len(C.keys())<d1 and self._sym_type==None):
+            if len(list(C.keys())) > d1 or (len(list(C.keys()))<d1 and self._sym_type==None):
                 # If we have smaller amount we believe there is a symmetry at work...
                 #or (d1==1 and len(M._group._cusps)<>len(C.keys()))):
                 raise ValueError("Coefficient vector of wrong format! Got length={0}".format(len(C)))
@@ -1999,13 +2002,13 @@ class AutomorphicFormElement(SageObject):
         if(not eq):
             return False
         # need to check coefficients
-        if(self._coeffs.keys() != other._coeffs.keys()):
+        if(list(self._coeffs.keys()) != list(other._coeffs.keys())):
             return False
-        for r in self._coeffs.keys():
-            if(self._coeffs[r].keys() != other._coeffs[r].keys()):
+        for r in list(self._coeffs.keys()):
+            if(list(self._coeffs[r].keys()) != list(other._coeffs[r].keys())):
                 return False
-            for n in self._coeffs[r].keys():
-                if(self._coeffs[r][n].keys() != other._coeffs[r][n].keys()):
+            for n in list(self._coeffs[r].keys()):
+                if(list(self._coeffs[r][n].keys()) != list(other._coeffs[r][n].keys())):
                     return False
         
     def  _repr_(self):
@@ -2059,11 +2062,11 @@ class AutomorphicFormElement(SageObject):
         p['-']=dict()
         c = dict()
         ## we truncate to the smaller number of coefficients
-        for r in c1.keys():
+        for r in list(c1.keys()):
             c[r]=dict()
-            for j in c1[r].keys():
+            for j in list(c1[r].keys()):
                 c[r][j]=dict()
-                for n in c1[r][j].keys():
+                for n in list(c1[r][j].keys()):
                     if n in c2[r][j]:
                         if self._verbose>1:
                             print("adding {0},{1},{2}".format(r,j,n))
@@ -2071,7 +2074,7 @@ class AutomorphicFormElement(SageObject):
                         if self._verbose > 1 and n==1:
                             print("{0} + {1} = {2}".format(c1[r][j][n],c2[r][j][n],c[r][j][n]))
         ## merge the principal parts
-        k1 = pp1['+'].keys(); k2 = pp1['+'].keys();  k1.extend(k2)
+        k1 = list(pp1['+'].keys()); k2 = list(pp1['+'].keys());  k1.extend(k2)
         for r in k1:
             if k1.count(r) > 0:
                 k1.remove(r)
@@ -2082,7 +2085,7 @@ class AutomorphicFormElement(SageObject):
             if (r,n) in pp2['+']:
                 t=t+pp2['+'][(r,n)]            
             p['+'][(r,n)]=t
-        k1 = pp1['-'].keys(); k2 = pp1['-'].keys();  k1.extend(k2)
+        k1 = list(pp1['-'].keys()); k2 = list(pp1['-'].keys());  k1.extend(k2)
         for r in k1:
             if(k1.count(r)>0):
                 k1.remove(r)
@@ -2161,11 +2164,11 @@ class AutomorphicFormElement(SageObject):
             bb = self._base_ring(b.real(),b.imag())
 
 
-        for r in c1.keys():
+        for r in list(c1.keys()):
             c[r]=dict()
-            for j in c1[r].keys():
+            for j in list(c1[r].keys()):
                 c[r][j]=dict()
-                for n in c1[r][j].keys():
+                for n in list(c1[r][j].keys()):
                     if n in c2[r][j]:
                         #print "adding ",r,j,n
                         #print "aa.parent()=",aa.parent(),type(aa)
@@ -2176,7 +2179,7 @@ class AutomorphicFormElement(SageObject):
                         #if(n==1):
                         #    print c1[r][j][n],"+",c2[r][j][n],"=",c[r][j][n]
         ## merge the principal part
-        k1 = pp1['+'].keys(); k2 = pp2['+'].keys();  k1.extend(k2)
+        k1 = list(pp1['+'].keys()); k2 = list(pp2['+'].keys());  k1.extend(k2)
         for r in k1:
             if(k1.count(r)>1):
                 k1.remove(r)
@@ -2187,7 +2190,7 @@ class AutomorphicFormElement(SageObject):
             if (r,n) in pp2['+']:
                 t=t+b*pp2['+'][(r,n)]            
             p['+'][(r,n)]=t
-        k1 = pp1['-'].keys(); k2 = pp1['-'].keys();  k1.extend(k2)
+        k1 = list(pp1['-'].keys()); k2 = list(pp1['-'].keys());  k1.extend(k2)
         for r in k1:
             if(k1.count(r)>1):
                 k1.remove(r)
@@ -2314,13 +2317,13 @@ class AutomorphicFormElement(SageObject):
         """
         have_minus=self._principal_part.get('-') != {}
         
-        for r in self._coeffs.keys():
+        for r in list(self._coeffs.keys()):
             print("")
-            for j in self._coeffs[r].keys():
+            for j in list(self._coeffs[r].keys()):
                 if cusp != None and j != cusp:
                     continue
                 print("")
-                l=self._coeffs[r][j].keys()
+                l=list(self._coeffs[r][j].keys())
                 l.sort(cmp=self.my_zzcmp)
                 #c0=self._coeffs[r][j][0]
                 #c1=self._coeffs[r][j][1]
@@ -2395,7 +2398,7 @@ class AutomorphicFormElement(SageObject):
                             c=self._coeffs[r][j][n]*sqrt(abs(nal))/c_neg_norm
                         else:
                             c=self._coeffs[r][j][n]
-                        if(len(self._coeffs.keys())>1):
+                        if(len(list(self._coeffs.keys()))>1):
                             print("C[{0},{1},{2}]={3}".format(r,j,n,c))
                         else:
                             print("C[{0},{1},{2}]={3}".format(j,n,st_nal,c))
@@ -2408,7 +2411,7 @@ class AutomorphicFormElement(SageObject):
                         else:
                             c_minus=self._principal_part['-'].get((j,0),0)
                             c_plus=self._coeffs[r][j][n]
-                        if len(self._coeffs.keys())>1:
+                        if len(list(self._coeffs.keys()))>1:
                             if have_minus:
                                 print("C[{0},{1},-{2}]={3}".format(r,j,n,c_minus))
                             print("C[{0},{1},-{2}]={3}".format(r,j,n,c_plus))
@@ -2436,18 +2439,18 @@ class AutomorphicFormElement(SageObject):
         ###
         s=""
         if component<0:
-            for r in self._coeffs.keys():
+            for r in list(self._coeffs.keys()):
                 s+=self.list_coefficients(N=N,cusp=cusp,norm=norm,print_part=print_part,component=r,out_prec=out_prec)
             return s
         if cusp=="all":
-            for j in self._coeffs[component].keys():
+            for j in list(self._coeffs[component].keys()):
                 s+=self.list_coefficients(N=N,cusp=j,norm=norm,print_part=print_part,component=component,out_prec=out_prec)
                 #assert isinstance(cusp,(int,Integer))
             return s
         C = {} #copy(self._coeffs.get(component,{}).get(cusp,{}))
         #Cplus = []
         #Cminus = []
-        l = self._coeffs.get(component,{}).get(cusp,{}).keys()
+        l = list(self._coeffs.get(component,{}).get(cusp,{}).keys())
         l_plus = []; l_minus=[]
         for n in l:
             if abs(n)>N:
@@ -2558,11 +2561,11 @@ class AutomorphicFormElement(SageObject):
         ph="\\hphantom{$-$}"
         prec = self.space().prec()
         eps = 2.0*10.0**(-prec*ln(2.0)/ln(10.0))
-        for r in self._coeffs.keys():
+        for r in list(self._coeffs.keys()):
             ## Make one table per vector component
             tbl=" $n$ "
             cols="|l"
-            for j in self._coeffs[r].keys():
+            for j in list(self._coeffs[r].keys()):
                 if(cusp!=None and j!=cusp):
                     continue
                 tbl+= "& $p="+latex(self._space._group.cusps()[j])+"$ "
@@ -2574,10 +2577,10 @@ class AutomorphicFormElement(SageObject):
 
             # Use the union of indices for all cusps as index set.
             Nlist=[]
-            for j in self._coeffs[r].keys():
+            for j in list(self._coeffs[r].keys()):
                 if(cusp!=None and j!=cusp):
                     continue
-                l=self._coeffs[r][j].keys()
+                l=list(self._coeffs[r][j].keys())
                 for n in l:
                     al = self._space.alpha(j)[0]
                     nal = ZZ(n) + al
@@ -2592,7 +2595,7 @@ class AutomorphicFormElement(SageObject):
             pos_factor=dict()
             neg_factor=dict()
             a0_neg=dict()
-            for j in self._coeffs[r].keys():
+            for j in list(self._coeffs[r].keys()):
                 if(cusp!=None and j!=cusp):
                     continue
                 # # Scaling factor for positive coefficients
@@ -2645,7 +2648,7 @@ class AutomorphicFormElement(SageObject):
             for n in Nlist:
                 if n != 0:
                     row=" $"+str(n)+"$"
-                    for j in self._coeffs[r].keys():
+                    for j in list(self._coeffs[r].keys()):
                         if cusp != None and j != cusp:
                             continue
                         al = self._space.alpha(j)[0]
@@ -2676,7 +2679,7 @@ class AutomorphicFormElement(SageObject):
                     row=""
                     if(minus):
                         row+=" $a^{-}(0)$ "
-                        for j in self._coeffs[r].keys():
+                        for j in list(self._coeffs[r].keys()):
                             if cusp != None and j != cusp:
                                 continue
                             al = self._space.alpha(j)[0]
@@ -2700,7 +2703,7 @@ class AutomorphicFormElement(SageObject):
                         row+="$a^{+}(0)$ "
                     else:
                         row+="$0$ "
-                    for j in self._coeffs[r].keys():
+                    for j in list(self._coeffs[r].keys()):
                         if cusp != None and j != cusp:
                             continue
                         al = self._space.alpha(j)[0]
@@ -2751,11 +2754,11 @@ class AutomorphicFormElement(SageObject):
         eps = 2.0*10.0**(-self.space().prec()*ln(2.0)/ln(10.0))
         print("Principal part:{0}".format(self.print_principal_part()))
         const=dict()
-        for r in self._coeffs.keys():
+        for r in list(self._coeffs.keys()):
             coeff_f_minus[r]=dict()
             coeff_f_plus[r]=dict()
             const[r]=dict()
-            for j in self._coeffs[r].keys():
+            for j in list(self._coeffs[r].keys()):
                 coeff_f_minus[r][j]=list()
                 coeff_f_plus[r][j]=list()
                 #print "c0=",c0
@@ -2825,7 +2828,7 @@ class AutomorphicFormElement(SageObject):
                     else:
                         coeff_f_plus[r][j].append(c)                
                     #print "f^+[",j,",",n,"]^+=",c
-                if len(self._coeffs.keys())>1:
+                if len(list(self._coeffs.keys()))>1:
                     if(coeff_f_minus[r][j].count(0)==len(coeff_f_minus[r][j])):
                         fm="0"
                     else:
@@ -2851,8 +2854,8 @@ class AutomorphicFormElement(SageObject):
                     else:
                         fp=fp0
                     print("f[{0}]^={1}".format(j,fp))
-        for r in self._coeffs.keys():
-            for j in self._coeffs[r].keys():
+        for r in list(self._coeffs.keys()):
+            for j in list(self._coeffs[r].keys()):
                 if const[r][j][0]!=0 and const[r][j][1]!=0:
                     print("c[{0},{1}]^4= {2} arg = {3} pi".format(r,j,const[r][j][0],const[r][j][1]))
 
@@ -2898,7 +2901,7 @@ class AutomorphicFormElement(SageObject):
         eps = 2.0*10.0**(-self.space().prec()*ln(2.0)/ln(10.0))
         if pp_in:
             p = dict()
-            for (r,n) in pp_in.keys():
+            for (r,n) in list(pp_in.keys()):
                 p[(r,n)]=pp_in[(r,n)]
             pp.append(p)                
         ## If G is in the + space we set some c's too...
@@ -3301,13 +3304,13 @@ class HolomorphicModularFormElement(AutomorphicFormElement):
         r"""
         List coefficients of self.
         """
-        for r in self._coeffs.keys():
+        for r in list(self._coeffs.keys()):
             print("")
-            for j in self._coeffs[r].keys():
+            for j in list(self._coeffs[r].keys()):
                 if cusp != None and j != cusp:
                     continue
                 print("")
-                l=self._coeffs[r][j].keys()
+                l=list(self._coeffs[r][j].keys())
                 l.sort(cmp=self.my_zzcmp)
                 for n in l:
                     al = self._space.alpha(j)[0]
@@ -3567,8 +3570,8 @@ def set_norm_harmonic_weak_maass_forms2(H,P,C=None):
     N['weak']=H._weak        
     nc=H._group.ncusps()
     eps = 2.0*10.0**(-H.prec()*ln(2.0)/ln(10.0))
-    if C != None and len(C.keys())>0:
-        if(is_int(C.keys()[0])):
+    if C != None and len(list(C.keys()))>0:
+        if(is_int(list(C.keys())[0])):
             SetC=C
         else:
             SetC=dict()
@@ -3577,8 +3580,8 @@ def set_norm_harmonic_weak_maass_forms2(H,P,C=None):
         SetC=C
     if H._verbose > 1:
         print("SetC={0}".format(SetC))
-    if C != None and len(SetC.keys())>0:
-        N['comp_dim']=len(SetC.keys())
+    if C != None and len(list(SetC.keys()))>0:
+        N['comp_dim']=len(list(SetC.keys()))
     #print "N=",N
     #print "SetC.keys=",SetC.keys()
     for j in range(N['comp_dim']):
@@ -3601,8 +3604,8 @@ def set_norm_harmonic_weak_maass_forms2(H,P,C=None):
                     N['SetCs'][j][(icusp,0)]=0
     #print "N=",N
     if SetC != None:
-        for i in SetC.keys():
-            for (r,n) in SetC[i].keys():
+        for i in list(SetC.keys()):
+            for (r,n) in list(SetC[i].keys()):
                 if (r,n) in P:
                     N['SetCs'][i][(r,n)]=P[(r,n)]
                 else:
@@ -3693,7 +3696,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
     SetClist=dict()
     for j in range(0,comp_dim):
         SetClist[j]=dict()
-    if len(PP)>0 and ((comp_dim!=len(SetCs.keys()) and comp_dim!=len(PP))):
+    if len(PP)>0 and ((comp_dim!=len(list(SetCs.keys())) and comp_dim!=len(PP))):
         print("comp_dim={0}".format(comp_dim))
         print("SetC={0}".format(SetCs))
         print("PP={0}".format(PP))
@@ -3701,7 +3704,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
     num_set=0
     for j in range(0,comp_dim):
         # # First we treat set values of coefficients not corresponsing to the principal part
-        for (r,n) in SetCs[j].keys():
+        for (r,n) in list(SetCs[j].keys()):
             nr = r*Ml+n
             if nr>=0 or not H.is_holomorphic():
                 SetClist[j][nr]=SetCs[j][(r,n)]
@@ -3718,7 +3721,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
                     nr = r*Ml
                     if((r,0) in SetCs_neg.get(j,{})):
                         SetClist[j][nr]=CF(SetCs_neg[j][(r,0)]) 
-        num_set=len(SetClist[0].keys())
+        num_set=len(list(SetClist[0].keys()))
     if verbose>0:
         print("SetClist_tot={0}".format(SetClist))
     t=V[0,0]
@@ -3756,7 +3759,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
         print("use_sym={0}".format(use_sym))
     for r in range(V.nrows()):
         cr=r+Ms
-        if(SetClist[0].keys().count(r+Ms)>0):
+        if(list(SetClist[0].keys()).count(r+Ms)>0):
             roffs=roffs+1
             continue
         for fn_j in range(comp_dim):
@@ -3766,13 +3769,13 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
                 RHS[r-roffs,fn_j]=CF(-W['RHS'][r,0])
             else:
                 RHS[r-roffs,fn_j]=zero
-            for c in SetClist[fn_j].keys():
+            for c in list(SetClist[fn_j].keys()):
                 v=CF(SetClist[fn_j][c])
                 tmp=v*V[r,c-Ms]
                 RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
         for k in range(V.ncols()):            
-            if(SetClist[0].keys().count(k+Ms)>0):
+            if(list(SetClist[0].keys()).count(k+Ms)>0):
                 coffs=coffs+1
                 continue
             try:                
@@ -3835,7 +3838,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
                 key=n+Ms
                 #if(i==1):
                 #    print n,key
-                if(SetClist[fn_j].keys().count(nn)>0):
+                if(list(SetClist[fn_j].keys()).count(nn)>0):
                     if verbose>1:
                         print("We have set {0}".format(nn))
                     roffs=roffs+1
@@ -4020,7 +4023,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
     SetClist=dict()
     for j in range(0,comp_dim):
         SetClist[j]=dict()
-    if comp_dim != len(SetCs.keys()) and comp_dim != len(PP):
+    if comp_dim != len(list(SetCs.keys())) and comp_dim != len(PP):
         print("comp_dim={0}".format(comp_dim))
         print("SetC={0}".format(SetCs))
         print("PP={0}".format(PP))
@@ -4028,7 +4031,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
     num_set=0
     for j in range(0,comp_dim):
         # # First we treat set values of coefficients not corresponsing to the principal part
-        for (r,n) in SetCs[j].keys():
+        for (r,n) in list(SetCs[j].keys()):
             for j in range(comp_dim):
                 #if(two_terms and n>=0):
                 #    nr = r*Ml+n+1
@@ -4051,7 +4054,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
                     #if(SetCs_neg[j].has_key((r,0))):
                     #    
                     #SetClist[j][nr]=zero
-        num_set=len(SetClist[0].keys())
+        num_set=len(list(SetClist[0].keys()))
     if verbose>0:
         print("SetClist_tot={0}".format(SetClist))
     t=V[0,0]
@@ -4087,7 +4090,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
         print("use_sym={0}".format(use_sym))
     for r in range(V.rows):
         cr=r+Ms
-        if(SetClist[0].keys().count(r+Ms)>0):
+        if(list(SetClist[0].keys()).count(r+Ms)>0):
             roffs=roffs+1
             continue
         for fn_j in range(comp_dim):
@@ -4095,7 +4098,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
                 RHS[r-roffs,fn_j]=-W['RHS'][r,fn_j]
             elif 'RHS' in W:
                 RHS[r-roffs,fn_j]=-W['RHS'][r,0]
-            for c in SetClist[fn_j].keys():
+            for c in list(SetClist[fn_j].keys()):
                 v=SetClist[fn_j][c]
                 if(mpmath_ctx==mpmath.mp):
                     tmp=mpmath_ctx.mpmathify(v)
@@ -4107,7 +4110,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
                 RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
         for k in range(V.cols):            
-            if(SetClist[0].keys().count(k+Ms)>0):
+            if(list(SetClist[0].keys()).count(k+Ms)>0):
                 coffs=coffs+1
                 continue
             try:                
@@ -4192,7 +4195,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
                 key=n+Ms
                 #if(i==1):
                 #    print n,key
-                if(SetClist[fn_j].keys().count(nn)>0):
+                if(list(SetClist[fn_j].keys()).count(nn)>0):
                     if verbose>1:
                         print("We have set {0}".format(nn))
                     roffs=roffs+1

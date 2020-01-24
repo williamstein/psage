@@ -1,6 +1,8 @@
 from __future__ import print_function
 from __future__ import absolute_import
 #import sqrt5_fast
+from builtins import str
+from builtins import range
 from . import sqrt5
 from sage.misc.all import cputime
 from sage.rings.all import Integer, ZZ
@@ -8,7 +10,7 @@ from sage.rings.all import Integer, ZZ
 F = sqrt5.F
 
 def ideals_of_bounded_norm(B):
-    return sum([v for n, v in F.ideals_of_bdd_norm(B).iteritems() if n != 1], [])
+    return sum([v for n, v in F.ideals_of_bdd_norm(B).items() if n != 1], [])
     
 def ideals_of_norm(v):
     try:

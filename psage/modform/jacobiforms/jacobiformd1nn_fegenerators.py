@@ -1,6 +1,7 @@
 """
 We provide methods to create Fourier expansions of (weak) Jacobi forms.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -21,6 +22,9 @@ We provide methods to create Fourier expansions of (weak) Jacobi forms.
 #
 #===============================================================================
 
+from builtins import map
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_lazyelement import \
                                         EquivariantMonoidPowerSeries_lazy
 from psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion import JacobiD1NNFourierExpansionModule
@@ -61,8 +65,8 @@ def _jacobi_forms_by_taylor_expansion_coords(index, weight, precision) :
             precision = (index - 1) // 4 + 1
         
         weak_forms = _all_weak_jacobi_forms_by_taylor_expansion(index, weight, precision)
-        weak_index_matrix = matrix(ZZ, [ [ f[(n,r)] for n in xrange((index - 1) // 4 + 1)
-                                                    for r in xrange(isqrt(4 * n * index) + 1,  index + 1) ]
+        weak_index_matrix = matrix(ZZ, [ [ f[(n,r)] for n in range((index - 1) // 4 + 1)
+                                                    for r in range(isqrt(4 * n * index) + 1,  index + 1) ]
                                          for f in weak_forms] )
         _jacobi_forms_by_taylor_expansion_coords_cache[key] = \
           weak_index_matrix.left_kernel().echelonized_basis()
@@ -89,7 +93,7 @@ def jacobi_form_by_taylor_expansion(i, index, weight, precision) :
 # DelayedFactory_JacobiFormD1NN_taylor_expansion
 #===============================================================================
 
-class DelayedFactory_JacobiFormD1NN_taylor_expansion :
+class DelayedFactory_JacobiFormD1NN_taylor_expansion(object) :
     def __init__(self, i, index, weight, precision) :
         self.__i = i
         self.__index = index
@@ -124,9 +128,9 @@ def _theta_decomposition_indices(index, weight) :
     """
     dims = [ ModularForms(1, weight).dimension()] + \
            [ ModularForms(1, weight + 2*i).dimension() - 1
-             for i in xrange(1, index + 1) ]
+             for i in range(1, index + 1) ]
            
-    return [ (i,j) for (i,d) in enumerate(dims) for j in xrange(d)]
+    return [ (i,j) for (i,d) in enumerate(dims) for j in range(d)]
 
 #===============================================================================
 # _all_weak_jacobi_forms_by_taylor_expansion
@@ -172,7 +176,7 @@ def _all_weak_jacobi_forms_by_taylor_expansion(index, weight, precision) :
     modular_form_bases = \
       [ ModularForms(1, weight + 2*i) \
           .echelon_basis()[(0 if i == 0 else 1):]
-        for i in xrange(index + 1) ]
+        for i in range(index + 1) ]
 
     factory = JacobiFormD1NNFactory(precision, index)
 
@@ -223,7 +227,7 @@ def weak_jacbi_form_by_taylor_expansion(fs, precision, is_integral = False, weig
 # DelayedFactory_JacobiFormD1NN_taylor_expansion
 #===============================================================================
 
-class DelayedFactory_JacobiFormD1NN_taylor_expansion_weak :
+class DelayedFactory_JacobiFormD1NN_taylor_expansion_weak(object) :
     def __init__(self, factory, fs, weight) :
         self.__factory = factory
         self.__fs = fs
@@ -305,7 +309,7 @@ class JacobiFormD1NNFactory_class (SageObject) :
             else :
                 P = PowerSeriesRing(GF(p), 'q')
                 
-                return [map(P, facs) for facs in self.__theta_factors] 
+                return [list(map(P, facs)) for facs in self.__theta_factors] 
 
         except AttributeError :
             qexp_prec = self._qexp_precision()
@@ -319,37 +323,37 @@ class JacobiFormD1NNFactory_class (SageObject) :
             frmsq = twom ** 2
             
             thetas = dict( ((i, j), dict())
-                           for i in xrange(m + 1) for j in xrange(m + 1) )
+                           for i in range(m + 1) for j in range(m + 1) )
             
             ## We want to calculate \hat \theta_{j,l} = sum_r (2 m r + j)**2l q**(m r**2 + j r).
 
-            for r in xrange(0, isqrt((qexp_prec - 1 + m)//m) + 2) :
+            for r in range(0, isqrt((qexp_prec - 1 + m)//m) + 2) :
                 for j in [0,m] :
                     fact = (twom*r + j)**2
                     coeff = 2
-                    for l in xrange(0, m + 1) :
+                    for l in range(0, m + 1) :
                         thetas[(j,l)][m*r**2 + r*j] = coeff
                         coeff = coeff * fact
             thetas[(0,0)][0] = 1
                     
-            for r in xrange(0, isqrt((qexp_prec - 1 + m)//m) + 2) :
-                for j in xrange(1, m) :
+            for r in range(0, isqrt((qexp_prec - 1 + m)//m) + 2) :
+                for j in range(1, m) :
                     fact_p = (twom*r + j)**2
                     fact_m = (twom*r - j)**2
                     coeff_p = 2
                     coeff_m = 2
                     
-                    for l in xrange(0, m + 1) :
+                    for l in range(0, m + 1) :
                         thetas[(j,l)][m*r**2 + r*j] = coeff_p 
                         thetas[(j,l)][m*r**2 - r*j] = coeff_m
                         coeff_p = coeff_p * fact_p
                         coeff_m = coeff_m * fact_m 
                                     
             thetas = dict( ( k, PS(th).add_bigoh(qexp_prec) )
-                           for (k,th) in thetas.iteritems() )
+                           for (k,th) in thetas.items() )
             
             W = matrix(PS, m + 1, [ thetas[(j, l)]
-                                    for j in xrange(m + 1) for l in xrange(m + 1) ])
+                                    for j in range(m + 1) for l in range(m + 1) ])
             
             
             ## Since the adjoint of matrices with entries in a general ring
@@ -400,8 +404,8 @@ class JacobiFormD1NNFactory_class (SageObject) :
             else :
                 Wadj = W.adjoint()
             
-            theta_factors = [ [ Wadj[i,r] for i in xrange(m + 1) ]
-                              for r in xrange(m + 1) ]
+            theta_factors = [ [ Wadj[i,r] for i in range(m + 1) ]
+                              for r in range(m + 1) ]
             
             if p is None :
                 self.__theta_factors = theta_factors
@@ -424,7 +428,7 @@ class JacobiFormD1NNFactory_class (SageObject) :
             qexp_prec = self._qexp_precision()
             
             self.__eta_factor = self.integral_power_series_ring() \
-                 ( [ number_of_partitions(n) for n in xrange(qexp_prec) ] ) \
+                 ( [ number_of_partitions(n) for n in range(qexp_prec) ] ) \
                  .add_bigoh(qexp_prec) ** pw
                  
             return self.__eta_factor
@@ -455,27 +459,27 @@ class JacobiFormD1NNFactory_class (SageObject) :
         if self.__precision.jacobi_index() == 1 :
             return self._by_taylor_expansion_m1(f_divs, k, is_integral)
         
-        for i in xrange(self.__precision.jacobi_index() + 1) :
-            for j in xrange(1, self.__precision.jacobi_index() - i + 1) :
+        for i in range(self.__precision.jacobi_index() + 1) :
+            for j in range(1, self.__precision.jacobi_index() - i + 1) :
                 f_divs[(i,j)] = f_divs[(i, j - 1)].derivative().shift(1)
             
         phi_divs = list()
-        for i in xrange(self.__precision.jacobi_index() + 1) :
+        for i in range(self.__precision.jacobi_index() + 1) :
             ## This is the formula in Skoruppas thesis. He uses d/ d tau instead of d / dz which yields
             ## a factor 4 m
             phi_divs.append( sum( f_divs[(j, i - j)] * (4 * self.__precision.jacobi_index())**i
                                   * binomial(i,j) / 2**i#2**(self.__precision.jacobi_index() - i + 1)
-                                  * prod(2*(i - l) + 1 for l in xrange(1, i))
+                                  * prod(2*(i - l) + 1 for l in range(1, i))
                                   / factorial(i + k + j - 1)
                                   * factorial(2*self.__precision.jacobi_index() + k - 1) 
-                                  for j in xrange(i + 1) ) )
+                                  for j in range(i + 1) ) )
             
         phi_coeffs = dict()
-        for r in xrange(self.__precision.jacobi_index() + 1) :
+        for r in range(self.__precision.jacobi_index() + 1) :
             series = sum( map(operator.mul, self._theta_factors()[r], phi_divs) )
             series = self._eta_factor() * series
 
-            for n in xrange(qexp_prec) :
+            for n in range(qexp_prec) :
                 phi_coeffs[(n, r)] = series[n]
 
         return phi_coeffs
@@ -500,7 +504,7 @@ class JacobiFormD1NNFactory_class (SageObject) :
         a1dict = dict(); a0dict = dict()
         b1dict = dict(); b0dict = dict()
     
-        for t in xrange(1, ab_prec + 1) :
+        for t in range(1, ab_prec + 1) :
             tmp = t**2
             a1dict[tmp] = -8*tmp
             b1dict[tmp] = -2
@@ -523,7 +527,7 @@ class JacobiFormD1NNFactory_class (SageObject) :
             Ifg1 += [0]*(qexp_prec - len(Ifg1))
                     
         Cphi = dict([(0,0)])
-        for i in xrange(qexp_prec) :
+        for i in range(qexp_prec) :
             Cphi[-4*i] = Ifg0[i]
             Cphi[1-4*i] = Ifg1[i]
 
@@ -531,8 +535,8 @@ class JacobiFormD1NNFactory_class (SageObject) :
 
         phi_coeffs = dict()
         m = self.__precision.jacobi_index()
-        for r in xrange(2 * self.__precision.jacobi_index()) :
-            for n in xrange(qexp_prec) :
+        for r in range(2 * self.__precision.jacobi_index()) :
+            for n in range(qexp_prec) :
                 k = 4 * m * n - r**2
                 if k >= 0 :
                     phi_coeffs[(n, r)] = Cphi[-k]

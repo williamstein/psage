@@ -21,6 +21,8 @@ We provide methods to create Fourier expansions of (weak) Jacobi forms `\mathrm{
 #
 #===============================================================================
 
+from builtins import map
+from builtins import range
 from sage.misc.all import prod
 from sage.rings.all import PowerSeriesRing, GF
 from sage.rings.all import binomial, factorial
@@ -91,27 +93,27 @@ class JacobiFormD1NNModularFactory_class (SageObject) :
         for (i, f) in enumerate(fs) :
             f_divs[(i, 0)] = PS(f(qexp_prec), qexp_prec)
                 
-        for i in xrange(self.__precision.jacobi_index() + 1) :
-            for j in xrange(1, self.__precision.jacobi_index() - i + 1) :
+        for i in range(self.__precision.jacobi_index() + 1) :
+            for j in range(1, self.__precision.jacobi_index() - i + 1) :
                 f_divs[(i,j)] = f_divs[(i, j - 1)].derivative().shift(1)
             
         phi_divs = list()
-        for i in xrange(self.__precision.jacobi_index() + 1) :
+        for i in range(self.__precision.jacobi_index() + 1) :
             ## This is the formula in Skoruppas thesis. He uses d/ d tau instead of d / dz which yields
             ## a factor 4 m
             phi_divs.append( sum( f_divs[(j, i - j)] * (4 * self.__precision.jacobi_index())**i
                                   * binomial(i,j) * ( 2**self.index() // 2**i)
-                                  * prod(2*(i - l) + 1 for l in xrange(1, i))
+                                  * prod(2*(i - l) + 1 for l in range(1, i))
                                   * (factorial(k + 2*self.index() - 1) // factorial(i + k + j - 1))
                                   * factorial(2*self.__precision.jacobi_index() + k - 1)
-                                  for j in xrange(i + 1) ) )
+                                  for j in range(i + 1) ) )
             
         phi_coeffs = dict()
-        for r in xrange(self.index() + 1) :
+        for r in range(self.index() + 1) :
             series = sum( map(operator.mul, self._theta_factors()[r], phi_divs) )
             series = self._eta_factor() * series
 
-            for n in xrange(qexp_prec) :
+            for n in range(qexp_prec) :
                 phi_coeffs[(n, r)] = int(series[n].lift()) % p
 
         return phi_coeffs

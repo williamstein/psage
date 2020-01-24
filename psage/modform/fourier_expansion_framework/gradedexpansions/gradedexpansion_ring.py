@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import zip
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient import GradedExpansionAmbient_abstract
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_element import GradedExpansion_class
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_functor import GradedExpansionBaseringInjection
@@ -95,14 +97,13 @@ class GradedExpansionRing_class ( GradedExpansionAmbient_abstract, Algebra ) :
         elif base_ring_generators is None or len(base_ring_generators) == 0 :
             Algebra.__init__(self, relations.base_ring())
         else :
-            gb = filter( lambda p: all( all(a == 0 for a in list(e)[len(base_ring_generators):])
-                                        for e in p.exponents() ),
-                         relations.groebner_basis() )
+            gb = [p for p in relations.groebner_basis() if all( all(a == 0 for a in list(e)[len(base_ring_generators):])
+                                        for e in p.exponents() )]
             P = PolynomialRing( relations.base_ring(),
                                 list(relations.ring().variable_names())[:len(base_ring_generators)] )
             base_relations = P.ideal(gb)
             R = GradedExpansionRing_class(None, base_ring_generators, base_relations,
-                    grading.subgrading(xrange(len(base_ring_generators))), all_relations, reduce_before_evaluating)
+                    grading.subgrading(range(len(base_ring_generators))), all_relations, reduce_before_evaluating)
             Algebra.__init__(self, R)
 
         GradedExpansionAmbient_abstract.__init__(self, base_ring_generators, generators, relations, grading, all_relations, reduce_before_evaluating)
@@ -140,9 +141,8 @@ class GradedExpansionRing_class ( GradedExpansionAmbient_abstract, Algebra ) :
             [Graded expansion a^3, Graded expansion a*b, Graded expansion c]
         """
         module_gens = self.grading().basis(index)
-        module_gens = [ filter( lambda e: e != 1,
-                                [ mon**ex if ex > 0 else 1
-                                  for mon,ex in zip(self.basegens(), g[:self.nbasegens()]) + zip(self.gens(), g[self.nbasegens():]) ] )
+        module_gens = [ [e for e in [ mon**ex if ex > 0 else 1
+                                  for mon,ex in list(zip(self.basegens(), g[:self.nbasegens()])) + list(zip(self.gens(), g[self.nbasegens():])) ] if e != 1]
                         for g in module_gens ]
         
         return [ self(reduce(operator.mul, g)) if len(g) > 1 else g[0] for g in module_gens ]
@@ -219,7 +219,7 @@ class GradedExpansionRing_class ( GradedExpansionAmbient_abstract, Algebra ) :
             Graded expansion ring with generators b
         """
         return "Graded expansion ring with generators "\
-                + ''.join(map(lambda e: repr(e.polynomial()) + ", ", self.gens()))[:-2]
+                + ''.join([repr(e.polynomial()) + ", " for e in self.gens()])[:-2]
                 
     def _latex_(self) :
         r"""
@@ -235,4 +235,4 @@ class GradedExpansionRing_class ( GradedExpansionAmbient_abstract, Algebra ) :
             \text{Graded expansion ring with generators }b
         """
         return r"\text{Graded expansion ring with generators }"\
-                + ''.join(map(lambda e: latex(e.polynomial()) + ", ", self.gens()))[:-2]
+                + ''.join([latex(e.polynomial()) + ", " for e in self.gens()])[:-2]

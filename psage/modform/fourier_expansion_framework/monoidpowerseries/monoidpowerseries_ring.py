@@ -24,6 +24,7 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import MonoidPowerSeriesAmbient_abstract, \
                                       EquivariantMonoidPowerSeriesAmbient_abstract
 from sage.algebras.algebra import Algebra

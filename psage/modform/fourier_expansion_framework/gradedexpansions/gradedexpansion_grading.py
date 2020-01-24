@@ -24,6 +24,10 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import str
+from builtins import map
+from builtins import range
 from operator import mul
 from operator import xor
 from sage.misc.latex import latex
@@ -529,7 +533,7 @@ class TrivialGrading ( Grading_abstract ) :
         """
         if index == self.__index :
             if vars is None :
-                vars = range(self.__ngens)
+                vars = list(range(self.__ngens))
             
             return [ tuple(i*[0] + [1] + (self.__ngens - i - 1)*[0])
                      for i in vars ]
@@ -599,7 +603,7 @@ class TrivialGrading ( Grading_abstract ) :
             1963142774     # 32-bit
             14848044662    # 64-bit
         """
-        return reduce(xor, map(hash, [self.__ngens, self.__index]))
+        return reduce(xor, list(map(hash, [self.__ngens, self.__index])))
     
     def _repr_(self) :
         r"""

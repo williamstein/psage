@@ -24,7 +24,11 @@ Weight 2 Hilbert modular forms over F = Q(sqrt(5)).
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
+from past.builtins import cmp
+from builtins import str
+from builtins import object
 from sage.misc.cachefunc import cached_method
 
 from .sqrt5 import F, O_F

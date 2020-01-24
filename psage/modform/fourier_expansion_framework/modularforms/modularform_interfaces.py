@@ -25,6 +25,7 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_element import GradedExpansion_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import MonoidPowerSeries_abstract, \
                                                         EquivariantMonoidPowerSeries_abstract
@@ -35,7 +36,7 @@ from psage.modform.fourier_expansion_framework.gradedexpansions.fourierexpansion
 # ModularFormsAmbientWithHeckeAction_abstract
 #===============================================================================
 
-class ModularFormsAmbientWithHeckeAction_abstract :
+class ModularFormsAmbientWithHeckeAction_abstract(object) :
     """
     The standard implementation assumes that the action only depends on the
     modulus and the weight.

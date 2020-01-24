@@ -27,6 +27,7 @@ r"""
 
 # python imports
 
+from builtins import map
 from sage.modular.arithgroup.congroup_sl2z import *
 from sage.all import Integer, ModularFormsRing, CommutativeRing, Infinity, SageObject, Parent, IntegerRing, EisensteinForms
 from psage.modform.jacobi.space import *
@@ -142,7 +143,7 @@ class JacobiFormsModule_generic_class(UniqueRepresentation, Module):
         def __mul__(self, f):
             kk = self._k + f.value.weight()
             newdef_map = lambda t: (f*t[0], t[1])
-            newdef = map(newdef_map, self._definition)
+            newdef = list(map(newdef_map, self._definition))
             return self.parent()(kk, definition = newdef)
 
         def __lmul__(self, f):
@@ -155,4 +156,4 @@ class JacobiFormsModule_generic_class(UniqueRepresentation, Module):
             return self.__mul__(f)
 
         def _neg_(self):
-            return self.parent()(self._k, definition = map(lambda t: (t[0],-t[1]), self._definition))
+            return self.parent()(self._k, definition = [(t[0],-t[1]) for t in self._definition])

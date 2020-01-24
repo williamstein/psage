@@ -24,6 +24,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import map
+from builtins import str
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import LazyFourierExpansionEvaluation
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_abstract
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_generic, ExpansionModule_ambient_pid, \
@@ -159,12 +162,11 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         
         if not "no_expansion_init" in kwds or not kwds["no_expansion_init"] :
             if graded_ambient.fourier_expansion_precision().is_infinite() or isinstance(self.__graded_ambient.fourier_ring(), MonoidPowerSeriesAmbient_abstract) :
-                ExpansionModule_abstract.__init__(self, Sequence( map( lambda b: b.fourier_expansion(), basis ),
+                ExpansionModule_abstract.__init__(self, Sequence( [b.fourier_expansion() for b in basis],
                                                                   universe = graded_ambient.fourier_ring() ))
             else :
-                ExpansionModule_abstract.__init__(self, Sequence( map( lambda b: LazyFourierExpansionEvaluation( graded_ambient.fourier_ring(), b,
-                                                                                                       graded_ambient.fourier_expansion_precision() ),
-                                                                       basis ),
+                ExpansionModule_abstract.__init__(self, Sequence( [LazyFourierExpansionEvaluation( graded_ambient.fourier_ring(), b,
+                                                                                                       graded_ambient.fourier_expansion_precision() ) for b in basis],
                                                                   universe = graded_ambient.fourier_ring(), check = False ))
         
     def graded_ambient(self) :
@@ -264,7 +266,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
             coerced_basis = self.__basis_in_graded_ambient
             relations = self.graded_ambient().relations()
         else :
-            coerced_basis = map(coerce_to, self.__basis_in_graded_ambient)
+            coerced_basis = list(map(coerce_to, self.__basis_in_graded_ambient))
             relations = coerce_to.relations()
         
         return Sequence( [ relations.reduce(b.polynomial())
@@ -1138,4 +1140,4 @@ class GradedExpansionSubmoduleVector_generic ( ExpansionModuleVector_generic ) :
             a
         """
         return sum( self[k]*self.parent()._basis_in_graded_ambient()[k].polynomial()
-                    for k in xrange(self.parent().rank()) )
+                    for k in range(self.parent().rank()) )

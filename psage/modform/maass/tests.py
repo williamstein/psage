@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import division
 #################################################################################
 #
 # (c) Copyright 2010 Fredrik Stroemberg
@@ -21,13 +22,13 @@ from __future__ import print_function
 ################################################################################
 
 from psage.modform.maass import *
-
+from sage.all import QQ
 
 def test_vv(N=11):
     return 
     WR=WeilRepDiscriminantForm(11,dual=True)    
     M=VVHarmonicWeakMaassForms(WR,0.5,15)
-    PP={(7/22,0):1}
+    PP={(QQ(7)/QQ(22),0):1}
     F=M.get_element(PP,12)
     print(F)
 

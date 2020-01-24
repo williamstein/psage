@@ -6,6 +6,7 @@ AUTHORS:
 
 - Martin Raum (2010 - 04 - 09) Initial version.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -26,6 +27,7 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import range
 from psage.modform.jacobiforms.jacobiformd1nn_fegenerators import JacobiFormD1NNFactory
 from psage.modform.jacobiforms.jacobiformd1nn_types import JacobiFormsD1NN,\
     JacobiFormD1NN_Gamma
@@ -109,8 +111,7 @@ def symmetrised_siegel_modular_forms(level, weight, precision) :
 
     sr = SiegelModularFormsG2( QQ, SiegelModularFormG2_Classical_Gamma(),
                                precision._enveloping_discriminant_bound() * level**2 )
-    return map( lambda b: symmetrise_siegel_modular_form(b.fourier_expansion(), level, weight),
-                sr.graded_submodule(weight).basis() )
+    return [symmetrise_siegel_modular_form(b.fourier_expansion(), level, weight) for b in sr.graded_submodule(weight).basis()]
     
 #===============================================================================
 # gritsenko_lift_fourier_expansion
@@ -201,13 +202,13 @@ def gritsenko_products(N, weight, dimension, precision = None) :
     #   zu bestimmen. Dabei mod p mit zufaelligem p arbeiten
         
     fourier_expansions = list(gritsenko_lift_subspace(N, weight, precision))
-    products = [ [(weight, i)] for i in xrange(len(fourier_expansions)) ]
+    products = [ [(weight, i)] for i in range(len(fourier_expansions)) ]
 
     fourier_indices = list(precision)
     fourier_matrix = matrix(ZZ, [ [e[k] for k in fourier_indices]
                                   for e in fourier_expansions] )
     
-    for k in xrange(min((weight // 2) - ((weight // 2) % 2), weight - 2), 1, -2) :
+    for k in range(min((weight // 2) - ((weight // 2) % 2), weight - 2), 1, -2) :
         space_k = list(enumerate(gritsenko_lift_subspace(N, k, precision)))
         space_wk = list(enumerate(gritsenko_lift_subspace(N, weight - k, precision)))
 

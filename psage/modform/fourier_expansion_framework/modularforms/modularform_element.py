@@ -1,3 +1,4 @@
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient import GradedExpansionAmbient_abstract
 r"""
 A orthogonal modular form, namely a graded expansion providing additional features.

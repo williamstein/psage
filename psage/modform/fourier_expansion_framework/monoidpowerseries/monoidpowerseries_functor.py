@@ -25,6 +25,7 @@ from __future__ import absolute_import
 #
 #===============================================================================
 
+from past.builtins import cmp
 from sage.categories.commutative_additive_groups import CommutativeAdditiveGroups
 from sage.categories.rings import Rings
 from sage.categories.modules import Modules

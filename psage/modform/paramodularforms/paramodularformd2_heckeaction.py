@@ -4,6 +4,7 @@ The Hecke action for paramodular forms of degree 2.
 AUTHOR :
     -- Martin Raum (2010 - 05 - 04) Initial version, based on Siegel modular forms case.
 """
+from __future__ import division
 
 #===============================================================================
 # 

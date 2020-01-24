@@ -60,7 +60,6 @@ from __future__ import division
 #from sage.all_cmdline import *   # import sage library
 
 from builtins import str
-from builtins import map
 from builtins import range
 from sage.arith.all import xgcd,gcd,CRT_basis
 from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational,Infinity,RealField

@@ -24,6 +24,7 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import object
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import EquivariantMonoidPowerSeriesAmbient_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import EquivariantMonoidPowerSeries_abstract
 from sage.structure.element import AlgebraElement
@@ -239,7 +240,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
         if len(self.__coefficients) == 0 and not force_characters :
             return dict()
         elif len(self.__coefficients) == 1 and not force_characters :
-            return self.__coefficients.values()[0]
+            return list(self.__coefficients.values())[0]
         else :
             return self.__coefficients
 
@@ -273,7 +274,7 @@ class EquivariantMonoidPowerSeries_abstract_lazy (EquivariantMonoidPowerSeries_a
         if nprec != self.precision() :
             for c in self.__coefficients :
                 d = self.__coefficients[c]
-                for k in d.keys() :
+                for k in list(d.keys()) :
                     if not k in nprec :
                         del d[k]
             
@@ -412,7 +413,7 @@ class EquivariantMonoidPowerSeries_algebraelement_lazy (EquivariantMonoidPowerSe
 # EquivariantMonoidPowerseries_MultiplicationDelayedFactory
 #===============================================================================
 
-class EquivariantMonoidPowerseries_MultiplicationDelayedFactory :
+class EquivariantMonoidPowerseries_MultiplicationDelayedFactory(object) :
     r"""
     A helper class for lazy multplication of equivariant monoid power series.
     """
@@ -534,8 +535,8 @@ def EquivariantMonoidPowerSeries_LazyMultiplication(left, right) :
         left_coefficients = left.coefficients(True)
         right_coefficients = right.coefficients(True)
         
-        left_keys  = reduce(union, (set(c) for c in left_coefficients.itervalues()), set())
-        right_keys = reduce(union, (set(c) for c in right_coefficients.itervalues()), set())
+        left_keys  = reduce(union, (set(c) for c in left_coefficients.values()), set())
+        right_keys = reduce(union, (set(c) for c in right_coefficients.values()), set())
         
         bounding_precision = left.parent().action(). \
                         minimal_composition_filter(left_keys, right_keys)

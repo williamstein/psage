@@ -29,6 +29,9 @@ AUTHOR :
 ## even weight
 ## c(n, r) = c(n', r') <=> r' \equiv \pm r (2m) and r'**2 - 4 n' m = r**2 - 4 n m
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from operator import xor
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialCharacterMonoid,\
     TrivialRepresentation
@@ -139,9 +142,9 @@ class JacobiFormD1NNIndices ( SageObject ) :
             yield ((n,r), (0,0))
             
             msq = self.__m**2
-            for n1 in xrange(1, n) :
+            for n1 in range(1, n) :
                 n2 = n - n1
-                for r1 in xrange( max(r - isqrt(fm * n2 + msq),
+                for r1 in range( max(r - isqrt(fm * n2 + msq),
                                       isqrt(fm * n1 + msq - 1) + 1),
                                   min( r + isqrt(fm * n2 + msq) + 1,
                                        isqrt(fm * n1 + msq) + 1 ) ) :
@@ -150,14 +153,14 @@ class JacobiFormD1NNIndices ( SageObject ) :
             yield ((0,0), (n,r)) 
             yield ((n,r), (0,0))
             
-            for n1 in xrange(1, n) :
+            for n1 in range(1, n) :
                 n2 = n - n1
                 ##r = r1 + r2
                 ##r1**2 <= 4 n1 m
                 ## (r - r1)**2 <= 4 n2 m
                 ## r1**2 - 2*r1*r + r**2 - 4 m n2 <= 0
                 ## r1 <-> r \pm \sqrt{r**2 - r**2 + 4 m n2}
-                for r1 in xrange( max(r - isqrt(fm * n2),
+                for r1 in range( max(r - isqrt(fm * n2),
                                       isqrt(fm * n1 - 1) + 1),
                                   min( r + isqrt(fm * n2) + 1,
                                        isqrt(fm * n1) + 1 ) ) :
@@ -286,22 +289,22 @@ class JacobiFormD1NNFilter ( SageObject ) :
         if self.__reduced :
             if self.__weak_forms :
                 msq = self.__m**2
-                for n in xrange(1, self.__bound) :
-                    for r in xrange(min(self.__m + 1, isqrt(fm * n + msq - 1) + 1)) :
+                for n in range(1, self.__bound) :
+                    for r in range(min(self.__m + 1, isqrt(fm * n + msq - 1) + 1)) :
                         yield (n, r)
             else :
-                for n in xrange(1, self.__bound) :
-                    for r in xrange(min(self.__m + 1, isqrt(fm * n - 1) + 1)) :
+                for n in range(1, self.__bound) :
+                    for r in range(min(self.__m + 1, isqrt(fm * n - 1) + 1)) :
                         yield (n, r)
         else :
             if self.__weak_forms :
                 msq = self.__m**2
-                for n in xrange(1, self.__bound) :
-                    for r in xrange(isqrt(fm * n + msq - 1) + 1) :
+                for n in range(1, self.__bound) :
+                    for r in range(isqrt(fm * n + msq - 1) + 1) :
                         yield (n, r)
             else :
-                for n in xrange(1, self.__bound) :
-                    for r in xrange(isqrt(fm * n - 1) + 1) :
+                for n in range(1, self.__bound) :
+                    for r in range(isqrt(fm * n - 1) + 1) :
                         yield (n, r)
                         
         raise StopIteration
@@ -312,25 +315,25 @@ class JacobiFormD1NNFilter ( SageObject ) :
         if self.__reduced :
             if self.__weak_forms :
                 msq = self.__m**2
-                for n in xrange(0, min(self.__m // 4 + 1, self.__bound)) :
-                    for r in xrange( isqrt(fm * n - 1) + 1 if n != 0 else 0,
+                for n in range(0, min(self.__m // 4 + 1, self.__bound)) :
+                    for r in range( isqrt(fm * n - 1) + 1 if n != 0 else 0,
                                      isqrt(fm * n + msq + 1) ) :
                         yield (n, r)
             else :
 
-                for r in xrange(0, min(self.__m + 1,
+                for r in range(0, min(self.__m + 1,
                                        isqrt((self.__bound - 1) * fm) + 1) ) :
                     if fm.divides(r**2) :
                         yield (r**2 // fm, r)
         else :
             if self.__weak_forms :
                 msq = self.__m**2
-                for n in xrange(0, self.__bound) :
-                    for r in xrange( isqrt(fm * n - 1) + 1 if n != 0 else 0,
+                for n in range(0, self.__bound) :
+                    for r in range( isqrt(fm * n - 1) + 1 if n != 0 else 0,
                                      isqrt(fm * n + msq + 1) ) :
                         yield (n, r)
             else :
-                for n in xrange(0, self.__bound) :
+                for n in range(0, self.__bound) :
                     if (fm * n).is_square() :
                         yield(n, isqrt(fm * n))
 
@@ -351,8 +354,8 @@ class JacobiFormD1NNFilter ( SageObject ) :
         return c
     
     def __hash__(self) :
-        return reduce( xor, map(hash, [ self.__reduced, self.__weak_forms,
-                                        self.__m, self.__bound ]) )
+        return reduce( xor, list(map(hash, [ self.__reduced, self.__weak_forms,
+                                        self.__m, self.__bound ])) )
 
     def _repr_(self) :
         return "Jacobi precision %s" % (self.__bound,)

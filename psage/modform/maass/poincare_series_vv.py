@@ -25,6 +25,7 @@ EXAMPLES::
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -41,10 +42,12 @@ from __future__ import absolute_import
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from builtins import str
+from builtins import range
 import re,os
 p= re.compile('MatrixSpace')
 from .poincare_series_alg_vv import *
-from sage.all import IntegerModRing,RR,RealField,matrix,norm,load,save,Matrix,pi,is_square,set_verbose
+from sage.all import IntegerModRing,RR,RealField,matrix,norm,load,save,Matrix,pi,is_square,set_verbose,ZZ
 
 import mpmath
 # Unless the sage-addd-ons are installed 
@@ -88,9 +91,9 @@ def rn_from_Dn(N,sgn,l):
     N4=4*N
     ZR=IntegerModRing(4*N)
     x= ZR(D -sgn*r*r)
-    if( x != 0):
+    if x != 0:
         raise ValueError(" Need D=sgn*r^2 mod 4N got N={0}, r={1} D={2}".format(N,r,D))
-    n=(D-sgn*r*r)/(4*N)
+    n=(D-sgn*r*r)/ZZ(4*N)
     return [n,r]
 
 
@@ -106,8 +109,8 @@ def rn_from_D(N,sgn,D):
         x= ZR(D -sgn*j*j)
         if x == 0:
             r=j
-            n=(D-sgn*r*r)/(4*N)
-            exit
+            n=(D-sgn*r*r)/ZZ(4*N)
+            break
     return [n,r]
 
 
@@ -199,7 +202,7 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     for [D,r] in l.values():
         for [Dp,rp] in l.values():
             # Recall that the gram matrix is symmetric. We need only compute the upper diagonal
-            if(v.values().count([Dp,rp,D,r])==0):
+            if(list(v.values()).count([Dp,rp,D,r])==0):
                 v[j]=[D,r,Dp,rp]
                 j=j+1
     # now v is a list we can get into computing coefficients

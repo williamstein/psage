@@ -26,6 +26,7 @@ AUTHORS:
 #
 #===============================================================================
 
+from past.builtins import cmp
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import DegreeGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsRing_withheckeaction,\
                                              ModularFormsModule_generic

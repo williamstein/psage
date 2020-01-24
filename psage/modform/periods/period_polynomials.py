@@ -5,7 +5,10 @@ Classes and routines for working with spaces of (vector-valued) period polynomia
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
+from builtins import map
+from builtins import range
 from sage.all import SL2Z,SageObject,is_squarefree,RealField,ComplexField,Matrix,conjugate,binomial,Gamma0,is_prime,ZZ,Cusp,gcd,ceil,floor,log_b,CyclotomicField,divisors
 
 
@@ -755,7 +758,7 @@ class PeriodPolynomial(SageObject):
         for p in pS.values():
             if hasattr(p,"coeffs"):
                 if p.coefficients(sparse=False) != []:
-                    tmp = max(map(abs,p.coefficients(sparse=False)))
+                    tmp = max(list(map(abs,p.coefficients(sparse=False))))
                 else:
                     tmp = 0
             else:
@@ -765,7 +768,7 @@ class PeriodPolynomial(SageObject):
         for p in pU.values():
             if hasattr(p,"coefficients"):
                 if p.coefficients(sparse=False) != []:
-                    tmp = max(map(abs,p.coefficients(sparse=False)))
+                    tmp = max(list(map(abs,p.coefficients(sparse=False))))
                 else:
                     tmp = 0
             else:
@@ -800,7 +803,7 @@ class PeriodPolynomial(SageObject):
             for p in pp.values():
                 if hasattr(p,"coeffs"):
                     if p.coefficients(sparse=False)!=[]:
-                        tmp = max(map(abs,p.coefficients(sparse=False)))
+                        tmp = max(list(map(abs,p.coefficients(sparse=False))))
                     else:
                         tmp = 0
                 else:

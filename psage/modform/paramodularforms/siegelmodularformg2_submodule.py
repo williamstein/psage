@@ -25,6 +25,9 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import map
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_submodule import GradedExpansionSubmoduleVector_generic
 from psage.modform.fourier_expansion_framework.modularforms.modularform_submodule import ModularFormsSubmodule_singleweight_ambient_pid, \
                                                ModularFormsSubmodule_heckeinvariant_submodule
@@ -34,10 +37,10 @@ from sage.misc.cachefunc import cached_method
 # DiscrimiantPrecisionSubmodule_abstract
 #===============================================================================
 
-class DiscrimiantPrecisionSubmodule_abstract :
+class DiscrimiantPrecisionSubmodule_abstract(object) :
     def _minimal_discriminant_precision(self, minimal_precision = 0, lazy_rank_check = False) :
         last_precision = None
-        for p in xrange(minimal_precision, self.graded_ambient().precision().discriminant() + 1) :
+        for p in range(minimal_precision, self.graded_ambient().precision().discriminant() + 1) :
             precision = self.graded_ambient().fourier_ring().filter(p)
             if not precision < last_precision : continue
              
@@ -51,9 +54,9 @@ class SiegelModularFormG2WeightSubmodule_class ( ModularFormsSubmodule_singlewei
     @cached_method
     def maass_space(self) :
         return SiegelModularFormG2Submodule_maassspace(
-            self, map(self, self.graded_ambient().type(). \
+            self, list(map(self, self.graded_ambient().type(). \
                             _maass_generators( self.weight(),
-                                               self.graded_ambient().fourier_expansion_precision())) )    
+                                               self.graded_ambient().fourier_expansion_precision()))) )    
     
 class SiegelModularFormG2Submodule_maassspace (
         ModularFormsSubmodule_heckeinvariant_submodule, DiscrimiantPrecisionSubmodule_abstract ) :
@@ -88,4 +91,4 @@ class SiegelModularFormG2SubmoduleVector_generic ( GradedExpansionSubmoduleVecto
             raise ValueError("the parents precision doesn't suffice")
         
         evc = self.fourier_expansion()
-        return all([evc[(0,0,l)] == 0 for l in xrange(neccessary_precision)])
+        return all([evc[(0,0,l)] == 0 for l in range(neccessary_precision)])

@@ -18,6 +18,9 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from builtins import str
+from builtins import map
+from builtins import range
 import mpmath as mpmath
 from sage.functions.all import ln,sqrt,floor
 from sage.arith.all import divisors,gcd,inverse_mod
@@ -1663,7 +1666,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         else:
             cusp=i
         if(cusp not in self._coeffs[r]):
-            raise ValueError(" Need a valid index of a cusp as first argument! I.e in {0}".format(self._coeffs.keys()))
+            raise ValueError(" Need a valid index of a cusp as first argument! I.e in {0}".format(list(self._coeffs.keys())))
         if(j not in self._coeffs[r][cusp]):
             return None
         return self._coeffs[r][cusp][j]
@@ -1768,7 +1771,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
         verbose = max(verbose,self._space._verbose)
         if self.generalised_level()==1:
             method='Hecke'
-        if self._coeffs[0][0].keys() != []:
+        if self._coeffs[0][0].keys():
             nmax = max(self._coeffs[0][0].keys())
         else:
             nmax = 0
@@ -3942,4 +3945,4 @@ def eisenstein_series_coefficient_sl2z(s,m,prec=0):
 def dict_depth(d, depth=0):
     if not isinstance(d, dict) or not d:
         return depth
-    return max(dict_depth(v, depth+1) for k, v in d.iteritems())
+    return max(dict_depth(v, depth+1) for k, v in d.items())

@@ -27,6 +27,7 @@ sage: st8=Z.make_table_phi(prec=249,M0=150,N=2,outprec=66)
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 #*****************************************************************************
 #  Copyright (C) 2012 Fredrik Strömberg <fredrik314@gmail.com>
 #
@@ -43,6 +44,9 @@ from __future__ import absolute_import
 #*****************************************************************************
 
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 import mpmath as mpmath
 from sage.all import  Parent,RR,ZZ,QQ,is_even,matrix,zeta,is_odd,is_even,ceil,log_b,log,gamma,tan,cos,sin,latex,\
     CyclotomicField,MatrixSpace,sign,binomial,RealField,exp,Rational, arg
@@ -246,7 +250,7 @@ class SelbergZeta(Parent):
             # Hence the error can be estimated by the smallest
             # "true" eigenvalue
             if len(evs)>0:
-                err = min(map(abs,evs))
+                err = min(list(map(abs,evs)))
             else:
                 err=1
             if verbose>0:
@@ -256,7 +260,7 @@ class SelbergZeta(Parent):
                 ## Also print the quotient
                 k=self._transfer_operator.det_1_minus_K(s,prec=current_prec)
                 print("det(1-L)/det(1-K)={0}".format(z/k))
-            if get_evs==1:
+            if get_evs == 1:
                 return evs
             if err<eps or (get_digits==0 and get_eps==0):
                 if verbose>0:
@@ -267,10 +271,10 @@ class SelbergZeta(Parent):
             inc_prec=0; inc_appr=0
             ## The first time we always increase the approximation
             ## so we can get a better estimate of the error
-            if err_old==1:
+            if err_old == 1:
                 inc_appr=1; err_old = err
                 M_old = M
-            elif M_new>0:
+            elif M_new > 0:
                 ## If we have already tried to increase the approximation
                 ## to an estimated 'good' value without success
                 ## we try to increase the precision
@@ -637,7 +641,7 @@ class SelbergZeta(Parent):
                                     globals_dict=globals_dict,seconds=True,number=1,repeat=1)
             else:
                 stime=""
-        z,K,er,delta,er1,er2=map(latex,ll)
+        z,K,er,delta,er1,er2=list(map(latex,ll))
         if target_dig==0:
             if self._q in [3,4,6]:
                 stl="${0}$ & ${1}$ & ${2}$ & ${3}$ & ${4}$ & ${5}$ & ${6}$\\\\ \n".format(l,z,er1,er2,K,er,delta)
@@ -690,7 +694,7 @@ class SelbergZeta(Parent):
                 else:
                     p0 =""
                 ll = self.scattering_determinant(s1,N=N,checks=3,outprec=outprec)
-                z,K,er,delta,er1,er2=map(latex,ll)
+                z,K,er,delta,er1,er2=list(map(latex,ll))
                 if time==1:
                     ## Do a timeit for the proces without checks
                     globals_dict = globals()
@@ -783,9 +787,15 @@ class SelbergZeta(Parent):
             print("E1={0}".format(E1))
         for k in range(1,m): #from 1 to m-1 do:
             km = mpmath.mp.mpf(k)/mpmath.mp.mpf(m)
-            g1 = lambda t: mpmath.mp.exp(twopi*km*t)  / (mp1+mpmath.mp.exp(twopi*t ))+mpmath.mp.exp(-twopi*km*t)/(mp1+mpmath.mp.exp(-twopi*t))
+
+            def g1(t):
+                return mpmath.mp.exp(twopi*km*t) / (mp1+mpmath.mp.exp(twopi*t )) + \
+                       mpmath.mp.exp(-twopi*km*t) / (mp1+mpmath.mp.exp(-twopi*t))
             IE11 = mpi*mpmath.mp.quad(g1,[0,T])
-            g2 = lambda x: mpmath.mp.exp(-twopii*km*mpmath.mp.mpc(x,T))  / (mp1+mpmath.mp.exp(-twopii*mpmath.mp.mpc(x,T) ))+mpmath.mp.exp(twopii*km*mpmath.mp.mpc(x,T))/(mp1+mpmath.mp.exp(twopii*mpmath.mp.mpc(x,T)))
+
+            def g2(x):
+                return mpmath.mp.exp(-twopii*km*mpmath.mp.mpc(x,T)) / (mp1+mpmath.mp.exp(-twopii*mpmath.mp.mpc(x,T) )) +\
+                       mpmath.mp.exp(twopii*km*mpmath.mp.mpc(x,T)) / (mp1+mpmath.mp.exp(twopii*mpmath.mp.mpc(x,T)))
 
             IE12 = mpmath.mp.quad(g2,[0,sigma])
             E1=E1+mppi*(IE11+IE12)/mpmath.mp.mpf(m)/mpmath.mp.sin(mppi*km)
@@ -1161,6 +1171,9 @@ class TransferOperator(Parent):
         llambda_2 = self.lambdaq()/QQ(2)
         iphi=[llambda_2]
         numi = self.numi()
+        if prec == 0:
+            prec = self._prec
+        RF = RealField(self._prec)
         if self._verbose>1:
             print("num int={0}".format(numi))
             print("lambda/2={0}".format(llambda_2))
@@ -1176,9 +1189,6 @@ class TransferOperator(Parent):
             print("iphi={0}".format(iphi))
         if itype == 'float':
             res = []
-            if prec==0:
-                prec = self._prec
-            RF = RealField(self._prec)
             for x in iphi:
                 if hasattr(x,"complex_embedding"):
                     x = x.complex_embedding(prec).real()
@@ -1189,7 +1199,7 @@ class TransferOperator(Parent):
                 res.append(x)
             res.sort()
         else:
-            iphi.sort(cmp=my_alg_sort)
+            iphi.sort(key=my_alg_sort_key)
             res = iphi
         if iformat=='ie':
             return res
@@ -1210,12 +1220,12 @@ class TransferOperator(Parent):
             res.reverse()
             for i in range(len(res)-1):
                 x1=res[i]; x2=res[i+1]
-                c = (x1+x2)/2
-                r = abs(x2-x1)/2
+                c = (x1+x2)/RF(2)
+                r = abs(x2-x1)/RF(2)
                 alphas[i]=-c
-                alphas[i+self._dim/2]=c
+                alphas[i+self._dim/RF(2)]=c
                 rhos[i]=r
-                rhos[i+self._dim/2]=r
+                rhos[i+self._dim/2.0]=r
                 i+=1
             return alphas,rhos
 
@@ -1233,13 +1243,14 @@ class TransferOperator(Parent):
             [MMS2012]   Mayer, M\"uhlenbruch, Str\"omberg, 'The Transfer Operator for the Hecke Triangle Groups', Discrete Contin. Dyn. Syst, Vol. 32, No. 7, 2012. 
         """
         intervals={}
+        RF = self.lambdaq_r().parent()
         if self._q==3:
             intervals={1:[-1,QQ(1)/QQ(2)],2:[-QQ(1)/QQ(2),1]}
         elif self._q==4:
-            intervals={1:[-1,self.lambdaq_r()/4],2:[-self.lambdaq_r()/4,1]}
+            intervals={1:[-1,self.lambdaq_r()/RF(4)],2:[-self.lambdaq_r()/RF(4),1]}
         elif is_odd(self._q):
             dim_2=ZZ(self._dim).divide_knowing_divisible_by(ZZ(2))
-            llambdaq_4=self.lambdaq_r()/4
+            llambdaq_4=self.lambdaq_r()/RF(4)
             for i in range(self._h+1):
                 l2ip1=[-1]
                 for j in range(i):
@@ -1279,7 +1290,7 @@ class TransferOperator(Parent):
             raise NotImplementedError
         if verbose>1:
             print("intervals={0}".format(intervals))
-            print("intervals.keys()={0}".format(intervals.keys()))
+            print("intervals.keys()={0}".format(list(intervals.keys())))
         if iformat=='ar':
             alphas={}
             rhos={}
@@ -1287,8 +1298,8 @@ class TransferOperator(Parent):
                 x1 = intervals[i][0];x2 = intervals[i][1]
                 if verbose>1:
                     print("x1,x2[{0}]={1}".format(i,(x1,x2)))
-                c = (x1+x2)/2
-                r = abs(x1-x2)/2
+                c = (x1+x2)/RF(2)
+                r = abs(x1-x2)/RF(2)
                 alphas[i-1]=c
                 rhos[i-1]=r
             return alphas,rhos
@@ -1511,7 +1522,7 @@ class TransferOperator(Parent):
         r""" Compute f_q(x)=-1/x - n*lambda_q where n = nearest lambda multiple to -1/x. """
         if y==0:
             return 0
-        if abs(y) > self.lambdaq_r()/2:
+        if abs(y) > self.lambdaq_r()/2.0:
             n = self.nearest_lambda_mult(y)
             y = y - n
         else:
@@ -1569,7 +1580,7 @@ class TransferOperator(Parent):
         dim=self._dim
         B = self._Nij
         ll = self.lambdaq_r(prec) #CF._base(self._lambdaq)
-        Nmax = max(map(abs,self._Nij.list()))
+        Nmax = max(list(map(abs,self._Nij.list())))
         
         if self._verbose>0:
             print("Nmax = {0}".format(Nmax))
@@ -2134,9 +2145,9 @@ def eigenvalues_Gauss(T,s,M,h=3,delta=1e-7,verbose=0):
     ev2 = A2.eigenvalues(sorted=1)
     if verbose>0:
         print("ev1={0}".format(ev1))
-        print("min(ev1-1)=",min(map(lambda x:abs(x-1),ev1)))
+        print("min(ev1-1)=",min([abs(x-1) for x in ev1]))
         print("ev2={0}".format(ev2))
-        print("min(ev2-1)={0}".format(min(map(lambda x:abs(x-1),ev2))))
+        print("min(ev2-1)={0}".format(min([abs(x-1) for x in ev2])))
     evs = get_close_values(ev1,ev2,delta,ret_err=0,verbose=verbose)
     return evs
 
@@ -2201,17 +2212,13 @@ def prec_to_dps(prec):
     return int(RR(prec*log(2)/log(10)))
 
 
-def my_alg_sort(x,y):
+def my_alg_sort_key(x):
     r"""  Sort numbers in a number field."""
     if hasattr(x,"complex_embedding"):
         xx = x.complex_embedding().real()
     else:
         xx = x.real()
-    if hasattr(y,"complex_embedding"):
-        yy = y.complex_embedding().real()
-    else:
-        yy = y.real()
-    return cmp(xx,yy)
+    return xx
 
 def Hausdorff_distance(l1,l2):
     r"""

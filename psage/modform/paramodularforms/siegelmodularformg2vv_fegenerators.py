@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2010 - 05 - 12) Initial version
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,7 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import object
 from psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion import SiegelModularFormG2VVFourierExpansionRing
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import EquivariantMonoidPowerSeriesAmbient_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_lazyelement import EquivariantMonoidPowerSeries_lazy
@@ -85,7 +87,7 @@ def SiegelModularFormG2SatohBracket(f, g, f_weight = None, g_weight = None) :
 # DelayedFactory_SMFG2_satohbracket
 #===============================================================================
 
-class DelayedFactory_SMFG2_satohbracket :
+class DelayedFactory_SMFG2_satohbracket(object) :
     def __init__( self, f, g, f_weight, g_weight, coefficient_domain ) :
         self.__f = f
         self.__g = g

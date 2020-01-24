@@ -1,4 +1,6 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import range
 from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree, lcm, Matrix, cached_function
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from psage.modules.weil_invariants import invariants
@@ -105,7 +107,7 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
                     TN = None
                     J = FQM.jordan_decomposition()
                     L = TM.jordan_decomposition()
-                    for j in xrange(1,n+1):
+                    for j in range(1,n+1):
                         C = J.constituent(p**j)[0]
                         D = L.constituent(p**j)[0]
                         if debug > 1: print("C = {0}, D = {1}".format(C,D))

@@ -40,9 +40,11 @@ EXAMPLES::
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 #from sage.all_cmdline import *   # import sage library
 
+from builtins import range
 from sage.all import Integer,RR,CC,QQ,ZZ,sgn,cached_method,copy,CyclotomicField,lcm,is_square,matrix,SL2Z,MatrixSpace,\
     floor,ceil,is_odd,is_even,hilbert_symbol,sqrt,inverse_mod,xgcd,latex,kronecker,gcd,divisors,odd_part,gcd,valuation,\
     vector
@@ -459,7 +461,7 @@ class WeilModule (FormalSums):
     def invariant(self,s):
         if s in self._inv:
             return  self._inv[s]
-        raise ValueError("Invariant {0} is not defined! Got:{1}".format(s,self._inv.keys()))
+        raise ValueError("Invariant {0} is not defined! Got:{1}".format(s,list(self._inv.keys())))
 
     def finite_quadratic_module(self):
         return self._QM
@@ -1475,7 +1477,7 @@ ss    Describes an element of a Weil module $K[A]$.
             return xis
         if pset==-1 or pset==0:
             return {0:xis[0]}
-        if(xis.keys().count(2 )>0 ):
+        if(list(xis.keys()).count(2 )>0 ):
             if(is_odd(c)):
                 argl=(c*oddity) % 8 
             else:
@@ -1793,7 +1795,7 @@ ss    Describes an element of a Weil module $K[A]$.
         if hasattr(fact,"sqrt"):
             fact = fact.sqrt()**-1
         else:
-            fact = 1/sqrt(fact)
+            fact = sqrt(fact)**-1
         return [r, fact,M]
 
 

@@ -24,7 +24,11 @@ r"""
 
 """
 from __future__ import print_function
+from __future__ import division
 
+from builtins import str
+from builtins import range
+from builtins import object
 import math, os, sys
 
 from sage.all import (
@@ -138,7 +142,7 @@ def fig_factor_tree(dir, ext):
     g.save(dir + '/factor_tree_big.%s'%ext, axes=False, axes_pad=0.1)
     
 
-class FactorTree:
+class FactorTree(object):
     """
     A factorization tree.
 
@@ -328,7 +332,7 @@ def fig_questions(dir, ext):
 def questions(n=100,k=17,fs=20):
     set_random_seed(k)
     g = text("?",(5,5),rgbcolor='grey', fontsize=200)
-    g += sum(text("$%s$"%p,(random()*10,random()*10),rgbcolor=(p/(2*n),p/(2*n),p/(2*n)),fontsize=fs) 
+    g += sum(text("$%s$"%p,(random()*10,random()*10),rgbcolor=(p/(2*n),p/(2*n),p/(2*n)),fontsize=fs)
              for p in primes(n))
     return g
 
@@ -368,13 +372,13 @@ def number_grid(c, box_args=None, font_args=None, offset=0):
         raise ArithmeticError("c must have square length")
     G = Graphics()
     k = 0
-    for j in reversed(range(n)):
+    for j in reversed(list(range(n))):
         for i in range(n):
             col = c[int(k)]
             R = line([(i,j),(i+1,j),(i+1,j+1),(i,j+1),(i,j)],
                      thickness=.2, **box_args)
             d = dict(box_args)
-            if 'rgbcolor' in d.keys():
+            if 'rgbcolor' in list(d.keys()):
                 del d['rgbcolor']
             P = polygon([(i,j),(i+1,j),(i+1,j+1),(i,j+1),(i,j)],
                         rgbcolor=col, **d)
@@ -818,7 +822,7 @@ def plot_sieve(n, x, poly={}, lin={}, label=True, shade=True):
 
     In n is 0 draw a graph of all primes. 
     """
-    v = range(x+1)         # integers 0, 1, ..., x
+    v = list(range(x+1))         # integers 0, 1, ..., x
     if n == 0:
         v = prime_range(x)
     else:
@@ -1604,7 +1608,7 @@ def fig_pi_riemann_gauss(dir,ext):
     g.save(dir +'/pi_riemann_gauss_10000-11000.%s'%ext, axes=False, frame=True)
 
     
-class RiemannPiApproximation:
+class RiemannPiApproximation(object):
     r"""
     Riemann's explicit formula for `\pi(X)`.
 
@@ -1639,7 +1643,7 @@ class RiemannPiApproximation:
         self.rho_k = [0] + [CDF(0.5, zeta_zeros()[k-1]) for k in range(1,kmax+1)]
         self.rho = [[0]+[rho_k / float(n) for n in range(1, self.N+1)]  for rho_k in self.rho_k]
         self.mu = [float(x) for x in moebius.range(0,self.N+2)]
-        self.msum = sum([moebius(n) for n in xrange(1,self.N+1)])
+        self.msum = sum([moebius(n) for n in range(1,self.N+1)])
         self._init_coeffs()
 
     def __repr__(self):
@@ -1648,7 +1652,7 @@ class RiemannPiApproximation:
     def _init_coeffs(self):
         self.coeffs = [1]
         n_factorial = 1.0
-        for n in xrange(1, self.prec):
+        for n in range(1, self.prec):
             n_factorial *= n
             zeta_value = float(abs(zeta(n+1)))
             self.coeffs.append(float(1.0/(n_factorial*n*zeta_value)))
@@ -1665,7 +1669,7 @@ class RiemannPiApproximation:
         y = log(x)
         z = y
         a = float(1)
-        for n in xrange(1,self.prec):
+        for n in range(1,self.prec):
             a += self.coeffs[n]*z
             z *= y
         return a
@@ -1688,7 +1692,7 @@ class RiemannPiApproximation:
                    (1/pi) * atan(pi/log_x)
     
         # This is from equation 19 on page 975
-        term2 = sum(self.Tk(x, v) for v in xrange(1,k+1))
+        term2 = sum(self.Tk(x, v) for v in range(1,k+1))
         return term1 + term2
 
     @cached_method
@@ -1704,7 +1708,7 @@ class RiemannPiApproximation:
         val = float(0)
         rho_k = self.rho_k[k]
         rho = self.rho[k]
-        for n in xrange(1, self.N+1):
+        for n in range(1, self.N+1):
             rho_k_over_n = rho[n]
             mu_n = self.mu[n]
             if mu_n != 0:

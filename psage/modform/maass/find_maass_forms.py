@@ -4,7 +4,12 @@ Algorithms for locating Maass waveforms.
 
 """
 from __future__ import print_function
+from __future__ import division
 
+from builtins import str
+from builtins import map
+from builtins import range
+from past.utils import old_div
 import logging
 
 from sage.all import RealField,RR,gcd,QQ,sqrt,log_b,ceil
@@ -782,7 +787,7 @@ def get_coefficients_for_functional(S,r,Y,M,Q,dim=1,fnr=0,do_parallel=False,ncpu
         if hecke_ef == 1:
             diffsx[-1] = S.test_Hecke_relation(C1, signed=True)
             logger2.info("Hecke C1(a)C1(b)-C1(ab)={0}".format(diffsx[-1]))
-            logger2.info("C1.keys={0}".format(C1[0].keys()))
+            logger2.info("C1.keys={0}".format(list(C1[0].keys())))
         if (used_coefficients[1] * used_coefficients[2]) in C1[0]:
             logger2.info("C1({0})={1}".format(used_coefficients[1] * used_coefficients[2], C1[0][used_coefficients[1] * used_coefficients[2]]))
         for j in used_coefficients.keys():
@@ -931,7 +936,7 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         # print "C2=",C2
         if sym_type == -1:
             numt = len(c.keys())
-            for j in c.keys():  # 
+            for j in c.keys():  #
                 den = min(1,abs(C1[0][c[j]])+abs(C2[0][c[j]]))
                 if isinstance(C1[0][c[j]],ComplexNumber):
                     diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real()/den
@@ -964,13 +969,13 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
         logger2.debug("signs={0}".format(signs))
         for j in c.keys():
             #print "h0={0}".format(h
-            if(not first_time and signs.keys().count(j)>0 ):
+            if not first_time and list(signs.keys()).count(j)>0:
                 #print "h={0}".format(h,"+{0}".format(signs[j]*diffsx[j]
                 h=h+signs[j]*diffsx[j]
             else:
                 #print "signs={0}".format(signs
                 #print "diffsx={0}".format(diffsx
-                if signs.keys()==[]:
+                if not signs.keys():
                     # We use the sign of the first test.
                     for k in c.keys():
                         if diffsx[1] != 0:
@@ -1014,10 +1019,10 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
             logger2.info("diffsx({0})={1}".format(r,diffsx))
             h=0
             for j in range(1,4):
-                if not first_time and signs.keys().count(j)>0:
+                if not first_time and list(signs.keys()).count(j)>0:
                     htmp=signs[j]*diffsx[j]
                 else:
-                    if signs.keys() == []:
+                    if not signs.keys():
                         # We use the sign of the first test.
                         for k in c.keys():
                             if diffsx[1] != 0:
@@ -1040,7 +1045,7 @@ def functional(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,set_c=[]
                 logger2.info("C[{0}]={1}".format(c[3],C1[0][c[3]]))
                 logger2.info("difftmp={0}".format(difftmp))
                 logger2.info("diffsx={0}".format(diffsx))
-            if not first_time and signs.keys().count(1)>0:
+            if not first_time and list(signs.keys()).count(1)>0:
                 h=signs[1]*diffsx[1]
             else:
                 h = diffsx[1]
@@ -1590,48 +1595,47 @@ def functional_noncong(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,
     logger2.info("do_cplx: r,Y2,M,Q={0}".format(r,Y2,M,Q,Norm,cusp_evs))
     C2=get_coeff_fast_cplx_dp(S,RR(r),float(Y2),M,Q,Norm)
     C2 = C2[fnr]
-    for j in c.keys():
-        numt = len(c.keys())
-        for j in c.keys():  # 
-            ## To avoid 'blowups' we sometimes Look at relative difference(?)
-            den = max(1,abs(C1[0][c[j]])+abs(C2[0][c[j]]))
-            if isinstance(C1[0][c[j]],ComplexNumber):
-                    diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real()/den
-                    diffsx[numt+j]=(C1[0][c[j]]-C2[0][c[j]]).imag()/den
-            elif isinstance(C1[0][c[j]],complex):
-                    diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real/den
-                    diffsx[numt+j]=(C1[0][c[j]]-C2[0][c[j]]).imag/den
-            else:
-                raise TypeError("Got coefficients of unknown type {0}".format(type(C1[0][c[j]])))
-            logger2.debug("C1[{0}]={1}".format(c[j],C1[0][c[j]]))
-            logger2.debug("C2[{0}]={1}".format(c[j],C2[0][c[j]]))
-            logger2.debug("abs(C1[{0}])+abs(C2[{0}])={1}".format(c[j],den))
-            logger2.debug("diffs(real)={0}".format((C1[0][c[j]]-C2[0][c[j]]).real))
-            logger2.debug( "diffs/den={0}".format(diffsx[j]))
-        h=0.0
-        for j in [1,2,3]:
-            logger2.debug("C1:2[{0}]={1} : {2}".format(c[j],C1[0][c[j]],C2[0][c[j]]))
-            logger2.debug("diffsx[1]={0}".format(diffsx[1]))
-        logger2.debug("c={0}".format(c))
-        logger2.debug("signs={0}".format(signs))
-        ## Now we add up all contributions using tht esame alignment of signs as previous point..
-        abh=0
-        for j in diffsx.keys():
-            if(not first_time and signs.keys().count(j)>0 ):
-                h=h+signs[j]*diffsx[j]
-            else:
-                if signs.keys()==[]:
-                    # We use the sign of the first test.
-                    for k in diffsx.keys():
-                        if diffsx[1] != 0:
-                            signs[k]=sign(diffsx[k])/sign(diffsx[1])
-                        else:
-                            signs[k]=sign(diffsx[k])
-                        #print "sgns[{0}".format(k,"]={0}".format(signs[k]
-                h=h+signs[j]*diffsx[j]
-            abh = abh+abs(diffsx[j])
+    numt = len(c.keys())
+    for j in c.keys():  #
+        ## To avoid 'blowups' we sometimes Look at relative difference(?)
+        den = max(1,abs(C1[0][c[j]])+abs(C2[0][c[j]]))
+        if isinstance(C1[0][c[j]],ComplexNumber):
+                diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real()/den
+                diffsx[numt+j]=(C1[0][c[j]]-C2[0][c[j]]).imag()/den
+        elif isinstance(C1[0][c[j]],complex):
+                diffsx[j]=(C1[0][c[j]]-C2[0][c[j]]).real/den
+                diffsx[numt+j]=(C1[0][c[j]]-C2[0][c[j]]).imag/den
+        else:
+            raise TypeError("Got coefficients of unknown type {0}".format(type(C1[0][c[j]])))
+        logger2.debug("C1[{0}]={1}".format(c[j],C1[0][c[j]]))
+        logger2.debug("C2[{0}]={1}".format(c[j],C2[0][c[j]]))
+        logger2.debug("abs(C1[{0}])+abs(C2[{0}])={1}".format(c[j],den))
+        logger2.debug("diffs(real)={0}".format((C1[0][c[j]]-C2[0][c[j]]).real))
+        logger2.debug( "diffs/den={0}".format(diffsx[j]))
+    h=0.0
+    for j in [1,2,3]:
+        logger2.debug("C1:2[{0}]={1} : {2}".format(c[j],C1[0][c[j]],C2[0][c[j]]))
+        logger2.debug("diffsx[1]={0}".format(diffsx[1]))
+    logger2.debug("c={0}".format(c))
+    logger2.debug("signs={0}".format(signs))
+    ## Now we add up all contributions using tht esame alignment of signs as previous point..
+    abh=0
+    for j in diffsx.keys():
+        if not first_time and list(signs.keys()).count(j)>0:
+            h=h+signs[j]*diffsx[j]
+        else:
+            if not signs.keys():
+                # We use the sign of the first test.
+                for k in diffsx.keys():
+                    if diffsx[1] != 0:
+                        signs[k]=sign(diffsx[k])/sign(diffsx[1])
+                    else:
+                        signs[k]=sign(diffsx[k])
+                    #print "sgns[{0}".format(k,"]={0}".format(signs[k]
+            h=h+signs[j]*diffsx[j]
+        abh = abh+abs(diffsx[j])
         logger2.debug("abs(h)={0}".format(abh))
-        return [diffsx,h]
+    return [diffsx,h]
 
     
 def is_derivative_large(R1,R2,d1,d2,method='TwoY',hmax=100,tol=1E-10,verbose=0):
@@ -1763,9 +1767,9 @@ def is_zero_in(st,h,diffs,tol=1E-12,verbose=0):
         if zero_in_1==1 and zero_in_2==1:
             # possible zero in both intervals
             ## See if there is a true zero in one of the intervals
-            if zero_count[0][0].values().count(1)>zero_count[0][1].values().count(1):
+            if list(zero_count[0][0].values()).count(1)>list(zero_count[0][1].values()).count(1):
                 i=-1
-            elif zero_count[0][0].values().count(1)<zero_count[0][1].values().count(1):
+            elif list(zero_count[0][0].values()).count(1)<list(zero_count[0][1].values()).count(1):
                 i=1
             elif a1<a2:
                 i=-1
@@ -1790,8 +1794,8 @@ def is_zero_in(st,h,diffs,tol=1E-12,verbose=0):
                 if max(a1,a2)>sqrt(tol):
                     i=0
             else:
-                a2 = max(map(abs,diffs[2].values()))
-                a3 = max(map(abs,diffs[3].values()))
+                a2 = max(list(map(abs,list(diffs[2].values()))))
+                a3 = max(list(map(abs,list(diffs[3].values()))))
                 logger2.debug("a2={0},a3={1}".format(a2,a3))
                 if max(a2,a3)>sqrt(tol):
                     i=0

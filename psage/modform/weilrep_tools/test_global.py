@@ -1,4 +1,7 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import range
 from sage.quadratic_forms.genera.genus import GenusSymbol_global_ring, Genus_Symbol_p_adic_ring, is_GlobalGenus
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from sage.matrix.matrix_space import MatrixSpace
@@ -73,7 +76,7 @@ def is_global(M,r,s,return_symbol=False):
                             break
                 symbols[p].append([0,n - prank, eps])
     symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,r+s,r+s).one())
-    symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in symbols.iteritems()]
+    symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in symbols.items()]
     symbol._signature=(r,s)
     #print r,s, symbol._local_symbols
     isglob=is_GlobalGenus(symbol)
@@ -110,7 +113,7 @@ list_freitag = {
 
 def test_list_freitag(m=-1):
     all=True if m==-1 else False
-    for n,symbols in list_freitag.iteritems():
+    for n,symbols in list_freitag.items():
         if all or n==m:
             for symbol in symbols:
                 M=FiniteQuadraticModule(symbol)
@@ -243,7 +246,7 @@ def search_global_symbols(n,D):
                                 break
                     sym[p].insert(0,[0,rank - prank, eps])
         symbol=GenusSymbol_global_ring(MatrixSpace(ZZ,rank,rank).one())
-        symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in sym.iteritems()]
+        symbol._local_symbols=[Genus_Symbol_p_adic_ring(p,syms) for p,syms in sym.items()]
         symbol._signature=(2,n)
         #print symbol._local_symbols
         isglob=is_GlobalGenus(symbol)
@@ -391,9 +394,9 @@ def compare_spaces(n,min_D,max_D):
     return bad_symbols
 
 def find_lifting_candidate(W,B,max=2):
-    vals=W.finite_quadratic_module().values()
+    vals=list(W.finite_quadratic_module().values())
     vals=list(vals)
-    vals=map(lambda x: 1-x,vals) # we consider the dual representation!
+    vals=[1-x for x in vals] # we consider the dual representation!
     vals.sort()
     for n in range(max):
         for m in vals:
@@ -408,10 +411,10 @@ def find_lifting_candidate(W,B,max=2):
     return None, index
 
 def get_values(M,dual=False):
-    vals=M.values()
+    vals=list(M.values())
     vals=list(vals)
     if dual:
-        vals=map(lambda x: 1-x,vals) # we consider the dual representation!
+        vals=[1-x for x in vals] # we consider the dual representation!
     vals.sort()
     return vals
 
@@ -429,7 +432,7 @@ def compare_formulas_1(D,k):
     for d in divisors(D):
         if is_fundamental_discriminant(-d):
             K=QuadraticField(-d)
-            DD=ZZ(D)/ZZ(d)
+            DD=old_div(ZZ(D),ZZ(d))
             ep=euler_phi((chi*DG(kronecker_character(-d))).conductor())
             #ep=euler_phi(squarefree_part(abs(D*d)))
             print("ep=", ep, D, d)
@@ -439,9 +442,9 @@ def compare_formulas_1(D,k):
                 e=a.euler_phi()
                 if e!=1 and ep==1:
                     if K(-1).mod(a)!=K(1).mod(a):
-                        e=e/(2*ep)
+                        e=old_div(e,(2*ep))
                 else:
-                    e=e/ep
+                    e=old_div(e,ep)
                 eulers1.append(e)
             print(eulers1, ep)
             s=sum(eulers1)
@@ -453,11 +456,11 @@ def compare_formulas_1(D,k):
     return d1-d2
 
 def compare_formulas_2(D,k):
-    d1=RR(abs(D))/RR(6)
+    d1=old_div(RR(abs(D)),RR(6))
     if D<0:
         D=-D
-    s1=RR(sqrt(abs(D))*sum([log(d) for d in divisors(D) if is_fundamental_discriminant(-d) and kronecker(-d,D/d)==1]))
-    d2=RR((2/(sqrt(3)*pi))*s1)
+    s1=RR(sqrt(abs(D))*sum([log(d) for d in divisors(D) if is_fundamental_discriminant(-d) and kronecker(-d,old_div(D,d))==1]))
+    d2=RR((old_div(2,(sqrt(3)*pi)))*s1)
     return d1-d2,d2,RR(2*sqrt(D)*log(D)/pi)
 
 A3=lambda N: sum([kronecker(-N,x) for x in Zmod(N) if x**2+x+Zmod(N)(1) == 0])
@@ -466,7 +469,7 @@ def compare_formulas_2a(D,k):
     d1=dimension_new_cusp_forms(kronecker_character(D),k)
     if D<0:
         D=-D
-    d2=RR(1/pi*sqrt(D)*sum([log(d)*sigma(D/d,0) for d in divisors(D) if Zmod(d)(D/d).is_square() and is_fundamental_discriminant(-d)]))
+    d2=RR(1/pi*sqrt(D)*sum([log(d)*sigma(old_div(D,d),0) for d in divisors(D) if Zmod(d)(old_div(D,d)).is_square() and is_fundamental_discriminant(-d)]))
     return d1-d2
 
 def compare_formulas_3(D,k):
@@ -491,7 +494,7 @@ def formtest_2(minD,maxD):
         if is_fundamental_discriminant(-D):
             for d in divisors(D):
                 if is_fundamental_discriminant(-d):
-                    sd=RR(RR(1)/RR(6)*(RR(d)+RR(D)/RR(d))-RR(sqrt(D))/RR(pi)*log(d))
+                    sd=RR(RR(1)/RR(6)*(RR(d)+old_div(RR(D),RR(d)))-RR(sqrt(D))/RR(pi)*log(d))
                     print(D, d, sd)
                     s+=sd
         if s<=0:
@@ -499,7 +502,7 @@ def formtest_2(minD,maxD):
 
 
 def CMorbits(D):
-    s=sum([2**(len(prime_divisors(D/d))) for d in divisors(D) if is_fundamental_discriminant(-d) and Zmod(d)(D/d).is_square()])+1
+    s=sum([2**(len(prime_divisors(old_div(D,d)))) for d in divisors(D) if is_fundamental_discriminant(-d) and Zmod(d)(old_div(D,d)).is_square()])+1
     return s
 
 def orbittest(minD,maxD,eps=-1):
@@ -513,7 +516,7 @@ def sigma_rep(Delta,print_divisors=False):
     for DD in divisors(Delta):
         if is_fundamental_discriminant(-DD):
             D=-DD
-            for d in divisors(Delta/D):
+            for d in divisors(old_div(Delta,D)):
                 s+=kronecker(D,d)
                 if print_divisors:
                     print(D,d, kronecker(D,d))
@@ -531,16 +534,16 @@ def test_sigma_rep(Dmin=1,Dmax=1000,print_divisors=False):
             sr=sigma_rep(D,True)
             sa+=sr
             sm[1]=max(sr,sm[1])
-            swt=sr/D
+            swt=old_div(sr,D)
             sw[1]=max(swt,RR(sw[1]))
             if sm[1]==sr:
                 sm[0]=-D
             if sw[1]==swt:
                 sw[0]=-D
-            ct=RR(100)*(RR(D)**(1.0/25))
+            ct=RR(100)*(RR(D)**(old_div(1.0,25)))
             #if ct<=RR(sr):
             print(-D, sr, ct, sigma(D,0))
-    sa=sa/n
+    sa=old_div(sa,n)
     print("Max: {0}".format(sm))
     print("Avg: {0}, {1}".format(sa, RR(sa)))
     print("Worst case: {0}".format(sw))
@@ -549,14 +552,14 @@ def neg_fdd_div(D):
     s=0
     for d in divisors(D):
         if is_fundamental_discriminant(-d):
-            if Zmod(d)(D/d).is_square():
+            if Zmod(d)(old_div(D,d)).is_square():
                 s+=1
     return s
 
 def test_neg_fdd_div(minD,maxD):
     for D in range(minD,maxD):
         if is_fundamental_discriminant(-D):
-            print("{0}, {1}, {2}".format(D, neg_fdd_div(D), sigma(D,0)/2))
+            print("{0}, {1}, {2}".format(D, neg_fdd_div(D), old_div(sigma(D,0),2)))
 
 def sigma_log(D):
     return sum([RR(log(d)) for d in divisors(D)])

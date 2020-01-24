@@ -20,7 +20,10 @@ The Weil representation corresponding to the discriminant form $D$ of a rank-one
 
 """
 from __future__ import print_function
+from __future__ import division
 
+from builtins import str
+from builtins import range
 from sage.all import Parent,QQ,ZZ,Integer,SL2Z,CyclotomicField,lcm,odd_part,kronecker,gcd,IntegerModRing,matrix,is_odd,\
     valuation,sqrt,MatrixSpace,CC,powerset,squarefree_part,is_even,floor,QuadraticField,is_fundamental_discriminant,\
     is_square,latex,numerator,denominator,prime_divisors
@@ -73,7 +76,7 @@ class WeilRepDiscriminantForm(Parent):
         N2=Integer(2*self._N)
         self.group=SL2Z
         self._level=4*self._N
-        self._D_as_integers=range(0,N2)
+        self._D_as_integers=list(range(0,N2))
         self._even_submodule=[]
         self._odd_submodule=[]
         self._D=list()
@@ -98,9 +101,9 @@ class WeilRepDiscriminantForm(Parent):
         self._sym_type = sym_type
         if sym_type==0 and k != None: # Then we set it
             self._weight = QQ(k)
-            if ((self._weight-QQ(1/2)) % 2) == 0:
+            if ((self._weight-QQ(1)/QQ(2)) % 2) == 0:
                 sym_type = sig
-            elif ((self._weight-QQ(3/2)) % 2) == 0:
+            elif ((self._weight-QQ(3)/QQ(2)) % 2) == 0:
                 sym_type = -sig
             else:
                 raise ValueError("Got incompatible weight and signature!")
@@ -118,9 +121,9 @@ class WeilRepDiscriminantForm(Parent):
         else:
             ## Check consistency
             self._weight = QQ(k)
-            if ((self._weight-QQ(1/2)) % 2) == 0 and self._sym_type == sig:
+            if ((self._weight-QQ(1)/QQ(2)) % 2) == 0 and self._sym_type == sig:
                 pass
-            elif ((self._weight-QQ(3/2)) % 2) == 0 and  self._sym_type == -sig:
+            elif ((self._weight-QQ(3)/QQ(2)) % 2) == 0 and self._sym_type == -sig:
                 pass
 
             else:
@@ -142,12 +145,12 @@ class WeilRepDiscriminantForm(Parent):
 
     def even_submodule(self,indices=0):        
         if self._even_submodule==[]:
-            self._even_submodule = range(0,self._N+1)
+            self._even_submodule = list(range(0,self._N+1))
         return self._even_submodule
 
     def odd_submodule(self,indices=0):
         if self._odd_submodule==[]:
-            self._odd_submodule = range(1,self._N)
+            self._odd_submodule = list(range(1,self._N))
         return self._odd_submodule
     
     def __reduce__(self):

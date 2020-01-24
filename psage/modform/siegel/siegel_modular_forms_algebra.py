@@ -1,10 +1,11 @@
 from __future__ import absolute_import
+from builtins import str
 from .siegel_modular_form import SiegelModularForm, SiegelModularForm_class, SMF_DEFAULT_PREC
 from sage.algebras.algebra import Algebra
 from sage.misc.all import cached_method
 from sage.rings.all import ZZ
 from sage.structure.factory import UniqueFactory
-
+import six
 class SiegelModularFormsAlgebraFactory(UniqueFactory):
     """
     A factory for creating algebras of Siegel modular forms.  It
@@ -332,7 +333,7 @@ class SiegelModularFormsAlgebra_class(Algebra):
             sage: S.base_extend(RR)._element_constructor_(2.67)
             2.67000000000000
         """
-        if isinstance(x, (int, long)):
+        if isinstance(x, six.integer_types):
             x = ZZ(x)
         if isinstance(x, float):
             from sage.rings.all import RR
@@ -456,7 +457,7 @@ def _siegel_modular_forms_generators(parent, prec=None, degree=0):
         from sage.rings.all import ZZ
         for F in a:
             c = F.coeffs()
-            for f in c.iterkeys():
+            for f in c.keys():
                 c[f] = ZZ(c[f])
             F = parent.element_class(parent=parent, weight=F.weight(), coeffs=c, prec=prec, name=F.name())
             b.append(F)

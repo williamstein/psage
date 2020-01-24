@@ -25,10 +25,12 @@ AUTHOR:
 #
 #===============================================================================
 
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.modularforms.modularform_element import ModularForm_generic, \
                                              ModularFormVector_generic
 
-class SiegelModularFormG2_generic :
+class SiegelModularFormG2_generic(object) :
 
     def is_cusp_form(self) :
         r"""
@@ -50,7 +52,7 @@ class SiegelModularFormG2_generic :
             raise ValueError("the parents precision doesn't suffice")
         
         evc = self.fourier_expansion()
-        return all([evc[(0,0,l)] == 0 for l in xrange(neccessary_precision)])
+        return all([evc[(0,0,l)] == 0 for l in range(neccessary_precision)])
         
 class SiegelModularFormG2_classical ( SiegelModularFormG2_generic, ModularForm_generic ) :
 
@@ -63,7 +65,7 @@ class SiegelModularFormG2_classical ( SiegelModularFormG2_generic, ModularForm_g
         if len(hc) > 1 : return False
         
         
-        grading = hc.keys()[0]
+        grading = list(hc.keys())[0]
         
         ss = self.parent().graded_submodule(grading)
 

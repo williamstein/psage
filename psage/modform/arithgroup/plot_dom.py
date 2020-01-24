@@ -3,6 +3,10 @@
 
 r"""
 from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import range
+from builtins import object
 import matplotlib
 import matplotlib.patches as patches
 import matplotlib.path as path
@@ -859,7 +863,7 @@ def get_contour(G,version=1,model='D',standalone=False,as_patch=True,translates=
         original_reps = G.coset_reps()
         T = SL2Z_elt(1, 1, 0, 1)
         G._coset_reps_v0 = sum(
-            [[(T ** j) * x for x in original_reps] for j in range(int(-translates / 2), int(translates / 2 + 1))], [])
+            [[(T ** j) * x for x in original_reps] for j in range(int(-translates / 2.), int(translates / 2. + 1))], [])
     if ymax is None:
         P=G.draw_fundamental_domain(version=version,method='a',model=model,fill=False,show_tesselation=False,contour=True,draw_circle=False,rgbcolor=kwds.get('color','red'),as_arcs=True)
     else:

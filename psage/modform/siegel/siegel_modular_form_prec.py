@@ -2,8 +2,12 @@
 Precision for Fourier expansions of Siegel modular forms
 """
 from __future__ import absolute_import
+from __future__ import division
 
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 from copy import deepcopy
 import operator
 
@@ -469,21 +473,21 @@ class SiegelModularFormPrecision (SageObject):
         """
         if self.__type == 'disc':
             bound = self.get_contents_bound_for_semi_definite_forms()
-            for c in xrange(0, bound):
+            for c in range(0, bound):
                 yield (0,0,c)
 
             atop = isqrt(self.__prec // 3)
             if 3*atop*atop == self.__prec: atop -= 1
-            for a in xrange(1,atop + 1):
-                for b in xrange(a+1):
-                    for c in xrange(a, ceil((b**2 + self.__prec)/(4*a))):
+            for a in range(1,atop + 1):
+                for b in range(a+1):
+                    for c in range(a, ceil((b**2 + self.__prec)/(4*a))):
                         yield (a,b,c)
 
         elif 'box' == self.__type:
             (am, bm, cm) = self.__prec
-            for a in xrange(am):
-                for b in xrange( min(bm,a+1)):
-                    for c in xrange(a, cm):
+            for a in range(am):
+                for b in range( min(bm,a+1)):
+                    for c in range(a, cm):
                         yield (a,b,c)
 
         else:
@@ -513,16 +517,16 @@ class SiegelModularFormPrecision (SageObject):
         if self.__type == 'disc':
             atop = isqrt(self.__prec // 3)
             if 3*atop*atop == self.__prec: atop -= 1
-            for a in xrange(1,atop + 1):
-                for b in xrange(a+1):
-                    for c in xrange(a, ceil((b**2 + self.__prec)/(4*a))):
+            for a in range(1,atop + 1):
+                for b in range(a+1):
+                    for c in range(a, ceil((b**2 + self.__prec)/(4*a))):
                         yield (a,b,c)
 
         elif 'box' == self.__type:
             (am, bm, cm) = self.__prec
-            for a in xrange(am):
-                for b in xrange( min(bm,a+1)):
-                    for c in xrange(a, cm):
+            for a in range(am):
+                for b in range( min(bm,a+1)):
+                    for c in range(a, cm):
                         yield (a,b,c)
 
         else:

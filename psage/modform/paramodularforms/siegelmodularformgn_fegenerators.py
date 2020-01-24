@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2009 - 05 - 11) Initial version
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,8 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import filter
+from builtins import range
 from sage.matrix.constructor import diagonal_matrix
 from sage.matrix.constructor import matrix
 from sage.misc.cachefunc import cached_method
@@ -108,16 +111,16 @@ class DukeImamogluLiftFactory_class (SageObject) :
             a_modif = a_modif * p**(e // 2)
         
         res = 0
-        for dsq in filter(lambda d: d.is_square(), a.divisors()) :
+        for dsq in [d for d in a.divisors() if d.is_square()] :
             d = isqrt(dsq)
             
-            for g_diag in itertools.ifilter( lambda diag: prod(diag) == d,
-                                  itertools.product(*[d.divisors() for _ in xrange(t.nrows())]) ) :
-                for subents in itertools.product(*[xrange(r) for (j,r) in enumerate(g_diag) for _ in xrange(j)]) :
-                    columns = [subents[(j * (j - 1)) // 2:(j * (j + 1)) // 2] for j in xrange(t.nrows())]
+            for g_diag in filter( lambda diag: prod(diag) == d,
+                                  itertools.product(*[d.divisors() for _ in range(t.nrows())]) ) :
+                for subents in itertools.product(*[range(r) for (j,r) in enumerate(g_diag) for _ in range(j)]) :
+                    columns = [subents[(j * (j - 1)) // 2:(j * (j + 1)) // 2] for j in range(t.nrows())]
                     g = diagonal_matrix(list(g_diag))
-                    for j in xrange(t.nrows()) :
-                        for i in xrange(j) :
+                    for j in range(t.nrows()) :
+                        for i in range(j) :
                             g[i,j] = columns[j][i]
                          
                     ginv = g.inverse()   
@@ -126,7 +129,7 @@ class DukeImamogluLiftFactory_class (SageObject) :
                         tg= matrix(ZZ, tg)
                     except :
                         continue
-                    if any(tg[i,i] % 2 == 1 for i in xrange(tg.nrows())) :
+                    if any(tg[i,i] % 2 == 1 for i in range(tg.nrows())) :
                         continue
                     
                     tg.set_immutable()
@@ -159,7 +162,7 @@ class DukeImamogluLiftFactory_class (SageObject) :
         if t[0,0] != 0 :
             return (1 - x**2)
         
-        for i in xrange(t.nrows()) :
+        for i in range(t.nrows()) :
             if t[i,i] != 0 :
                 break
         
@@ -168,10 +171,10 @@ class DukeImamogluLiftFactory_class (SageObject) :
             lambda_p = 1 if t == 0 else -1
             ## For we multiply x in the second factor by p**(1/2) to make all coefficients rational.
             return (1 - x**2) * (1 + lambda_p * p**((i + 1) // 2) * x) * \
-                   prod(1 - p**(2*j - 1) * x**2 for j in xrange(1, i // 2))
+                   prod(1 - p**(2*j - 1) * x**2 for j in range(1, i // 2))
         else :
             return (1 - x**2) * \
-                   prod(1 - p**(2*j - 1) * x**2 for j in xrange(1, i // 2))
+                   prod(1 - p**(2*j - 1) * x**2 for j in range(1, i // 2))
     
     #===========================================================================
     # ## TODO: Speadup by implementation in Cython and using enumeration mod p**n and fast

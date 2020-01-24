@@ -4,6 +4,7 @@ Types for paramodular forms of fixed level and weight.
 AUTHOR :
     -- Martin Raum (2010 - 04 - 15) Initial version.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -24,6 +25,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import TrivialGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsModule_generic
@@ -296,7 +300,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             if len(gps) != self._rank(QQ) :
                 syms = self._symmetrised_siegel_modular_forms(precision)
                 em = ExpansionModule(Sequence(gps + syms, universe = ParamodularFormD2FourierExpansionRing(QQ, self.__level) ) )
-                gens = map(lambda e: e.fourier_expansion(), em.pivot_elements())
+                gens = [e.fourier_expansion() for e in em.pivot_elements()]
             else :
                 gens = gps
                             
@@ -318,8 +322,8 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             ## We assume that the space is spanned by Gritsenko products
             ## Introduce new names, as soon as new cases are implemented
             nmb_gps = len(self._gritsenko_products(None)[0])
-            return [ "GP_%s" % (i,) for i in xrange(nmb_gps)] + \
-                   [ "SymS_%s" % (i,) for i in xrange(self._rank(K) - nmb_gps) ]
+            return [ "GP_%s" % (i,) for i in range(nmb_gps)] + \
+                   [ "SymS_%s" % (i,) for i in range(self._rank(K) - nmb_gps) ]
 
         raise NotImplementedError
     
@@ -374,4 +378,4 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [self.__level, self.__weight]))
+        return reduce(xor, list(map(hash, [self.__level, self.__weight])))

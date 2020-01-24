@@ -30,6 +30,7 @@ another module at some point, probably.
 
 """
 from __future__ import print_function
+from __future__ import division
 
 
 def modular_symbols_from_curve(C, N, num_factors=3):

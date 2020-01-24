@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2010 - 05 - 12) Initial version, based on classical case.
 """
+from __future__ import division
 
 #===============================================================================
 # 

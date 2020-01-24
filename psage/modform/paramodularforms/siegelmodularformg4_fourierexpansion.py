@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import map
+from builtins import range
 from copy import copy
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids \
               import TrivialCharacterMonoid, TrivialRepresentation
@@ -67,32 +69,32 @@ class SiegelModularFormG4Indices_diagonal_lll ( SiegelModularFormGnIndices_diago
         ## We first find possible upper left matrices
         
         sub2 = list()
-        for a0 in xrange(0, t[0,0] + 1, 2) :
-            for a1 in xrange(0, t[1,1] + 1, 2) :
+        for a0 in range(0, t[0,0] + 1, 2) :
+            for a1 in range(0, t[1,1] + 1, 2) :
                 # obstruction for t1[0,1]
                 B1 = isqrt(a0 * a1)
                 # obstruction for t2[0,1]
                 B2 = isqrt((t[0,0] - a0) * (t[1,1] - a1))
                 
-                for b01 in xrange(max(-B1, t[0,1] - B2), min(B1, t[0,1] + B2) + 1) :
+                for b01 in range(max(-B1, t[0,1] - B2), min(B1, t[0,1] + B2) + 1) :
                     sub2.append((a0,a1,b01))
         
         sub3 = list()
         for (a0, a1, b01) in sub2 :
             sub3s = list()
-            for a2 in xrange(0, t[2,2] + 1, 2) :
+            for a2 in range(0, t[2,2] + 1, 2) :
                 # obstruction for t1[0,2]
                 B1 = isqrt(a0 * a2)
                 # obstruction for t2[0,2]
                 B2 = isqrt((t[0,0] - a0) * (t[2,2] - a2))
                 
-                for b02 in xrange(max(-B1, t[0,2] - B2), min(B1, t[0,2] + B2) + 1) :
+                for b02 in range(max(-B1, t[0,2] - B2), min(B1, t[0,2] + B2) + 1) :
                     # obstruction for t1[1,2]
                     B3 = isqrt(a1 * a2)
                     # obstruction for t2[1,2]
                     B4 = isqrt((t[1,1] - a1) * (t[2,2] - a2))
                     
-                    for b12 in xrange(max(-B3, t[1,2] - B4), min(B3, t[1,2] + B4) + 1) :
+                    for b12 in range(max(-B3, t[1,2] - B4), min(B3, t[1,2] + B4) + 1) :
                         # obstruction for the minor [0,1,2] of t1
                         if a0*a1*a2 - a0*b12**2 + 2*b01*b12*b02 - b01**2*a2 - a1*b02**2 < 0 :
                             continue
@@ -106,19 +108,19 @@ class SiegelModularFormG4Indices_diagonal_lll ( SiegelModularFormGnIndices_diago
 
         for (a0,a1,b01, sub3s) in sub3 :
             for (a2, b02, b12) in sub3s :
-                for a3 in xrange(0, t[3,3] + 1, 2) :
+                for a3 in range(0, t[3,3] + 1, 2) :
                     # obstruction for t1[0,3]
                     B1 = isqrt(a0 * a3)
                     # obstruction for t2[0,3]
                     B2 = isqrt((t[0,0] - a0) * (t[3,3] - a3))
                 
-                    for b03 in xrange(max(-B1, t[0,3] - B2), min(B1, t[0,3] + B2) + 1) :
+                    for b03 in range(max(-B1, t[0,3] - B2), min(B1, t[0,3] + B2) + 1) :
                         # obstruction for t1[1,3]
                         B3 = isqrt(a1 * a3)
                         # obstruction for t2[1,3]
                         B4 = isqrt((t[1,1] - a1) * (t[3,3] - a3))
 
-                        for b13 in xrange(max(-B3, t[1,3] - B4), min(B3, t[1,3] + B4) + 1) :
+                        for b13 in range(max(-B3, t[1,3] - B4), min(B3, t[1,3] + B4) + 1) :
                             # obstruction for the minor [0,1,3] of t1
                             if a0*a1*a3 - a0*b13**2 + 2*b01*b13*b03 - b01**2*a3 - a1*b03**2 < 0 :
                                 continue
@@ -133,7 +135,7 @@ class SiegelModularFormG4Indices_diagonal_lll ( SiegelModularFormGnIndices_diago
                             # obstruction for t2[2,3]
                             B4 = isqrt((t[2,2] - a2) * (t[3,3] - a3))
                             
-                            for b23 in xrange(max(-B3, t[2,3] - B4), min(B3, t[2,3] + B4) + 1) :
+                            for b23 in range(max(-B3, t[2,3] - B4), min(B3, t[2,3] + B4) + 1) :
                                 # obstruction for the minor [0,2,3] of t1
                                 if a0*a2*a3 - a0*b23**2 + 2*b02*b23*b03 - b02**2*a3 - a2*b03**2 < 0 :
                                     continue
@@ -202,12 +204,12 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
             pass
         
         sub2 = list()
-        for a0 in xrange(2, 2 * self.index(), 2) :
-            for a1 in xrange(a0, 2 * self.index(), 2) :
+        for a0 in range(2, 2 * self.index(), 2) :
+            for a1 in range(a0, 2 * self.index(), 2) :
                 # obstruction for t[0,1]
                 B1 = isqrt(a0 * a1 - 1)
                 
-                for b01 in xrange(0, min(B1, a0 // 2) + 1) :
+                for b01 in range(0, min(B1, a0 // 2) + 1) :
                     sub2.append((a0,a1,-b01))
         
         self.__iter_reduced_sub2 = sub2
@@ -225,15 +227,15 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
         sub3 = list()
         for (a0, a1, b01) in sub2 :
             sub3s = list()
-            for a2 in xrange(2, 2 * self.index(), 2) :
+            for a2 in range(2, 2 * self.index(), 2) :
                 # obstruction for t[0,2]
                 B1 = isqrt(a0 * a2 - 1)
                 
-                for b02 in xrange(-B1, B1 + 1) :
+                for b02 in range(-B1, B1 + 1) :
                     # obstruction for t[1,2]
                     B3 = isqrt(a1 * a2 - 1)
                     
-                    for b12 in xrange(-B3, B3 + 1) :
+                    for b12 in range(-B3, B3 + 1) :
                         # obstruction for the minor [0,1,2] of t
                         if a0*a1*a2 - a0*b12**2 + 2*b01*b12*b02 - a2*b01**2 - a1*b02**2 <= 0 :
                             continue
@@ -264,15 +266,15 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
             sub4s = list()
             for (a2, b02, b12) in sub3s :
                 sub4ss = list()
-                for a3 in xrange(2, 2 * self.index() + 1, 2) :
+                for a3 in range(2, 2 * self.index() + 1, 2) :
                     # obstruction for t[0,3]
                     B1 = isqrt(a0 * a3 - 1)
                 
-                    for b03 in xrange(-B1, B1 + 1) :
+                    for b03 in range(-B1, B1 + 1) :
                         # obstruction for t[1,3]
                         B3 = isqrt(a1 * a3 - 1)
 
-                        for b13 in xrange(-B3, B3 + 1) :
+                        for b13 in range(-B3, B3 + 1) :
                             # obstruction for the minor [0,1,3] of t
                             if a0*a1*a3 - a0*b12**2 + 2*b01*b13*b03 - b01**2*a3 - a1*b03**2 <= 0 :
                                 continue
@@ -280,7 +282,7 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
                             # obstruction for t[2,3]
                             B3 = isqrt(a2 * a3 - 1)
                             
-                            for b23 in xrange(-B3, B3 + 1) :
+                            for b23 in range(-B3, B3 + 1) :
                                 # obstruction for the minor [0,2,3] of t
                                 if a0*a2*a3 - a0*b23**2 + 2*b02*b23*b03 - b02**2*a3 - a2*b03**2 <= 0 :
                                     continue
@@ -323,7 +325,7 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
             t.set_immutable()
             yield t
             
-            for a0 in xrange(2, 2 * self.index(), 2) :
+            for a0 in range(2, 2 * self.index(), 2) :
                 t = zero_matrix(ZZ, 4)
                 t[3,3] = a0
                 t.set_immutable()
@@ -391,26 +393,26 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
             ## We first find possible upper left matrices
             
             sub2 = list()
-            for a0 in xrange(2 * self.index(), 2) :
-                for a1 in xrange(2 * self.index(), 2) :
+            for a0 in range(2 * self.index(), 2) :
+                for a1 in range(2 * self.index(), 2) :
                     # obstruction for t[0,1]
                     B1 = isqrt(a0 * a1)
                     
-                    for b01 in xrange(-B1, B1 + 1) :
+                    for b01 in range(-B1, B1 + 1) :
                         sub2.append((a0,a1,b01))
                         
             sub3 = list()
             for (a0, a1, b01) in sub2 :
                 sub3s = list()
-                for a2 in xrange(2 * self.index(), 2) :
+                for a2 in range(2 * self.index(), 2) :
                     # obstruction for t[0,2]
                     B1 = isqrt(a0 * a2)
                     
-                    for b02 in xrange(-B1, B1 + 1) :
+                    for b02 in range(-B1, B1 + 1) :
                         # obstruction for t[1,2]
                         B3 = isqrt(a1 * a2)
                         
-                        for b12 in xrange(-B3, B3 + 1) :
+                        for b12 in range(-B3, B3 + 1) :
                             # obstruction for the minor [0,1,2] of t
                             if a0*a1*a2 - a0*b12**2 + 2*b01*b12*b02 - b01**2*a2 - a1*b02**2 < 0 :
                                 continue
@@ -419,15 +421,15 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
     
             for (a0,a1,b01, sub3s) in sub3 :
                 for (a2, b02, b12) in sub3s :
-                    for a3 in xrange(2 * self.index(), 2) :
+                    for a3 in range(2 * self.index(), 2) :
                         # obstruction for t[0,3]
                         B1 = isqrt(a0 * a3)
                     
-                        for b03 in xrange(-B1, B1 + 1) :
+                        for b03 in range(-B1, B1 + 1) :
                             # obstruction for t[1,3]
                             B3 = isqrt(a1 * a3)
     
-                            for b13 in xrange(-B3, B3 + 1) :
+                            for b13 in range(-B3, B3 + 1) :
                                 # obstruction for the minor [0,1,3] of t
                                 if a0*a1*a3 - a0*b13**2 + 2*b01*b13*b03 - b01**2*a3 - a1*b03**2 < 0 :
                                     continue
@@ -435,7 +437,7 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
                                 # obstruction for t[2,3]
                                 B3 = isqrt(a2 * a3)
                                 
-                                for b23 in xrange(-B3, B3 + 1) :
+                                for b23 in range(-B3, B3 + 1) :
                                     # obstruction for the minor [0,2,3] of t
                                     if a0*a2*a3 - a0*b23**2 + 2*b02*b23*b03 - b02**2*a3 - a2*b03**2 < 0 :
                                         continue
@@ -489,7 +491,7 @@ class SiegelModularFormG4Filter_diagonal_lll ( SiegelModularFormGnFilter_diagona
             raise NotImplementedError
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [self.is_reduced(), self.index()]))
+        return reduce(xor, list(map(hash, [self.is_reduced(), self.index()])))
                    
     def _repr_(self) :
         return "Diagonal filter (%s)" % self.index()

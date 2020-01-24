@@ -22,7 +22,9 @@
 """
 We study low zeros.
 """
-
+from past.builtins import cmp
+from builtins import range
+from builtins import object
 from sage.all import is_fundamental_discriminant, ZZ, parallel, var, sgn, fundamental_discriminant, kronecker_character,\
                        log,find_root
 import os

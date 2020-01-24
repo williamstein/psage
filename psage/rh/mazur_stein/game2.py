@@ -1,6 +1,8 @@
+from __future__ import division
+from builtins import object
 from sage.all import prime_range, I
 
-class J_E:
+class J_E(object):
     def __init__(self, E, N, K):
         self.E = E
         self.ap = [K(ap) for ap in E.aplist(N)]
@@ -27,7 +29,7 @@ class J_E:
 
 
 
-class J_generic:
+class J_generic(object):
     def __init__(self, K, N_max=10**5):
         """
         Compute J working over the field K.
@@ -127,7 +129,7 @@ class J_generic:
                 while n <= N:
                     ans += F + self.e(t,n)
                     if n >= 2:
-                        ans2 += ans / (n*K(n).log()) 
+                        ans2 += ans / (n*K(n).log())
                     #print (n, F, self.e(t,n))
                     n += 1
                 # Finally return after dividing by N.

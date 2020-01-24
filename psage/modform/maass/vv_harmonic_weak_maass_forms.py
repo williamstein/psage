@@ -44,7 +44,11 @@ EXAMPLES::
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
+from builtins import map
+from builtins import str
+from builtins import range
 import mpmath as mpmath
 # ugly fix to support pickling of mpmath matrices
 import mpmath.matrices.matrices
@@ -706,9 +710,9 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         if len(Cl) > 0:
             if len(Cl) != len(Pl):
                 raise ValueError("Need same number of principal parts and coefficients to set!")
-            keys = Cl[0].keys()
+            keys = list(Cl[0].keys())
             for j in range(1,N['comp_dim']):
-                if Cl[j].keys() != keys:
+                if list(Cl[j].keys()) != keys:
                     raise ValueError("Need to set the same coefficients! (or call the method more than once)")
         else:
             Cl=[]
@@ -1120,9 +1124,9 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
     get_reduced_matrix=gr
     comp_norm=cn
     if(W['sym_type']==1):
-        setD=range(0,WR.N+1)  # 0,1,...,N
+        setD=list(range(0,WR.N+1))  # 0,1,...,N
     elif(W['sym_type']==-1):
-        setD=range(1,WR.N)    # 1,2,...,N-1  (since -0=0 and -N=N)
+        setD=list(range(1,WR.N))    # 1,2,...,N-1  (since -0=0 and -N=N)
     nc=len(setD)
     if V.cols != Ml*nc or V.rows != Ml*nc:
         raise Exception(" Wrong dimension of input matrix!")
@@ -1241,7 +1245,7 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
             y=mpmath_ctx.matrix(LHS.rows,int(1)); y[j,0]=1            
             b = mpmath_ctx.L_solve(A,y, p)
             TMP = mpmath_ctx.U_solve(A, b)
-            tmpnorm=max(map(abs,TMP))
+            tmpnorm=max(list(map(abs,TMP)))
             if(tmpnorm>max_norm):
                 max_norm=tmpnorm
         print("max norm of V^-1={0}".format(max_norm))
@@ -1491,7 +1495,7 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
             y = Vector_complex_dense(vector(F,LHS.rows).parent(),0)
             y[j]=1
             TMP = RHS.solve(b) #pmath_ctx.U_solve(A, b)
-            tmpnorm=max(map(abs,TMP))
+            tmpnorm=max(list(map(abs,TMP)))
             if(tmpnorm>max_norm):
                 max_norm=tmpnorm
         print("max norm of V^-1={0}".format(max_norm))
@@ -1547,8 +1551,8 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
     kappa=M.weight
     D=WR.D  
     Dsym=M.D # the symmetrized index set
-    if(len(Dsym)!=len(C.keys())):
-        raise ValueError("Got incompatible coefficient vector! indices={0}".format(C.keys()))
+    if len(Dsym) != len(C.keys()):
+        raise ValueError("Got incompatible coefficient vector! indices={0}".format(list(C.keys())))
     
     #we only use symmetrized values
     if(Is==None):
@@ -1792,7 +1796,7 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
                         if(verbose>-1):
                             print("err={0}".format(mppr(err)))
                     if verbose > 0:
-                        if C.keys().count(ai)>0:
+                        if list(C.keys()).count(ai)>0:
                             if n in C[ai]:
                                 print("Cin({0},{1})={2}".format(ai,n,C[ai][n].real))
                                 if -n in C[ai]:
@@ -2143,7 +2147,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             
         # endif
         # check if we  have all coefficients we wanted
-        maxc=max(C[C.keys()[0]].keys())
+        maxc=max(C[list(C.keys())[0]].keys())
         if maxc >= max(nrange):
             print("Have all we need!")
             pass
@@ -2158,8 +2162,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
 
             # Try to find good Y
             # Recall that the error in the negative part is usually smaller than in the positive part
-            M_minus=abs(min(self._coeffs[self._coeffs.keys()[0]]))
-            M_plus=abs(max(self._coeffs[self._coeffs.keys()[0]]))
+            M_minus=abs(min(self._coeffs[list(self._coeffs.keys())[0]]))
+            M_plus=abs(max(self._coeffs[list(self._coeffs.keys())[0]]))
             # Assume we computed these coefficients at (almost) the highest horocycle
             Y0=mpmath.sqrt(3)/mpmath.mpf(2)*mpmath.mpf(0.995)
             [err_minus,err_plus]=self.get_error_estimates(Y0,M_minus,M_plus)
@@ -2324,7 +2328,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             r=int(l[0])
             n=int(l[1])
             #print "r=",r,"n=",n,self._coeffs.keys(),self._coeffs.keys().count(r)
-            if(self._coeffs.keys().count(r)==0):
+            if(list(self._coeffs.keys()).count(r)==0):
                 continue
             cs="".join(l[2:len(l)])
             #print cs
@@ -2463,8 +2467,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             sig=-1
         maxi=max(self._coeffs.keys())
         w1=len(str(maxi))
-        w2=max(map(len,str(self._space.WR.D()).split()))
-        maxn=max(self._coeffs[self._coeffs.keys()[0]].keys())
+        w2=max(list(map(len,str(self._space.WR.D()).split())))
+        maxn=max(self._coeffs[list(self._coeffs.keys())[0]].keys())
         w3=len(str(maxn))+1
         C=self._coeffs
         mp0=mpmath.mpf(0)
@@ -2528,7 +2532,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                             cs=str(c.real())
                     else:
                         cs=cs+str(c)
-                    if Lvals and self._Lv.keys().count(D) == 1:
+                    if Lvals and list(self._Lv.keys()).count(D) == 1:
                         ls="\t"+str(self._Lv[D])
                     else:
                         if latex:
@@ -2578,14 +2582,14 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         S="$"
         if(self._space.WR.is_dual()):
             sig=-1
-        maxn=max(self._coeffs[self._coeffs.keys()[0]].keys())
+        maxn=max(self._coeffs[list(self._coeffs.keys())[0]].keys())
         maxD=self._space.WR.level()*(maxn+1)
         N=self._space.WR.N
         if(dmax>0):
             w1=len(str(dmax))+1
         else:
             w1=len(str(maxD))+1
-        w2=max(map(len,str(self._space.WR.D()).split()))
+        w2=max(list(map(len,str(self._space.WR.D()).split())))
         w3=len(str(maxn))+1
         mp0=mpmath.mpf(0)
         mpold=mpmath.mp.dps
@@ -2672,7 +2676,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         cs=" "+cs 
                     if(latex):
                         O=" & "
-                        if(Lvals and self._Lv.keys().count(DD)==1):
+                        if(Lvals and list(self._Lv.keys()).count(DD)==1):
                             ls="&"+S+sci_pretty_print(self._Lv[DD],nd,latex_pow=latex)+S
                         else:
                             ls=""
@@ -2681,7 +2685,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         else:
                             s= S+str(DD).center(w1)+S+"&"+S+cs+S+ls+O+S+erms+S+"\\\\"
                     else:
-                        if(Lvals and self._Lv.keys().count(DD)==1):
+                        if(Lvals and list(self._Lv.keys()).count(DD)==1):
                             ls="\t"+sci_pretty_print(self._Lv[DD],nd)
                         else:
                             ls=""
@@ -2717,9 +2721,9 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             S=" $ "; O=" & "
         else:
             S=" "; O=" "
-        if(len(self._Lv.keys())==0):
+        if(len(list(self._Lv.keys()))==0):
             return res
-        L=self._Lv.keys(); L.sort(); L.reverse()
+        L=list(self._Lv.keys()); L.sort(); L.reverse()
         s=""; sc=""
         ## increase mpmath.mp.dps to print all relevant digits
         mpold=mpmath.mp.dps
@@ -2977,7 +2981,7 @@ def get_list_of_forms(Nmin,Nmax,compute=False):
             print("minPP={0}".format(M.smallest_pp()))
             print("Compute form on {0}".format(M))
             #s="FN"+str(N)+"-DR-D"+str(F.get_principal_part(str=True))+".sobj"
-            s="FN"+str(N)+"-DR-D"+str(M.smallest_pp().keys()[0])+".sobj"
+            s="FN"+str(N)+"-DR-D"+str(list(M.smallest_pp().keys())[0])+".sobj"
             print("trying :{0}".format(s))
             try:
                 F=load(s)

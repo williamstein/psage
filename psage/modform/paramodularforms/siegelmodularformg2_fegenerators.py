@@ -17,6 +17,7 @@ REFERENCES:
 - [I-H] Tomoyoshi Ibukiyama and Shuichi Hayashida, ... 
 
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -37,6 +38,8 @@ REFERENCES:
 #
 #===============================================================================
 
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_lazyelement import EquivariantMonoidPowerSeries_lazy
 from psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion import SiegelModularFormG2FourierExpansionRing
 from sage.combinat.partition import number_of_partitions
@@ -92,7 +95,7 @@ def SiegelModularFormG2MaassLift(f, g, precision, is_integral = True, weight = N
 # DelayedFactory_SMFG2_masslift
 #===============================================================================
 
-class DelayedFactory_SMFG2_masslift :
+class DelayedFactory_SMFG2_masslift(object) :
     def __init__(self, factory, f, g, weight) :
         self.__factory = factory
         self.__f = f
@@ -189,7 +192,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
             qexp_prec = self._get_maass_form_qexp_prec()
         
             self.__eta_power = self.integral_power_series_ring() \
-                 ([number_of_partitions(n) for n in xrange(qexp_prec)], qexp_prec)**6
+                 ([number_of_partitions(n) for n in range(qexp_prec)], qexp_prec)**6
                  
             return self.__eta_power
 
@@ -305,7 +308,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         a1dict = dict(); a0dict = dict()
         b1dict = dict(); b0dict = dict()
     
-        for t in xrange(1, ab_prec + 1) :
+        for t in range(1, ab_prec + 1) :
             tmp = t**2
             a1dict[tmp] = -8*tmp
             b1dict[tmp] = -2
@@ -337,7 +340,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         ## discriminant D by going Chi[D].
         
         Cphi = dict([(0,0)])
-        for i in xrange(qexp_prec) :
+        for i in range(qexp_prec) :
             Cphi[-4*i] = Ifg0[i]
             Cphi[1-4*i] = Ifg1[i]
 
@@ -363,7 +366,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
 
         ## First calculate maass coefficients corresponding to strictly positive definite matrices:        
         for disc in self._negative_fundamental_discriminants() :
-            for s in xrange(1, isqrt((-self.__precision.discriminant()) // disc) + 1) :
+            for s in range(1, isqrt((-self.__precision.discriminant()) // disc) + 1) :
                 ## add (disc*s^2,t) as a hash key, for each t that divides s
                 for t in divisor_dict[s] :
                     maass_coeffs[(disc * s**2,t)] = \
@@ -385,7 +388,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         ## Calculate the other discriminant-zero maass coefficients.
         ## Since sigma is quite cheap it is faster to estimate the bound and
         ## save the time for repeated calculation
-        for i in xrange(1, self.__precision._indefinite_content_bound()) :
+        for i in range(1, self.__precision._indefinite_content_bound()) :
             ## maass_coeffs[(0,i)] = sigma(i, k-1) * Cphi[0]
             siegel_coeffs[(0,0,i)] = sigma(i, k-1) * Cphi[0]
 

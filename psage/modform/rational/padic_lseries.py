@@ -17,6 +17,7 @@ AUTHORS:
 
 """
 from __future__ import print_function
+from __future__ import division
 
 ######################################################################
 #       Copyright (C) 2010 William Stein <wstein@gmail.com>
@@ -34,6 +35,8 @@ from __future__ import print_function
 ######################################################################
 
 	
+from past.builtins import cmp
+from builtins import range
 from sage.rings.integer_ring import   ZZ
 from sage.rings.rational_field import QQ
 from sage.rings.padics.factory import Qp, Zp
@@ -330,7 +333,7 @@ class pAdicLseries(SageObject):
 
     def rhs(self):
         """
-	"""
+        """
         list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
         lev = self.abelian_variety().level()
         if lev not in list:

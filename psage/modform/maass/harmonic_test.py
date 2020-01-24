@@ -5,6 +5,8 @@ Python routines for calculating Harmonic Weak Maass forms
 
 """
 from __future__ import print_function
+from __future__ import division
+from builtins import range
 from sage.all import *
 from sage.all import MPComplexField,RealField, MatrixSpace,RR,ceil,log_b,sqrt,exp,gamma
 from psage import *
@@ -163,7 +165,7 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
             nr = RF(n)+S.alpha(icusp)[0]
             ##
             ## first the holomorphic principal parts
-            for (jcusp,l),ppc in pp_plus.viewitems():
+            for (jcusp,l),ppc in pp_plus.items():
                 lr = RF(l)+S.alpha(jcusp)[0]
                 summa = CF(0)
                 if ppc==0 or (lr==0 and int(pp_info['variable_a0_plus'][0][jcusp])==1):
@@ -191,7 +193,7 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                     kappa =  Wk(k,nr,Y,var_a0_plus=True)
                     RHS[ni,0] = RHS[ni,0] - kappa*ppc
             # Set the non-holomorphic principal part
-            for (jcusp,l),ppc in pp_minus.viewitems():
+            for (jcusp,l),ppc in pp_minus.items():
                 lr = RF(l)+S.alpha(jcusp)[0]
                 summa = 0
                 if ppc==0 or (lr==0 and int(pp_info['variable_a0_minus'][0][jcusp])==1):
@@ -200,7 +202,7 @@ def setup_harmonic_matrix(S,pp,Y,M0,setc=None,ret_pb=0,gr=0):
                     raise ValueError("Invalid non-holomorphic principal part l={0}".format(lr))
                 print((jcusp,l),ppc)
                 #print "Ql=",Ql
-                for j in xrange(Ql):
+                for j in range(Ql):
                     #print j
                     y = ypb[icusp][jcusp][j]
                     if y == 0:
@@ -389,7 +391,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
         print("use_sym={0}".format(use_sym))
     for r in range(V.nrows()):
         cr=r+Ms
-        if(SetClist[0].keys().count(r+Ms)>0):
+        if list(SetClist[0].keys()).count(r+Ms)>0:
             roffs=roffs+1
             continue
         for fn_j in range(comp_dim):
@@ -405,7 +407,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
                 RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]-tmp
         coffs=0
         for k in range(V.ncols()):            
-            if(SetClist[0].keys().count(k+Ms)>0):
+            if list(SetClist[0].keys()).count(k+Ms)>0:
                 coffs=coffs+1
                 continue
             try:                
@@ -467,7 +469,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
                 key=n+Ms
                 #if(i==1):
                 #    print n,key
-                if(SetClist[fn_j].keys().count(nn)>0):
+                if(list(SetClist[fn_j].keys()).count(nn)>0):
                     if verbose>1:
                         print("We have set: {0}".format(nn))
                     roffs=roffs+1
@@ -514,8 +516,8 @@ def err_estimate(N,Y,k,m,M):
     delta = 2*RR.pi()*Y-4*RR.pi()*sqrt(abs(m))/N/sqrt(M)
     arg1 = sqrt(M)*4*RR.pi()*sqrt(abs(m))/N
 
-    f1 = 6*max(1-k,1)*max(3/2*k+3/4,1)/RR.pi()**2/16*Y**(-k+1)*M**(k/2+3/4)*arg1.exp()
-    f2 = 1/delta.exp()-1
+    f1 = 6*max(1-k,1)*max(3/2*k+3/4.,1)/RR.pi()**2/16.*Y**(-k+1)*M**(k/2.+3/4.)*arg1.exp()
+    f2 = 1./delta.exp()-1.
     fak = exp(-M*delta)
     err_non_hol = f1*fak
     err_holom = f2*fak
@@ -536,7 +538,7 @@ def size_of_num_err_by_coeff_app(N,k,m,M,eps=1):
      ar2 = RR.pi()*Y
      f1 = (ar1.exp()-1)/(1-ar2.exp())
       
-     f2 = Y**(-3/2*k-3/4)*3*max(1-k,1)*RR(gamma(k/2+3/4))/(4*RR.pi())**(k/2+7/4)
+     f2 = Y**(-3/2.*k-3/4.)*3*max(1-k,1)*RR(gamma(k/2.+3/4.))/(4*RR.pi())**(k/2.+7/4.)
      return abs((f1+f2)*eps)
 
 

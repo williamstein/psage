@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2009 - 08 - 28) Initial version based on code by Nathan Ryan.
 """
+from __future__ import division
 
 #===============================================================================
 # 

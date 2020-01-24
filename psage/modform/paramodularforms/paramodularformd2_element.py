@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2010 - 05 - 06) Initial version.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,8 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.modularforms.modularform_element import ModularForm_generic
 from psage.modform.paramodularforms.paramodularformd2_fourierexpansion import ParamodularFormD2Filter_trace
 from psage.modform.paramodularforms.paramodularformd2_fourierexpansion_cython import apply_GL_to_form
@@ -34,7 +37,7 @@ from sage.rings.all import Integer
 from sage.rings.complex_field import is_ComplexField
 from sage.structure.sequence import Sequence
 
-class ParamodularFormD2_generic :
+class ParamodularFormD2_generic(object) :
 
     def is_cusp_form(self) :
         raise NotImplementedError
@@ -102,7 +105,7 @@ class ParamodularFormD2_classical ( ParamodularFormD2_generic, ModularForm_gener
         ## Prepare the operation for d_1(N)
         ## We have to invert the lifts since we will later use apply_GL_to_form
         d1_matrices = [p1list.lift_to_sl2z(i) for i in range(len(p1list))]
-        d1_matrices = map(lambda a_b_c_d: (a_b_c_d[3],-a_b_c_d[1],-a_b_c_d[2],a_b_c_d[0]), d1_matrices)
+        d1_matrices = [(a_b_c_d[3],-a_b_c_d[1],-a_b_c_d[2],a_b_c_d[0]) for a_b_c_d in d1_matrices]
         
         ## Prepare the evaluation points corresponding to d_02(N)
         d2_points = list()

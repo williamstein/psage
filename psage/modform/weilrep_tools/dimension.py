@@ -10,6 +10,7 @@ AUTHORS:
 
 """
 from __future__ import print_function
+from __future__ import division
 
 #*****************************************************************************
 #       Copyright (C) 2012 Stephan Ehlen <ehlen@mathematik.tu-darmstadt.de>
@@ -20,9 +21,10 @@ from __future__ import print_function
 #*****************************************************************************
 
 #from psage.modules import *
+from builtins import range
 from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, \
                      RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, round, prime_range, dimension_cusp_forms, \
-                     kronecker_character, Matrix
+                     kronecker_character, Matrix, QQ
 #import sys
 from .weight_one_half import *
 
@@ -96,7 +98,7 @@ class VectorValuedModularForms(SageObject):
             else:
                 self._M2 = M2 = self._M.kernel_subgroup(2).as_ambient()[0]
                 self._n2 = n2 = self._M2.order()
-                self._v2 = self._M2.values()
+                self._v2 = list(self._M2.values())
 
         if use_genus_symbols:
             self._signature = g.signature()
@@ -132,12 +134,12 @@ class VectorValuedModularForms(SageObject):
 
         if self._g != None:
             if not self._aniso_formula:
-                vals = self._g.values()
+                vals = list(self._g.values())
             #else:
                 #print "using aniso_formula"
             M = self._g
         else:
-            vals = self._M.values()
+            vals = list(self._M.values())
             M = self._M
             
         prec = ceil(max(log(M.order(),2),52)+1)+17
@@ -151,15 +153,15 @@ class VectorValuedModularForms(SageObject):
         if self._alpha3 == None:
             if self._aniso_formula:
                 self._alpha4 = 1
-                self._alpha3 = -sum([BB(a)*mm for a,mm in self._v2.iteritems() if a != 0])
+                self._alpha3 = -sum([BB(a)*mm for a,mm in self._v2.items() if a != 0])
                 #print self._alpha3
                 self._alpha3 += Integer(d) - Integer(1) - self._g.beta_formula()
                 #print self._alpha3, self._g.a5prime_formula()
                 self._alpha3 = self._alpha3/RR(2)
             else:
-                self._alpha3 = sum([(1-a)*mm for a,mm in self._v2.iteritems() if a != 0])
+                self._alpha3 = sum([(1-a)*mm for a,mm in self._v2.items() if a != 0])
                 #print self._alpha3
-                self._alpha3 += sum([(1-a)*mm for a,mm in vals.iteritems() if a != 0])
+                self._alpha3 += sum([(1-a)*mm for a,mm in vals.items() if a != 0])
                 #print self._alpha3
                 self._alpha3 = self._alpha3 / Integer(2)
                 self._alpha4 = 1/Integer(2)*(vals[0]+v2) # the codimension of SkL in MkL
@@ -230,7 +232,7 @@ def test_real_quadratic(minp=1,maxp=100,minwt=2,maxwt=1000):
             for kk in range(minwt,round(maxwt/2-minwt)):
                 k = minwt+2*kk
                 if M.dimension_cusp_forms(k)-dimension_cusp_forms(kronecker_character(p),k)/2 != 0:
-                    print("ERROR: {0},{1},{2},{3}".format(k, M.dimension_cusp_forms(k), dimension_cusp_forms(kronecker_character(p),k)/2))
+                    print("ERROR: {0},{1},{2}".format(k, M.dimension_cusp_forms(k), dimension_cusp_forms(kronecker_character(p),k/2)))
                     return False
     return True
 
@@ -243,15 +245,15 @@ def test_jacobi(index=1,minwt=4,maxwt=100,eps=-1):
     M=VectorValuedModularForms(gram)
     if is_odd(minwt):
         minwt=minwt+1
-    for kk in range(0,round(maxwt/2-minwt)+2):
+    for kk in range(0,round(maxwt/QQ(2)-minwt)+2):
         k = minwt+2*kk+(1+eps)/2
         print("Testing k = {0}".format(k))
         if eps==-1:
             dimJ=dimension_jac_forms(k,m,-1)
-            dimV=M.dimension(k-1/2)
+            dimV=M.dimension(k-QQ(1)/QQ(2))
         else:
             dimJ=dimension_jac_cusp_forms(k,m,1)
-            dimV=M.dimension_cusp_forms(k-1/2)
+            dimV=M.dimension_cusp_forms(k-QQ(1)/QQ(2))
         if dimJ-dimV != 0:
             print("ERROR: {0},{1},{2}".format(k, dimJ, dimV))
             return False

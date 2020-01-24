@@ -101,8 +101,11 @@ This relies on having TH from above (say from the level 31 block above)::
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
 
+from builtins import range
+from builtins import object
 from sage.all import NumberField, polygen, QQ, ZZ, QuaternionAlgebra, cached_function, disk_cached_function
 
 x = polygen(QQ,'x')
@@ -276,10 +279,10 @@ def compute_all_icosians():
         [1/2 + 1/2*a*i + (-1/2*a + 1/2)*k, 1/2 + (-1/2*a + 1/2)*i + 1/2*a*j,..., -k, i, j, -i]
         sage: assert set(v) == set(all_icosians())  # double check
     """
-    from sage.all import permutations, cartesian_product_iterator
+    from sage.all import Permutations, cartesian_product_iterator
     Icos = []
     ig = icosian_gens()
-    per = permutations(range(5))
+    per = Permutations(range(5))
     exp = cartesian_product_iterator([range(1,i) for i in [5,5,5,4,5]])
     for f in exp:
         for p in per:
@@ -970,7 +973,7 @@ def hecke_ops(c, X):
         mat = []
         for x in reps:
             row = [0]*len(reps)
-            for _, w in z.iteritems():
+            for _, w in z.items():
                 w_c = theta_c(w)
                 y = w_c**(-1) * x
                 y_red = orbits[P1.normalize(y)]
@@ -992,7 +995,7 @@ def hecke_ops2(c, X):
         for x in reps:
             print("x = {0},  card = {1}".format(x, len([M for M in reduce.keys() if reduce[M]==x])))
             row = [0]*len(reps)
-            for _, w in z.iteritems():
+            for _, w in z.items():
                 w_c = theta_c(w)
                 y = w_c**(-1) * x
                 print("y ={0}".format(y))
@@ -1006,7 +1009,7 @@ def hecke_ops2(c, X):
     ans.sort()
     return ans
 
-class AlphaZ:
+class AlphaZ(object):
     def __init__(self, P):
         """
         Computing elements with norm pi, where P=(pi).
@@ -1162,10 +1165,10 @@ def hecke_elements_2():
             if t not in ans:
                 ans[t] = z
             if len(ans) == 5:
-                return [x for _, x in ans.iteritems()]
+                return [x for _, x in ans.items()]
     raise RuntimeError
 
-class HMF:
+class HMF(object):
     def __init__(self, N):
         from sage.all import QuadraticField, QuaternionAlgebra
         self._N = N
@@ -1230,7 +1233,7 @@ def residue_ring(N):
             # hardest case
             return ResidueRing_ramified_odd(N, P, p, e)
 
-class ResidueRing_base:
+class ResidueRing_base(object):
     def __call__(self, x):
         if x.parent() is not self._F:
             x = self._F(x)
@@ -1383,7 +1386,7 @@ class ResidueRing_ramified_odd(ResidueRing_base):
     def lift(self, x):
         return x[0].lift() + self._sqrt5 * x[1].lift()
 
-class RamifiedProductRingElement:
+class RamifiedProductRingElement(object):
     def __init__(self, parent, x, check=True):
         self._parent = parent
         if isinstance(x, RamifiedProductRingElement) and x._parent is parent:
@@ -1418,7 +1421,7 @@ class RamifiedProductRingElement:
         c, d = right._x
         return RamifiedProductRingElement(left._parent, [a*c+b*d*5, a*d+b*c], check=False)
 
-class RamifiedProductRing:
+class RamifiedProductRing(object):
     def __init__(self, R0, R1):
         self._R0 = R0
         self._R1 = R1
@@ -1431,7 +1434,7 @@ class RamifiedProductRing:
         return self._gen
 
         
-class Mod_P_reduction_map:
+class Mod_P_reduction_map(object):
     def __init__(self, P):
         FAC = P.factor()
         assert len(FAC) == 1

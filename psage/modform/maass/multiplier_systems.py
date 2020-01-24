@@ -33,7 +33,10 @@ sage: fak=CC(1/sqrt(7*I))
 
 """
 from __future__ import print_function
+from __future__ import division
 
+from builtins import str
+from builtins import range
 from sage.all import SageObject,CyclotomicField,Integer,is_even,ZZ,QQ,Rational,kronecker,is_odd,SL2Z,Gamma0,matrix,floor,ceil,lcm,copy,trivial_character,qexp_eta,var,DirichletGroup
 from sage.all import kronecker_character,kronecker_character_upside_down,I
 from sage.misc.cachefunc import cached_function,cached_method
@@ -310,7 +313,7 @@ class TrivialMultiplier(MultiplierSystem):
         return 1
         
     def set_character_values(self):
-        l = self._character.values()
+        l = list(self._character.values())
         self._character_values=[]
         if self._prec=="float":
             for x in l:
@@ -797,7 +800,7 @@ class WeilRepMultiplier(MultiplierSystem):
             dim = len(self._D)  #Dfinish-Dstart+1
         else:
             dim = len(self._weil_module.finite_quadratic_module().list())
-            self._D = range(dim)
+            self._D = list(range(dim))
             self._sym_type=0
         if hasattr(self._weil_module,"finite_quadratic_module"):
 #            for x in list(self._weil_module.finite_quadratic_module()):
@@ -977,9 +980,9 @@ class EtaQuotientMultiplier(MultiplierSystem):
             res = res*eta.subs({q:q**self._arguments[i]})**self._exponents[i]
             prefak = prefak+self._arguments[i]*self._exponents[i]
         if prefak % 24 == 0:
-            return res*q**(prefak/24)
+            return res*q**(prefak/QQ(24))
         else:
-            return res,prefak/24
+            return res,prefak/QQ(24)
         #etA= et.subs(q=q**self._arg_num).power_series(ZZ[['q']])
         #etB= et.subs(q=q**self._arg_den).power_series(ZZ[['q']])
         #res = etA**(self._exp_num)/etB**(self._exp_den)
@@ -1095,7 +1098,7 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
         et = qexp_eta(ZZ[['q']],n)
         etA= et.subs(q=q**self._arg_num).power_series(ZZ[['q']])
         etB= et.subs(q=q**self._arg_den).power_series(ZZ[['q']])
-        res = etA**(self._exp_num)/etB**(self._exp_den)
+        res = etA**(self._exp_num)*etB**(-self._exp_den)
         return res
     #def _action(self,A):
     #    return self._action(A)
@@ -1114,7 +1117,7 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
         if v1 != 1:
             res=res*v1**self._exp_num
         if v2 != 1:
-            res=res/v2**self._exp_den
+            res=res*v2**(-self._exp_den)
         if fak != 1:
             res=res*fak**(self._exp_num-self._exp_den)
         return res

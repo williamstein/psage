@@ -25,6 +25,9 @@ specific modular forms of interest.
 """
 from __future__ import print_function
 
+from builtins import zip
+from builtins import range
+from builtins import object
 import sys
 from sage.rings.all import ZZ, QQ, PolynomialRing
 from sage.modular.all import eisenstein_series_qexp, ModularForms

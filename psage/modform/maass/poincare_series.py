@@ -5,7 +5,9 @@ Algorithms for holomorphic and non-holomorphic Poincare series.
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 
+from builtins import range
 from sage.all import ComplexField,inverse_mod,CyclotomicField,SageObject,Integer,RealField,gcd,factorial
 from .multiplier_systems import *
 from psage.modform.arithgroup.mysubgroup import *

@@ -26,6 +26,9 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import zip
+from builtins import map
+from builtins import range
 from sage.matrix.constructor import matrix
 from sage.misc.all import prod
 from sage.arith.all import random_prime
@@ -65,15 +68,15 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
     lift_polys = []; preims = []
     monomials = set()
     
-    for k in xrange(min((weight // 2) - ((weight // 2) % 2), weight - 4), 3, -2) :
+    for k in range(min((weight // 2) - ((weight // 2) % 2), weight - 4), 3, -2) :
         if k not in subspaces :
             subspaces[k] = ring.graded_submodule(k)
         if weight - k not in subspaces :
             subspaces[weight - k] = ring.graded_submodule(weight - k)
         
         try :
-            kgs = zip(subspaces[k].maass_space()._provided_basis(), maass_lift_preimage_func(k))
-            ogs = zip(subspaces[weight - k].maass_space()._provided_basis(), maass_lift_preimage_func(weight - k))
+            kgs = list(zip(subspaces[k].maass_space()._provided_basis(), maass_lift_preimage_func(k)))
+            ogs = list(zip(subspaces[weight - k].maass_space()._provided_basis(), maass_lift_preimage_func(weight - k)))
         except ValueError :
             continue
         
@@ -98,7 +101,7 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
                     if magma(M).Rank() <= len(lift_polys) :
                         continue
                 except TypeError :
-                    for i in xrange(10) :
+                    for i in range(10) :
                         Mp = matrix(Qp(random_prime(10**10), 10), M)
                         if Mp.rank() > len(lift_polys) : break
                     else :
@@ -114,8 +117,8 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
                     break
                 
     if len(lift_polys) == dim :
-        ss = construct_from_maass_products(ring, weight, zip(preims, lift_polys), True, False, True)
-        poly_coords = [[0]*i + [1] + (len(lift_polys) - i - 1)*[0] for i in xrange(len(lift_polys))]
+        ss = construct_from_maass_products(ring, weight, list(zip(preims, lift_polys)), True, False, True)
+        poly_coords = [[0]*i + [1] + (len(lift_polys) - i - 1)*[0] for i in range(len(lift_polys))]
     else :
         # The products of two Maass lifts don't span this space
         # we hence have to consider the Maass lifts
@@ -124,12 +127,12 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
 
     maass_lifts = maass_lift_func(weight, precision)
     preims[0:0] = [[p] for p in maass_lift_preimage_func(weight)]
-    all_coords = map(ss.coordinates, maass_lifts) + poly_coords
+    all_coords = list(map(ss.coordinates, maass_lifts)) + poly_coords
     
     M = matrix(QQ, all_coords).transpose()
 
     nmb_mls = len(maass_lifts)
-    for i in xrange(10) :
+    for i in range(10) :
         Mp = matrix(Qp(random_prime(10**10), 10), M)
         pvs = Mp.pivots()
         if pvs[:nmb_mls] == list(range(nmb_mls)) and \
@@ -188,7 +191,7 @@ def construct_from_maass_products(ring, weight, products, is_basis = True,
                 if magma(M).Rank() > len(lift_polys) :
                     break
             except TypeError :
-                for i in xrange(10) :
+                for i in range(10) :
                     Mp = matrix(Qp(random_prime(10**10), 10), M)
                     if Mp.rank() > len(lift_polys) : break
                 else :
@@ -241,6 +244,6 @@ def construct_from_maass_products(ring, weight, products, is_basis = True,
         maass_coords = [ ss([0]*i + [1] + [0]*(dim-i-1))
                          for i in maass_form_indices ]
         ss.maass_space.set_cache( 
-          SiegelModularFormG2Submodule_maassspace(ss, map(ss, maass_coords)) )
+          SiegelModularFormG2Submodule_maassspace(ss, list(map(ss, maass_coords))) )
                                  
     return ss

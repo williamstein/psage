@@ -86,7 +86,12 @@ AUTHORS:
 TODO: Lots and lots of examples. 
 """
 from __future__ import print_function
+from __future__ import division
 
+from builtins import map
+from builtins import str
+from builtins import range
+from past.utils import old_div
 from sage.functions.other                 import floor
 from sage.arith.all                       import divisors, is_prime, kronecker, lcm, gcd, prime_divisors, primitive_root, is_square, is_prime_power, inverse_mod, binomial
 from sage.rings.all                       import ZZ, QQ, Integer, PolynomialRing,CC
@@ -429,7 +434,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 return x
         if isinstance( x, list):
             return FiniteQuadraticModuleElement( self, x, can_coords)
-        if isinstance( x, (Integer, int, long)) and 0 == x:
+        if isinstance( x, (Integer, int, int)) and 0 == x:
             return FiniteQuadraticModuleElement( self, x)
         raise TypeError("cannot coerce {0} to an element of {1}".format(x, self))
 
@@ -579,7 +584,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             if 2 == p: lci = lci**s1
             if debug > 0: print("lci=",lci)
             if debug > 0: print("lci1={0}".format(lci1))
-            ci *= lci * kronecker( s1, 1/lci1)
+            ci *= lci * kronecker( s1, lci1**-1)
             ci1 *= lci1
         return ci, QQ(ci1).sqrt()
 
@@ -1007,7 +1012,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         n = len(self.elementary_divisors())
         Y = X.augment( MatrixSpace(QQ,n).identity_matrix())
         K0 = matrix(ZZ, Y.transpose().integer_kernel().matrix().transpose())
-        K = K0.matrix_from_rows( range( n ))        
+        K = K0.matrix_from_rows( list(range( n)))        
         l= [ FiniteQuadraticModuleElement(self, x.list() , can_coords=False ) for x in K.columns()  ]
         return self.subgroup(l)
 
@@ -1451,7 +1456,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
                 if i == j:
                     B[i,j] = FiniteQuadraticModule_ambient._reduce( A[i,j])
                 else:
-                    B[i,j] = FiniteQuadraticModule_ambient._reduce( 2*A[i,j])/2
+                    B[i,j] = FiniteQuadraticModule_ambient._reduce( 2*A[i,j])/QQ(2)
         return B
 
 
@@ -2719,7 +2724,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         H = matrix( [x.list() for x in self.gens()]).transpose()
         Hp = H.augment( diagonal_matrix( list(self.ambience().elementary_divisors())))
         Rp = matrix(ZZ, Hp.transpose().integer_kernel().matrix().transpose())
-        R = Rp.matrix_from_rows( range( self.ngens()))
+        R = Rp.matrix_from_rows( list(range( self.ngens())))
         return R.transpose().echelon_form().transpose()
     
         
@@ -2747,7 +2752,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         """
         R = self._relations()
         def g(x,y):
-            return x.norm() if x == y else x.dot(y)/2
+            return x.norm() if x == y else x.dot(y)/QQ(2)
         G = matrix( QQ, self.ngens(), [ g(a,b) for a in self.gens() for b in self.gens()])
         B = FiniteQuadraticModule_ambient( R, G, names = names)
         f = B.hom( self.gens())
@@ -3128,7 +3133,7 @@ class JordanDecomposition( SageObject):
         og_b = U.orthogonal_basis()
         jd = dict()
         ol = []
-        primary_comps = uniq( map(lambda x: x.order(), og_b))
+        primary_comps = uniq( [x.order() for x in og_b])
         for q in primary_comps:
             basis = tuple( [x for x in og_b if x.order() == q])
             p = q.factor()[0][0]
@@ -3140,7 +3145,7 @@ class JordanDecomposition( SageObject):
             eps = kronecker( F.det(), p)
             genus = [p, n, r, eps]
             if 2 == p and self.is_type_I(F):
-                t = sum(filter(lambda x: is_odd(x), F.diagonal())) % 8
+                t = sum([x for x in F.diagonal() if is_odd(x)]) % 8
                 genus.append( t)
             jd[q] = ( basis, tuple(genus))
             ol.append( (p,n))
@@ -3508,7 +3513,7 @@ class JordanDecomposition( SageObject):
 
                     constantfactor = Integer(prod([min(pk, ordersDv1[j])**ranksDv1[j] for j in range(0, len(ordersDv1))]) / pk)
                     if debug > 0: print("constantfactor={0}".format(constantfactor))
-                    constantfactor *= prod(map(lambda x: p**x, ranksDv1pk[1:]))
+                    constantfactor *= prod([p**x for x in ranksDv1pk[1:]])
                     rank = ranksDv1pk[0]
                     eps = epsilons[len(ranks)-len(ranksDv1pk)]
                     values = [constantfactor * _orbit_length(rank, eps, tconstant / p)]
@@ -3529,7 +3534,7 @@ class JordanDecomposition( SageObject):
 
                                 tt = tdash + tdashdash
                                 orbitlength = values[kronecker(tdashdash, p)+1]
-                                orbit = tuple([m] + multiplicities + map(lambda x: x - floor(x), [tt * p**j / m for j in range(0, k+1)]))
+                                orbit = tuple([m] + multiplicities + [x - floor(x) for x in [tt * p**j / m for j in range(0, k+1)]])
                                 orbitdict[orbit] = orbitlength
 
             else:
@@ -3927,7 +3932,8 @@ class JordanDecomposition( SageObject):
                 # print "n:", n, "eps:", eps, "t:", t, "n-t:", n-t, (n-t)/2
                 if eps == -1:
                     t = (t + 4) % 8
-                n2 = ((n - t)/2) % 4
+                # TODO: Check if this should really use the old integer division
+                n2 = old_div((n - t),2) % 4
                 n1 = n - n2
                 # print "n1:", n1, "n2:", n2, "t:", t
                 list1 = [sum([binomial(n1,k) for k in range(j,n1+1,4)]) for j in range(0,4)]
@@ -4058,7 +4064,7 @@ def FiniteQuadraticModuleRandom(discbound=100,normbound=100,verbose=0):
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
     if len(list(A)) == 1:
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
-    if  max( map(max,A.gram().rows()))==0 and min( map(min,A.gram().rows()))==0:
+    if  max( list(map(max,A.gram().rows())))==0 and min( list(map(min,A.gram().rows())))==0:
         return FiniteQuadraticModuleRandom(discbound,normbound,verbose)
 #if False == A.is_nondegenerate():
     #    return FiniteQuadraticModuleRandom(bound)
@@ -4224,11 +4230,11 @@ def values_test(str):
     print(str)
 
     # valuesdict, values = J.values()
-    valuesdict = J.values()
+    valuesdict = list(J.values())
     
     # print "Position1"
 
-    Avalues = A.values()
+    Avalues = list(A.values())
     b1 = valuesdict == Avalues
     print("Test A.values() == J.values():{0}".format(b1))
     
@@ -4239,7 +4245,7 @@ def values_test(str):
     
     # print "Position3"
 
-    Atwotorsionvalues = A.kernel_subgroup(2).as_ambient()[0].values()
+    Atwotorsionvalues = list(A.kernel_subgroup(2).as_ambient()[0].values())
     Jtwotorsionvalues = J.two_torsion_values()
 
     b3 = Atwotorsionvalues == Jtwotorsionvalues

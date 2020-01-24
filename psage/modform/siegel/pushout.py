@@ -1,4 +1,8 @@
 from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+import six
 from sage.categories.functor import Functor
 from sage.categories.basic import *
 
@@ -1464,7 +1468,7 @@ def construction_tower(R):
 
 def type_to_parent(P):
     import sage.rings.all
-    if P in [int, long]:
+    if P in six.integer_types:
         return sage.rings.all.ZZ
     elif P is float:
         return sage.rings.all.RDF

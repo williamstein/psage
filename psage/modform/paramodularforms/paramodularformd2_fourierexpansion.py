@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2010 - 04 - 09) Initial version
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,9 @@ AUTHORS:
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialCharacterMonoid, \
                                            TrivialRepresentation
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
@@ -90,7 +94,7 @@ class ParamodularFormD2Indices_discriminant( SageObject ) :
         raise ValueError("Generator not defined")
     
     def gens(self) :    
-        return [self.gen(i) for i in xrange(self.ngens())]
+        return [self.gen(i) for i in range(self.ngens())]
 
     def is_commutative(self) :
         return True
@@ -149,14 +153,14 @@ class ParamodularFormD2Indices_discriminant( SageObject ) :
         
         #                  r t r^tr = t_1 + t_2
         # \Rightleftarrow  t = r t_1 r^tr + r t_2 r^tr
-        for a1 in xrange(a + 1) :
+        for a1 in range(a + 1) :
             a2 = a - a1
-            for c1 in xrange(c + 1) :
+            for c1 in range(c + 1) :
                 c2 = c - c1
                 
                 B1 = isqrt(4*a1*c1)
                 B2 = isqrt(4*a2*c2)
-                for b1 in xrange(max(-B1, b - B2), min(B1 + 1, b + B2 + 1)) :
+                for b1 in range(max(-B1, b - B2), min(B1 + 1, b + B2 + 1)) :
                     h1 = apply_GL_to_form(self.__p1list[l], (a1, b1, c1))
                     h2 = apply_GL_to_form(self.__p1list[l], (a2, b - b1, c2))
                     if h1[2] % self.__level == 0 and h2[2] % self.__level == 0:
@@ -306,16 +310,16 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
         if self.__reduced :
             for (l, (u,x)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for a in xrange(self.__level, isqrt(self.__disc // 4) + 1, self.__level) :
-                        for b in xrange(a+1) :
-                            for c in xrange(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
+                    for a in range(self.__level, isqrt(self.__disc // 4) + 1, self.__level) :
+                        for b in range(a+1) :
+                            for c in range(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
                                 yield ((a,b,c), l)
                 else :
-                    for a in xrange(1, isqrt(self.__disc // 3) + 1) :
-                        for b in xrange(a+1) :
+                    for a in range(1, isqrt(self.__disc // 3) + 1) :
+                        for b in range(a+1) :
                             ## We need x**2 * a + x * b + c % N == 0
                             h = (-((x**2 + 1) * a + x * b)) % self.__level
-                            for c in xrange( a + h,
+                            for c in range( a + h,
                                              (b**2 + (self.__disc - 1))//(4*a) + 1, self.__level ) :
                                 yield ((a,b,c), l)
         #! if self.__reduced
@@ -323,8 +327,8 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
             maxtrace = floor(self.__disc / Integer(3) + sqrt(self.__disc / Integer(3)))
             for (l, (u,x)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for a in xrange(self.__level, maxtrace + 1, self.__level) :
-                        for c in xrange(1, maxtrace - a + 1) :
+                    for a in range(self.__level, maxtrace + 1, self.__level) :
+                        for c in range(1, maxtrace - a + 1) :
                             Bu = isqrt(4*a*c - 1)
         
                             di = 4*a*c - self.__disc
@@ -333,13 +337,13 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
                             else :
                                 Bl = 0
                             
-                            for b in xrange(-Bu, -Bl + 1) :
+                            for b in range(-Bu, -Bl + 1) :
                                 yield ((a,b,c), l)
-                            for b in xrange(Bl, Bu + 1) :
+                            for b in range(Bl, Bu + 1) :
                                 yield ((a,b,c), l)
                 else :
-                    for a in xrange(1, maxtrace + 1) :
-                        for c in xrange(1, maxtrace - a + 1) :
+                    for a in range(1, maxtrace + 1) :
+                        for c in range(1, maxtrace - a + 1) :
                             Bu = isqrt(4*a*c - 1)
         
                             di = 4*a*c - self.__disc
@@ -351,12 +355,12 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
                             h = (-x * a - int(Mod(x, self.__level)**-1) * c - Bu) % self.__level \
                                 if x != 0 else \
                                 (-Bu) % self.__level
-                            for b in xrange(-Bu + self.__level - h, -Bl + 1, self.__level) :
+                            for b in range(-Bu + self.__level - h, -Bl + 1, self.__level) :
                                 yield ((a,b,c), l)
                             h = (-x * a - int(Mod(x, self.__level)**-1) * c + Bl) % self.__level \
                                 if x !=0 else \
                                 Bl % self.__level
-                            for b in xrange(Bl + self.__level - h, Bu + 1, self.__level) :
+                            for b in range(Bl + self.__level - h, Bu + 1, self.__level) :
                                 yield ((a,b,c), l)
         #! else self.__reduced
         
@@ -370,10 +374,10 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
         if self.__reduced :
             for (l, (u,_)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for c in xrange(self._indefinite_content_bound()) :
+                    for c in range(self._indefinite_content_bound()) :
                         yield ((0,0,c), l)
                 else :
-                    for c in xrange(0, self._indefinite_content_bound(), self.__level) :
+                    for c in range(0, self._indefinite_content_bound(), self.__level) :
                         yield ((0,0,c), l)
         else :
             raise NotImplementedError
@@ -387,24 +391,24 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
         if self.__reduced :
             for (l, (u,x)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for a in xrange(self.__level, isqrt(self.__disc // 4) + 1, self.__level) :
+                    for a in range(self.__level, isqrt(self.__disc // 4) + 1, self.__level) :
                         frpa = 4 * a
-                        for b in xrange(a+1) :
+                        for b in range(a+1) :
                             g = gcd(a // self.__level,b)
                             bsq = b**2
 
-                            for c in xrange(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
+                            for c in range(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
                                 yield (((a,b,c), l), gcd(g,c), frpa*c - bsq)
                 else :
-                    for a in xrange(1, isqrt(self.__disc // 3) + 1) :
+                    for a in range(1, isqrt(self.__disc // 3) + 1) :
                         frpa = 4 * a
-                        for b in xrange(a+1) :
+                        for b in range(a+1) :
                             g = gcd(a, b)
                             bsq = b**2
                                                         
                             ## We need x**2 * a + x * b + c % N == 0
                             h = (-((x**2 + 1) * a + x * b)) % self.__level
-                            for c in xrange( a + h,
+                            for c in range( a + h,
                                              (b**2 + (self.__disc - 1))//(4*a) + 1, self.__level ) :
                                 yield (((a,b,c), l), gcd(g,(x**2 * a + x * b + c) // self.__level), frpa*c - bsq)
         #! if self.__reduced
@@ -432,7 +436,7 @@ class ParamodularFormD2Filter_discriminant ( SageObject ) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [type(self), self.__level, self.__disc]))
+        return reduce(xor, list(map(hash, [type(self), self.__level, self.__disc])))
                    
     def _repr_(self) :
         return "Discriminant filter (%s) for paramodular forms of level %s " \
@@ -519,32 +523,32 @@ class ParamodularFormD2Filter_trace (SageObject) :
         if self.__reduced :
             for (l, (u,x)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for a in xrange(self.__level, self.__trace, self.__level) :
-                        for c in xrange(a, self.__trace - a) :
-                            for b in xrange( 2 * isqrt(a * c - 1) + 2 if a*c != 1 else 1,
+                    for a in range(self.__level, self.__trace, self.__level) :
+                        for c in range(a, self.__trace - a) :
+                            for b in range( 2 * isqrt(a * c - 1) + 2 if a*c != 1 else 1,
                                              2 * isqrt(a * c) ) :
                                 yield ((a,b,c), l)
                 else :
-                    for a in xrange(1, self.__trace) :
-                        for b in xrange(a+1) :
+                    for a in range(1, self.__trace) :
+                        for b in range(a+1) :
                             ## We need x**2 * a + x * b + c % N == 0
                             h = ((x**2 + 1) * a + x * b) % self.__level
                             if x == 0 and h == 0 : h = 1
-                            for c in xrange( h, self.__trace - x * b - (x**2  + 1) * a, self.__level ) :
+                            for c in range( h, self.__trace - x * b - (x**2  + 1) * a, self.__level ) :
                                 yield ((a,b,c), l)
         #! if self.__reduced
         else :
             for (l, (u,x)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for a in xrange(self.__level, self.__trace, self.__level) :
-                        for c in xrange(1, self.__trace - a) :
-                            for b in xrange( 2 * isqrt(a * c - 1) + 2 if a*c != 1 else 1,
+                    for a in range(self.__level, self.__trace, self.__level) :
+                        for c in range(1, self.__trace - a) :
+                            for b in range( 2 * isqrt(a * c - 1) + 2 if a*c != 1 else 1,
                                              2 * isqrt(a * c) ) :
                                 yield ((a,b,c), l)
                 else :
-                    for a in xrange(1, self.__trace) :
-                        for c in xrange(self.__level, self.__trace - a, self.__level) :
-                            for b in xrange( 2 * isqrt(a * c - 1) + 2 if a*c != 1 else 1,
+                    for a in range(1, self.__trace) :
+                        for c in range(self.__level, self.__trace - a, self.__level) :
+                            for b in range( 2 * isqrt(a * c - 1) + 2 if a*c != 1 else 1,
                                              2 * isqrt(a * c) ) :
                                 yield ((a, b - 2 * x * a, c - x * b - x**2 * a), l)
         #! else self.__reduced
@@ -558,10 +562,10 @@ class ParamodularFormD2Filter_trace (SageObject) :
         if self.__reduced :
             for (l, (u,_)) in enumerate(self.__p1list) :
                 if u == 0 :
-                    for c in xrange(self.__trace) :
+                    for c in range(self.__trace) :
                         yield ((0,0,c), l)
                 else :
-                    for c in xrange(0, self.__trace, self.__level) :
+                    for c in range(0, self.__trace, self.__level) :
                         yield ((0,0,c), l)
         else :
             raise NotImplementedError
@@ -585,7 +589,7 @@ class ParamodularFormD2Filter_trace (SageObject) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [type(self), self.__level, self.__trace]))
+        return reduce(xor, list(map(hash, [type(self), self.__level, self.__trace])))
                    
     def _repr_(self) :
         return "Trace filter (%s) for paramodular forms of level %s " \

@@ -3,8 +3,6 @@ Standard cimports for working with multiprecision numbers.
 
 
 """
-include 'sage/ext/stdsage.pxi' 
-include "sage/ext/cdefs.pxi"
 from sage.libs.mpfr cimport *
 from sage.libs.mpc cimport *
 

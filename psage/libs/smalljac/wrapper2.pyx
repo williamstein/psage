@@ -1,6 +1,5 @@
 include "wrapper0.pyx" 
-include 'stdsage.pxi'
-
+from sage.ext.stdsage cimport PY_NEW
 
 cdef class GroupModp:
     pass

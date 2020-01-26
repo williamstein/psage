@@ -26,7 +26,7 @@ Cython algorithms for Selberg Zeta functions.
 """
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-
+from cysignals.memory cimport check_allocarray
 import sys
 import mpmath    
 import cython

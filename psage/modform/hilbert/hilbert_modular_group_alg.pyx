@@ -22,28 +22,15 @@ Used by routines in development.
 
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-
 from sage.rings.number_field.number_field_element import is_NumberFieldElement
 from sage.matrix.matrix2 import Matrix
 from sage.matrix.matrix2 cimport Matrix
-
 from sage.all import real,NFCusp,copy,RR,CC,RealNumber,ComplexNumber,real,imag,vector,RealField,Infinity,ComplexField,QQ,MatrixSpace
-
-from psage.modform.hilbert.hn_class cimport Hn
 from psage.modform.hilbert.hn_class import is_Hn
-
-#from sage.libs.cypari2.gen import pari
-#   from sage.libs.cypari2.gen cimport Gen as gen
 from cypari2.gen cimport Gen as gen
-   
 import cython
-
-#from psage.rings.double_prec_math cimport *
-#include "../../rings/double_prec_math.pxi"
 from libc.math cimport sqrt,fabs,fmax,ceil,floor,sin,cos,log
-
-import numpy as np
-
+from psage.modform.hilbert.hn_class cimport Hn
 
 cpdef cusp_coordinates_gen(G,cuspi,z,int verbose=0):
     cdef Hn zz

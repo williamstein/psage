@@ -5,7 +5,7 @@
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off  # ctrl-c interrupt block support
 from sage.libs.gmp.all cimport *
-
+from past.builtins import cmp
 from libc.stdlib cimport malloc, free
 
 from sage.all import factor,        \

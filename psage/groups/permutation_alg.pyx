@@ -35,7 +35,8 @@ from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *    
 
-
+from cysignals.memory cimport check_allocarray
+from sage.libs.gmp.all cimport *
 
 ### higher levels of debugging for development and which should not be controlled by user
 DEF debug = 0

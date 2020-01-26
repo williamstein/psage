@@ -33,7 +33,7 @@ EXAMPLES:
 
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-
+from libc.string cimport strlen, strcpy, memset, memcpy, memcmp
 from psage.rings.mp_cimports cimport *
 
 

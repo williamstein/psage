@@ -15,7 +15,7 @@
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 from psage.rings.mp_cimports cimport *
-
+from libc.stdio cimport *
 import cython
 
 r"""

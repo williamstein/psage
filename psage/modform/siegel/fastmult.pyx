@@ -9,14 +9,9 @@ Low level functions for coefficients of Siegel modular forms
 # (0,A)x(0,B)x(0,C) or else of all reduced triples (a,b,c) with 4ac-b^2 below
 # a given bound (and c <=  if 4ac-b^2=0).
 
-#include 'gmp.pxi'
-
-from sage.structure.element cimport Element
-import operator
-#include 'sage/structure/coerce.pxi'
-from sage.rings.integer_ring import ZZ
+from sage.libs.gmp.all cimport *
 from sage.rings.integer cimport Integer
-
+from sage.ext.stdsage cimport PY_NEW
 cdef struct int_triple:
     int a
     int b

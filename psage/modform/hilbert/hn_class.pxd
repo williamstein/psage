@@ -1,5 +1,3 @@
-#from psage.rings.double_prec_math cimport *
-include "../../rings/double_prec_math.pxi"
 
 cdef class Hn(object):
     cdef double *_x

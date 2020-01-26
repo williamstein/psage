@@ -1004,11 +1004,11 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
                 #nrfourpi=nr*fourpi
                 if True:    
-                    for icusp in xrange(nc):
+                    for icusp in range(nc):
                         if verbose>2:
                             printf("jcusp=%i\n",jcusp)
                         #setcossin_besv(ef1cosv[icusp][jcusp][n], ef1sinv[icusp][jcusp][n], besv[icusp][jcusp][n], Ypb[icusp][jcusp][n], variable_a0_minus[0][] nr, eps, kinti, kint_t, is_int, is_half_int, do_mpmath,)
-                        for j in xrange(Ql):
+                        for j in range(Ql):
                             ## ef1 contains -Xpb*l
                             if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                                 #mpfr_set_si(ef1[icusp][jcusp][xn][j],0,rnd_re) 
@@ -1101,7 +1101,7 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
                 mpfr_set(nr,nvec[jcusp][n-Ms],rnd_re)
                 mpfr_mul(nrfourpi,nr,fourpi,rnd_re)
                 #nrfourpi=nr*fourpi
-                for j in xrange(Ql):
+                for j in range(Ql):
                     ## ef1 contains -Xpb*l
                     if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                         #mpfr_set_si(ef1[icusp][jcusp][n][j],0,rnd_re)
@@ -1146,8 +1146,8 @@ cpdef setup_matrix_for_harmonic_Maass_waveforms_sym(H,RealNumber Y_in,int M,int 
     if verbose>1:
         printf("nrows,ncols=%d,%d\n",nrows,ncols)
         printf("Ml,nc,Ql=%d,%d,%d\n",Ml,nc,Ql)
-    for n in xrange(nrows):
-        for l in xrange(ncols):
+    for n in range(nrows):
+        for l in range(ncols):
             mpc_init2(V._matrix[n][l],prec)
             mpc_set_ui(V._matrix[n][l],0,rnd)
     for l in prange(Ml, nogil=True):
@@ -1646,17 +1646,17 @@ cdef void setV(mpc_t **Vmat, mpfr_t ****RCvec,int ***CSvec, mpfr_t **** besv, mp
     mpfr_init2(tmpar,prec)
     mpfr_init2(tmpar1,prec)
     mpfr_init2(tmpab,prec)
-    for jcusp in xrange(nc):
+    for jcusp in range(nc):
         lj=Ml*jcusp+l
-        for icusp in xrange(nc):
-            for j in xrange(Ql):
+        for icusp in range(nc):
+            for j in range(Ql):
                 if mpfr_zero_p(Ypb[icusp][jcusp][j])<>0:
                     continue
                 #if mpfr_get_si(RCvec[icusp][jcusp][j][2],rnd_re) % 2 == 0:
                 #    mpfr_set(
                 #mpfr_add(tmpar,ef1[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][1],rnd_re)
                 mpfr_mul(tmpab,besv[icusp][jcusp][l][j],RCvec[icusp][jcusp][j][0],rnd_re)
-                for n in xrange(Ml): 
+                for n in range(Ml): 
                     ni=icusp*Ml+n
                     #mpfr_add(tmpar1,ef2[icusp][n][j],tmpar,rnd_re)
                     #mpc_mul(tmp2.value,tmp1.value,ef2[icusp][n][j],rnd)

@@ -77,6 +77,7 @@ cdef extern from "math.h" nogil:
     double atan(double)
     double sinh(double)
     double fabs(double)
+    double sqrt(double)
     int ceil(double)
     double cabs(double complex)
     double pow(double,double)
@@ -218,7 +219,7 @@ cdef int besselk_dp_c(double *kbes,double R,double x,double prec,int pref) nogil
     if x<=0:
         printf(" Need x>0! Got x=%g",x)
         return -1
-    cdef int res
+    cdef int res=0
     if x > 0.5*cppi*RR-2.0*log(prec):
         kbes[0] = 0.0
         return 0
@@ -773,13 +774,13 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
     ##
     cdef double rmax = 0.5
     if verbose>1:
-        printf("s=%d",s)
-        printf("r[0]=%d",rk0)
-        printf("r[1]=%d",rk1)
-        printf("f[0]=%d",fk0)
-        printf("f[1]=%d",fk1)   
-        printf("c[0]=%d",ck0)
-        printf("c[1]=%d",ck1)
+        printf("s=%f",s)
+        printf("r[0]=%f",rk0)
+        printf("r[1]=%f",rk1)
+        printf("f[0]=%f",fk0)
+        printf("f[1]=%f",fk1)
+        printf("c[0]=%f",ck0)
+        printf("c[1]=%f",ck1)
     cdef int kmin,k
 
     cdef double ef1,ef2,ef3,err_est
@@ -799,8 +800,8 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
         ck1 = ck1*xtwo_by_four/kk
         term = ck1*fk1
         if verbose>1:
-            printf("f[%d]=%d",k,fk1) 
-            printf("c[%d]=%d",k,ck1)
+            printf("f[%d]=%f",k,fk1)
+            printf("c[%d]=%f",k,ck1)
         s+=term
         if k > kmin:
             # Get a rigorous error term for truncation
@@ -810,14 +811,14 @@ cpdef besselk_real_rec_dp(double r,double x,double eps=0,int verbose=0):
             # Also add numerical error
 #            err_est+=k*meps
             if verbose>0:
-                printf("term=%d, %d, %d",k,term,abs(term)/abs(s))
-                printf("error est= %d",err_est)
-                printf("s=%d",s)
+                printf("term=%d, %f, %f",k,term,abs(term)/abs(s))
+                printf("error est= %f",err_est)
+                printf("s=%f",s)
             if abs(err_est)< eps: #abs(term)/abs(s)<eps:
                 break
         rk_new = ((2*kk-1)*rk1 - rk0)/(k2 - R2)
         rk0 = rk1
         rk1 = rk_new
         if verbose>2:
-            printf("r[%d]=%d",k,rk1)
+            printf("r[%d]=%f",k,rk1)
     return s*cppi/two

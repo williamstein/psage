@@ -31,6 +31,7 @@ AUTHOR:
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
+from __future__ import print_function
 from cysignals.signals cimport *
 from psage.rings.mp_cimports cimport *
 
@@ -84,10 +85,10 @@ cpdef poincareseries_init(prec,verbose=0):
     """
     global one, minus_one,two,zero,i,twopii,pii,CF,RF,digs, epsilon_0, twopi
     global inited,set_prec,eight,four,silent,twopii_eight
-#    print "want to init:",inited,set_prec,prec
+#    print("want to init:",inited,set_prec,prec
     if(inited and prec==set_prec):
         return
-    print "inited=",inited
+    print("inited={0}".format(inited))
     #if verbose<silent:
     #    set_silence_level(silent)
     CF=ComplexField(prec)
@@ -150,7 +151,7 @@ cpdef weil_kloosterman_sum_all_old(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,verbose
     r"""
     Twisted Kloosterman sum
     """
-    # print c,r_in,m,rp_in,n,N,kappa,b_m,b_p,prec
+    # print(c,r_in,m,rp_in,n,N,kappa,b_m,b_p,prec
     poincareseries_init(prec)
     H=dict()
     summa=dict()
@@ -170,8 +171,8 @@ cpdef weil_kloosterman_sum_all_old(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,verbose
                 arg=twopii*RF(mms[j]*a+nns[j]*d)/cr
                 tmp=R[rs[j],rps[j]]*arg.exp()
                 if verbose>1:
-                   print "weil_rep_old[",a,b,c,d,"](",rs[j],rps[j],")=",R[rs[j],rps[j]]
-#                   print "exp()=",arg.exp()
+                   print("weil_rep_old[",a,b,c,d,"](",rs[j],rps[j],")=",R[rs[j],rps[j]])
+#                   print("exp()=",arg.exp()
                 summa[j]=summa[j]+tmp
             # endfor
         # end_if:
@@ -185,8 +186,8 @@ cpdef weil_kloosterman_sum_all_old(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,verbose
     for j in rs.keys():
         H[j]=tmp*summa[j]
     if verbose>1:
-        print "tmp=",tmp
-        print "kloo sum=",H
+        print("tmp=",tmp)
+        print("kloo sum=",H)
     return H
 #end_proc:
 
@@ -206,7 +207,7 @@ cpdef weil_kloosterman_sum_all(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,breaks,verb
     r"""
     Twisted Kloosterman sum
     """
-    # print c,r_in,m,rp_in,n,N,kappa,b_m,b_p,prec
+    # print(c,r_in,m,rp_in,n,N,kappa,b_m,b_p,prec
     poincareseries_init(prec)
     H=dict()
     summa=dict()
@@ -259,11 +260,11 @@ cpdef weil_kloosterman_sum_all(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,breaks,verb
     twopii_by_c=twopii/cr
     N4=RF(4*N)
     if verbose>2:
-        print "RF=",RF
-        print "CF=",CF
-        print "odt=",odt
-        print "exc=",exc
-        print "kron_c=",kron_c
+        print("RF={0}".format(RF))
+        print("CF={0}".format(CF))
+        print("odt={0}".format(odt))
+        print("exc={0}".format(exc))
+        print("kron_c={0}".format(kron_c))
     odt=odt*oddc
     twoDc=evenc*gcdDc2
     od_m_oc_m_2=oddD-oddc-2
@@ -329,9 +330,9 @@ cpdef weil_kloosterman_sum_all(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,breaks,verb
     for j in rs.keys():
         H[j]=CF(tmp*summa[j]*lentmp)
     if verbose>2:
-        print "tmp=",tmp
-        print "lentmp=",lentmp
-        print "kloo sum=",H
+        print("tmp=",tmp)
+        print("lentmp=",lentmp)
+        print("kloo sum=",H)
     return H
 #end_proc:
 
@@ -405,8 +406,8 @@ def eps_c_div_eps_m(D,a,b,c,d,t,verbose=0):
         tmp=arg.exp()
         #tmp=exp(pi*I*arg/4)
         if verbose>0:
-            print "2-adic arg=",(t-1),"*",c,"*",oddity(D),"/",gcd(q,c),"/",8,"=",arg
-            print "2-adic part=",tmp
+            print("2-adic arg=",(t-1),"*",c,"*",oddity(D),"/",gcd(q,c),"/",8,"=",arg)
+            print("2-adic part={0}".format(tmp))
         fak=fak*tmp
     #psilent=psilent_bak
     return fak
@@ -414,25 +415,25 @@ def eps_c_div_eps_m(D,a,b,c,d,t,verbose=0):
 def rget_t(D,a,b,c,d,verbose=0):
     N4=2*D
     f=ZZ(N4).factor()
-    #    print "f=",f
+    #    print("f=",f
     g=gcd(c,N4)
     #
     if verbose>1:
-        print "(c,4N)=",g
+        print("(c,4N)={0}".format(g))
     if(g==1):
         t=1
     else:
         if(is_even(c)):
             if verbose>2:
-                print "even c: -a=",-a," g=",g
+                print("even c: -a=",-a," g=",g)
             #g2=gcd(4*c, lcm(8,N4))
             g2=gcd(4*c, 4*D)
             if verbose>2:
-                print "(8c, lcm(8,4N))=",g2
+                print("(8c, lcm(8,4N))={0}".format(g2))
             for j in range(1,10000):
                 t= (a*b*c-d) +j*g2
                 if(psilent>2):
-                    print "t(",j,")=",t
+                    print("t({0})={1}".format(j,t))
                 if(t > 0 and gcd(t,N4)==1):
                     break
         else:
@@ -443,7 +444,7 @@ def rget_t(D,a,b,c,d,verbose=0):
                     t= -d + j*g
                     g2=gcd(t,N4)
                     if( t > 0  and g2==1 ):
-                        #print "t>0! and gcd(t,N4)=",g2
+                        #print("t>0! and gcd(t,N4)=",g2
                         break
     if(gcd(t,N4)<>1):
         raise ValueError, "Could not find t for D=%s, a,b,c,d=%s,  tried t=%s" %(D,[a,b,c,d],t)
@@ -458,9 +459,9 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
     """
     poincareseries_init(prec)
     if verbose>0:
-        print "tol=",tol
-        print "l=",l
-        print "range(j)=",len(l)
+        print("tol={0}".format(tol))
+        print("l={0}".format(l))
+        print("range(j)={0}".format(len(l)))
     N4=4*N
     N2=2*N
     ZN4=IntegerModRing(N4)
@@ -489,15 +490,15 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
         a=ZN4(Deltas[j])
         b=ZN4(Deltaps[j])
         if verbose>0:
-            print "Delta=",Deltas[j]
-            print "Delta'=",Deltaps[j]
-            print "r=",rs[j]
-            print "r''=",rps[j]
+            print("Delta={0}".format(Deltas[j]))
+            print("Delta'={0}".format(Deltaps[j]))
+            print("r={0}".format(rs[j]))
+            print("r''={0}".format(rps[j]))
             # test that Delta, Delta' are valid Heegner discriminants
-            print "D % 4N=",a,type(a)
-            print "D' % 4N=",b,type(b)
-            print "sqrta=",a.sqrt()
-            print "sqrtb=",b.sqrt()
+            print("D % 4N={0},{1}".format(a,type(a)))
+            print("D' % 4N={0}, {1}".format(b,type(b)))
+            print("sqrta={0}".format(a.sqrt()))
+            print("sqrtb={0}".format(b.sqrt()))
         if( ZN4(rs[j]**2) <> ZN4(Deltas[j]) ):
             raise ValueError, "D=%s <> r^2, r=%s " % (Deltas[j],rs[j])
         if( ZN4(rps[j]**2) <> ZN4(Deltaps[j]) ):				       raise ValueError, "D'=%s <> r'^2, r=%s " % (Deltas[j],rs[j])
@@ -534,8 +535,8 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
     av_kl=zero
     n_kl=0
     cmax=Integer(max(NN+1,22))
-    #print "typeNN+1=",type(NN+1)
-    #print "typecmax=",type(cmax)
+    #print("typeNN+1=",type(NN+1)
+    #print("typecmax=",type(cmax)
     for c in range(1,cmax):
         cr=RF(c)
         WK=weil_kloosterman_sum_all(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec,breaks)
@@ -544,11 +545,11 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
             for j in rs.keys():
                 tmpd=abs(WK[j]-WKold[j])        
                 if(tmpd>0.1):
-                    print "diffWK[",j,"]=",tmpd
+                    print("diffWK[{0}]={1}".format(j,tmpd))
 
-                    print "args=",c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec
-                    print "WK_new(",c,")=",WK
-                    print "WK_old(",c,")=",WKold
+                    print("args={0}".format((c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec)))
+                    print("WK_new({1})={1}".format(c,WK))
+                    print("WK_old({0})={1}".format(c,WKold))
                     raise Exception, "Stop!"
 #       # return
         for j in rs.keys():
@@ -569,7 +570,7 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
             if(do_jbes):
                 x=ars[j]/cr
                 tmpj=RF(bessel_J(kappa_minus_one,x,prec=prec))
-                #print "bessel=",tmpj
+                #print("bessel=",tmpj
                 tmp=tmpj*tmp1.real()
             else:
                 tmp=tmp1.real()
@@ -577,9 +578,9 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
             # I want to break out of the loop when the remainder is sufficiently small.
             # Since the terms may be sporadically small I measure an average over the past 10 coefficients.
             if verbose>2:
-                print "summas[",j,"]=",summas[j]
-                print "c=",c
-                print "tmp=",tmp
+                print("summas[{0}]={1}".format(j,summas[j]))
+                print("c={0}".format(c))
+                print("tmp={0}".format(tmp))
             if(c<=20):
                 terms[j][c-1]=summas[j]
             else:
@@ -594,28 +595,28 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
                     nnz=nnz+1
                 averages[j]=sum(terms[j])/RF(nnz)
 #                for k in range(20):
-#                    print "term[",j,k,"]=",terms[j][k]
-#                print "nonzero=",nnz
-                #                print "average[",j,c,"]=",averages[j]
+#                    print("term[",j,k,"]=",terms[j][k]
+#                print("nonzero=",nnz
+                #                print("average[",j,c,"]=",averages[j]
                 #                if(averages[j]<tol and c>max(50,NN)):
                 tmp=abs(averages[j])+abs(summas[j])
                 rel_err=abs(summas[j]-averages[j])/tmp
                 errs[j]=min(rel_err,tmp)
                 if verbose>1:
-                    print "summas("+str(c)+")="+str(summas[j])
-                    print "averagess("+str(c)+")="+str(averages[j])
-                    print "rel_err("+str(c)+")="+str(rel_err)
+                    print("summas({0})={1}".format(c,summas[j]))
+                    print("averagess({0})={1}".format(c,averages[j]))
+                    print("rel_err("+str(c)+")="+str(rel_err))
                 if((c>4*N) and ((rel_err<tol) or  tmp < 10*epsilon_0)):
                     breaks[j]=True
                     cstops[j]=c
                     if verbose>0:
-                        print "Break for j=",j
-                        print "rel_err("+str(c)+")="+str(rel_err)
-                        print "tmp("+str(c)+")="+str(tmp)
-                        print "summas("+str(c)+")="+str(summas[j])
-                        print "averagess("+str(c)+")="+str(averages[j])
+                        print("Break for j={0}".format(j))
+                        print("rel_err("+str(c)+")="+str(rel_err))
+                        print("tmp("+str(c)+")="+str(tmp))
+                        print("summas("+str(c)+")="+str(summas[j]))
+                        print("averagess("+str(c)+")="+str(averages[j]))
                         if(tmp<10*epsilon_0):
-                            print "WK_new(",c,")[j]=",WK[j]
+                            print("WK_new({0})[j]={1}".format(j,WK[j]))
                     continue 
                 # endif
             # endif
@@ -632,31 +633,31 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
     tmp=(kappa_minus_one)/two
     fourpi=two*twopi
     cp=dict()
-    #print "c=",c
+    #print("c=",c
     true_err=dict()
     for j in rs.keys():
         fak=fourpi*(nns[j]/mms[j])**tmp
         cp[j]=CF(c1s[j]+fak*summas[j])
         ## Check out the proven bound also
-        # print "j=",j
-        # print "cstops=",cstops
+        # print("j=",j
+        # print("cstops=",cstops
         l=[Deltas[j],rs[j],Deltaps[j],rps[j]]
         tmperr=proven_bound(kappa,prec,N,l,cstops[j])
-        # print "proven error=",tmperr.n(20)
+        # print("proven error=",tmperr.n(20)
         true_err[j]=tmperr
         if(abs(tmperr)<errs[j]):
             errs[j]=abs(tmperr)
         if(errs[j]<tol):
             breaks[j]=True
         if verbose>0:
-            print "c1=",c1s[j]
-            print "summas=",summas[j]
-            print "mm=",mms[j]
-            print "nn=",nns[j]
-            print "fak=",fourpi,"*",nns[j],"/",mms[j],"**",tmp,'=',fak
-        #print "cp[",j,"]=",cp[j]
+            print("c1={0}".format(c1s[j]))
+            print("summas={0}".format(summas[j]))
+            print("mm={0}".format(mms[j]))
+            print("nn={0}".format(nns[j]))
+            print("fak={0}*{1}/{2}**{3}={4}".format(fourpi,nns[j],mms[j],tmp,fak))
+        #print("cp[",j,"]=",cp[j]
     if verbose>0:
-        print "Average size of Kloosterman sums=",av_kl/RF(n_kl)
+        print("Average size of Kloosterman sums={0}".format(av_kl/RF(n_kl)))
     results['data']=cp
     results['ok']=breaks
     results['errs']=true_err
@@ -675,9 +676,9 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
 #     """
 #     poincareseries_init(prec)
 #     if(psilent>0):
-#         print "tol=",tol
-#         print "l=",l
-#         print "range(j)=",len(l)
+#         print("tol=",tol
+#         print("l=",l
+#         print("range(j)=",len(l)
 #     N4=4*N
 #     N2=2*N
 #     ZN4=IntegerModRing(N4)
@@ -699,30 +700,30 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
 #     results['data']=None
 #     results['keys']=l
 #     for j in range(len(l)):
-#         #        print "l=",l[j]
+#         #        print("l=",l[j]
 #         Deltas[j] =l[j][0]
 #         Deltaps[j]=l[j][1]
 #         # test that Delta, Delta' are valid Heegner discriminants
         
 #         if(not (is_square(ZN4(Deltas[j]))) or not (is_square(ZN4(Deltaps[j])))):
-#             print "is_square(-D)=",is_square(ZN4(Deltas[j]))
-#             print "is_square(-D')=",is_square(ZN4(Deltaps[j]))
-#             print "N=",N
-#             print "ZN4=",ZN4
+#             print("is_square(-D)=",is_square(ZN4(Deltas[j]))
+#             print("is_square(-D')=",is_square(ZN4(Deltaps[j]))
+#             print("N=",N
+#             print("ZN4=",ZN4
 #             s="Input are not Discriminants satisfying a Heegner condition!  D=%s,  D'=%s" %(Deltas[j],Deltaps[j])
 #             raise ValueError, s
 
 #         rs[j] =Integer(sqrt(ZN4(Deltas[j])))
 #         rps[j]=Integer(sqrt(ZN4(Deltaps[j])))
-#         print "r,D=",rs[j],Deltas[j]
-#         print "r',D'=",rps[j],Deltaps[j]
+#         print("r,D=",rs[j],Deltas[j]
+#         print("r',D'=",rps[j],Deltaps[j]
 #         rsq=(rs[j]**2 % N4)
 #         rpsq=(rps[j]**2 % N4)
 #         #    !! Must check consistency of Delta,r in input
 
 #         ms[j]=(rsq-Deltas[j])/N4
 #         ns[j]=(rpsq-Deltaps[j])/N4
-#         #    print "RF2=",RF
+#         #    print("RF2=",RF
 #         mms[j]=RF(-Deltas[j]/N4)
 #         nns[j]=RF(-Deltaps[j]/N4)
 #         if((Deltas[j]<>Deltaps[j])  or (rs[j]<>rps[j])):
@@ -752,7 +753,7 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
 #         cr=RF(c)
 #         WK=weil_kloosterman_sum_all_old(c,rs,mms,rps,nns,N,kappa,b_m,b_p,prec)
 #         if(psilent>0):
-#             print "WK_old(",c,")=",WK
+#             print("WK_old(",c,")=",WK
 #         for j in rs.keys():
 #             av_kl=av_kl+abs(WK[j])
 #             n_kl=n_kl+1
@@ -775,13 +776,13 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
 #             else:
 #                 tmp=tmp1.real()
 #             summas[j]=summas[j]+tmp
-#             #print "tmp=",tmp
+#             #print("tmp=",tmp
 #             # I want to break out of the loop when the remainder is sufficiently small.
 #             # Since the terms may be sporadically small I measure an average over the past 10 coefficients.
 #             if(psilent>1):
-#                 print "summas[",j,"]=",summas[j]
-#                 print "c=",c
-#                 print "tmp=",tmp
+#                 print("summas[",j,"]=",summas[j]
+#                 print("c=",c
+#                 print("tmp=",tmp
 #             if(c<=20):
 #                 terms[j][c-1]=summas[j]
 #             else:
@@ -796,19 +797,19 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
 #                     nnz=nnz+1
 #                 averages[j]=sum(terms[j])/RF(nnz)
 # #                for k in range(20):
-# #                    print "terms[",j,k,"]=",terms[j][k]
-# #print "num<>0=",nnz
-#                 #                print "average[",j,c,"]=",averages[j]
+# #                    print("terms[",j,k,"]=",terms[j][k]
+# #print("num<>0=",nnz
+#                 #                print("average[",j,c,"]=",averages[j]
 #                 #                if(averages[j]<tol and c>max(50,NN)):
 #                 tmp=abs(averages[j])+abs(summas[j])
 #                 rel_err=abs(summas[j]-averages[j])/tmp
 #                 errs[j]=min(rel_err,tmp)
 #                 if(psilent>0):
-#                     print "summas("+str(c)+")="+str(summas[j])
-#                     print "averagess("+str(c)+")="+str(averages[j])
-#                     print "rel_err("+str(c)+")="+str(rel_err)
+#                     print("summas("+str(c)+")="+str(summas[j])
+#                     print("averagess("+str(c)+")="+str(averages[j])
+#                     print("rel_err("+str(c)+")="+str(rel_err)
 #                 if((c>4*N) and (rel_err<tol) or  tmp < 10*epsilon_0):
-#                     print "Break for j=",j
+#                     print("Break for j=",j
 #                     breaks[j]=True
 #                     continue 
 #                 # endif
@@ -826,19 +827,19 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
 #     tmp=(kappa_minus_one)/two
 #     fourpi=two*twopi
 #     cp=dict()
-# #    print "c=",c
+# #    print("c=",c
 #     for j in rs.keys():
 #         fak=fourpi*(nns[j]/mms[j])**tmp
 #         cp[j]=CF(c1s[j]+fak*summas[j])
 #         if(psilent>0):
-#             print "c1=",c1s[j]
-#             print "summas=",summas[j]
-#             print "mm=",mms[j]
-#             print "nn=",nns[j]
-#             print "fak=",fourpi,"*",nns[j],"/",mms[j],"**",tmp,'=',fak
-#             # print "cp[",j,"]=",cp[j]
+#             print("c1=",c1s[j]
+#             print("summas=",summas[j]
+#             print("mm=",mms[j]
+#             print("nn=",nns[j]
+#             print("fak=",fourpi,"*",nns[j],"/",mms[j],"**",tmp,'=',fak
+#             # print("cp[",j,"]=",cp[j]
 #     if(psilent>0):
-#         print "Average size of Kloosterman sums=",av_kl/RF(n_kl)
+#         print("Average size of Kloosterman sums=",av_kl/RF(n_kl)
 #     results['data']=cp
 #     results['ok']=breaks
 #     results['errs']=errs
@@ -898,10 +899,10 @@ cpdef proven_bound(kappa,prec,N,l,NN,format='Disc'):
     tmp2=gamma(kappa)*(kappa+two)
     tmp3=Deltap/Delta
 #    tmp3=sqrt(tmp3)**(kappa-one)
-    tmp4=CF.pi()*sqrt(Delta*Deltap)/RF(N)
+    tmp4=CF.pi()*(Delta*Deltap).sqrt()/RF(N)
     tmp4=tmp4**kappa
-    tmp=RF(tmp1/tmp2*tmp4)*RF(sqrt(tmp3)/NN)**(kappa-one)
-    #print "tmp=",tmp
+    tmp=RF(tmp1/tmp2*tmp4)*RF(tmp3.sqrt()/NN)**(kappa-one)
+    #print("tmp=",tmp
     return tmp
 
 cpdef test_arg(l,M):

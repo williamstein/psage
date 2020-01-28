@@ -366,12 +366,12 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             print("using {0} digits".format(mpmath.mp.dps))
             print("P={0}".format(P))
             print("ef={0}".format(ef))
-	RF = RealField(self._prec)
-        if(ef):
+        if ef:
             if use_mpmath:
                 Y = mpmath.mp.mpf(Y)
                 W=vv_harmonic_wmwf_setupV_ef(self,P,Y,M,Q,mpmath.mp.mpf(self.weight))
             else:
+                RF = RealField(self._prec)
                 Y = RF(Y)
                 mpmath.mp.dps = self._setupV_prec
                 W=vv_harmonic_wmwf_setupV_mpc2(self,P,Y,M,Q)
@@ -1492,7 +1492,7 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
         max_norm=LHS.norm()
         for j in range(LHS.rows):
             #y=mpmath_ctx.matrix(LHS.rows,int(1)); y[j,0]=1
-            y = Vector_complex_dense(vector(F,LHS.rows).parent(),0)
+            y = Vector_complex_dense(vector(CF,LHS.rows).parent(),0)
             y[j]=1
             TMP = RHS.solve(b) #pmath_ctx.U_solve(A, b)
             tmpnorm=max(list(map(abs,TMP)))
@@ -1876,7 +1876,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         if C != None:
             if M.dim != len(C.keys()):
                 raise ValueError("Coefficient vector of wrong format! Got length={0}".format(len(C)))
-    	## We inherit symmetry from the space
+        ## We inherit symmetry from the space
 	    self._sym_type = M._sym_type
         self._class_name = "VVHarmonicWeakMaassFormElement"
         AutomorphicFormElement.__init__(self,M,C=C,prec=prec,principal_part=principal_part)

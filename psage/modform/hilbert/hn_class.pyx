@@ -551,7 +551,7 @@ cdef class  Hn(object):
         
     def __div__(self,other):
         if hasattr(other,'_is_Hn') and self._degree == other._degree:            
-            res = [self.z(i)/other.z(i) for i in xrange(self._degree) ]
+            res = [self.z(i)/other.z(i) for i in range(self._degree) ]
         elif hasattr(other,'complex_embeddings') and other.parent().degree()==self._degree:
             w = other.complex_embeddings(self._prec)
             res = [self.z(i)/w[i] for i in range(self.degree()) ]
@@ -565,15 +565,15 @@ cdef class  Hn(object):
     def __rmul__(self,other):
         if isinstance(other,type(self)):
             assert self._degree == other._degree
-            res = [self.z(i)*other.z(i) for i in xrange(self._degree) ]
+            res = [self.z(i)*other.z(i) for i in range(self._degree) ]
         elif hasattr(other,'complex_embeddings'):
             w = other.complex_embeddings(self._prec)
             if len(w) == self._degree:
-                res = [w[i]*self.z(i) for i in xrange(self._degree) ]
+                res = [w[i]*self.z(i) for i in range(self._degree) ]
         elif isinstance(other,list) and len(other)==self._degree:
-                res = [self.z(i)*other[i] for i in xrange(self._degree) ]
+                res = [self.z(i)*other[i] for i in range(self._degree) ]
         else:
-            res = [self.z(i)*other for i in xrange(self._degree) ]
+            res = [self.z(i)*other for i in range(self._degree) ]
         return Hn(res)
 
     def __lmul__(self,other):

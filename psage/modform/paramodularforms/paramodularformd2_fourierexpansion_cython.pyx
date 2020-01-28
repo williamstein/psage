@@ -116,7 +116,7 @@ cdef para_index _reduce_ux(int a, int b, int c, int u, int x, int N) :
     if not N in _inverse_mod_N_cache :
         invN = PY_NEW(dict)
         
-        for i in xrange(N) :
+        for i in range(N) :
             if gcd(i,N) == 1 :
                 invN[i] = Integer(i).inverse_mod(N)
         _inverse_mod_N_cache[N] = invN

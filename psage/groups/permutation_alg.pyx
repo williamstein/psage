@@ -2987,7 +2987,7 @@ cdef void _conjugate_perm_list(int N,int *res,int *a,list b):
         cdef int i,j
         
         for i in range(N):
-            for i in range(N):
+            for j in range(N):
                 if b[j]<>i+1:
                     continue
                 else:

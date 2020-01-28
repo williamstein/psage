@@ -28,7 +28,7 @@ AUTHOR:
 
 """
 import six
-from __builtins__ import print_function
+from __future__ import print_function
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
 
@@ -50,10 +50,12 @@ from sage.rings.integer cimport Integer
 import sage.combinat.permutation_cython
 from sage.combinat.permutation_cython cimport reset_swap,next_swap
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
-from sage.all import deepcopy,copy,ZZ,vector,subsets,SageObject, Parent
+from sage.all import deepcopy,copy,ZZ,vector,subsets
+from sage.structure.sage_object cimport SageObject
+from sage.structure.parent cimport Parent
 from sage.all import binomial #,lcm
 import cython
-from sage.libs.gmp.mpz cimport mpz_set_ui, mpz_set_si, mpz_cmp_si, mpz_cmp_ui, mpz_add_ui, mpz_add_si, mpz_cmp, mpz_t, \
+from sage.libs.gmp.mpz cimport mpz_set_ui, mpz_set_si, mpz_cmp_si, mpz_cmp_ui, mpz_add_ui, mpz_cmp, mpz_t, \
     mpz_init, mpz_set, mpz_init, mpz_clear, mpz_fac_ui, mpz_mul_ui, mpz_bin_uiui, mpz_mul, mpz_sub
 from libc.stdlib cimport malloc
     

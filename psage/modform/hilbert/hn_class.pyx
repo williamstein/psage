@@ -25,20 +25,10 @@ from sage.libs.gmp.all cimport *
 
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
+import logging
+logger = logging.getLogger(__name__)
 
-include "../../rings/double_prec_math.pxi"
-
-
-cdef extern from "complex.h":
-    ### Only in new versions of gcc....
-    ### cdef complex CMPLX(double,double)
-    cdef double complex _Complex_I
-    
-cdef double complex CMPLX(double x,double y):
-    return x+y*_Complex_I
-    
-
-from sage.all import real,imag,Integer,Rational,ComplexField,Infinity
+from sage.all import real,imag,Integer,Rational,ComplexField,Infinity,prod
 from sage.rings.complex_number import is_ComplexNumber
 from sage.rings.real_mpfr import is_RealNumber
 from sage.groups.perm_gps.permgroup_element import is_PermutationGroupElement
@@ -46,6 +36,18 @@ from sage.rings.number_field.number_field_ideal import is_NumberFieldFractionalI
 from sage.rings.number_field.number_field_element import is_NumberFieldElement 
 
 
+cdef extern from "complex.h":
+    cdef double creal(double complex)
+    cdef double cimag(double complex)
+    cdef double cabs(double complex)
+    cdef double complex _Complex_I
+
+cdef double complex CMPLX(double x,double y):
+    return x+y*_Complex_I
+
+cdef extern from "math.h":
+    cdef double sqrt(double)
+    
 cdef class  Hn(object):
     r"""
     Class of elements in products of complex upper  half-planes
@@ -63,7 +65,7 @@ cdef class  Hn(object):
         """
         self._verbose = verbose
         u = []
-        if isinstance(x,list) and isinstance(y,list) and y<>[] and x<>[]:
+        if isinstance(x,list) and isinstance(y,list) and x and y:
             degree = len(x)
             assert len(y) == degree
         elif not isinstance(x,list):
@@ -94,7 +96,7 @@ cdef class  Hn(object):
                 print "u=",u
                 print "v=",y
         else:
-            ## WE now have to see if we are called with one of the three possibilities:
+            ## We now have to see if we are called with one of the three possibilities:
             ## v=[xlist,ylist]=[[x[0],x[1],...,],[y[0],y[1],...]]
             y = []
             if isinstance(x[0],list):
@@ -329,7 +331,7 @@ cdef class  Hn(object):
         if self._norm_set==0:
             self._norm = CMPLX(1.0,0.0) #<double complex>1.0
             for i in range(self._degree):
-                self._norm = self._norm*(self._x[i]+_I*self._y[i])
+                self._norm = self._norm*(self._x[i]+_Complex_I*self._y[i])
             self._norm_set=1
         return self._norm 
 
@@ -340,7 +342,7 @@ cdef class  Hn(object):
         cdef double res = 1.0
         cdef int i
         for i in range(self._degree):
-            res = res+(cabs(self._x[i]+_I*self._y[i]))**2
+            res = res+(cabs(self._x[i]+_Complex_I*self._y[i]))**2
         return sqrt(res)
 
     cpdef trace(self):
@@ -348,7 +350,7 @@ cdef class  Hn(object):
         res = 1.0
         cdef int i
         for i in range(self._degree):
-            res = res+self._x[i]+_I*self._y[i]
+            res = res+self._x[i]+_Complex_I*self._y[i]
         return res
 
     cpdef real_trace(self):
@@ -384,7 +386,7 @@ cdef class  Hn(object):
 
     cpdef z(self,int i):
         if i>=0 and i<self._degree:
-            return self._x[i]+_I*self._y[i]
+            return self._x[i]+_Complex_I*self._y[i]
         else:
             raise IndexError
         
@@ -486,7 +488,7 @@ cdef class  Hn(object):
             for i in range(self.degre()):
                 ab1 =abs(self.z(i)-w.z(i))
                 ab2 =abs(self.z(i)-ComplexField(self._prec)(w.x(i),-w.y(i)))
-                l = log((ab1+ab2)/(ab2-ab1))
+                l = ((ab1+ab2)/(ab2-ab1)).log()
                 distances.append(l)
 
             if dtype==0:
@@ -593,7 +595,7 @@ cdef class  Hn(object):
 
     def __mul__(self,other):
         if isinstance(other,type(self)):
-            assert self.degree() == other._degree
+            assert self.degree() == other.degree()
             res = [self.z(i)*other.z(i) for i in range(self.degree()) ]
         elif hasattr(other,'complex_embeddings'):
             w = other.complex_embeddings(self.prec())

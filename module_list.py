@@ -20,6 +20,12 @@ gsl_libs = list(set(gsl_pc['libraries']).difference(set(['gslcblas'])).union(set
 gsl_library_dirs = list(gsl_pc['library_dirs'])
 gsl_include_dirs = list(gsl_pc['include_dirs'])
 
+openmp_libs = pkgconfig.parse('openmp')
+openmp_libs = list(openmp_libs['libraries'])
+if not openmp_libs and os.path.exists('/usr/local/lib/libomp.a'):
+    openmp_libs = ['/usr/local/lib/']
+
+
 aliases = dict(
     GSL_LIBRARIES=gsl_libs,
     GSL_LIBDIR=gsl_library_dirs,
@@ -65,7 +71,8 @@ ext_modules = [
 #              ["psage/function_fields/function_field_element.pyx"]),
 
     Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
-              ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"]),
+              ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"],
+              libraries = ['gmp']),
     
     Extension("psage.modform.paramodularforms.siegelmodularformg2_misc_cython",
               ["psage/modform/paramodularforms/siegelmodularformg2_misc_cython.pyx"]),
@@ -183,18 +190,21 @@ my_extensions = [
               sources = ['psage/rings/mpc_extras.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
+              library_dirs=openmp_libs,
               extra_link_args=['-fopenmp']),
 
     Extension('psage.modform.periods.period_polynomials_algs',
               ['psage/modform/periods/period_polynomials_algs.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
+              library_dirs=openmp_libs,
               extra_link_args=['-fopenmp']),
 
     Extension('psage.functions.inc_gamma',
               ['psage/functions/inc_gamma.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
+              library_dirs=openmp_libs,
               extra_link_args=['-fopenmp']),
     
     Extension('psage.modform.arithgroup.mysubgroups_alg',
@@ -209,6 +219,7 @@ my_extensions = [
               ['psage/modform/maass/maass_forms_parallel_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
+              library_dirs=openmp_libs,
               extra_link_args=['-fopenmp']),
 
     Extension('psage.modform.maass.pullback_algorithms',
@@ -216,6 +227,7 @@ my_extensions = [
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
               include_dirs = numpy_include_dirs,
+              library_dirs = openmp_libs,
               extra_link_args=['-fopenmp']),
 
     Extension('psage.modform.maass.linear_system',
@@ -226,6 +238,7 @@ my_extensions = [
               ['psage/modform/maass/automorphic_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs,
+              library_dirs = openmp_libs,
               extra_compile_args=extra_compile_args,
               extra_link_args=['-fopenmp']),
 
@@ -242,6 +255,7 @@ my_extensions = [
               ['psage/zfunctions/selberg_z_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs,
+              library_dirs = openmp_libs,
               extra_compile_args=extra_compile_args,
               extra_link_args=['-fopenmp']),
               
@@ -274,12 +288,14 @@ my_extensions = [
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
               extra_link_args=['-fopenmp'],
-              include_dirs = numpy_include_dirs),
+              include_dirs = numpy_include_dirs,
+              library_dirs = openmp_libs),
 
     Extension('psage.matrix.linalg_complex_dense',
               sources = ['psage/matrix/linalg_complex_dense.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
+              library_dirs=openmp_libs,
               extra_link_args=['-fopenmp']),
     Extension('psage.modform.maass.poincare_series_alg',
                   ['psage/modform/maass/poincare_series_alg.pyx'],
@@ -298,6 +314,7 @@ my_extensions = [
               sources = [ 'psage/modform/maass/test_parallel.pyx' ],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
+              library_dirs=openmp_libs,
               extra_link_args=['-fopenmp']),
 
 

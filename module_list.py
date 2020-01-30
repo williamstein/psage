@@ -273,7 +273,7 @@ my_extensions = [
     Extension('psage.matrix.linalg_complex_dense',
               sources = ['psage/matrix/linalg_complex_dense.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=extra_compile_args)
+              extra_compile_args=extra_compile_args),
 
     Extension('psage.modform.maass.poincare_series_alg',
                   ['psage/modform/maass/poincare_series_alg.pyx'],

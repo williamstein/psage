@@ -19,6 +19,7 @@
 #
 #################################################################################
 
+
 """
 Frobenius Traces over Q(sqrt(5))
 
@@ -39,6 +40,7 @@ The `a_P` in the above list exactly correspond to those output by the primes_of_
     sage: primes_of_bounded_norm(60)
     [2, 5a, 3, 11a, 11b, 19a, 19b, 29a, 29b, 31a, 31b, 41a, 41b, 7, 59a, 59b]
 """
+
 
 from sage.libs.gmp.mpz cimport (mpz_t, mpz_set, mpz_set_si, mpz_init, mpz_clear, mpz_fdiv_ui)
 

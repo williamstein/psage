@@ -23,9 +23,15 @@ from __future__ import print_function
 #################################################################################
 
 
-import os, sys
+import os, sys, platform
 from sage.env import sage_include_directories,SAGE_INC,SAGE_LIB,SAGE_LOCAL
 import subprocess 
+if 'Darwin' in platform.platform():
+    this_platform = 'darwin'
+elif 'Linux' in platform.platform():
+    this_platform = 'linux'
+else:
+    this_platform = 'unkonwn'
 
 if sys.maxsize != 2**63 - 1:
     print("*"*70)
@@ -47,8 +53,13 @@ include_dirs = include_dirs + [SAGE_LIB] + ["/usr/local/lib"]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"cysignals/")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/ext/")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/cpython/")]
-extra_compile_args = [ "-fno-strict-aliasing","-Wno-deprecated-register" ]
-extra_link_args = [ ]
+extra_compile_args = [ "-fno-strict-aliasing"]
+extra_link_args = []
+
+if this_platform == 'darwin':
+    extra_compile_args += ["-Wno-deprecated-register" ]
+elif this_platform == 'linux':
+    pass
 
 DEVEL = False
 if DEVEL:
@@ -121,7 +132,7 @@ def run_cythonize():
         force=FORCE,
         include_path = include_dirs,
         aliases=aliases,
-        exclude_failures=True,
+        exclude_failures=False,
         compiler_directives={
             'embedsignature': True,
             'profile': profile,

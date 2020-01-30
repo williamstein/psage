@@ -25,6 +25,7 @@ openmp_libs = list(openmp_libs['libraries'])
 if not openmp_libs and os.path.exists('/usr/local/lib/libomp.a'):
     openmp_libs = ['/usr/local/lib/']
 
+cpp_compile_args = ['-std=gnu++11']
 
 aliases = dict(
     GSL_LIBRARIES=gsl_libs,
@@ -37,21 +38,8 @@ import setuptools
 class Extension(setuptools.extension.Extension):
     def __init__(self, name, sources, include_dirs=[],
                   language="c", force=False, **kwds):
-        #print "kwds=",kwds
-        #print "module=",module
         setuptools.Extension.__init__(self, name, sources, language=language,
                                        include_dirs=include_dirs, **kwds)         
-#     def __init__(self, module, sources, include_dirs,
-#                  language="c", force=False, **kwds):
-#         self.cython_cmds = []
-#         for i in range(len(sources)):
-#             f = sources[i]
-#             if f.endswith('.pyx'):
-#                 sources[i], cmds = cython(f) #, language, include_dirs, force)
-#                 for c in cmds:
-#                     self.cython_cmds.append(c)
-#         setuptools.Extension.__init__(self, module, sources, language=language,
-#                                       include_dirs=include_dirs, **kwds)
 
 
 ext_modules = [
@@ -67,8 +55,9 @@ ext_modules = [
 #               "psage/ellff/lzz_pEratX.cpp"],
 #              language = 'c++'),
 
-#    Extension("psage.function_fields.function_field_element",
-#              ["psage/function_fields/function_field_element.pyx"]),
+    # Function fields are also in standard sage now and there are some conflicts in the below files...
+    # Extension("psage.function_fields.function_field_element",
+    #          ["psage/function_fields/function_field_element.pyx"]),
 
     Extension("psage.modform.jacobiforms.jacobiformd1nn_fourierexpansion_cython",
               ["psage/modform/jacobiforms/jacobiformd1nn_fourierexpansion_cython.pyx"],
@@ -111,16 +100,19 @@ ext_modules = [
     Extension("psage.modform.rational.padic_elliptic_lseries_fast",
               ["psage/modform/rational/padic_elliptic_lseries_fast.pyx"]),
 
-#     Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
-#               ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
-# #              libraries = ['ntl', 'gmp'],
-#               libraries = ['gmp']),
-# #              language = 'c++'),
+    # Cythonizing this module fails...
+    # Extension("psage.modform.hilbert.sqrt5.sqrt5_fast",
+    #           ["psage/modform/hilbert/sqrt5/sqrt5_fast.pyx"],
+    #           libraries = ['gmp'],
+    #           language = 'c++',
+    #           extra_compile_args=cpp_compile_args),
 
-    # Extension("psage.ellcurve.lseries.sqrt5",
-    #           ["psage/ellcurve/lseries/sqrt5.pyx"],
-    #           libraries = ['ntl', 'gmp'],
-    #           language = 'c++'),
+    Extension("psage.ellcurve.lseries.sqrt5",
+              ["psage/ellcurve/lseries/sqrt5.pyx"],
+              libraries = ['ntl', 'gmp'],
+              language = 'c++',
+              extra_compile_args=cpp_compile_args),
+
 
     Extension("psage.ellcurve.lseries.helper",
               ["psage/ellcurve/lseries/helper.pyx"]),
@@ -145,7 +137,8 @@ ext_modules = [
 
     Extension("psage.ellcurve.lseries.aplist_sqrt5",
               ["psage/ellcurve/lseries/aplist_sqrt5.pyx"],
-              language = 'c++'),
+              language = 'c++',
+              extra_compile_args=cpp_compile_args),
 
     Extension("psage.number_fields.sqrt5.prime",
               ["psage/number_fields/sqrt5/prime.pyx"],
@@ -155,19 +148,18 @@ ext_modules = [
 #              ["psage/modform/rational/special_fast.pyx", SAGE_ROOT + "/devel/sage/sage/libs/flint/fmpq_poly.c"],
               ["psage/modform/rational/special_fast.pyx"],
               libraries = ['gmp', 'flint'],
-              language = 'c++'),
-#              include_dirs = [SAGE_LOCAL + '/include/FLINT/', SAGE_ROOT + '/devel/sage/sage/libs/flint/'],
-#              extra_compile_args = ['-std=c99']),
+              language = 'c++',
+              extra_compile_args=cpp_compile_args),
 
-    Extension("psage.ellcurve.xxx.rankbound",
-              sources = [   'psage/ellcurve/xxx/rankbound.pyx',
-                            'psage/ellcurve/xxx/rankbound_.cc',
-                            'psage/ellcurve/xxx/mathlib.cc',
-                            'psage/libs/smalljac/wrapper_g1.c'],
-              libraries = ['gmp', 'm'],
-              include_dirs = ['psage/libs/smalljac/'],
-              language = 'c'
-              )
+    # Extension("psage.ellcurve.xxx.rankbound",
+    #           sources = [   'psage/ellcurve/xxx/rankbound.pyx',
+    #                         'psage/ellcurve/xxx/rankbound_.cc',
+    #                         'psage/ellcurve/xxx/mathlib.cc',
+    #                         'psage/libs/smalljac/wrapper_g1.c'],
+    #           libraries = ['gmp', 'm'],
+    #           include_dirs = ['psage/libs/smalljac/'],
+    #           language = 'c'
+    #           )
 ]
 
 for g in [1, 2]:
@@ -189,24 +181,18 @@ my_extensions = [
     Extension('psage.rings.mpc_extras',
               sources = ['psage/rings/mpc_extras.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=extra_compile_args,
-              library_dirs=openmp_libs,
-              extra_link_args=['-fopenmp']),
+              extra_compile_args=extra_compile_args),
 
     Extension('psage.modform.periods.period_polynomials_algs',
               ['psage/modform/periods/period_polynomials_algs.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=extra_compile_args,
-              library_dirs=openmp_libs,
-              extra_link_args=['-fopenmp']),
+              extra_compile_args=extra_compile_args),
 
     Extension('psage.functions.inc_gamma',
               ['psage/functions/inc_gamma.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=extra_compile_args,
-              library_dirs=openmp_libs,
-              extra_link_args=['-fopenmp']),
-    
+              extra_compile_args=extra_compile_args),
+
     Extension('psage.modform.arithgroup.mysubgroups_alg',
               ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),
@@ -226,9 +212,7 @@ my_extensions = [
               ['psage/modform/maass/pullback_algorithms.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
-              include_dirs = numpy_include_dirs,
-              library_dirs = openmp_libs,
-              extra_link_args=['-fopenmp']),
+              include_dirs = numpy_include_dirs),
 
     Extension('psage.modform.maass.linear_system',
               ['psage/modform/maass/linear_system.pyx'],
@@ -254,11 +238,7 @@ my_extensions = [
     Extension('psage.zfunctions.selberg_z_alg',
               ['psage/zfunctions/selberg_z_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs,
-              library_dirs = openmp_libs,
-              extra_compile_args=extra_compile_args,
-              extra_link_args=['-fopenmp']),
-              
+              include_dirs = numpy_include_dirs),
     
     Extension('psage.modform.maass.vv_harmonic_weak_maass_forms_alg',
               ['psage/modform/maass/vv_harmonic_weak_maass_forms_alg.pyx'],
@@ -286,10 +266,7 @@ my_extensions = [
     Extension('psage.matrix.matrix_complex_dense',
               sources = ['psage/matrix/matrix_complex_dense.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=extra_compile_args,
-              extra_link_args=['-fopenmp'],
-              include_dirs = numpy_include_dirs,
-              library_dirs = openmp_libs),
+              extra_compile_args=extra_compile_args),
 
     Extension('psage.matrix.linalg_complex_dense',
               sources = ['psage/matrix/linalg_complex_dense.pyx'],

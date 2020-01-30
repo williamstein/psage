@@ -1,3 +1,4 @@
+from __future__ import print_function
 # cython: profile=True
 # -*- coding: utf-8 -*-
 #*****************************************************************************
@@ -28,7 +29,6 @@ AUTHOR:
 
 """
 import six
-from __future__ import print_function
 cdef extern from "stdio.h":
     cdef extern void printf(char *fmt,...) nogil
 

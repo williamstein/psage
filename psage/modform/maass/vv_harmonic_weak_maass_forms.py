@@ -1877,7 +1877,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             if M.dim != len(C.keys()):
                 raise ValueError("Coefficient vector of wrong format! Got length={0}".format(len(C)))
         ## We inherit symmetry from the space
-	    self._sym_type = M._sym_type
+        self._sym_type = M._sym_type
         self._class_name = "VVHarmonicWeakMaassFormElement"
         AutomorphicFormElement.__init__(self,M,C=C,prec=prec,principal_part=principal_part)
 

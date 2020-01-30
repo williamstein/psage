@@ -168,8 +168,9 @@ for g in [1, 2]:
                              'psage/libs/smalljac/wrapper_g%s.c'%g],
                   libraries = ['gmp', 'm'])
     ext_modules.append(e)
-# Compile using openmp and hide deprecatiopn warning for numpy API since we don't use it here
-extra_compile_args = ['-fopenmp','-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION']
+# Hide deprecatiopn warning for numpy API since we don't use it here
+extra_compile_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION']
+
 ## Fredrik Stroemberg: my additional modules.
 my_extensions = [
     Extension('psage.groups.permutation_alg',
@@ -244,6 +245,7 @@ my_extensions = [
               ['psage/modform/maass/vv_harmonic_weak_maass_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
               include_dirs = numpy_include_dirs),
+
     Extension('psage.modform.maass.maass_forms_phase2',
                   sources=['psage/modform/maass/maass_forms_phase2.pyx'],
                   libraries = ['m','gmp','mpfr','mpc'],
@@ -271,9 +273,8 @@ my_extensions = [
     Extension('psage.matrix.linalg_complex_dense',
               sources = ['psage/matrix/linalg_complex_dense.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              extra_compile_args=extra_compile_args,
-              library_dirs=openmp_libs,
-              extra_link_args=['-fopenmp']),
+              extra_compile_args=extra_compile_args)
+
     Extension('psage.modform.maass.poincare_series_alg',
                   ['psage/modform/maass/poincare_series_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc']),

@@ -1406,14 +1406,14 @@ cdef class MyPermutation(SageObject):
         r"""
         Gives the cycles of self as list of tuples.
         """
-        return map(tuple,self.cycles())
+        return [tuple(x) for x in self.cycles()]
 
     def cycles_non_triv(self):
         r"""
         Returns non-trivial cycles only, as in the standard SymmetricGroup etc.
         """
         res=list()
-        for c in map(tuple,self.cycles()):
+        for c in self.cycle_tuples():
             if len(c)>1:
                 res.append(c)
         return res
@@ -3561,8 +3561,8 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
     # Then check if they are compatble at all:
     fixS=0; fixR=0
     if check:
-        cl1=map(len,S1.cycles())
-        cl2=map(len,S2.cycles())
+        cl1 = [len(x) for x in S1.cycles()]
+        cl2 = [len(x) for x in S2.cycles()]
         cl1.sort(); cl2.sort()
         if cl1<>cl2:
             res=0
@@ -3570,9 +3570,9 @@ cdef int are_mod1_equivalent_c(int N,MyPermutation S1,MyPermutation R1,MyPermuta
             if verbose>0:
                 #print("S1cyc=",S1.to_cycles()
                 print("cl1={0}".format(cl1))
-            fixS=cl1.count(1)
-            cl1=map(len,R1.cycles())
-            cl2=map(len,R2.cycles())
+            fixS = cl1.count(1)
+            cl1 = [len(x) for x in R1.cycles()]
+            cl2 = [len(x) for x in R2.cycles()]
             cl1.sort(); cl2.sort()
             if cl1<>cl2:
                 res=0

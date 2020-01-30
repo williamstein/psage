@@ -41,6 +41,9 @@ class Extension(setuptools.extension.Extension):
         setuptools.Extension.__init__(self, name, sources, language=language,
                                        include_dirs=include_dirs, **kwds)         
 
+# Hide deprecatiopn warning for numpy API since we don't use it here
+extra_compile_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION']
+
 
 ext_modules = [
 # Remove until the database is rewritten to not use ZODB (which was removed from Sage 5.8)
@@ -81,12 +84,14 @@ ext_modules = [
     Extension('psage.modform.arithgroup.mysubgroups_alg',
               ['psage/modform/arithgroup/mysubgroups_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc'],
-              include_dirs = numpy_include_dirs),
+              include_dirs = numpy_include_dirs,
+              extra_compile_args=extra_compile_args),
 
     Extension('psage.modform.maass.maass_forms_alg',
               ['psage/modform/maass/maass_forms_alg.pyx'],
               libraries = ['m','gmp','mpfr','mpc','ntl'],
-              include_dirs = numpy_include_dirs),
+              include_dirs = numpy_include_dirs,
+              extra_compile_args=extra_compile_args),
 
     Extension('psage.modform.maass.lpkbessel',
               ['psage/modform/maass/lpkbessel.pyx'],
@@ -168,8 +173,6 @@ for g in [1, 2]:
                              'psage/libs/smalljac/wrapper_g%s.c'%g],
                   libraries = ['gmp', 'm'])
     ext_modules.append(e)
-# Hide deprecatiopn warning for numpy API since we don't use it here
-extra_compile_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION']
 
 ## Fredrik Stroemberg: my additional modules.
 my_extensions = [

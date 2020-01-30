@@ -1475,10 +1475,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         # -1/2 <=x <= 1/2 for Gamma0, Gamma1, Gamma
         N=lvl
         if (N % 2) == 0:
-            reprange=range(-N/2+1,N/2+1)
+            reprange = list(range(-N/2+1,N/2+1))
             #reprange=range(N)
         else:
-            reprange=range(-(N-1)/2,(N-1)/2+1)
+            reprange = list(range(-(N-1)/2,(N-1)/2+1))
         decomp_seq=[[0,0],[0]]
 
         for j in reprange:

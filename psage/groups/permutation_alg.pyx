@@ -220,7 +220,7 @@ cdef class MyPermutation(SageObject):
             elif init==1:
                 for i in range(self._N):
                     self._entries[i]=i+1
-                self._list = range(1,self._N+1)
+                self._list = list(range(1,self._N+1))
             else:
                 self._init = 0
         self._hash = 0
@@ -266,7 +266,7 @@ cdef class MyPermutation(SageObject):
             mutmp=max(cycle)
             if mutmp>mu:
                 mu=mutmp
-        res=range(1,mu+1)
+        res = list(range(1,mu+1))
         if self._verbose>0:
             print("res={0}".format(res))
         for cycle in cycles:
@@ -826,7 +826,7 @@ cdef class MyPermutation(SageObject):
                 num+=1
             else:
                 non_fixed[i]=0
-        res = range(num)
+        res = list(range(num))
         for i in range(num):
             res[i]=non_fixed[i]
         if non_fixed<>NULL:
@@ -2247,10 +2247,10 @@ cdef class MyPermutationIterator(SageObject):
         if self._got_list==0:
             self._get_list_of_perms()
         if self._list_of_perms<>NULL:
-            res=range(self._num)
+            res = list(range(self._num))
             for i in range(self._num):
                 if self._list_of_perms[i]<>NULL:
-                    l = range(self._N) #list()
+                    l = list(range(self._N) #list())
                     for j in range(self._N):
                         #l.append(self._list_of_perms[i][j])
                         l[j]=self._list_of_perms[i][j]
@@ -3407,7 +3407,7 @@ cpdef test_p_2(N):
 
 cpdef test_p_3(N):
     cdef int j
-    fixpts=range(1,N+1)
+    fixpts = list(range(1,N+1))
 
 cpdef test_p_4(int N):
     test_p_4_c(N)

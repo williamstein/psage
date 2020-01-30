@@ -2250,7 +2250,7 @@ cdef class MyPermutationIterator(SageObject):
             res = list(range(self._num))
             for i in range(self._num):
                 if self._list_of_perms[i]<>NULL:
-                    l = list(range(self._N) #list())
+                    l = list(range(self._N)) #list())
                     for j in range(self._N):
                         #l.append(self._list_of_perms[i][j])
                         l[j]=self._list_of_perms[i][j]

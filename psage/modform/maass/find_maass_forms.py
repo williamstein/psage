@@ -19,7 +19,7 @@ from sage.functions.generalized import sign
 
 from psage.modform.maass.maass_forms import Maasswaveform
 from psage.modform.maass.maass_forms import prediction,find_Y_and_M,get_M_and_Y
-from psage.modform.maass.maass_forms_alg import get_coeff_fast_cplx_dp
+from psage.modform.maass.maass_forms_alg import get_coeff_fast_cplx_dp,get_coeff_fast_real_dp
 from psage.modform.maass.maass_forms_alg import get_Y_for_M_dp_old as get_Y_for_M_dp
 
 try:

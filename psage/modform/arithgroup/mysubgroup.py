@@ -1816,7 +1816,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         print("V({0})=Id".format(j))
         # By construction none of the coset-reps are in self and h(V_j)=j so they are all independent
         # But to make sure we got all we count the keys
-        if list(coset_reps.keys()) != list(range(1,self._index+1)):
+        if len(coset_reps.keys()) != self._index:
             raise ValueError("Problem getting coset reps! Need {0} and got {1}".format(self._index,len(coset_reps)))
         res = list()
         for i in range(ix):

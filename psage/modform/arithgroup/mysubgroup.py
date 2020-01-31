@@ -1275,13 +1275,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
 
-    def permutation_action(self,A,type=1):
+    def permutation_action(self,A,permutation_format=1):
         r""" The permutation corresponding to the matrix A
         INPUT:
          - ''A'' Matrix in SL2Z
+         - ''permutation_format'' integer : set to 0 for returning a PermutationGroup element and 1 (default) for MyPermutation
         OUPUT:
-         element in self._S given by the presentation of the group self
-         - type: 0 gives PermutationGroup element and 1 gives MyPermutation
+         - Permutation in the format determined by `permutation_format`
 
         EXAMPLES::
 
@@ -1317,26 +1317,21 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         # We now have A=T^a0*S*T^a1*...*S*T^an
         # Hence
         # h(A)=h(T^an)*h(S)*...*h(T^a1)*h(S)*h(T^a0)
-        #print "cf=",cf
         n=len(cf)
-        
-        if t0==0:
-            p=MyPermutation(length=self._index)
+        if t0 == 0:
+            p = MyPermutation(length=self._index)
         else:
-            p=self.permT**t0 #p=ppow(self.permT,cf[0 ])
-        # print "p(",0,")=",p.cycles()
-        #if self._verbose>1:
-        #    print "p=",p
+            p = self.permT**t0 #p=ppow(self.permT,cf[0 ])
         for j in range(n):
-            a=cf[j]
+            a = cf[j]
+            if self._verbose > 1:
+                print("a={0}, {1}".format(a,type(a)))
             if a != 0:
                 Ta = self.permT**a
-                #if self._verbose>1:
-                #    print "Ta=",Ta
-                p=p*self.permS*Ta
+                p = p*self.permS*Ta
             else:
-                p=p*self.permS
-        if type==0:
+                p = p*self.permS
+        if permutation_format == 0:
             return SymmetricGroup(self._index)(p.list())
         else:
             return p

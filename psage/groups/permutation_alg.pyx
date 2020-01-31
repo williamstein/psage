@@ -436,7 +436,7 @@ cdef class MyPermutation(SageObject):
             return lA > lB
         if op == 5:
             return lA >= lB
-        raise ValueError("Can not compare permutation with op={1}!".format(op))
+        raise ValueError("Can not compare permutation with op={0}!".format(op))
             
 
     cdef int set_entries(self, int *entries):
@@ -651,24 +651,24 @@ cdef class MyPermutation(SageObject):
 
     def __pow__(self,k,m):
         ## TODO: More efficient...
-        if m<>None:
+        if m:
             raise RuntimeError("__pow__ dummy argument ignored")
         if not isinstance(k,(int,Integer)):
             raise TypeError("Can only take integer powers! not:{0}".format(k))
-        if k>=1:
+        if k >= 1:
             o = self._get_order() # it is not efficient to calculate the order
-            if o>0 and k>o: # unless it is set at the beginning
+            if o > 0 and k > o: # unless it is set at the beginning
                 k = k % o
-            if k%2==0:
+            if k % 2 == 0:
                 tmp=self.square()
                 res=tmp
                 #for i in range(k/2-1):
-                for i in range(k/2-1):
+                for i in range(k//2-1):
                     res=res*tmp
             else:
                 tmp=self.square()
                 res=self
-                for i in range((k-1)/2):
+                for i in range((k-1)//2):
                     res=res*tmp
             return res
         elif k==-1:
@@ -1472,7 +1472,7 @@ cdef class MyPermutationIterator(SageObject):
                 if verbose % 2 == 1:
                     self._verbose+=1
                     verbose = verbose - 1
-                verbose = verbose / 2            
+                verbose = verbose // 2
             
         if self._verbose>0:
             print("in cinit! verbose={0}".format(self._verbose))
@@ -2589,7 +2589,7 @@ cdef class CycleCombinationIterator(Parent):
             if j1>0:
                 #res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
                 _mult_perm_unsafe(self._N,res._entries,(<MyPermutation>(self._cycles[i][j1-1]))._entries,res._entries)                
-            M = M / self._dbase # integer division, i.e. M = (M-M1)/self._dbase
+            M = M // self._dbase # integer division, i.e. M = (M-M1)/self._dbase
         return res
 
     @cython.cdivision(True)
@@ -2610,7 +2610,7 @@ cdef class CycleCombinationIterator(Parent):
             if j1>0:
                 #res = res._mult_perm(<MyPermutation>(self._cycles[i][j1-1]))
                 _mult_perm_unsafe(self._N,res,(<MyPermutation>(self._cycles[i][j1-1]))._entries,res)                
-            M = M / self._dbase # integer division, i.e. M = (M-M1)/self._dbase
+            M = M // self._dbase # integer division, i.e. M = (M-M1)/self._dbase
         return 0
         #return res
 

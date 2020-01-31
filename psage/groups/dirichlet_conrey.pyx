@@ -2,39 +2,73 @@
 # A new implementation of Dirichlet characters based on the numbering scheme
 # devised by Brian Conrey.
 #
-from cysignals.memory cimport sig_free,sig_malloc
-from cysignals.signals cimport sig_on,sig_off  # ctrl-c interrupt block support
-from sage.libs.gmp.all cimport *
-from past.builtins import cmp
+
+# Maybe the following lines used to be necessary for something with some old
+# version of sage/cython? I don't know. I just did a copy-and-paste of some
+# example a long time ago. Anyway, they don't seem necessary now, and in fact
+# break compilation on new versions of Sage. But maybe with a really old
+# version of Sage/cython it would be necessary to uncomment some of the
+# following lines and get rid of the from libc.stdlib... line.
+#
+# include "interrupt.pxi"  # ctrl-c interrupt block support
+# include "stdsage.pxi"  # ctrl-c interrupt block support
+# include "cdefs.pxi"
+
 from libc.stdlib cimport malloc, free
 
-from sage.all import factor,        \
-                     primitive_root,\
-                     euler_phi,     \
-                     gcd,           \
-                     lcm,           \
-                     is_prime,      \
-                     DirichletGroup,\
-                     vector,        \
-                     Integer,       \
-                     power_mod,     \
-                     prod,          \
-                     crt,           \
-                     mod,           \
-                     inverse_mod,   \
-                     multiplicative_order, \
-                     pi,            \
-                     RR,            \
-                     CC,            \
-                     ZZ,            \
-                     diagonal_matrix, \
-                     Mod,           \
-                     round,         \
-                     imag
+from sage.all import (factor,
+                     primitive_root,
+                     IntegerModRing,
+                     euler_phi,
+                     gcd,
+                     lcm,
+                     is_prime,
+                     DirichletGroup,
+                     vector,
+                     Integer,
+                     power_mod,
+                     prod,
+                     crt,
+                     mod,
+                     inverse_mod,
+                     multiplicative_order,
+                     pi,
+                     RR,
+                     CC,
+                     ZZ,
+                     diagonal_matrix,
+                     Mod,
+                     round,
+                     imag)
 
 from sage.modular.dirichlet import DirichletCharacter
+from sage.structure.richcmp import richcmp
 
 import cmath
+
+
+def correct_primitive_root(q):
+    if q < 4294967296:
+        if q == 40487:
+            return 10
+        else:
+            return primitive_root(q)
+    else:
+        a = primitive_root(q)
+        R2 = IntegerModRing(q**2)
+        if R2(a).is_primitive_root():
+            return a
+        else:
+            print(r"""You have found a nice example of a case where the smallest primitive root
+mod p is not a primitive root mod p^2. Please email jwbober@gmail.com and/or
+molinp@math.jussieu.fr.""")
+            a += 1
+            R1 = IntegerModRing(q)
+            while not (R1(a).is_primitive_root() and R2(a).is_primitive_root()):
+                a += 1
+            return a
+    # the next example is: 6692367337
+
 
 cdef complex twopii = 3.1415926535897932384626433833 * 2.0 * 1.0j
 cdef float PI = float(pi)
@@ -61,12 +95,12 @@ cdef class DirichletGroup_conrey:
     #        > This is a TODO.
 
     cdef long q             # the modulus
-                            
+
     cdef long q_even        # for computation we will strip out the even
     cdef long q_odd         # factors from the modulus. q == q_even * q_odd
-                            
+
     cdef long k             # the number of factors of q_odd
-                            
+
     cdef long * primes      # a list of the odd prime factors of the modulus
     cdef long * exponents   # a list of the exponents of the odd prime factors in the factorization
     cdef long * generators  # a primitive root for each odd prime factor
@@ -88,13 +122,13 @@ cdef class DirichletGroup_conrey:
                             # implementation from working reasonably for very
                             # large modulus. We will need something else which
                             # does not use any precomputation for that case.
- 
+
     cdef long * B           # exponents for q_even:
                             # for each odd m, 0 <= m < q_even, we will compute B
                             # so that
-                            # 
+                            #
                             #   m == B[m-1] * 5**B[m] mod q_even,
-                            # 
+                            #
                             # where B[m-1] = +- 1 and 0 <= B[m] < q_even/4
 
     cdef long * PHI         # PHI[j] = phi(q_odd)/phi(p[j]**e[j]). This will make it easier
@@ -102,18 +136,18 @@ cdef class DirichletGroup_conrey:
 
     cdef long phi_q_odd     # phi(q_odd)
     cdef long phi_q         # phi(q)
-    
+
     cdef complex * zeta_powers_odd  # an array holding powers of a root of unity.
                                     # this should be the only part of the code that
                                     # needs to change in order to work over a cyclotomic field
 
-    cdef complex * zeta_powers_even # for the even part of the character
-    
+    cdef complex * zeta_powers_even  # for the even part of the character
+
     cdef _standard_dirichlet_group
     cdef _invariants
     cdef _gens
 
-    def __cinit__(self, modulus, basering = None):
+    def __cinit__(self, modulus, basering=None):
         if modulus <= 0:
             raise ArithmeticError("The modulus of a Dirichlet group must be a positive integer.")
 
@@ -121,27 +155,27 @@ cdef class DirichletGroup_conrey:
             self.q = modulus
         except OverflowError:
             raise NotImplementedError("Currently this implementation does not allow a modulus that large.")
-            
-        #self.precomp = (self.q < 100000) # should test to find right value
+
+        # self.precomp = (self.q < 100000) # should test to find right value
 
         self.precomp = 1
 
         self.q_even = 1
         self.q_odd = self.q
         while self.q_odd % 2 == 0:
-            self.q_odd = self.q_odd/2
+            self.q_odd = self.q_odd // 2
             self.q_even = self.q_even * 2
 
         if self.q_odd > 1:
             X = factor(self.q_odd)
             self.k = len(X)
-            self.primes = <long *>malloc(self.k * sizeof(long))
-            self.exponents = <long *>malloc(self.k * sizeof(long))
+            self.primes = <long*>malloc(self.k * sizeof(long))
+            self.exponents = <long*>malloc(self.k * sizeof(long))
             for n in range(self.k):
                 self.primes[n] = X[n][0]
                 self.exponents[n] = X[n][1]
-            self.generators = <long *>malloc(self.k * sizeof(long))
-            self.PHI = <long *>malloc(self.k * sizeof(long))
+            self.generators = <long*>malloc(self.k * sizeof(long))
+            self.PHI = <long*>malloc(self.k * sizeof(long))
             if self.precomp:
                 self.A = <long*>malloc(self.q_odd * self.k * sizeof(long))
                 self.zeta_powers_odd = <complex*>malloc(self.q * sizeof(complex))
@@ -155,18 +189,18 @@ cdef class DirichletGroup_conrey:
             # initialized, it will be of size q_even/4
 
             self.B = <long*>malloc(self.q_even * sizeof(long))
-            self.zeta_powers_even = <complex*>malloc(self.q_even/4 * sizeof(complex))
+            self.zeta_powers_even = <complex*>malloc(self.q_even // 4 * sizeof(complex))
 
-    def __init__(self, modulus, basering = None):
+    def __init__(self, modulus, basering=None):
         # Once we've hit this stage, all of our arrays are allocated,
         # and both self.prime and self.exponents contain the right things.
         #
         # We now set up the rest of the precomputed arrays.
 
         self.phi_q_odd = euler_phi(self.q_odd)
-     
+
         if self.q_even > 1:
-            self.phi_q = self.phi_q_odd * self.q_even/2
+            self.phi_q = self.phi_q_odd * self.q_even // 2
         else:
             self.phi_q = self.phi_q_odd
 
@@ -174,10 +208,10 @@ cdef class DirichletGroup_conrey:
         cdef long a
         for j in range(self.k):
             x = self.primes[j]**self.exponents[j]
-            g = primitive_root(x)
+            g = correct_primitive_root(x)
             self.generators[j] = g
             phi = self.primes[j]**(self.exponents[j] - 1) * (self.primes[j] - 1)
-            self.PHI[j] = self.phi_q_odd/phi
+            self.PHI[j] = self.phi_q_odd // phi
             if self.precomp:
                 a = 1
                 for l in range(phi):
@@ -191,7 +225,7 @@ cdef class DirichletGroup_conrey:
         if self.precomp:
             if self.q_odd > 1:
                 for m in range(self.q_odd):
-                    if gcd(m,self.q_odd) > 1:
+                    if gcd(m, self.q_odd) > 1:
                         self.A[m * self.k] = -1
 
         #
@@ -205,14 +239,14 @@ cdef class DirichletGroup_conrey:
         #
         if self.precomp and self.q_odd > 1:
             for n in range(self.phi_q_odd):
-                self.zeta_powers_odd[n] = cmath.exp(twopii * n/<double>self.phi_q_odd)
+                self.zeta_powers_odd[n] = cmath.exp(twopii * n / <double>self.phi_q_odd)
 
         cdef long pow_five = 1
         if self.precomp and self.q_even > 4:
-            for n in range(self.q_even/4):
-                self.zeta_powers_even[n] = cmath.exp(twopii * n * 4/<double>self.q_even)
+            for n in range(self.q_even // 4):
+                self.zeta_powers_even[n] = cmath.exp(twopii * n * 4 / <double>self.q_even)
 
-            for e in range(self.q_even/4):
+            for e in range(self.q_even // 4):
                 self.B[pow_five] = e
                 self.B[pow_five - 1] = 1
                 self.B[self.q_even - pow_five] = e
@@ -234,16 +268,15 @@ cdef class DirichletGroup_conrey:
             for j in range(self.k):
                 x += self.A[m * self.k + j]*self.A[n * self.k + j]*self.PHI[j]
                 x = x % self.phi_q_odd
-            return x;
+            return x
         else:
             for j in range(self.k):
-                pj =  self.primes[j]**self.exponents[j]
-                gj = Mod(self.generators[j],pj)
-                logm = Mod(m,pj).log(gj)
-                logn = Mod(n,pj).log(gj)
-                x = x + self.PHI[j]*logm*logn % self.phi_q_odd
+                pj = self.primes[j]**self.exponents[j]
+                gj = Mod(self.generators[j], pj)
+                logm = Mod(m, pj).log(gj)
+                logn = Mod(n, pj).log(gj)
+                x += self.PHI[j] * logm * logn % self.phi_q_odd
             return x
-            
 
     cpdef long _chi_even_exponent(self, long m, long n):
         r"""
@@ -257,25 +290,25 @@ cdef class DirichletGroup_conrey:
         if self.precomp:
             exponent = self.B[m]*self.B[n]
             if self.B[m-1] == -1 and self.B[n-1] == -1:
-                exponent += self.q_even/8
-            return exponent % (self.q_even/4)
+                exponent += self.q_even // 8
+            return exponent % (self.q_even // 4)
         else:
             if self.q_even > 2:
                 if m % 4 == 3 and n % 4 == 3:
-                    exponent = self.q_even//8
+                    exponent = self.q_even // 8
                 if self.q_even > 4:
-                    g2 = Mod(5,self.q_even)
+                    g2 = Mod(5, self.q_even)
                     if(m % 4 == 3):
                         m = -m
                     if(n % 4 == 3):
                         n = -n
-                    logm = Mod(m,self.q_even).log(g2)
-                    logn = Mod(n,self.q_even).log(g2)
-                    exponent += logn*logn*self.q_even//4
-                return exponent % (self.q_even/4)
+                    logm = Mod(m, self.q_even).log(g2)
+                    logn = Mod(n, self.q_even).log(g2)
+                    exponent += logn*logn*self.q_even // 4
+                return exponent % (self.q_even // 4)
             else:
                 return 0
-            
+
     cpdef complex chi(self, long m, long n):
         if not self.precomp:
             raise NotImplementedError
@@ -297,9 +330,9 @@ cdef class DirichletGroup_conrey:
             m = m % self.q_odd
             n = n % self.q_odd
             if self.A[m * self.k] == -1 or self.A[n * self.k] == -1:
-                odd_part = 0;
+                odd_part = 0
             else:
-                odd_part = self.zeta_powers_odd[self._chi_odd_exponent(m,n)]
+                odd_part = self.zeta_powers_odd[self._chi_odd_exponent(m, n)]
 
         return even_part * odd_part
 
@@ -313,7 +346,7 @@ cdef class DirichletGroup_conrey:
                 n = n + 1
         else:
             while n <= self.q:
-                if gcd(n,self.q) == 1:
+                if gcd(n, self.q) == 1:
                     yield self._getitem_(n)
                 n = n + 1
 
@@ -364,7 +397,6 @@ cdef class DirichletGroup_conrey:
 
         return self._standard_dirichlet_group
 
-
     cpdef modulus(self):
         return self.q
 
@@ -374,6 +406,7 @@ cdef class DirichletGroup_conrey:
     cpdef _gen_invariants(self):
         """
         compute elementary divisors structure of the group
+
         first make a list w of cyclic components over primes
         and lift local generators
           gj == g[j] mod pj
@@ -381,16 +414,16 @@ cdef class DirichletGroup_conrey:
           uj qj + vj pj = 1
           -> gj = uj qj g[j] + vj pj = 1 + uj qj (g[j]-1)
         """
-        w,g = [], []
+        w, g = [], []
         for j in range(self.k):
-            p,e = self.primes[j], self.exponents[j]
+            p, e = self.primes[j], self.exponents[j]
             pj = p**(e - 1)
-            w.append(pj*(p-1)) # phi(p**e)
+            w.append(pj*(p-1))  # phi(p**e)
             pj *= p
-            qj = self.q//pj
+            qj = self.q // pj
             assert qj*pj == self.q
             gj = self.generators[j]
-            uj = inverse_mod(qj,pj)
+            uj = inverse_mod(qj, pj)
             gj = 1 + qj*uj*(gj-1) % self.q
             g.append(gj)
         if self.q_even >= 4:
@@ -401,7 +434,7 @@ cdef class DirichletGroup_conrey:
             g2 = 1 + q2*u2*(g2-1) % self.q
             g.append(g2)
         if self.q_even > 4:
-            w.append(self.q_even//4)
+            w.append(self.q_even // 4)
             g2 = 5
             g2 = 1 + q2*u2*(g2-1) % self.q
             g.append(g2)
@@ -410,16 +443,16 @@ cdef class DirichletGroup_conrey:
         and perform base change
         """
         k = len(w)
-        W = diagonal_matrix(ZZ,w)
-        d,u,v = W.smith_form()
+        W = diagonal_matrix(ZZ, w)
+        d, u, v = W.smith_form()
         gens, inv = [], []
         u = u.inverse()
-        for j in range(k-1,-1,-1):
-            if d[j,j]>1:
-                inv.append(d[j,j])
+        for j in range(k-1, -1, -1):
+            if d[j, j] > 1:
+                inv.append(d[j, j])
                 s = 1
                 for l in range(k):
-                    s = s * g[l]**u[l,j] % self.q
+                    s = s * g[l]**u[l, j] % self.q
                 gens.append(s)
         self._gens = gens
         self._invariants = inv
@@ -440,7 +473,7 @@ cdef class DirichletGroup_conrey:
         cyclotomic field `\Q(\zeta_n)`. This function returns the smallest
         such `n`.
 
-        Warning: We don't actually use this function internally for our table
+        Warning: We do not actually use this function internally for our table
         of roots of unity right now, and so, internally, we may use a larger
         zeta order.
 
@@ -452,18 +485,17 @@ cdef class DirichletGroup_conrey:
             36
 
         TESTS::
-            
+
             sage: from dirichlet_conrey import *
             sage: L = [ZZ.random_element(1, 100) for n in range(10)]
             sage: for n in L:
-            ...    if DirichletGroup_conrey(n).zeta_order() != DirichletGroup(n).zeta_order():
-            ...        print "wrong answer for n =", n
+            ....:     if DirichletGroup_conrey(n).zeta_order() != DirichletGroup(n).zeta_order():
+            ....:         print("wrong answer for n =", n)
         """
-
         if self.q > 2:
-            return self.invariants()[0]
+            return Integer(self.invariants()[0])
         else:
-            return 1
+            return Integer(1)
 
     cpdef from_sage_character(self, chi):
         r"""
@@ -471,6 +503,7 @@ cdef class DirichletGroup_conrey:
         standard sage format), return the character that correponds to it.
 
         EXAMPLES::
+
             sage: from dirichlet_conrey import *
             sage: q = ZZ.random_element(2, 500)
             sage: q = q - 1 + q%2
@@ -481,11 +514,11 @@ cdef class DirichletGroup_conrey:
             True
             sage: x = ZZ.random_element(1,q)
             sage: while gcd(x,q) > 1:
-            ...    x = ZZ.random_element(1,q)
+            ....:     x = ZZ.random_element(1,q)
             sage: if G[x] == G.from_sage_character(G[x].sage_character()):
-            ...    print True
-            ... else:
-            ...    print q, x
+            ....:     print(True)
+            ....: else:
+            ....:     print(q, x)
             True
             sage: q = 2 * q
             sage: G = DirichletGroup_conrey(q)
@@ -493,7 +526,7 @@ cdef class DirichletGroup_conrey:
             True
             sage: x = ZZ.random_element(1,q)
             sage: while gcd(x,q) > 1:
-            ...    x = ZZ.random_element(1,q)
+            ....:     x = ZZ.random_element(1,q)
             sage: G[x] == G.from_sage_character(G[x].sage_character())
             True
             sage: q = 2 * q
@@ -502,7 +535,7 @@ cdef class DirichletGroup_conrey:
             True
             sage: x = ZZ.random_element(1,q)
             sage: while gcd(x,q) > 1:
-            ...    x = ZZ.random_element(1,q)
+            ....:     x = ZZ.random_element(1,q)
             sage: G[x] == G.from_sage_character(G[x].sage_character())
             True
             sage: q = 2 * q
@@ -511,7 +544,7 @@ cdef class DirichletGroup_conrey:
             True
             sage: x = ZZ.random_element(1,q)
             sage: while gcd(x,q) > 1:
-            ...    x = ZZ.random_element(1,q)
+            ....:    x = ZZ.random_element(1,q)
             sage: G[x] == G.from_sage_character(G[x].sage_character())
             True
             sage: q = 2 * q
@@ -520,11 +553,16 @@ cdef class DirichletGroup_conrey:
             True
             sage: x = ZZ.random_element(1,q)
             sage: while gcd(x,q) > 1:
-            ...    x = ZZ.random_element(1,q)
+            ....:     x = ZZ.random_element(1,q)
             sage: if G[x] == G.from_sage_character(G[x].sage_character()):
-            ...    print True
-            ... else:
-            ...    print q, x
+            ....:     print(True)
+            ....: else:
+            ....:     print(q, x)
+            True
+            sage: # Testing that a bug reported by Fredrik Stromberg is fixed...
+            sage: eps1 = DirichletGroup(5)([-1])
+            sage: eps2 = DirichletGroup(5,QQ)([-1])
+            sage: DirichletGroup_conrey(5).from_sage_character(eps1)==DirichletGroup_conrey(5).from_sage_character(eps2)
             True
         """
         #
@@ -538,6 +576,14 @@ cdef class DirichletGroup_conrey:
         #
         if chi.modulus() != self.q:
             raise ArithmeticError("The character we are translating from must have the same modulus as this Dirichlet group.")
+
+        # The conversion code below assumes that the character
+        # has been constructed as a member of the full group of characters
+        # mod q. Thus, it would break with a chacter constructed
+        # as DirichletGroup(5, QQ)([-1]), for example, if we didn't first
+        # "promote" the character to a member of the full group.
+
+        chi = self.standard_dirichlet_group()(chi)
 
         decomposition = chi.decomposition()
         n_even = 1
@@ -571,18 +617,20 @@ cdef class DirichletGroup_conrey:
         #
         # This is going to be ugly...
         elif self.q_even > 4:
-            psi5_exponent = round(imag(CC(psi(5)).log() * (self.q_even/4)/(2*pi)))
+            psi5_exponent = round(imag(CC(psi(5)).log() * (self.q_even//4)/(2*pi)))
             n_even = power_mod(5, psi5_exponent, ZZ(self.q_even))
             if psi(5) != psi(-5):
                 n_even = self.q_even - n_even
 
         # I think this might work...
         exponent_vector = [ZZ(psi.element()[0]) for psi in decomposition]
-        odd_prime_powers = [ZZ(self.primes[j])**ZZ(self.exponents[j]) for j in range(self.k)]
+        odd_prime_powers = [ZZ(self.primes[j])**ZZ(self.exponents[j])
+                            for j in range(self.k)]
         generators = [ZZ(self.generators[j]) for j in range(self.k)]
-        n_odd = crt(
-            [power_mod(g, a, pp) for (g,a,pp) in zip(generators, exponent_vector, odd_prime_powers)],
-             odd_prime_powers)
+        n_odd = crt([power_mod(g, a, pp)
+                     for (g, a, pp) in zip(generators, exponent_vector,
+                                           odd_prime_powers)],
+                    odd_prime_powers)
 
         if n_odd == 0:
             n_odd = 1
@@ -590,12 +638,91 @@ cdef class DirichletGroup_conrey:
 
         return self[n]
 
+    cpdef _galois_orbits(self):
+        '''
+        Return the Galois orbits of this Dirichlet group as a list of lists
+        of integers mod q.
+        '''
+        N = self.zeta_order()
+        q = self.modulus()
+
+        R = IntegerModRing(q)
+        S = set(R)
+        for x in R:
+            if gcd(x, q) != 1:
+                S.remove(x)
+
+        orbits = []
+
+        while S:
+            n = S.pop()
+            orbit = set([n])
+
+            for a in N.coprime_integers(N):
+                k = n**a
+                if k in S:
+                    S.remove(k)
+                orbit.add(k)
+
+            orbits.append(list(orbit))
+
+        trace_size = min(10, q)
+        traces_unique = False
+        while not traces_unique and trace_size <= q:
+            traces_lists = []
+            for orbit in orbits:
+                order = multiplicative_order(mod(orbit[0], q))
+                traces = [int(round(sum([self.chi(chi, n) for chi in orbit]).real))*(N/len(orbit)) for n in range(1, trace_size)]
+                traces_lists.append((order, traces, orbit))
+
+            traces_lists.sort()
+            traces_unique = True
+            for (order1, traces1, orbits1), (order2, traces2, orbits2) in zip(traces_lists, traces_lists[1:]):
+                if order1 == order2 and traces1 == traces2:
+                    traces_unique = False
+                    if trace_size == q:
+                        raise NotImplementedError("We did not expect this case to ever occur. ohno.")
+                    trace_size = min(2*trace_size, q)
+                    break
+
+        return [o for (order, t, o) in traces_lists]
+
+    cpdef galois_orbits(self):
+        '''
+        Return the Galois orbits of this Dirichlet group as a list of lists
+        of Dirichlet characters.
+
+        TESTS::
+
+            sage: from dirichlet_conrey import *
+            sage: for q in [14, 17, 109, 64]:
+            ....:     G = DirichletGroup_conrey(q)
+            ....:     orbits = G.galois_orbits()
+            ....:     G2 = DirichletGroup(q)
+            ....:     orbits2 = G2.galois_orbits()
+            ....:     S1 = sorted([ sorted([chi.number() for chi in o]) for o in orbits])
+            ....:     S2 = sorted([ sorted([G.from_sage_character(chi).number() for chi in o]) for o in orbits2])
+            ....:     if S1 != S2:
+            ....:         print(q)
+        '''
+        orbits = self._galois_orbits()
+        orbits_as_characters = []
+        for o in orbits:
+            orbit = []
+            for n in o:
+                orbit.append(self[n])
+            orbits_as_characters.append(orbit)
+
+        return orbits_as_characters
+
+
 def test_conversion(q):
     G = DirichletGroup_conrey(q)
     for chi in G:
-        if not G.from_sage_character(chi.sage_character()) == chi:
-            print "Failure for q = {}, chi number {}".format(q, chi.number())
+        if G.from_sage_character(chi.sage_character()) != chi:
+            print("Failure for q = {}, chi number {}".format(q, chi.number()))
             break
+
 
 cdef class DirichletCharacter_conrey:
     cdef long _n        # we will store the number used to create this character,
@@ -608,21 +735,26 @@ cdef class DirichletCharacter_conrey:
         """
             The nth character for the Dirichlet Group parent.
         """
+        if gcd(parent.q, n) != 1:
+            raise ArithmeticError("n must be coprime to the modulus")
         self._parent = parent
-        self._number = n
+        if parent.q == 1:
+            self._number = 1
+        else:
+            self._number = n % parent.q
         self._n = n % parent.q
         self.q = parent.q
 
     def __call__(self, long m):
         return self.value(m)
 
-    def __cmp__(self, DirichletCharacter_conrey other):
+    def __richcmp__(self, DirichletCharacter_conrey other, op):
         r"""
         Compare self to other. Return equality if and only if the moduli and
         the character number are the same. When different, characters are first
         ordered by modulus and then by number.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from dirichlet_conrey import *
             sage: G = DirichletGroup_conrey(17)
@@ -636,13 +768,13 @@ cdef class DirichletCharacter_conrey:
             True
             sage: chi2 > chi3
             False
-            sage: chi1 < G2[0]
+            sage: chi1 < G2[1]
             True
         """
         if(self._parent.q != other._parent.q):
-            return cmp(self._parent.q, other._parent.q)
+            return richcmp(self._parent.q, other._parent.q, op)
         else:
-            return cmp(self._n, other._n)
+            return richcmp(self._n, other._n, op)
 
     def conductor(self):
         r"""
@@ -650,19 +782,20 @@ cdef class DirichletCharacter_conrey:
 
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(17)
-        sage: G[1].conductor()
-        1
-        sage: G[18].conductor()
-        1
-        sage: G[2].conductor()
-        17
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(17)
+            sage: G[1].conductor()
+            1
+            sage: G[18].conductor()
+            1
+            sage: G[2].conductor()
+            17
 
         This is tested more thoroughly in primitive_character().
         """
-        odd_parts = [self._primitive_part_at_known_p(k) for k in range(self._parent.k)]
-        odd_conductor = prod( [c for (n, c) in odd_parts] )
+        odd_parts = (self._primitive_part_at_known_p(k)
+                     for k in range(self._parent.k))
+        odd_conductor = prod([c for (_, c) in odd_parts])
         _, even_conductor = self._primitive_part_at_two()
         return odd_conductor * even_conductor
 
@@ -671,7 +804,7 @@ cdef class DirichletCharacter_conrey:
         Return the factorization of this character into characters of prime
         power modulus.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from dirichlet_conrey import *
             sage: G = DirichletGroup_conrey(8 * 3 * 25)
@@ -685,27 +818,29 @@ cdef class DirichletCharacter_conrey:
             sage: chi1 * chi2 * chi3 == G[7]
             True
 
-        TESTS:
+        TESTS::
+
             sage: chi1.sage_character().extend(600).maximize_base_ring() * chi2.sage_character().extend(600).maximize_base_ring() * chi3.sage_character().extend(600).maximize_base_ring() == G[7].sage_character()
             True
         """
-
         cdef long n = self._n
         cdef long q
         L = []
         if self._parent.q_even > 1:
-            L.append( DirichletGroup_conrey(self._parent.q_even)[n % self._parent.q_even])
+            L.append(DirichletGroup_conrey(self._parent.q_even)[n % self._parent.q_even])
 
         for m in range(self._parent.k):
             q = self._parent.primes[m]**self._parent.exponents[m]
-            L.append( DirichletGroup_conrey(q)._getitem_(n % q) )
+            L.append(DirichletGroup_conrey(q)._getitem_(n % q))
 
         return L
-    
+
     cpdef long exponent(self, long m):
         r"""
         Return the number a such that chi(m) = e(a/phi(q)).
         """
+        if gcd(m, self._parent.q) != 1:
+            return -1
         cdef long exponent
         cdef long q_even = self._parent.q_even
         cdef long q_odd = self._parent.q_odd
@@ -721,18 +856,18 @@ cdef class DirichletCharacter_conrey:
                                 # e(1/ (q_even/4) ), but we want the exponent of
                                 # e(1/phi(q_even)) = e(1/(q_even/2))
         elif q_even == 4:
-            if (self._n % q_even) == 3 and (m % q_even) == 3:
+            if (self._n % q_even) == 3 == (m % q_even):
                 even_exponent = 1
             else:
                 even_exponent = 0
         else:
             even_exponent = 0
 
-        if q_even == 1: # special case because phi(1) != 1/2.
+        if q_even == 1:  # special case because phi(1) != 1/2.
             exponent = odd_exponent
         else:
-            exponent = odd_exponent * q_even/2 + even_exponent * self._parent.phi_q_odd
-    
+            exponent = odd_exponent * q_even // 2 + even_exponent * self._parent.phi_q_odd
+
         # we now have the value of chi(m) as e(exponent/phi(q))
 
         # it could be equal to phi(q), though, and in that case we
@@ -747,7 +882,7 @@ cdef class DirichletCharacter_conrey:
         Return the extension of this character to a character of modulus M,
         where M is a multiple of the modulus of this character.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from dirichlet_conrey import *
             sage: G = DirichletGroup_conrey(17)
@@ -802,17 +937,17 @@ cdef class DirichletCharacter_conrey:
         else:
             raise NotImplementedError
 
-            # this stuff isn't really written yet...
-            if q_even1 <= 2:
-                indices.append(1)
-            if q_even1 == 4:
-                if self._n % 4 == 1:
-                    indices.append(1)
-                else:
-                    indices.append(q_even2/2 - 1)
-            if q_even1 == 8:
-                pass
-                
+#            # this stuff isn't really written yet...
+#            if q_even1 <= 2:
+#                indices.append(1)
+#            if q_even1 == 4:
+#                if self._n % 4 == 1:
+#                    indices.append(1)
+#                else:
+#                    indices.append(q_even2/2 - 1)
+#            if q_even1 == 8:
+#                pass
+
         moduli.append(q_even2)
         return G[crt(indices, moduli)]
 
@@ -830,54 +965,50 @@ cdef class DirichletCharacter_conrey:
             sage: set([psi.sage_character() for psi in chi.galois_orbit()]) == set(chi.sage_character().galois_orbit())
             True
         """
-
         L = []
         N = self._parent.zeta_order()
         q = self._parent.modulus()
-        for a in range(N):
-            if gcd(a,N) == 1:
-                L.append(power_mod(self._n, a, q))
+        for a in N.coprime_integers(N):
+            L.append(power_mod(self._n, a, q))
 
         return [self._parent[n] for n in set(L)]
 
-
-
-
-    cpdef complex gauss_sum(self, long a = 1):
+    cpdef complex gauss_sum(self, long a=1):
         r"""
         Return the Gauss sum
 
         ``\tau_a(\chi) = \sum_{n=0}^{q-1} \chi(n) exp(2 \pi i an/q)``
 
-        We compute in the complex numbers, so we compute and return this as
-        a complex double precision number.
+        We compute and return this as a complex double precision number.
 
-        EXAMPLES:
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(17)
-        sage: G[3].gauss_sum()
-        (2.325224300372...+3.404898229456...j)
-        
+        EXAMPLES::
+
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(17)
+            sage: G[3].gauss_sum()
+            (2.325224300372...+3.404898229456...j)
+
         When `\chi` is primitive, and `a` is relatively prime to `q`,
         the Gauss sum always has asbolute value
-        `\sqrt(q)`.
+        `\sqrt(q)`. ::
 
-        sage: G = DirichletGroup_conrey(17)
-        sage: G[4].is_primitive()
-        True
-        sage: abs(G[4].gauss_sum(5))
-        4.12310562561...
-        sage: sqrt(17.0)
-        4.12310562561766
+            sage: G = DirichletGroup_conrey(17)
+            sage: G[4].is_primitive()
+            True
+            sage: abs(G[4].gauss_sum(5))
+            4.12310562561...
+            sage: sqrt(17.0)
+            4.12310562561766
 
         TESTS::
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(4 * 11)
-        sage: [abs(chi.gauss_sum(3) - chi.sage_character().gauss_sum_numerical(a=3)) < 5e-14 for chi in G] == [True] * euler_phi(4 * 11)
-        True
-        sage: G = DirichletGroup_conrey(23)
-        sage: [abs(chi.gauss_sum() - chi.sage_character().gauss_sum_numerical()) < 5e-14 for chi in G] == [True] * euler_phi(23)
-        True
+
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(4 * 11)
+            sage: [abs(chi.gauss_sum(3) - chi.sage_character().gauss_sum_numerical(a=3)) < 5e-14 for chi in G] == [True] * euler_phi(4 * 11)
+            True
+            sage: G = DirichletGroup_conrey(23)
+            sage: [abs(chi.gauss_sum() - chi.sage_character().gauss_sum_numerical()) < 5e-14 for chi in G] == [True] * euler_phi(23)
+            True
         """
         cdef complex S = 0
         cdef complex x = 0
@@ -885,11 +1016,11 @@ cdef class DirichletCharacter_conrey:
         for n in range(q):
             x = self.value(n)
             if x != 0:
-                S = S + x * cmath.exp( (twopii * a * n) / q)
+                S += x * cmath.exp((twopii * a * n) / q)
 
         return S
 
-    cpdef complex gauss_sum_numerical(self, prec = 53, long a = 1):
+    cpdef complex gauss_sum_numerical(self, prec=53, long a=1):
         r"""
         This is a synonym for gauss_sum(), except that it accepts an extra
         precision argument for uniformity with the other implementation of
@@ -901,7 +1032,7 @@ cdef class DirichletCharacter_conrey:
             raise NotImplementedError("Right now we only support a precision of 53 bits.")
 
         return self.gauss_sum(a)
-    
+
     def number(self):
         return self._number
 
@@ -911,8 +1042,8 @@ cdef class DirichletCharacter_conrey:
         `\chi` is the character `\overline \chi` such that
         `\chi(n) \overline \chi(n)` is the trivial character.
 
-        EXAMPLE:
-            
+        EXAMPLES::
+
             sage: from dirichlet_conrey import *
             sage: G = DirichletGroup_conrey(23)
             sage: chi = G[3]
@@ -927,32 +1058,32 @@ cdef class DirichletCharacter_conrey:
     cpdef is_even(self):
         r"""
         Return ``true`` if this character is even, ``false`` otherwise.
-        
+
         A character `\chi` is even if `\chi(n) = \chi(-n)` for all n, and odd if
         `\chi(n) = -\chi(-n)` for all ``n``. Every character is either even or odd.
 
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(11)
-        sage: [chi.is_even() for chi in G] == [chi.sage_character().is_even() for chi in G]
-        True
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(11)
+            sage: [chi.is_even() for chi in G] == [chi.sage_character().is_even() for chi in G]
+            True
         """
         return self.exponent(-1) == 0
 
     cpdef is_odd(self):
         r"""
         Return ``true`` if this character is odd, ``false`` otherwise.
-        
+
         A character chi is even if `\chi(n) = \chi(-n)` for all n, and odd if
         `\chi(n) = -\chi(-n)` for all ``n``. Every character is either even or odd.
 
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(16)
-        sage: [chi.is_odd() for chi in G] == [chi.sage_character().is_odd() for chi in G]
-        True
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(16)
+            sage: [chi.is_odd() for chi in G] == [chi.sage_character().is_odd() for chi in G]
+            True
         """
         return self.exponent(-1) != 0
 
@@ -962,19 +1093,19 @@ cdef class DirichletCharacter_conrey:
 
         EXAMPLES::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(5*5*5)
-        sage: G[1].is_primitive()
-        False
-        sage: G[2].is_primitive()
-        True
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(5*5*5)
+            sage: G[1].is_primitive()
+            False
+            sage: G[2].is_primitive()
+            True
 
         TESTS::
-        sage: from dirichlet_conrey import *
-        sage: [chi.is_primitive() for chi in G] == [chi.sage_character().is_primitive() for chi in G]
-        True
-        """
 
+            sage: from dirichlet_conrey import *
+            sage: [chi.is_primitive() for chi in G] == [chi.sage_character().is_primitive() for chi in G]
+            True
+        """
         for j in range(self._parent.k):
             if not self._is_primitive_at_known_p(j):
                 return False
@@ -986,7 +1117,6 @@ cdef class DirichletCharacter_conrey:
         Return whether or not this character is primitive at the jth prime
         factor of the odd part of the modulus.
         """
-
         cdef long p = self._parent.primes[j]
         n = self._n % self._parent.q_odd
         cdef long dlog = self._parent.A[n * self._parent.k + j]
@@ -1013,57 +1143,61 @@ cdef class DirichletCharacter_conrey:
 
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(17)
-        sage: G[1].is_trivial()
-        True
-        sage: G[18].is_trivial()
-        True
-        sage: G[2].is_trivial()
-        False
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(17)
+            sage: G[1].is_trivial()
+            True
+            sage: G[18].is_trivial()
+            True
+            sage: G[2].is_trivial()
+            False
         """
         return self._n == 1
 
     def kernel(self, outtype=None):
         r"""
-        Return the kernel of this character as a list. By default, this is
-        a list of Python integers, but ``outtype`` can be specified to
-        change this to something else.
-        
+        Return the kernel of this character as a list.
+
+        By default, this is a list of Python integers, but ``outtype``
+        can be specified to change this to something else.
+
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(4 * 25)
-        sage: [chi.kernel() for chi in G] == [chi.sage_character().kernel() for chi in G]
-        True
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(4 * 25)
+            sage: [chi.kernel() for chi in G] == [chi.sage_character().kernel() for chi in G]
+            True
         """
         if outtype is not None:
-            return [outtype(n) for n in range(self._parent.q) if gcd(n,self._parent.q) == 1 and self.exponent(n) == 0]
+            return [outtype(n) for n in range(self._parent.q)
+                    if gcd(n, self._parent.q) == 1 and self.exponent(n) == 0]
         else:
-            return [n for n in range(self._parent.q) if gcd(n,self._parent.q) == 1 and self.exponent(n) == 0]
+            return [n for n in range(self._parent.q)
+                    if gcd(n, self._parent.q) == 1 and self.exponent(n) == 0]
 
     def level(self):
         r"""
-        synonym for conductor().
+        synonym for modulus().
         """
-        return self.conductor()
+        return self.modulus()
 
     def logvalue(self, long m):
         r"""
         Return log(chi(m))/(2 pi i) as a rational number; i.e., return a/b
-        so that chi(m) = e(a/b). 
+        so that chi(m) = e(a/b).
         """
-        if gcd(m,self._parent.q) != 1:
+        if gcd(m, self._parent.q) != 1:
             return -1
         cdef long exponent = self.exponent(m)
-        return Integer(exponent)/Integer(self._parent.phi_q) # TODO: there is probably
-                                                             # a better way to construct
-                                                             # a rational number.
+        # TODO: there is probably a better way to construct a rational
+        # number.
+        return Integer(exponent) / Integer(self._parent.phi_q)
 
     def Lone(self):
         r"""
-        Return the L-series of this character evaluated at 1. If the character
-        is trivial, raise an error.
+        Return the L-series of this character evaluated at 1.
+
+        If the character is trivial, raise an error.
         """
         #
         # This implementation is not optimal, but is simple. When chi is even,
@@ -1103,17 +1237,16 @@ cdef class DirichletCharacter_conrey:
             for a in range(1, q):
                 S = S + a * chibar(a)
             return S * PI * 1.0j * self.gauss_sum()/(q*q)
-                
-    cpdef max_sum(self, return_location = False):
+
+    cpdef max_sum(self, return_location=False):
         """
         return the maximum of the character sum and its location.
         """
-        
         cdef complex S = 0
         cdef float absmax = 0
         cdef complex max = 0
         cdef long m = 0
-        for n in range(self.q/2 + 1):
+        for n in range(self.q // 2 + 1):
             S = S + self.value(n)
             if abs(S) > absmax:
                 max = S
@@ -1121,12 +1254,12 @@ cdef class DirichletCharacter_conrey:
                 m = n
 
         return max, m
-            
+
     def modulus(self):
         r"""
         Return the modulus of this charater as a Python integer.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from dirichlet_conrey import *
             sage: G = DirichletGroup_conrey(68)
@@ -1143,7 +1276,7 @@ cdef class DirichletCharacter_conrey:
         the indices; otherwise we map the characters to a common modulus and
         do the multiplication there. (Second part not implemented yet.)
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from dirichlet_conrey import *
             sage: G = DirichletGroup_conrey(21)
@@ -1154,14 +1287,14 @@ cdef class DirichletCharacter_conrey:
             sage: G2 = DirichletGroup_conrey(17)
             sage: chi * chi2 * G2[7]
             Dirichlet character with index 41 modulo 357
-        
-        TESTS:
+
+        TESTS::
 
             sage: chi.sage_character().extend(357).maximize_base_ring() * chi2.sage_character().extend(357).maximize_base_ring() * G2[7].sage_character().extend(357).maximize_base_ring() == (chi * chi2 * G2[7]).sage_character()
             True
         """
         return self._mul_(other)
-     
+
     cpdef DirichletCharacter_conrey _mul_(self, DirichletCharacter_conrey other):
         cdef long q, q1, q2, n1, n2, n
         q1 = self._parent.q
@@ -1180,29 +1313,29 @@ cdef class DirichletCharacter_conrey:
     def multiplicative_order(self):
         r"""
         Return the order of this character as an element of the Dirichlet
-        group that it is a member of. The set of characters modulo q forms an
-        abelian group which is isomorphic to `(Z/qZ)^*`, so every element has
-        finite order.
+        group that it is a member of.
+
+        The set of characters modulo q forms an abelian group which is
+        isomorphic to `(Z/qZ)^*`, so every element has finite order.
 
         EXAMPLES::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(11)
-        sage: G[1].multiplicative_order()
-        1
-        sage: G[-1].multiplicative_order()
-        2
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(11)
+            sage: G[1].multiplicative_order()
+            1
+            sage: G[-1].multiplicative_order()
+            2
 
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(4 * 49)
-        sage: [chi.multiplicative_order() for chi in G] == [chi.sage_character().multiplicative_order() for chi in G]
-        True
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(4 * 49)
+            sage: all(chi.multiplicative_order() == chi.sage_character().multiplicative_order() for chi in G)
+            True
         """
-        
         return multiplicative_order(mod(self._n, self._parent.q))
-        
+
     cpdef parent(self):
         return self._parent
 
@@ -1212,43 +1345,44 @@ cdef class DirichletCharacter_conrey:
 
         TESTS::
 
-        sage: from dirichlet_conrey import *
-        sage: G = DirichletGroup_conrey(17)
-        sage: G[1].primitive_character()
-        Dirichlet character with index 0 modulo 1
-        sage: G[18].primitive_character()
-        Dirichlet character with index 0 modulo 1
-        sage: G[2].primitive_character()
-        Dirichlet character with index 2 modulo 17
-        sage: G = DirichletGroup_conrey(1)
-        sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
-        True
-        sage: G = DirichletGroup_conrey(2)
-        sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
-        True
-        sage: G = DirichletGroup_conrey(4)
-        sage: [chi.primitive_character().sage_character() for chi in G if not chi.is_trivial()] == [chi.sage_character().primitive_character() for chi in G if not chi.is_trivial()] # omitting trivial character because of a bug in sage
-        True
-        sage: G = DirichletGroup_conrey(8)
-        sage: [chi.primitive_character().sage_character() for chi in G if not chi.is_trivial()] == [chi.sage_character().primitive_character() for chi in G if not chi.is_trivial()] # omitting trivial character because of a bug in sage
-        True
-        sage: G = DirichletGroup_conrey(16)
-        sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
-        True
-        sage: G = DirichletGroup_conrey(8 * 5)
-        sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
-        True
-        sage: G = DirichletGroup_conrey(8 * 5 * 5)
-        sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
-        True
-        sage: G = DirichletGroup_conrey(16 * 3 * 3)
-        sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
-        True
+            sage: from dirichlet_conrey import *
+            sage: G = DirichletGroup_conrey(17)
+            sage: G[1].primitive_character()
+            Dirichlet character with index 1 modulo 1
+            sage: G[18].primitive_character()
+            Dirichlet character with index 1 modulo 1
+            sage: G[2].primitive_character()
+            Dirichlet character with index 2 modulo 17
+            sage: G = DirichletGroup_conrey(1)
+            sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
+            True
+            sage: G = DirichletGroup_conrey(2)
+            sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
+            True
+            sage: G = DirichletGroup_conrey(4)
+            sage: [chi.primitive_character().sage_character() for chi in G if not chi.is_trivial()] == [chi.sage_character().primitive_character() for chi in G if not chi.is_trivial()] # omitting trivial character because of a bug in sage
+            True
+            sage: G = DirichletGroup_conrey(8)
+            sage: [chi.primitive_character().sage_character() for chi in G if not chi.is_trivial()] == [chi.sage_character().primitive_character() for chi in G if not chi.is_trivial()] # omitting trivial character because of a bug in sage
+            True
+            sage: G = DirichletGroup_conrey(16)
+            sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
+            True
+            sage: G = DirichletGroup_conrey(8 * 5)
+            sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
+            True
+            sage: G = DirichletGroup_conrey(8 * 5 * 5)
+            sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
+            True
+            sage: G = DirichletGroup_conrey(16 * 3 * 3)
+            sage: [chi.primitive_character().sage_character() for chi in G] == [chi.sage_character().primitive_character() for chi in G]
+            True
         """
-        odd_parts = [self._primitive_part_at_known_p(k) for k in range(self._parent.k)]
+        odd_parts = [self._primitive_part_at_known_p(k)
+                     for k in range(self._parent.k)]
         even_index, even_conductor = self._primitive_part_at_two()
-        indices = [Integer(even_index)] + [Integer(n) for (n,m) in odd_parts]
-        moduli = [Integer(even_conductor)] + [Integer(m) for (n,m) in odd_parts]
+        indices = [Integer(even_index)] + [Integer(n) for n, m in odd_parts]
+        moduli = [Integer(even_conductor)] + [Integer(m) for n, m in odd_parts]
         q = prod(moduli)
         index = crt(indices, moduli)
         return DirichletGroup_conrey(q)[index]
@@ -1259,7 +1393,6 @@ cdef class DirichletCharacter_conrey:
         associated to the p-part of the character for the j-th odd prime
         factor p of the modulus.
         """
-
         cdef long e, conductor, index
         cdef long p = self._parent.primes[j]
         n = self._n % self._parent.q_odd
@@ -1292,53 +1425,53 @@ cdef class DirichletCharacter_conrey:
         # We basically do everything by hand.
 
         if q_even == 1:                 # If q is odd, there is no even
-            return (1,1)                # part of the character,
-        
+            return (1, 1)               # part of the character,
+
         elif q_even == 2:               # while if 2 is only divisible by 2
-            return (1,1)                # the inducing character must be
+            return (1, 1)               # the inducing character must be
                                         # trivial.
 
         elif q_even == 4:               # When q_even is 4, the conductor
             if n == 3:                  # just depends on n mod 4
-                return (3,4)
+                return (3, 4)
             else:
-                return (1,1)
+                return (1, 1)
         elif q_even == 8:
             if n == 1:
-                return (1,1)
+                return (1, 1)
             elif n == 3:
-                return (3,8)
+                return (3, 8)
             elif n == 5:
-                return (5,8)
+                return (5, 8)
             else:
-                return (3,4)
+                return (3, 4)
         else:
-            #if n == 1:
-            #    return (1,1)
-            #elif n == q_even - 1:
-            #   return (7, 8) # special case for primitive character mod 8
-            #elif n == q_even/2 - 1:
-            #    return (3,4)  # special case for primitive character mod 4
+            # if n == 1:
+            #     return (1,1)
+            # elif n == q_even - 1:
+            #    return (7, 8) # special case for primitive character mod 8
+            # elif n == q_even/2 - 1:
+            #     return (3,4)  # special case for primitive character mod 4
             alpha = B[n]
             epsilon = B[n-1]
             if alpha == 0:
                 if epsilon == 1:
-                    return (1,1)
+                    return (1, 1)
                 else:
-                    return (3,4)
+                    return (3, 4)
             f = 0
             m = alpha
             while m % 2 == 0:
                 m /= 2
-                f = f + 1
-            conductor = q_even/(2**f)
+                f += 1
+            conductor = q_even / 2**f
             index = power_mod(5, m, conductor)
             if epsilon == -1:
                 index = conductor - index
             return (index, conductor)
 
     def __repr__(self):
-        return "Dirichlet character with index %d modulo %d" % (self._n, self._parent.q)
+        return "Dirichlet character with index %d modulo %d" % (self._number, self._parent.q)
 
     def restrict(self):
         r"""
@@ -1347,7 +1480,6 @@ cdef class DirichletCharacter_conrey:
         If `\chi` is a character modulo `q` and `q'` divides `q`, then we
         define the restriction as...
         """
-
         raise NotImplementedError
 
     def sage_character(self):
@@ -1357,20 +1489,18 @@ cdef class DirichletCharacter_conrey:
 
         This function has a stupid name, because eventually this code should
         be part of Sage, so there will be two available implementations. I
-        don't know what to call it right now.
+        do not know what to call it right now.
         """
-
         G = self._parent.standard_dirichlet_group()
 
-        gens = G.unit_gens()  # grabbing the generators this way
-                              # ensures that they will be the same
-                              # generators used by the
-                              # DirichletGroup_class
+        gens = G.unit_gens()
+        # grabbing the generators this way ensures that they will be
+        # the same generators used by the DirichletGroup_class
 
         # We can construct a DirichletCharacter by giving it
         # a list of the exponents on the generators, so we
         # compute these.
-        
+
         # Because we are computing the odd and even parts of
         # the character separately, we have to properly combine
         # the exponents.
@@ -1378,14 +1508,13 @@ cdef class DirichletCharacter_conrey:
         cdef long zeta_order = G.zeta_order()
         exponents = []
         for a in gens:
-            exponent = (self.exponent(a) * zeta_order)/self._parent.phi_q
-
+            exponent = (self.exponent(a) * zeta_order) / self._parent.phi_q
             exponents.append(exponent)
 
         # To make sure that the exponent vector has the right type, I'm
         # mimicking a bit what is done in modular/dirichlet.pyx, without
-        # necessarily understanding if what I'm doing it right.
-        # 
+        # necessarily understanding if what I'm doing is right.
+        #
         # Thus I put the XXX here to mark this as a possible trouble
         # spot if there are problems in the future...
 
@@ -1400,16 +1529,52 @@ cdef class DirichletCharacter_conrey:
         """
         cdef complex S = 0
         for n in range(m + 1):
-            S = S + self.value(n)
-
+            S += self.value(n)
         return S
+
+    cpdef partial_sums(self, complex normalization=1.0):
+        """
+        return the partial sums of chi
+        """
+        L = []
+        cdef complex S = 0
+        L.append(S)
+        for n in range(self._parent.q):
+            S += self.value(n)
+            L.append(S / normalization)
+
+        return L
 
     cpdef complex value(self, long m):
         return self._parent.chi(self._n, m)
 
-
     def values(self):
         return [self.value(n) for n in range(self._parent.q)]
 
-    #cdef complex __call__unsafe(self, long m):
-    #    return self.parent._chi_unsafe(self._n, m)
+    # cdef complex __call__unsafe(self, long m):
+    #     return self.parent._chi_unsafe(self._n, m)
+
+    def lcalc_file(self):
+        q = self._parent.q
+        filestring = '3\n'
+        filestring += '1\n'
+        filestring += str(q) + '\n'
+        filestring += str(q) + '\n'
+        filestring += '1\n'
+        filestring += '.5\n'
+        if self.is_even():
+            filestring += '0 0\n'
+            omega = CC(self.gauss_sum())
+            omega = omega / omega.abs()
+        else:
+            filestring += '.5 0\n'
+            omega = CC(self.gauss_sum()/1j)
+            omega = omega/omega.abs()
+        filestring += str(RR(q/pi).sqrt()) + '\n'
+        filestring += '{} {}\n'.format(omega.real(), omega.imag())
+        filestring += '0\n'
+        for n in range(1, q + 1):
+            z = CC(self(n))
+            filestring += '{} {}\n'.format(z.real(), z.imag())
+
+        return filestring

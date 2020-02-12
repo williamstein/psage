@@ -56,7 +56,7 @@ class SiegelModularFormPrecision (SageObject):
             with GL(2,Z)-reduced (a,b,c) are available such that
             either 4ac-b^2 < prec ('disc'-precision) or else
             one has componentwise
-            (a,b,c) < ( aprec, bprec, cprec)
+            (a,b,c) < (aprec, bprec, cprec)
             ('box'-precision).
 
         EXAMPLES::
@@ -96,7 +96,7 @@ class SiegelModularFormPrecision (SageObject):
             
         elif isinstance(prec, (int, Integer)):
             self.__type = 'disc'
-            prec = max( 0, prec)
+            prec = max(0, prec)
             Dmod = prec % 4
             if Dmod >= 2:
                 self.__prec = Integer(prec - Dmod + 1)
@@ -106,12 +106,12 @@ class SiegelModularFormPrecision (SageObject):
         elif isinstance(prec, tuple) and len(prec) == 3 and all([isinstance(e, (int, Integer)) for e in list(prec)]):
             self.__type = 'box'
             a,b,c = prec
-            a = min( a, c)
-            b = min( b, a)
+            a = min(a, c)
+            b = min(b, a)
             if b <= 0:
-                self.__prec = ( 0,0,0 )
+                self.__prec = (0,0,0)
             else:
-                self.__prec = ( Integer(a), Integer(b), Integer(c))
+                self.__prec = (Integer(a), Integer(b), Integer(c))
                 
         else:
             raise TypeError("incorrect type {0} for prec".format(type(prec)))
@@ -389,7 +389,7 @@ class SiegelModularFormPrecision (SageObject):
         if not isinstance(other, SiegelModularFormPrecision):
             raise NotImplementedError("can only compare with elements of the same class")
         
-        return ( self.__type == other.type() and self.__prec == other.prec())
+        return (self.__type == other.type() and self.__prec == other.prec())
 
     
     def __ne__(self, other):       
@@ -486,7 +486,7 @@ class SiegelModularFormPrecision (SageObject):
         elif 'box' == self.__type:
             (am, bm, cm) = self.__prec
             for a in range(am):
-                for b in range( min(bm,a+1)):
+                for b in range(min(bm,a+1)):
                     for c in range(a, cm):
                         yield (a,b,c)
 
@@ -525,7 +525,7 @@ class SiegelModularFormPrecision (SageObject):
         elif 'box' == self.__type:
             (am, bm, cm) = self.__prec
             for a in range(am):
-                for b in range( min(bm,a+1)):
+                for b in range(min(bm,a+1)):
                     for c in range(a, cm):
                         yield (a,b,c)
 

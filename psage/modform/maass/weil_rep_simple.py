@@ -333,7 +333,7 @@ class WeilRepDiscriminantForm(Parent):
         for y in Dc:
             p=numerator(y*c)
             q=denominator(y*c)
-            if( QQ(p%q)/QQ(q) == QQ(cy)):
+            if(QQ(p%q)/QQ(q) == QQ(cy)):
                 Qc=c*self.Q(y)+self.B(xc,y)
                 return Qc
         return ArithmeticError," Could not find y s.t. x=x_c+cy! x=%s and c=%s " %(x,c)
@@ -381,7 +381,7 @@ class WeilRepDiscriminantForm(Parent):
         f2=kronecker(cNc,ZZ(2*N).divide_knowing_divisible_by(Nc))
         if(is_odd(c)):
             s=c*N2
-        elif( c % Neven == 0):
+        elif(c % Neven == 0):
             s=(c2+1-N2)*(a+1)
         else:
             s=(c2+1-N2)*(a+1)-N2*a*c2
@@ -496,7 +496,7 @@ class WeilRepDiscriminantForm(Parent):
                 chi=CF(self.xi(M).complex_embedding(prec))
         Nc=gcd(Integer(D),Integer(c))
         #chi=chi*sqrt(CF(Nc)/CF(D))
-        if( valuation(Integer(c),2)==valuation(Integer(D),2)):
+        if(valuation(Integer(c),2)==valuation(Integer(D),2)):
             xc=Integer(N)
         else:
             xc=0

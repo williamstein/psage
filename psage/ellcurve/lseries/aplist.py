@@ -33,6 +33,7 @@ have different hashes and (2) this format is much easier to look at.
 
 from sage.all import ZZ
 
+
 def ap(E, p):
     """
     INPUT:
@@ -57,6 +58,7 @@ def ap(E, p):
         return ZZ(-1)
     else:
         return ZZ(0)
+
 
 def primes_of_bounded_norm(F, B):
     r"""

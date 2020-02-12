@@ -546,8 +546,8 @@ def my_modsqrt(a,N):
     #print "amod4N=",amod4N
     sq=[]
     for i in range(0,N+1):
-        #print "i*i mod 4N=",((i*i) % N4 ) 
-        if( ((i*i) % N4 ) == amod4N):
+        #print "i*i mod 4N=",((i*i) % N4)
+        if( ((i*i) % N4) == amod4N):
             sq.append(i)
     return sq
 

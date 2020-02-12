@@ -74,7 +74,7 @@ class J_generic(object):
     def e(self, t, N):
         K = self.K
         return K(N).sqrt() / (.25 + t*t) * \
-               ( (K(t*K(N).log())).cos() + 2*t*(K(t*K(N).log())).sin() )
+               ((K(t*K(N).log())).cos() + 2*t*(K(t*K(N).log())).sin())
 
     def H(self, t, N):
         K = self.K

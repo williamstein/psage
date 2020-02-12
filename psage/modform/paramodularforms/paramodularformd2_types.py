@@ -171,7 +171,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             raise NotImplementedError
         elif self.__weight == 4 :
             ## This is the formula cited by Poor and Yuen in Paramodular cusp forms
-            cuspidal_dim =  Integer(   (N**2 - 143) / Integer(576) + N / Integer(8)
+            cuspidal_dim =  Integer( (N**2 - 143) / Integer(576) + N / Integer(8)
                                      + kronecker_symbol(-1, N) * (N - 12) / Integer(96)
                                      + kronecker_symbol(2, N) / Integer(8)
                                      + kronecker_symbol(3, N) / Integer(12)

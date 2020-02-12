@@ -39,7 +39,7 @@ from sage.structure.all import Sequence
 from sage.structure.sage_object import SageObject
 from functools import reduce
 
-class Grading_abstract ( SageObject ) :
+class Grading_abstract (SageObject) :
     r"""
     A common interface for monomial gradings of polynomial rings
     `R[x_1, .., x_n]`.
@@ -191,13 +191,13 @@ class Grading_abstract ( SageObject ) :
 # DegreeGrading
 #===============================================================================
 
-class DegreeGrading( Grading_abstract ) :
+class DegreeGrading(Grading_abstract):
     r"""
     This class implements a monomial grading for a polynomial ring
     `R[x_1, .., x_n]`.
     """
   
-    def __init__( self, degrees ) :
+    def __init__(self, degrees) :
         r"""
         INPUT:
             - ``degrees`` -- A list or tuple of `n` positive integers.
@@ -291,7 +291,7 @@ class DegreeGrading( Grading_abstract ) :
         if len(x) != len(self.__degrees) :
             raise ValueError( "Tuple must have length %s." % (len(self.__degrees),))
         
-        return sum( map(mul, x, self.__degrees) )
+        return sum(map(mul, x, self.__degrees))
         
     def basis(self, index, vars = None) :
         r"""
@@ -415,7 +415,7 @@ class DegreeGrading( Grading_abstract ) :
         """
         return r"\text{Degree grading }" + latex(self.__degrees)
 
-class TrivialGrading ( Grading_abstract ) :
+class TrivialGrading(Grading_abstract) :
     r"""
     A grading for a polynomial ring `R[x_1, .., x_n]` assigning to every
     element the same, arbitrary index.

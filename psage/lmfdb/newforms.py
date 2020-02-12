@@ -36,7 +36,7 @@ It also has a subcollection 'counts', which records the number of
 newforms with given level, weight, and character.  """
 from __future__ import print_function
 from __future__ import absolute_import
-
+from .populate import Populate
 from past.builtins import cmp
 from builtins import str
 from .collection import Collection
@@ -60,7 +60,7 @@ class NewformCollection(Collection):
         C = self.collection.counts
         # Query C for the 4-tuples, as described in the docstring above.
         Q = [(x['level'], x['weight'], x['character']['order'], x['count']) for x in
-               C.find({},['level','weight','character.order','count'])]
+             C.find({},['level','weight','character.order','count'])]
         Q.sort(lambda x,y: cmp(x[key],y[key]))
         return Q
 
@@ -93,7 +93,6 @@ class NewformCollection(Collection):
 
 
 
-from .populate import Populate
 
 class PopulateNewforms(Populate):
     def __repr__(self):

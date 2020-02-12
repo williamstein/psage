@@ -550,7 +550,7 @@ class MaassWaveForms (AutomorphicFormSpace):
                     if(chi.is_primitive()):
                         num_prim_dc=num_prim_dc+1
                 for m in divisors(lvl):
-                    if(lvl % (m*q) == 0   and m % q ==0 ):
+                    if(lvl % (m*q) == 0   and m % q ==0):
                         fak=(q*lvl)/gcd(m,lvl/m)
                         A=A*Integer(fak)**num_prim_dc
             c4=-ln(A)/pi
@@ -892,7 +892,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         rnew=R1; rold=R1
         while (rnew < R2):
             rnew=min(R2,self.next_eigenvalue(rold))
-            if( abs(rold-rnew)==0.0):
+            if(abs(rold-rnew)==0.0):
                 if self._verbose>0:
                     print("ivs={0}".format(ivs))
                 exit
@@ -978,11 +978,11 @@ class MaassWaveForms (AutomorphicFormSpace):
                 #print "r0,kd=",r0,kd
                 #print "kd*kd0=",kd*kd0
             #print "-r0,y,kd=",r0,y,kd
-            #t1=base.findroot(lambda x :  base.besselk(base.mpc(0,x),base.mpf(y),verbose=True).real,r0)
+            #t1=base.findroot(lambda x:  base.besselk(base.mpc(0,x),base.mpf(y),verbose=True).real,r0)
             try:
-                t1=base.findroot(lambda x :  my_kbes(x,y,base),r0)
+                t1=base.findroot(lambda x:  my_kbes(x,y,base),r0)
             except ValueError:
-                t1=base.findroot(lambda x :  my_kbes(x,y,mpmath.mp),r0)
+                t1=base.findroot(lambda x:  my_kbes(x,y,mpmath.mp),r0)
             r0=r0+h
         if(r0>=r2 or t1>=r2):
             t1=r2
@@ -996,10 +996,10 @@ class MaassWaveForms (AutomorphicFormSpace):
                 r0=r0+h
                 kd=my_kbes_diff_r(r0,y,base)
             try:
-                t2=base.findroot(lambda x :  my_kbes(x,2*y,base),r0)
+                t2=base.findroot(lambda x:  my_kbes(x,2*y,base),r0)
             except ValueError:
-                t2=base.findroot(lambda x :  my_kbes(x,2*y,mpmath.mp),r0)
-            #t2=base.findroot(lambda x :  base.besselk(base.mpc(0,x),base.mpf(2*y),verbose=True).real,r0)
+                t2=base.findroot(lambda x:  my_kbes(x,2*y,mpmath.mp),r0)
+            #t2=base.findroot(lambda x:  base.besselk(base.mpc(0,x),base.mpf(2*y),verbose=True).real,r0)
             r0=r0+h
         if(r0>=r2 or t2>=r2):
             t2=r2
@@ -2034,7 +2034,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                     c_pos = self._coeffs[fi][cj].get(n,0)
                     c_neg = self._coeffs[fi][cj].get(-n,0)
                     fnval = self.kbes(ary*abs(n))
-                    term=fnval*( CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg) 
+                    term=fnval*(CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg)
                     res=res+term
             else:
                 for n in range(-numc+1,numc):
@@ -2582,7 +2582,7 @@ class EisensteinSeries(MaassWaveformElement_class): #AutomorphicFormElement):
                     c_pos = self._coeffs[fi][cj].get(n,0)
                     c_neg = self._coeffs[fi][cj].get(-n,0)
                     fnval = self.kbes(ary*abs(n))
-                    term=fnval*( CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg) 
+                    term=fnval*(CC(0,arx*n).exp()*c_pos + CC(0,-arx*n).exp()*c_neg)
                     res=res+term
             else:
                 for n in range(-numc+1,numc):
@@ -2670,7 +2670,7 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
             print("Function nr. {0}".format(m+1))
             for j in X[m].keys():
                 if(sym_type==None):
-                    for n in range(M,1 ,-1 ):
+                    for n in range(M,1 ,-1):
                         print("C[{0}]={1}".format(n,X[m][j][n]))
                     for n in range(M):
                         print("C[{0}]={1}".format(n,X[m][j][n]))
@@ -2754,10 +2754,10 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #                 return [0 ,0 ]
 #     else:
 #         var=0.0
-#         for j in range(1 ,3 +1 ):
+#         for j in range(1 ,3 +1):
 #             var+=abs(diffs[1 ][j])+abs(diffs[3 ][j])
 #         print "var=",var
-#         for j in range(1 ,3 +1 ):
+#         for j in range(1 ,3 +1):
 #             signs[j]=1
 #             if(diffs[1 ][j]*diffs[3 ][j]>mpmath.eps()):
 #                 # If we do not have a signchange
@@ -2765,7 +2765,7 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #                 # there is probably no zero here
 #                 if(abs(diffs[1][j])+abs(diffs[3][j]) > 0.01*var):
 #                     return [0 ,0 ]
-#             elif(diffs[1 ][j]>0 ):
+#             elif(diffs[1 ][j]>0):
 #                 signs[j]=-1
 #             # Recompute functionals using the signs
 #         if(S._verbose>1):
@@ -2782,7 +2782,7 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #         print "Rnew=",Rnew
 #     [diffs[2],h[2]]=functional(S,Rnew,M,Y1,Y2,signs,c,first_time=False,method=met,ndigs=neps)
 #     zero_in=is_zero_in(h)
-#     if(zero_in == -1 ):
+#     if(zero_in == -1):
 #         R3=Rnew; h[3]=h[2 ]; diffs[3 ]=diffs[2 ]; errest=abs(Rnew-R1)
 #     else:
 #         R1=Rnew; h[1 ]=h[2 ]; diffs[1 ]=diffs[2 ]; errest=abs(Rnew-R3)
@@ -3031,10 +3031,10 @@ def _testing_kbes(Rt=[1,10,10],Xt=[1,10,100]):
             print("r,x={0},{1}".format(R,x))
             if(x>R):
                 print("kbes_pow=")
-                timeit( "besselk_dp({0},{1})".format(R,x),repeat=1)
+                timeit("besselk_dp({0},{1})".format(R,x),repeat=1)
             #else:
             #    print "kbes_rec="
-            #    timeit( "besselk_dp_rec(R,x)",repeat=1)
+            #    timeit("besselk_dp_rec(R,x)",repeat=1)
             print("mpmath.besselk=")
             timeit("mpmath.besselk({0},{1})".format(iR,x),repeat=1)
 
@@ -3876,7 +3876,7 @@ def scattering_determinant_Hecke_triangle(s,q,prec=0,use_eisenstein=0,**kwds):
             llambda = s.parent()(3).sqrt()
         f1 = llambda**(1-2*s)
         llambda = llambda.log()
-        f = f1*( (1-s)*llambda).cosh()/( s*llambda).cosh()
+        f = f1*((1-s)*llambda).cosh()/(s*llambda).cosh()
         return f*z
     else:
         G = HeckeTriangleGroup(q)

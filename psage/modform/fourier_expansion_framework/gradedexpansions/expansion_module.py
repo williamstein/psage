@@ -107,11 +107,11 @@ def ExpansionModule(forms) :
     if not isinstance(forms, Sequence_generic) :
         forms = Sequence(forms)
         if len(forms) == 0 :
-            raise ValueError( "Empty modules must be constructed with a universe." )
+            raise ValueError( "Empty modules must be constructed with a universe.")
                 
     if not isinstance(forms.universe(), (MonoidPowerSeriesAmbient_abstract,
                                          EquivariantMonoidPowerSeriesAmbient_abstract)) :
-        raise ValueError( "Common parent of all forms must be a monoid power series ring or module." )
+        raise ValueError( "Common parent of all forms must be a monoid power series ring or module.")
 
     if isinstance(forms.universe(), EquivariantMonoidPowerSeriesAmbient_abstract) \
        and forms.universe().representation().base_ring() == forms.universe().representation().codomain() : 
@@ -123,12 +123,12 @@ def ExpansionModule(forms) :
         base_ring = forms.universe().base_ring().base_ring()
         
     if not base_ring.is_commutative():
-        raise TypeError( "The forms' base ring must be a commutative ring." )
+        raise TypeError( "The forms' base ring must be a commutative ring.")
 
     if base_ring.is_field() \
        or isinstance(base_ring, PrincipalIdealDomain) \
        or ( isinstance(base_ring, Order) \
-            and base_ring.is_maximal() and base_ring.class_number() == 1 ) :
+            and base_ring.is_maximal() and base_ring.class_number() == 1) :
         return ExpansionModule_ambient_pid(forms)
     else :
         return ExpansionModule_generic(forms)
@@ -303,7 +303,7 @@ class ExpansionModule_abstract(object) :
                 indices = [i for (i,k) in enumerate(total_precision) if k in precision]
             else :
                 indices = [i for (i,(k,_)) in enumerate(
-                  itertools.product(total_precision, list(range(self._abstract_basis().universe().coefficient_domain().rank()))) )
+                  itertools.product(total_precision, list(range(self._abstract_basis().universe().coefficient_domain().rank()))))
                              if k in precision]
             basis_fe_expansion = basis_fe_expansion.matrix_from_columns(indices)
         
@@ -337,7 +337,7 @@ class ExpansionModule_abstract(object) :
             sage: fe = em._fourier_expansion_of_element(em([1]))            
         """
         return sum( (e[k]*b for (k,b) in enumerate(self.__abstract_basis) if e[k] != 0),
-                    self.__abstract_basis.universe()(0) )
+                    self.__abstract_basis.universe()(0))
 
     @cached_method
     def _non_zero_characters(self) :
@@ -363,7 +363,7 @@ class ExpansionModule_abstract(object) :
         """
         if isinstance(self.__abstract_basis.universe(), EquivariantMonoidPowerSeriesAmbient_abstract) :
             return list( reduce(union, [ set(b.non_zero_components())
-                                         for b in flatten(self.__abstract_basis, tuple) ], set()) )
+                                         for b in flatten(self.__abstract_basis, tuple) ], set()))
         else :
             return None 
 
@@ -637,7 +637,7 @@ class ExpansionModule_abstract(object) :
             Traceback (most recent call last):
             ...
             ArithmeticError: Equivariant monoid power series in Ring of equivariant monoid power series over NN is not contained in this space.
-            sage: em.coordinates(1 / 2 * emps.one_element(), in_base_ring = False )
+            sage: em.coordinates(1 / 2 * emps.one_element(), in_base_ring = False)
             [1/2]
             sage: K.<rho> = CyclotomicField(6)
             sage: em.coordinates(rho * emps.one_element(), in_base_ring = False)
@@ -677,13 +677,13 @@ class ExpansionModule_abstract(object) :
                              
                 if not force_ambigous and \
                    not self._check_precision() :
-                    raise ValueError( "Not unambigous coordinates available in this submodule." )
+                    raise ValueError( "Not unambigous coordinates available in this submodule.")
 
                 if P != self.__abstract_basis.universe() :                    
                     try :
                         Pnew = pushout(self.__abstract_basis.universe(), P)
                     except TypeError :
-                        raise ArithmeticError( "No coordinates for %s." % (x,) )
+                        raise ArithmeticError( "No coordinates for %s." % (x,))
                     
                     if isinstance(Pnew, EquivariantMonoidPowerSeriesAmbient_abstract) \
                        and Pnew.representation().base_ring() == Pnew.representation().codomain() : 

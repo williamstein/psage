@@ -77,11 +77,11 @@ class SQLiteKeyValueStore(object):
     
     def has_key(self, key):    
         """Returns True if database has the given key."""
-        return self._cursor.execute( "SELECT count(*) FROM cache WHERE key=?", (self._dumps(key),) ).next()[0] > 0
+        return self._cursor.execute("SELECT count(*) FROM cache WHERE key=?", (self._dumps(key),)).next()[0] > 0
             
     def __getitem__(self, key):
         """Return item in the database with given key, or raise KeyError."""        
-        s = self._cursor.execute( "SELECT value,compressed FROM cache WHERE key=?", (self._dumps(key),) )
+        s = self._cursor.execute("SELECT value,compressed FROM cache WHERE key=?", (self._dumps(key),))
         try:
             v = next(s)
             return self._loads(str(v[0]), bool(v[1]))
@@ -95,7 +95,7 @@ class SQLiteKeyValueStore(object):
         
     def __delitem__(self, key):
         """Removes an item from the database.  Call commit to make this permanent."""
-        self._cursor.execute("DELETE FROM cache WHERE key=?", (self._dumps(key),) )    
+        self._cursor.execute("DELETE FROM cache WHERE key=?", (self._dumps(key),))
         
     def _dumps(self, x, compress=False):
         """Converts a Python object to a binary string that can be stored in the database."""
@@ -112,7 +112,7 @@ class SQLiteKeyValueStore(object):
     
     def keys(self):
         """Return list of keys in the database."""
-        return [self._loads(str(x[0])) for x in self._cursor.execute( "SELECT key FROM cache" )]       
+        return [self._loads(str(x[0])) for x in self._cursor.execute( "SELECT key FROM cache")]
         
     def commit(self):
         """Write assignments made to the database to disk."""

@@ -67,7 +67,7 @@ class LowZeros(object):
         for j in range(len(self.params)):
             s += z[j][i]   # i-th zero for j-th parameter (e.g., j-th discriminant)
             # The mean is s/(j+1)
-            m.append( (self.params[j], s/(j+1)) )
+            m.append((self.params[j], s/(j+1)))
         return m
 
     def ith_zeros(self, i=0):

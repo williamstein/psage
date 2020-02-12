@@ -189,7 +189,7 @@ def get_coeffs_p_over_nf(curve, prime_number, accuracy=20 , conductor=None):
         conductor = curve.conductor()
     primes = curve.base_field().prime_factors(prime_number)
     series_p = [get_factor_over_nf(curve, prime_id, prime_number, conductor, accuracy) for prime_id in primes]
-    return ( prod(series_p).O(accuracy) )**(-1)
+    return (prod(series_p).O(accuracy))**(-1)
 
 def anlist_over_nf(E, bound):
     """

@@ -40,21 +40,21 @@ from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseri
 from psage.modform.paramodularforms.siegelmodularformg2_submodule import SiegelModularFormG2Submodule_maassspace
 from sage.interfaces.magma import magma
 
-def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = False) :
+def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = False):
     r"""This function is intended to quickly find good generators. This may be
     calculated in low precision and then ported to higher.
     
     the maass spaces of all subspaces are expected to be ordered the same way as
     ``ring.type()._maass_generator_preimages``.
     """
-    ## Outline :
+    ## Outline:
     ##  - get the basis as polynomials form the ring
     ##  - get the maass products, convert them to polynomials and try to 
     ##  construct a basis
     ##  - get the maass space associated to this weight and get its coordinates
     ##  - return a basis containing of maass forms and the products
 
-    if subspaces is None :
+    if subspaces is None:
         subspaces = dict()
         
     assert ring.base_ring() is QQ or ring.base_ring() is ZZ, \
@@ -68,20 +68,20 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
     lift_polys = []; preims = []
     monomials = set()
     
-    for k in range(min((weight // 2) - ((weight // 2) % 2), weight - 4), 3, -2) :
-        if k not in subspaces :
+    for k in range(min((weight // 2) - ((weight // 2) % 2), weight - 4), 3, -2):
+        if k not in subspaces:
             subspaces[k] = ring.graded_submodule(k)
-        if weight - k not in subspaces :
+        if weight - k not in subspaces:
             subspaces[weight - k] = ring.graded_submodule(weight - k)
         
-        try :
+        try:
             kgs = list(zip(subspaces[k].maass_space()._provided_basis(), maass_lift_preimage_func(k)))
             ogs = list(zip(subspaces[weight - k].maass_space()._provided_basis(), maass_lift_preimage_func(weight - k)))
-        except ValueError :
+        except ValueError:
             continue
         
-        for f_coords,f_pre in kgs :
-            for g_coords,g_pre in ogs :
+        for f_coords,f_pre in kgs:
+            for g_coords,g_pre in ogs:
                 assert f_coords.parent().graded_ambient() is ring
                 assert g_coords.parent().graded_ambient() is ring
  
@@ -91,35 +91,35 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
                 fg_poly = (f*g)._reduce_polynomial()
                 monomials = monomials.union(set(fg_poly.monomials()))
                 
-                M = matrix( QQ, len(lift_polys) + 1,
+                M = matrix(QQ, len(lift_polys) + 1,
                             [ poly.monomial_coefficient(m)
                               for poly in lift_polys + [fg_poly]
-                              for m in monomials] )
+                              for m in monomials])
                 
-                # TODO : Use linbox
-                try :
-                    if magma(M).Rank() <= len(lift_polys) :
+                # TODO: Use linbox
+                try:
+                    if magma(M).Rank() <= len(lift_polys):
                         continue
-                except TypeError :
-                    for i in range(10) :
+                except TypeError:
+                    for i in range(10):
                         Mp = matrix(Qp(random_prime(10**10), 10), M)
-                        if Mp.rank() > len(lift_polys) : break
-                    else :
-                        if lazy_rank_check :
+                        if Mp.rank() > len(lift_polys): break
+                    else:
+                        if lazy_rank_check:
                             continue
-                        elif M.rank() <= len(lift_polys) :
+                        elif M.rank() <= len(lift_polys):
                             continue
                 
                 lift_polys.append(fg_poly)
                 preims.append([f_pre, g_pre])
                         
-                if len(lift_polys) == dim :
+                if len(lift_polys) == dim:
                     break
                 
-    if len(lift_polys) == dim :
+    if len(lift_polys) == dim:
         ss = construct_from_maass_products(ring, weight, list(zip(preims, lift_polys)), True, False, True)
         poly_coords = [[0]*i + [1] + (len(lift_polys) - i - 1)*[0] for i in range(len(lift_polys))]
-    else :
+    else:
         # The products of two Maass lifts don't span this space
         # we hence have to consider the Maass lifts
         ss = ring.graded_submodule(weight)
@@ -132,26 +132,26 @@ def spanning_maass_products(ring, weight, subspaces = None, lazy_rank_check = Fa
     M = matrix(QQ, all_coords).transpose()
 
     nmb_mls = len(maass_lifts)
-    for i in range(10) :
+    for i in range(10):
         Mp = matrix(Qp(random_prime(10**10), 10), M)
         pvs = Mp.pivots()
         if pvs[:nmb_mls] == list(range(nmb_mls)) and \
-           len(pvs) == dim :
+           len(pvs) == dim:
             break
-    else :
+    else:
         pvs = M.pivots()
         
 
-    if len(pvs) == dim :
+    if len(pvs) == dim:
         return [(preims[i], ring(ss(all_coords[i])).polynomial()) for i in pvs]
-    else :        
+    else:
         raise RuntimeError("The products of at most two Maass lifts don't span " + \
                             "this space")
 
 def construct_from_maass_products(ring, weight, products, is_basis = True,
                                   provides_maass_spezialschar = False,
                                   is_integral = False,
-                                  lazy_rank_check = True) :
+                                  lazy_rank_check = True):
     r"""
     Pass the return value of spanning_maass_products of a space of Siegel modular
     forms of same type. This will return a space using these forms.
@@ -164,86 +164,86 @@ def construct_from_maass_products(ring, weight, products, is_basis = True,
     dim = ring.graded_submodule(weight).dimension()
 
     ## if the products don't provide a basis, we have to choose one
-    if not is_basis :
+    if not is_basis:
         ## we prefer to use Maass lifts, since they are very cheap
         maass_forms = []; non_maass_forms = []
-        for p in products :
-            if len(p[0]) == 1 :
+        for p in products:
+            if len(p[0]) == 1:
                 maass_forms.append(p)
-            else :
+            else:
                 non_maass_forms.append(p)
         
         
         monomials = set()
         lift_polys = []
         products = []
-        for lifts, lift_poly in maass_forms + non_maass_forms :
+        for lifts, lift_poly in maass_forms + non_maass_forms:
             red_poly = ring(ring.relations().ring()(lift_poly))._reduce_polynomial()
             monomials = monomials.union(set(red_poly.monomials()))
                 
-            M = matrix( QQ, len(lift_polys) + 1,
+            M = matrix(QQ, len(lift_polys) + 1,
                         [ poly.monomial_coefficient(m)
                           for poly in lift_polys + [lift_poly]
-                          for m in monomials] )                
+                          for m in monomials])
                                     
-            # TODO : Use linbox
-            try :
-                if magma(M).Rank() > len(lift_polys) :
+            # TODO: Use linbox
+            try:
+                if magma(M).Rank() > len(lift_polys):
                     break
-            except TypeError :
-                for i in range(10) :
+            except TypeError:
+                for i in range(10):
                     Mp = matrix(Qp(random_prime(10**10), 10), M)
-                    if Mp.rank() > len(lift_polys) : break
-                else :
-                    if lazy_rank_check :
+                    if Mp.rank() > len(lift_polys): break
+                else:
+                    if lazy_rank_check:
                         continue
-                    elif M.rank() <= len(lift_polys) :
+                    elif M.rank() <= len(lift_polys):
                         continue
                     
             lift_polys.append(red_poly)
             products.append((lifts, red_poly))
 
-            if len(products) == dim :
+            if len(products) == dim:
                 break
-        else :
+        else:
             raise ValueError("products don't provide a basis")
     
     basis = []
      
-    if provides_maass_spezialschar :
+    if provides_maass_spezialschar:
         maass_form_indices = []
-    for i, (lifts, lift_poly) in enumerate(products) :
+    for i, (lifts, lift_poly) in enumerate(products):
         e = ring(ring.relations().ring()(lift_poly))
 
-        if len(lifts) == 1 :
+        if len(lifts) == 1:
             l = lifts[0]
             e._set_fourier_expansion(
                 SiegelModularFormG2MaassLift(l[0], l[1], ring.fourier_expansion_precision(),
-                                             is_integral = is_integral) )
-        elif len(lifts) == 2 :
+                                             is_integral = is_integral))
+        elif len(lifts) == 2:
             (l0, l1) = tuple(lifts)
             e._set_fourier_expansion(
                 EquivariantMonoidPowerSeries_LazyMultiplication(
                     SiegelModularFormG2MaassLift(l0[0], l0[1], ring.fourier_expansion_precision(),
                                                  is_integral = is_integral),
                     SiegelModularFormG2MaassLift(l1[0], l1[1], ring.fourier_expansion_precision(),
-                                                 is_integral = is_integral) ) ) 
+                                                 is_integral = is_integral)))
 
-        else :
-            e._set_fourier_expansion( 
-                prod( SiegelModularFormG2MaassLift(l[0], l[1], ring.precision(),
+        else:
+            e._set_fourier_expansion(
+                prod(SiegelModularFormG2MaassLift(l[0], l[1], ring.precision(),
                                                    is_integral = is_integral)
-                      for l in lifts) )            
+                      for l in lifts))
         basis.append(e)
         
-        if provides_maass_spezialschar and len(lifts) == 1 :
+        if provides_maass_spezialschar and len(lifts) == 1:
             maass_form_indices.append(i)
     
     ss = ring._submodule(basis, grading_indices = (weight,), is_heckeinvariant = True)
-    if provides_maass_spezialschar : 
+    if provides_maass_spezialschar:
         maass_coords = [ ss([0]*i + [1] + [0]*(dim-i-1))
                          for i in maass_form_indices ]
-        ss.maass_space.set_cache( 
-          SiegelModularFormG2Submodule_maassspace(ss, list(map(ss, maass_coords))) )
+        ss.maass_space.set_cache(
+          SiegelModularFormG2Submodule_maassspace(ss, list(map(ss, maass_coords))))
                                  
     return ss

@@ -423,8 +423,8 @@ class LSeriesAbstract(object):
 
         (self._conductor, self._hodge_numbers, self._weight, self._epsilon,
          self._poles, self._residues, self._base_field, self._is_selfdual) = (
-            conductor, hodge_numbers, weight, epsilon, poles, residues,
-            base_field, is_selfdual)
+         conductor, hodge_numbers, weight, epsilon, poles, residues,
+         base_field, is_selfdual)
 
         # the following parameters allow for specifying a list of
         # possibilities:
@@ -830,7 +830,7 @@ class LSeriesAbstract(object):
             1.0000000000000000000000000000000000000000000
         """
         if self._epsilon == 'solve' or (
-                  hasattr(self._epsilon, 'prec') and (prec is None or self._epsilon.prec() < prec)):
+                hasattr(self._epsilon, 'prec') and (prec is None or self._epsilon.prec() < prec)):
             return 'solve'
         if prec is not None:
             C = ComplexField(prec)
@@ -1414,9 +1414,8 @@ class LSeriesAbstract(object):
             eps = 'X'
         else:
             eps = epsilon
-        return Dokchitser(conductor = self.conductor(), gammaV = self.hodge_numbers(), weight = self.weight(),
-                       eps = eps, poles = self.poles(), residues = self.residues(),
-                       prec = prec)
+        return Dokchitser(conductor=self.conductor(), gammaV=self.hodge_numbers(), weight=self.weight(),
+                          eps=eps, poles=self.poles(), residues=self.residues(), prec=prec)
 
     def number_of_coefficients(self, prec=53, T=1.2):
         """

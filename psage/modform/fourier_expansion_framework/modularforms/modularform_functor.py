@@ -1,7 +1,7 @@
 r"""
 A functor creating rings of orthogonal modular forms.
 
-AUTHOR :
+AUTHOR:
     -- Martin Raum (2009 - 07 - 30) Initial version
 """
 from __future__ import absolute_import
@@ -28,11 +28,11 @@ from __future__ import absolute_import
 from sage.categories.rings import Rings
 from sage.categories.pushout import ConstructionFunctor
 
-class ModularFormsFunctor ( ConstructionFunctor ) :
+class ModularFormsFunctor (ConstructionFunctor):
     
     rank = 10
     
-    def __init__(self, type, precision) :
+    def __init__(self, type, precision):
         """
         A functor constructing a ring or module of modular forms.
         
@@ -55,7 +55,7 @@ class ModularFormsFunctor ( ConstructionFunctor ) :
         
         ConstructionFunctor.__init__(self, Rings(), Rings())
 
-    def __call__(self, A) :
+    def __call__(self, A):
         """
         INPUT:
             - `A` -- A ring.
@@ -72,7 +72,7 @@ class ModularFormsFunctor ( ConstructionFunctor ) :
 
         return ModularFormsAmbient(A, self.__type, self.__precision)
         
-    def merge(self, other) :
+    def merge(self, other):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_functor import *
@@ -87,16 +87,16 @@ class ModularFormsFunctor ( ConstructionFunctor ) :
             sage: G.merge(F) is G 
             True
         """
-        if type(other) != type(self) :
+        if type(other) != type(self):
             return None
         
         if self.__type == other.__type and \
-           self.__precision == other.__precision :
+           self.__precision == other.__precision:
             return self
-        else :
-            try :
+        else:
+            try:
                 if other.__type.vector_valued() == self.__type and \
-                   self.__precision == other.__precision :
+                   self.__precision == other.__precision:
                     return self
             except (AttributeError,NotImplementedError):
                 return None 

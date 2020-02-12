@@ -519,7 +519,7 @@ class AutomorphicFormSpace(Parent):
         precold=self._prec
         if prec!=None and prec != self._prec:
             self._prec=prec
-        for i in range( self._group._ncusps):
+        for i in range(self._group._ncusps):
             self.alpha(i)
         self._prec=precold
     def dimension(self):
@@ -665,14 +665,14 @@ class AutomorphicFormSpace(Parent):
         (2) chi(n)= psi(n)*kronecker(t,n) for (n,self.level())=1
 
         """
-        N = ZZ( QQ(self.level())/QQ(4))
+        N = ZZ(QQ(self.level())/QQ(4))
         D = DirichletGroup(self.level())
         chi = self._character
         Omega=[]
         for t in divisors(N):
             for psi in D:
                 r = psi.conductor()
-                s = ZZ(r*r*t )
+                s = ZZ(r*r*t)
                 if(not s.divides(N)):
                     continue
                 ok = True
@@ -978,7 +978,7 @@ class AutomorphicFormSpace(Parent):
                         '-' : {(j,n) : c^-(j,n)}     # j is a cusp and n<=0 an index
                      }
                 corresponding to principal parts (in notation of Bruinier-Funke):
-                    \( \Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
+                    \(\Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
         
                     PP[c,m]=a if the principal at cusp c contains a*q^m
         - `digs` -- integer (default 10): the number of requested digits
@@ -1541,7 +1541,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         nmax=self._shimura_image.sturm_bound()**2  # should be enough
         # but in order to represent a Hecke operator T(p^2) with p not dividing the level we might need more
         for p in range(3,1+next_prime(self.level())):
-            if( self.level() % p != 0):
+            if(self.level() % p != 0):
                 break
         print("p={0}".format(p))
         print("nmax={0}".format(nmax))
@@ -1663,7 +1663,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         k=ZZ (QQ(2*self._weight-1)/QQ(2))
         t1=self._character(p)*kronecker(eps*n*(-1)**k,p)*p**(k-1)
         b=f.Coefficient(n*p*p)+t1*f.Coefficient(n)
-        if( ZZ(p*p).divides(n)):
+        if(ZZ(p*p).divides(n)):
             nn=ZZ (QQ(n)/QQ(p*p))
             b=b+p**(2*k-1)*f.Coefficient(nn)
         return b
@@ -2584,7 +2584,7 @@ class AutomorphicFormElement(SageObject):
                 for n in l:
                     al = self._space.alpha(j)[0]
                     nal = ZZ(n) + al
-                    if( ((not plus) and nal>0) or ((not minus) and nal<0)):
+                    if(((not plus) and nal>0) or ((not minus) and nal<0)):
                         continue
                     if(abs(n)>nmax):
                         continue
@@ -2606,7 +2606,7 @@ class AutomorphicFormElement(SageObject):
                         a0_neg[j]=True
                 for norm_index in range(0,max(Nlist)):
                     nal = norm_index + self._space.alpha(j)[0]
-                    if( (not (norm_index in l))  or (norm_index==0 and a0_neg[j]) or (nal <0)):
+                    if((not (norm_index in l))  or (norm_index==0 and a0_neg[j]) or (nal <0)):
                         continue
                     c_norm=self._coeffs[r][j][norm_index]#/mpmath.sqrt(abs(nal))
                     if(abs(c_norm)>eps and abs(c_norm)>0.0):
@@ -3047,7 +3047,7 @@ class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace):
             else:
                 if self.level() % 4 != 0:
                     raise ValueError(" Need level divisible by 4. Got: {0} ".format(self.level()))
-                #if ( int(2*weight) % 4 == 1):
+                #if (int(2*weight) % 4 == 1):
                 multiplier=ThetaMultiplier(self._group,weight=weight)
                 #else:
                 #    multiplier=ThetaMultiplier(self._group,dual=True)
@@ -3082,7 +3082,7 @@ class HarmonicWeakMaassFormSpace(AlmostHolomorphicModularFormSpace):
                         '-' : {(j,n) : c^-(j,n)}     # j is a cusp and n<=0 an index
                      }
                 corresponding to principal parts (in notation of Bruinier-Funke):
-                    \( \Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
+                    \(\Sum_{n>0} c^+(j,n)q^{-n} +  \Sum_{n<0} c^-(j,n)H(n\tau)
         - ''ndig'' -- integer (default 10): the number of requested digits
         - ''dbase_prec'' -- integer (default None): if set, use this number of digits for precision in all mpmath calculations
         - ''SetC'' -- dictionary containing fourier coefficients to keep fixed (and their values)
@@ -3204,7 +3204,7 @@ class HolomorphicModularForms(AutomorphicFormSpace):
         r""" Initialize the space of automorphic forms.
         """
         self._verbose=verbose
-        if( hasattr(G,'_is_space_of_automorphic_functions')):
+        if(hasattr(G,'_is_space_of_automorphic_functions')):
             # Look at the holomorphic space on the group of G with same weight
             # and multiplier as default
             self._group=G._group
@@ -3717,7 +3717,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
         ## Then we check the zeroth coefficients
         for r in range(nc):
             if(alphas[r][1]==1):
-                if( (not variable_a_plus[j][r]) and (not variable_a_minus[j][r])):
+                if((not variable_a_plus[j][r]) and (not variable_a_minus[j][r])):
                     nr = r*Ml
                     if((r,0) in SetCs_neg.get(j,{})):
                         SetClist[j][nr]=CF(SetCs_neg[j][(r,0)]) 
@@ -4049,7 +4049,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
         ## Then we check the zeroth coefficients
         for r in range(nc):
             if(alphas[r][1]==1):
-                if( (not variable_a_plus[r]) and (not variable_a_minus[r])):
+                if((not variable_a_plus[r]) and (not variable_a_minus[r])):
                     nr = r*Ml
                     #if(SetCs_neg[j].has_key((r,0))):
                     #    

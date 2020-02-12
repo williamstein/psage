@@ -60,34 +60,34 @@ from psage.modform.paramodularforms import siegelmodularformg2_misc_cython
 # SiegelModularFormG2MaassLift
 #===============================================================================
 
-def SiegelModularFormG2MaassLift(f, g, precision, is_integral = True, weight = None) :    
+def SiegelModularFormG2MaassLift(f, g, precision, is_integral = True, weight = None):    
     factory = SiegelModularFormG2Factory(precision)
-    if is_integral :
+    if is_integral:
         expansion_ring = SiegelModularFormG2FourierExpansionRing(ZZ)
-    else :
+    else:
         expansion_ring = SiegelModularFormG2FourierExpansionRing(QQ)
 
-    if f == 0 :
-        fexp = lambda p : 0
-    if hasattr(f, "qexp") :
-        fexp = lambda p : f.qexp(p)
-    else :
+    if f == 0:
+        fexp = lambda p: 0
+    if hasattr(f, "qexp"):
+        fexp = lambda p: f.qexp(p)
+    else:
         fexp = f
         
-    if g == 0 :
-        gexp = lambda p : 0
-    if hasattr(g, "qexp") :
-        gexp = lambda p : g.qexp(p)
-    else :
+    if g == 0:
+        gexp = lambda p: 0
+    if hasattr(g, "qexp"):
+        gexp = lambda p: g.qexp(p)
+    else:
         gexp = g
     
-    if weight is None :
-        try :
+    if weight is None:
+        try:
             weight = f.weight()
-        except AttributeError :
+        except AttributeError:
             weight = g.weight() -2
     
-    coefficients_factory = DelayedFactory_SMFG2_masslift( factory, fexp, gexp, weight )
+    coefficients_factory = DelayedFactory_SMFG2_masslift(factory, fexp, gexp, weight)
 
     return EquivariantMonoidPowerSeries_lazy(expansion_ring, precision, coefficients_factory.getcoeff)
 
@@ -95,8 +95,8 @@ def SiegelModularFormG2MaassLift(f, g, precision, is_integral = True, weight = N
 # DelayedFactory_SMFG2_masslift
 #===============================================================================
 
-class DelayedFactory_SMFG2_masslift(object) :
-    def __init__(self, factory, f, g, weight) :
+class DelayedFactory_SMFG2_masslift(object):
+    def __init__(self, factory, f, g, weight):
         self.__factory = factory
         self.__f = f
         self.__g = g
@@ -104,12 +104,12 @@ class DelayedFactory_SMFG2_masslift(object) :
         
         self.__series = None
     
-    def getcoeff(self, key, **kwds) :
+    def getcoeff(self, key, **kwds):
         (_, k) = key
         # for speed we ignore the character 
-        if self.__series is None :
+        if self.__series is None:
             self.__series = \
-             self.__factory.maass_form( self.__f, self.__g, self.__weight,
+             self.__factory.maass_form(self.__f, self.__g, self.__weight,
                                         is_integral = True)
              
         return self.__series[k]
@@ -120,14 +120,14 @@ class DelayedFactory_SMFG2_masslift(object) :
 
 _siegel_modular_form_g2_factory_cache = dict()
 
-def SiegelModularFormG2Factory(precision) :
-    if not isinstance(precision, SiegelModularFormG2Filter_discriminant) :
+def SiegelModularFormG2Factory(precision):
+    if not isinstance(precision, SiegelModularFormG2Filter_discriminant):
         precision = SiegelModularFormG2Filter_discriminant(precision)
     
     global _siegel_modular_form_g2_factory_cache
-    try :
+    try:
         return _siegel_modular_form_g2_factory_cache[precision]
-    except KeyError :
+    except KeyError:
         factory = SiegelModularFormG2Factory_class(precision)
         _siegel_modular_form_g2_factory_cache[precision] = factory
         
@@ -137,13 +137,13 @@ def SiegelModularFormG2Factory(precision) :
 # SiegelModularFormG2Factory_class
 #===============================================================================
 
-class SiegelModularFormG2Factory_class( SageObject ) :
+class SiegelModularFormG2Factory_class(SageObject):
     r"""
     A class producing dictionarys saving fourier expansions of Siegel
     modular forms of genus `2`.
     """
     
-    def __init__(self, precision) :
+    def __init__(self, precision):
         r"""
         INPUT:
         
@@ -157,20 +157,20 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         self._power_series_ring_ZZ = PowerSeriesRing(ZZ, 'q')
         self._power_series_ring = PowerSeriesRing(QQ, 'q')
     
-    def power_series_ring(self) :
+    def power_series_ring(self):
         return self._power_series_ring
     
-    def integral_power_series_ring(self) :
+    def integral_power_series_ring(self):
         return self._power_series_ring_ZZ
     
-    def _get_maass_form_qexp_prec(self) :
+    def _get_maass_form_qexp_prec(self):
         r"""
         Return the precision of eta, needed to calculate the Maass lift in
         self.as_maass_spezial_form 
         """
-        return ( self.__precision.discriminant() + 1)//4 + 1
+        return (self.__precision.discriminant() + 1)//4 + 1
     
-    def _divisor_dict(self) :
+    def _divisor_dict(self):
         r"""
         Return a dictionary of assigning to each `k < n` a list of its divisors.
         
@@ -178,17 +178,17 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         
         - `n`    -- a positive integer
         """
-        try :
+        try:
             return self.__divisor_dict
-        except AttributeError :
+        except AttributeError:
             self.__divisor_dict = siegelmodularformg2_misc_cython.divisor_dict(self.__precision.discriminant())
 
             return self.__divisor_dict
         
-    def _eta_power(self) :
-        try :
+    def _eta_power(self):
+        try:
             return self.__eta_power
-        except AttributeError :
+        except AttributeError:
             qexp_prec = self._get_maass_form_qexp_prec()
         
             self.__eta_power = self.integral_power_series_ring() \
@@ -196,23 +196,23 @@ class SiegelModularFormG2Factory_class( SageObject ) :
                  
             return self.__eta_power
 
-    def precision(self) :
+    def precision(self):
         return self.__precision
     
-    def _negative_fundamental_discriminants(self) :
+    def _negative_fundamental_discriminants(self):
         r"""
         Return a list of all negative fundamental discriminants.
         """
-        try :
+        try:
             return self.__negative_fundamental_discriminants
-        except AttributeError :
+        except AttributeError:
             self.__negative_fundamental_discriminants = \
              siegelmodularformg2_misc_cython.negative_fundamental_discriminants(
-                                              self.__precision.discriminant() )
+                                              self.__precision.discriminant())
 
             return self.__negative_fundamental_discriminants
     
-    def maass_form( self, f, g, k = None, is_integral = False) :
+    def maass_form(self, f, g, k = None, is_integral = False):
         r"""
         Return the Siegel modular form `I(f,g)` (Notation as in [Sko]).
     
@@ -224,9 +224,9 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         """
         
         ## we introduce an abbreviations
-        if is_integral :
+        if is_integral:
             PS = self.integral_power_series_ring()
-        else :
+        else:
             PS = self.power_series_ring()
         
         fismodular = isinstance(f, ModularFormElement)
@@ -234,38 +234,38 @@ class SiegelModularFormG2Factory_class( SageObject ) :
     
         ## We only check the arguments if f and g are ModularFormElements.
         ## Otherwise we trust in the user 
-        if fismodular and gismodular :
-            assert( f.weight() + 2 == g.weight() | (f==0) | (g==0)), \
+        if fismodular and gismodular:
+            assert(f.weight() + 2 == g.weight() | (f==0) | (g==0)), \
                     "incorrect weights!"
-            assert( g.q_expansion(1) == 0), "second argument is not a cusp form"
+            assert(g.q_expansion(1) == 0), "second argument is not a cusp form"
 
         qexp_prec = self._get_maass_form_qexp_prec()
-        if qexp_prec is None : # there are no forms below prec
+        if qexp_prec is None: # there are no forms below prec
             return dict()
 
-        if fismodular :
+        if fismodular:
             k = f.weight()
-            if f == f.parent()(0) :
+            if f == f.parent()(0):
                 f = PS(0, qexp_prec)
-            else :
+            else:
                 f = PS(f.qexp(qexp_prec), qexp_prec)
-        elif f == 0 :
+        elif f == 0:
             f = PS(0, qexp_prec)
-        else :
+        else:
             f = PS(f(qexp_prec), qexp_prec)
         
-        if gismodular :
+        if gismodular:
             k = g.weight() - 2
-            if g == g.parent()(0) :
+            if g == g.parent()(0):
                 g = PS(0, qexp_prec)
-            else :
+            else:
                 g = PS(g.qexp(qexp_prec), qexp_prec)
-        elif g == 0 :
+        elif g == 0:
             g = PS(0, qexp_prec)
-        else :
+        else:
             g = PS(g(qexp_prec), qexp_prec)
                 
-        if k is None :
+        if k is None:
             raise ValueError("if neither f nor g are not ModularFormElements " + \
                               "you must pass k")
             
@@ -278,7 +278,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         # (A0,A1,B0,B1) = (a0*etapow, a1*etapow, b0*etapow, b1*etapow)
     
         ## Calculate the image of the pair of modular forms (f,g) under
-        ## [Sko]'s isomorphism I : M_{k} \oplus S_{k+2} -> J_{k,1}.
+        ## [Sko]'s isomorphism I: M_{k} \oplus S_{k+2} -> J_{k,1}.
         
         # Multiplication of big polynomials may take > 60 GB, so wie have
         # to do it in small parts; This is only implemented for integral
@@ -308,7 +308,7 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         a1dict = dict(); a0dict = dict()
         b1dict = dict(); b0dict = dict()
     
-        for t in range(1, ab_prec + 1) :
+        for t in range(1, ab_prec + 1):
             tmp = t**2
             a1dict[tmp] = -8*tmp
             b1dict[tmp] = -2
@@ -329,9 +329,9 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         Ifg0 = (self._eta_power() * (f*a0 + gfderiv*b0)).list()
         Ifg1 = (self._eta_power() * (f*a1 + gfderiv*b1)).list()
 
-        if len(Ifg0) < qexp_prec :
+        if len(Ifg0) < qexp_prec:
             Ifg0 += [0]*(qexp_prec - len(Ifg0))
-        if len(Ifg1) < qexp_prec :
+        if len(Ifg1) < qexp_prec:
             Ifg1 += [0]*(qexp_prec - len(Ifg1))
         
         ## For applying the Maass' lifting to genus 2 modular forms.
@@ -340,14 +340,14 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         ## discriminant D by going Chi[D].
         
         Cphi = dict([(0,0)])
-        for i in range(qexp_prec) :
+        for i in range(qexp_prec):
             Cphi[-4*i] = Ifg0[i]
             Cphi[1-4*i] = Ifg1[i]
 
         del Ifg0[:], Ifg1[:]
 
         """
-        Create the Maas lift F := VI(f,g) as in [Sko].
+        Create the Maas lift F:= VI(f,g) as in [Sko].
         """
         
         ## The constant term is given by -Cphi[0]*B_{2k}/(4*k)
@@ -365,67 +365,67 @@ class SiegelModularFormG2Factory_class( SageObject ) :
         divisor_dict = self._divisor_dict()
 
         ## First calculate maass coefficients corresponding to strictly positive definite matrices:        
-        for disc in self._negative_fundamental_discriminants() :
-            for s in range(1, isqrt((-self.__precision.discriminant()) // disc) + 1) :
+        for disc in self._negative_fundamental_discriminants():
+            for s in range(1, isqrt((-self.__precision.discriminant()) // disc) + 1):
                 ## add (disc*s^2,t) as a hash key, for each t that divides s
-                for t in divisor_dict[s] :
+                for t in divisor_dict[s]:
                     maass_coeffs[(disc * s**2,t)] = \
-                       sum( a**(k-1) * Cphi[disc * s**2 / a**2] 
-                            for a in divisor_dict[t] )
+                       sum(a**(k-1) * Cphi[disc * s**2 / a**2]
+                            for a in divisor_dict[t])
 
         ## Compute the coefficients of the Siegel form $F$:
         siegel_coeffs = dict()
-        for (n,r,m), g in self.__precision.iter_positive_forms_with_content() :
+        for (n,r,m), g in self.__precision.iter_positive_forms_with_content():
             siegel_coeffs[(n,r,m)] = maass_coeffs[(r**2 - 4*m*n, g)]
 
         ## Secondly, deal with the singular part.
         ## Include the coeff corresponding to (0,0,0):
         ## maass_coeffs = {(0,0): -bernoulli(k)/(2*k)*Cphi[0]}
         siegel_coeffs[(0,0,0)] = -bernoulli(k)/(2*k)*Cphi[0]
-        if is_integral :
+        if is_integral:
             siegel_coeffs[(0,0,0)] = Integer(siegel_coeffs[(0,0,0)])
         
         ## Calculate the other discriminant-zero maass coefficients.
         ## Since sigma is quite cheap it is faster to estimate the bound and
         ## save the time for repeated calculation
-        for i in range(1, self.__precision._indefinite_content_bound()) :
+        for i in range(1, self.__precision._indefinite_content_bound()):
             ## maass_coeffs[(0,i)] = sigma(i, k-1) * Cphi[0]
             siegel_coeffs[(0,0,i)] = sigma(i, k-1) * Cphi[0]
 
         return siegel_coeffs
 
-    def maass_eisensteinseries(self, k) :
-        if not isinstance(k, (int, Integer)) :
+    def maass_eisensteinseries(self, k):
+        if not isinstance(k, (int, Integer)):
             raise TypeError("k must be an integer")
-        if k % 2 != 0 or k < 4 :
+        if k % 2 != 0 or k < 4:
             raise ValueError("k must be even and greater than 4")
         
         return self.maass_form(ModularForms(1,k).eisenstein_subspace().gen(0), 0)
   
     ## TODO: Rework these functions
-    def from_gram_matrix( self, gram, name = None) :
+    def from_gram_matrix(self, gram, name = None):
         raise NotImplementedError("matrix argument not yet implemented")
 
-    def _SiegelModularForm_borcherds_lift( self, f, prec = 100, name = None):
+    def _SiegelModularForm_borcherds_lift(self, f, prec = 100, name = None):
     
         raise NotImplementedError("matrix argument not yet implemented")
 
-    def _SiegelModularForm_yoshida_lift( self, f, g, prec = 100, name = None):
+    def _SiegelModularForm_yoshida_lift(self, f, g, prec = 100, name = None):
     
         raise NotImplementedError("matrix argument not yet implemented")
 
-    def _SiegelModularForm_from_weil_representation( self, gram, prec = 100, name = None):
+    def _SiegelModularForm_from_weil_representation(self, gram, prec = 100, name = None):
     
         raise NotImplementedError("matrix argument not yet implemented")
 
-    def _SiegelModularForm_singular_weight( self, gram, prec = 100, name = None):
+    def _SiegelModularForm_singular_weight(self, gram, prec = 100, name = None):
     
         raise NotImplementedError("matrix argument not yet implemented")
 
-    def _repr_(self) :
+    def _repr_(self):
         return "Factory class for Siegel modular forms of genus 2 with precision %s" % \
                repr(self.__precision.discriminant())
     
-    def _latex_(self) :
+    def _latex_(self):
         return "Factory class for Siegel modular forms of genus $2$ with precision %s" % \
                latex(self.__precision.discriminant())

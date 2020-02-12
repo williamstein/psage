@@ -24,7 +24,7 @@ class ConstructionFunctor(Functor):
             return other * self
             
     def __cmp__(self, other):
-        """
+        r"""
         Equality here means that they are mathematically equivalent, though they may have specific implementation data. 
         See the \code{merge} function. 
         """
@@ -339,7 +339,7 @@ class MultiPolynomialFunctor(ConstructionFunctor):
 
 class InfinitePolynomialFunctor(ConstructionFunctor):
     """
-    A Construction Functor for Infinite Polynomial Rings (see :mod:`~sage.rings.polynomial.infinite_polynomial_ring`)
+    A Construction Functor for Infinite Polynomial Rings (see:mod:`~sage.rings.polynomial.infinite_polynomial_ring`)
     
     AUTHOR: 
        -- Simon King
@@ -1092,7 +1092,7 @@ def BlackBoxConstructionFunctor(ConstructionFunctor):
         
         
 def pushout(R, S):
-    """
+    r"""
     Given a pair of Objects R and S, try and construct a 
     reasonable object $Y$ and return maps such that 
     canonically $R \leftarrow Y \rightarrow S$. 

@@ -62,5 +62,5 @@ def random_matrix_eigenvalues(F,n):
     U = random_unitary_matrix(F,n)
     UT = U.transpose().conjugate()
     A = U*D*UT
-    l.sort(cmp=my_abscmp)
+    l.sort(key=lambda x:abs(x))
     return   A,U,l

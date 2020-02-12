@@ -77,7 +77,7 @@ def fundamental_discriminants(A, B):
     """Return the fundamental discriminants between A and B (inclusive), as Sage integers,
     ordered by absolute value, with negatives first when abs same."""
     v = [ZZ(D) for D in range(A, B+1) if is_fundamental_discriminant(D)]
-    v.sort(lambda x,y: cmp((abs(x),sgn(x)),(abs(y),sgn(y))))
+    v.sort(key=lambda x:(abs(x),sgn(x)))
     return v
 
 class RealQuadratic(LowZeros):

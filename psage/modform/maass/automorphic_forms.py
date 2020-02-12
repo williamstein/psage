@@ -2310,7 +2310,14 @@ class AutomorphicFormElement(SageObject):
         if b=='-0' and ZZ(a)==0:
             return 1        
         return cmp(ZZ(a),ZZ(b))
-    
+
+    def my_zz_cmp_key(self,x):
+        """
+        COmpare integers and include '-0' which should be treated as smaller than 0
+        :param x:
+        :return:
+        """
+        return (ZZ(x), str(x))
     def list_coefficients_old(self,nmax,norm=False,plus=True,minus=True,cusp=None):
         r"""
         List coefficients of self.
@@ -2324,7 +2331,7 @@ class AutomorphicFormElement(SageObject):
                     continue
                 print("")
                 l=list(self._coeffs[r][j].keys())
-                l.sort(cmp=self.my_zzcmp)
+                l.sort(key=self.my_zz_cmp_key)
                 #c0=self._coeffs[r][j][0]
                 #c1=self._coeffs[r][j][1]
                 ## Scaling factor for positive coefficients
@@ -2465,8 +2472,8 @@ class AutomorphicFormElement(SageObject):
         #for (j,n) in  self.principal_part().get('-',{}).keys(): 
         #    if j==cusp:
         #        l_minus.append(n); C[n]=self.principal_part()['-'][(j,n)]
-        l_plus.sort(cmp=self.my_zzcmp)
-        l_minus.sort(cmp=self.my_zzcmp)
+        l_plus.sort(key=self.my_zz_cmp_key)
+        l_minus.sort(key=self.my_zz_cmp_key)
         scaling_factors=[]
         RF = RealField(self._prec)
         new_prec = self._prec
@@ -2590,7 +2597,7 @@ class AutomorphicFormElement(SageObject):
                         continue
                     if(Nlist.count(n)==0):                        
                         Nlist.append(n)
-            Nlist.sort(cmp=self.my_zzcmp)
+            Nlist.sort(key=self.my_zz_cmp_key)
             ### First get the scaling factors
             pos_factor=dict()
             neg_factor=dict()
@@ -3311,7 +3318,7 @@ class HolomorphicModularFormElement(AutomorphicFormElement):
                     continue
                 print("")
                 l=list(self._coeffs[r][j].keys())
-                l.sort(cmp=self.my_zzcmp)
+                l.sort(key=self.my_zz_cmp_key)
                 for n in l:
                     al = self._space.alpha(j)[0]
                     if al != 0:

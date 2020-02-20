@@ -61,7 +61,7 @@ class NewformCollection(Collection):
         # Query C for the 4-tuples, as described in the docstring above.
         Q = [(x['level'], x['weight'], x['character']['order'], x['count']) for x in
              C.find({},['level','weight','character.order','count'])]
-        Q.sort(lambda x,y: cmp(x[key],y[key]))
+        Q.sort(key=lambda x: x[key])
         return Q
 
     def normalize(self, level, weight, character):

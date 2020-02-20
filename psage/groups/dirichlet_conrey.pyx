@@ -14,6 +14,8 @@
 # include "stdsage.pxi"  # ctrl-c interrupt block support
 # include "cdefs.pxi"
 
+# This file is taken from https://github.com/jwbober/conrey-dirichlet-characters/blob/master/dirichlet_conrey.pyx
+
 from libc.stdlib cimport malloc, free
 
 from sage.all import (factor,

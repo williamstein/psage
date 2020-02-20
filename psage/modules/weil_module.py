@@ -108,7 +108,7 @@ class WeilModule (FormalSums):
         # times the sigma invariant
         self._verbose = 0 
         self._K = CyclotomicField( lcm(A.level(),8 ))
-        FormalSums.__init__( self, base_ring = self._K)        
+        FormalSums.__init__( self, base=self._K)
         #l = copy(self._QM.list())
         #self._list=[] ## Ordered list of elements, in the way that -list[i]=list[D-i]
         #for i in range(len(l)):

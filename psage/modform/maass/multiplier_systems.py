@@ -41,7 +41,7 @@ from sage.all import SageObject,CyclotomicField,Integer,is_even,ZZ,QQ,Rational,k
 from sage.all import kronecker_character,kronecker_character_upside_down,I
 from sage.misc.cachefunc import cached_function,cached_method
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
-from sage.modular.etaproducts import eta_qexp
+from sage.modular.etaproducts import qexp_eta
 from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z,SL2Z_elt
 from psage.modform.arithgroup.mysubgroup import MySubgroup
 from psage.modules.weil_module import WeilModule

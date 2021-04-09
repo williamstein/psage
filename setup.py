@@ -204,7 +204,7 @@ code = setup(
     platforms=['any'],
     download_url='N/A',
     ext_modules=ext_modules,
-    install_requires=[
+    requires=[
           'past' # Temporary add to be able to use old_div without checking everything...
       ],
 )

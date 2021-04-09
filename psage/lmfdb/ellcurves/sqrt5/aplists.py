@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -19,6 +20,7 @@
 #
 #################################################################################
 
+from builtins import range
 def str_to_apdict(s, labels):
     return dict([(labels[a], int(b)) for a,b in enumerate(s.split()) if b != '?'])
 
@@ -60,7 +62,7 @@ def import_table(address, aplists_txt_filename, max_level=None):
     from pymongo import Connection
     C = Connection(address).research
     if not C.authenticate(user, password):
-        raise RuntimeError, "failed to authenticate"
+        raise RuntimeError("failed to authenticate")
     e = C.ellcurves_sqrt5
     for X in open(aplists_txt_filename).read().splitlines():
         if X.startswith('#'):
@@ -72,7 +74,7 @@ def import_table(address, aplists_txt_filename, max_level=None):
         v = {'level':level, 'iso_class':iso_class,
              'number':1, 'Nlevel':Nlevel, 'ap':ap}
         if max_level and Nlevel > max_level: break
-        print v
+        print(v)
         spec = dict(v)
         del spec['ap']
         e.update(spec, v, upsert=True, safe=True)

@@ -36,7 +36,8 @@ This is because no type codes are stored in the database document, in
 order to not tie the database too tightly to Sage.
 """
 
-class DBConverter:
+from builtins import object
+class DBConverter(object):
     def from_dirichlet_character(self, e):
         zeta_order = int(e.parent().base_ring().zeta_order())
         return {'modulus':int(e.modulus()),
@@ -60,9 +61,14 @@ class DBConverter:
     def to_db(self, x):
         from sage.modular.dirichlet import DirichletCharacter
         from sage.all import Integer
+        import six
+        if six.PY2:
+            integer_types = (Integer, int, long)
+        else:
+            integer_types = (Integer, int)
         if isinstance(x, DirichletCharacter):
             return self.from_dirichlet_character(x)
-        elif isinstance(x, (Integer, int, long)):
+        elif isinstance(x, integer_types):
             return int(x)
         elif x is None:
             return x

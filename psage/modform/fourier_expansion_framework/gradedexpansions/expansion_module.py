@@ -24,6 +24,9 @@ AUTHOR:
 #
 #===============================================================================
 
+from builtins import str
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import LazyFourierExpansionEvaluation
 from psage.modform.fourier_expansion_framework.gradedexpansions.fourierexpansionwrapper import FourierExpansionWrapper
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesAmbient_abstract, MonoidPowerSeriesAmbient_abstract
@@ -49,6 +52,7 @@ from sage.rings.ring import Ring
 from sage.structure.element import Element
 from sage.structure.sequence import Sequence, Sequence_generic
 import itertools
+from functools import reduce
 
 #===============================================================================
 # ExpansionModule
@@ -103,11 +107,11 @@ def ExpansionModule(forms) :
     if not isinstance(forms, Sequence_generic) :
         forms = Sequence(forms)
         if len(forms) == 0 :
-            raise ValueError( "Empty modules must be constructed with a universe." )
+            raise ValueError( "Empty modules must be constructed with a universe.")
                 
     if not isinstance(forms.universe(), (MonoidPowerSeriesAmbient_abstract,
                                          EquivariantMonoidPowerSeriesAmbient_abstract)) :
-        raise ValueError( "Common parent of all forms must be a monoid power series ring or module." )
+        raise ValueError( "Common parent of all forms must be a monoid power series ring or module.")
 
     if isinstance(forms.universe(), EquivariantMonoidPowerSeriesAmbient_abstract) \
        and forms.universe().representation().base_ring() == forms.universe().representation().codomain() : 
@@ -119,12 +123,12 @@ def ExpansionModule(forms) :
         base_ring = forms.universe().base_ring().base_ring()
         
     if not base_ring.is_commutative():
-        raise TypeError( "The forms' base ring must be a commutative ring." )
+        raise TypeError( "The forms' base ring must be a commutative ring.")
 
     if base_ring.is_field() \
        or isinstance(base_ring, PrincipalIdealDomain) \
        or ( isinstance(base_ring, Order) \
-            and base_ring.is_maximal() and base_ring.class_number() == 1 ) :
+            and base_ring.is_maximal() and base_ring.class_number() == 1) :
         return ExpansionModule_ambient_pid(forms)
     else :
         return ExpansionModule_generic(forms)
@@ -133,7 +137,7 @@ def ExpansionModule(forms) :
 # ExpansionModule_abstract
 #===============================================================================
 
-class ExpansionModule_abstract :
+class ExpansionModule_abstract(object) :
     r"""
     An abstract implementation of a module with expansions associated to its basis elements.
     """
@@ -278,12 +282,12 @@ class ExpansionModule_abstract :
             True
         """
         if lazy_rank_check and not( self.base_ring() is ZZ or self.base_ring() is QQ) :
-            raise NotImplemented, "lazy rank checks only implemented for ZZ and QQ" 
+            raise NotImplemented("lazy rank checks only implemented for ZZ and QQ") 
 
         if precision is None :
             precision = self.precision()
         elif not precision <= self.precision() :
-            raise ValueError, "precison must be less equal self.__graded_ambient.precision()"
+            raise ValueError("precison must be less equal self.__graded_ambient.precision()")
         
         if precision.is_infinite() :
             precision = self._bounding_precision()
@@ -299,7 +303,7 @@ class ExpansionModule_abstract :
                 indices = [i for (i,k) in enumerate(total_precision) if k in precision]
             else :
                 indices = [i for (i,(k,_)) in enumerate(
-                  itertools.product(total_precision, range(self._abstract_basis().universe().coefficient_domain().rank())) )
+                  itertools.product(total_precision, list(range(self._abstract_basis().universe().coefficient_domain().rank()))))
                              if k in precision]
             basis_fe_expansion = basis_fe_expansion.matrix_from_columns(indices)
         
@@ -333,7 +337,7 @@ class ExpansionModule_abstract :
             sage: fe = em._fourier_expansion_of_element(em([1]))            
         """
         return sum( (e[k]*b for (k,b) in enumerate(self.__abstract_basis) if e[k] != 0),
-                    self.__abstract_basis.universe()(0) )
+                    self.__abstract_basis.universe()(0))
 
     @cached_method
     def _non_zero_characters(self) :
@@ -359,7 +363,7 @@ class ExpansionModule_abstract :
         """
         if isinstance(self.__abstract_basis.universe(), EquivariantMonoidPowerSeriesAmbient_abstract) :
             return list( reduce(union, [ set(b.non_zero_components())
-                                         for b in flatten(self.__abstract_basis, tuple) ], set()) )
+                                         for b in flatten(self.__abstract_basis, tuple) ], set()))
         else :
             return None 
 
@@ -532,7 +536,7 @@ class ExpansionModule_abstract :
         expansion_matrix = self.fourier_expansion_homomorphism().matrix().transpose()
 
         if expansion_matrix.rank() == self.rank() :
-            return range(self.rank())
+            return list(range(self.rank()))
         else :
             return list(expansion_matrix.pivots())
                   
@@ -633,7 +637,7 @@ class ExpansionModule_abstract :
             Traceback (most recent call last):
             ...
             ArithmeticError: Equivariant monoid power series in Ring of equivariant monoid power series over NN is not contained in this space.
-            sage: em.coordinates(1 / 2 * emps.one_element(), in_base_ring = False )
+            sage: em.coordinates(1 / 2 * emps.one_element(), in_base_ring = False)
             [1/2]
             sage: K.<rho> = CyclotomicField(6)
             sage: em.coordinates(rho * emps.one_element(), in_base_ring = False)
@@ -673,13 +677,13 @@ class ExpansionModule_abstract :
                              
                 if not force_ambigous and \
                    not self._check_precision() :
-                    raise ValueError( "Not unambigous coordinates available in this submodule." )
+                    raise ValueError( "Not unambigous coordinates available in this submodule.")
 
                 if P != self.__abstract_basis.universe() :                    
                     try :
                         Pnew = pushout(self.__abstract_basis.universe(), P)
                     except TypeError :
-                        raise ArithmeticError( "No coordinates for %s." % (x,) )
+                        raise ArithmeticError( "No coordinates for %s." % (x,))
                     
                     if isinstance(Pnew, EquivariantMonoidPowerSeriesAmbient_abstract) \
                        and Pnew.representation().base_ring() == Pnew.representation().codomain() : 
@@ -747,9 +751,9 @@ class ExpansionModule_abstract :
                 
                     coords = magma(fe_matrix.transpose()).Solution(magma(x_fe_vector.transpose())).sage()
                     coords = coords.row(0)
-                except TypeError, msg :
-                    if "Runtime error in 'Solution': No solution exists" in msg :
-                        raise ArithmeticError( "%s is not contained in this space." % (x,) )
+                except TypeError as msg :
+                    if "Runtime error in 'Solution': No solution exists" in str(msg):
+                        raise ArithmeticError( "{0} is not contained in this space.".format(x))
 
                     if not force_ambigous and \
                        len(valid_indices) != self.fourier_expansion_homomorphism().matrix().ncols() and \
@@ -758,8 +762,8 @@ class ExpansionModule_abstract :
                     
                     try :
                         coords = fe_matrix.solve_right(x_fe_vector)
-                    except ValueError, msg :
-                        raise ArithmeticError( "%s is not contained in this space, %s" % (x, msg) )
+                    except ValueError as msg :
+                        raise ArithmeticError( "{0} is not contained in this space, {1}".format(x, msg) )
                     coords = coords.column(0)
                     
                     if self.precision() != self._bounding_precision() and \
@@ -1017,7 +1021,7 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
     if is_FreeModule(gens):
         gens = gens.gens()
     if not isinstance(gens, (list, tuple, Sequence)):
-        raise TypeError, "Argument gens (= %s) must be a list, tuple, or sequence." % (gens,)
+        raise TypeError("Argument gens (= {0}) must be a list, tuple, or sequence.".format(gens))
 
     if base_ring is None or base_ring == self.base_ring() :
         gens = Sequence(gens, check = check, universe = self.ambient_module())
@@ -1027,13 +1031,13 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
         try:
             M = self.ambient_module().change_ring(base_ring)
         except TypeError:
-            raise ValueError, "Argument base_ring (= %s) is not compatible " % (base_ring,) + \
-                "with the base field (= %s)." % (self.base_field(),)
+            raise ValueError("Argument base_ring (= {0}) is not compatible ".format(base_ring) + \
+                "with the base field (= {0}).".format(self.base_field()))
         try: 
             return M.span(gens)
         except TypeError:
-            raise ValueError, "Argument gens (= %s) is not compatible " % (gens,) + \
-                "with base_ring (= %s)." % (base_ring,)
+            raise ValueError("Argument gens (= {0}) is not compatible ".format(gens) + \
+                "with base_ring (= {0}).".format(base_ring))
 
 #===============================================================================
 # ExpansionModule_ambient_pid
@@ -1122,7 +1126,7 @@ class ExpansionModule_ambient_pid ( ExpansionModule_abstract, FreeModule_ambient
             sage: em.basis()
             [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
         """
-        return map(lambda b: self._element_class(self, b), FreeModule_ambient_pid.basis(self))    
+        return [self._element_class(self, b) for b in FreeModule_ambient_pid.basis(self)]    
         
     def change_ring(self, R):
         r"""
@@ -1210,12 +1214,11 @@ class ExpansionModule_submodule_pid ( ExpansionModule_abstract, FreeModule_submo
                 self._element_class = ExpansionModuleVector_generic
 
         if ambient.precision().is_infinite() :
-            ExpansionModule_abstract.__init__(self, Sequence( map( lambda g: g.fourier_expansion(), gens ),
+            ExpansionModule_abstract.__init__(self, Sequence( [g.fourier_expansion() for g in gens],
                                                               universe = ambient._abstract_basis().universe() ))
         else :
-            ExpansionModule_abstract.__init__(self, Sequence( map( lambda g: LazyFourierExpansionEvaluation( ambient._abstract_basis().universe(), g,
-                                                                                                             ambient.precision() ),
-                                                                   gens ),
+            ExpansionModule_abstract.__init__(self, Sequence( [LazyFourierExpansionEvaluation( ambient._abstract_basis().universe(), g,
+                                                                                                             ambient.precision() ) for g in gens],
                                                               universe = ambient._abstract_basis().universe() ))
         FreeModule_submodule_pid.__init__(self, ambient, gens)
 

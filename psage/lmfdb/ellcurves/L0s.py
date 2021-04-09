@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -19,6 +20,8 @@
 #
 #################################################################################
 
+from builtins import str
+from builtins import range
 import sage.parallel.ncpus
 from psage.lmfdb.auth import userpass
 
@@ -58,7 +61,7 @@ def populate_db(address, level_min, level_max, num_zeros=100,
             C.update({'_id':v['_id']}, {'$set':{'L0s':L0s}})
 
     for ans in f(blocks):
-        print ans
+        print(ans)
 
 
 """
@@ -67,17 +70,17 @@ EXAMPLE QUERIES:
 from pymongo import Connection
 db = Connection(port=int(29000)).research
 e = db.ellcurves
-v = e.find({'level':{'$lt':100r}, 'L0s':{'$exists':True}}, )
+v = e.find({'level':{'$lt':100r}, 'L0s':{'$exists':True}},)
 v.count()
 7
 
 This counts the number of optimal curves for which the 0-th zero (the
 first one) is >1 and the number for which it is < 1.
 
-sage: v = e.find({'level':{'$lt':100r}, 'L0s.0':{'$gt':int(1)}}, )
+sage: v = e.find({'level':{'$lt':100r}, 'L0s.0':{'$gt':int(1)}},)
 sage: v.count()
 75
-sage: v = e.find({'level':{'$lt':100r}, 'L0s.0':{'$lt':int(1)}}, )
+sage: v = e.find({'level':{'$lt':100r}, 'L0s.0':{'$lt':int(1)}},)
 sage: v.count()
 17
 

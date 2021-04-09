@@ -14,6 +14,7 @@ TODO:
     - Fast L-series of elliptic curves over number fields (not just sqrt(5)), via smalljac
     - Inverse of number_of_coefficients function.
 """
+from __future__ import division
 
 #################################################################################
 #
@@ -36,6 +37,10 @@ TODO:
 #
 #################################################################################
 
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+from builtins import object
 import copy, math, types
 
 from sage.all import prime_range, cached_method, sqrt, SR, vector
@@ -105,7 +110,7 @@ def tiny(prec):
     precision for various checks, e.g., of correctness of the
     functional equation.
     """
-    return max(1e-8, 1.0/2**(prec-1))
+    return max(1e-8, 2.0**(1-prec))
 
 def prime_below(P):
     """
@@ -159,7 +164,7 @@ class LSeriesDerivative(object):
         """
         k = ZZ(k)
         if k <= 0:
-            raise ValueError, "k must be a positive integer"
+            raise ValueError("k must be a positive integer")
         self._lseries = lseries
         self._k = k
 
@@ -418,8 +423,8 @@ class LSeriesAbstract(object):
 
         (self._conductor, self._hodge_numbers, self._weight, self._epsilon,
          self._poles, self._residues, self._base_field, self._is_selfdual) = (
-            conductor, hodge_numbers, weight, epsilon, poles, residues,
-            base_field, is_selfdual)
+         conductor, hodge_numbers, weight, epsilon, poles, residues,
+         base_field, is_selfdual)
 
         # the following parameters allow for specifying a list of
         # possibilities:
@@ -453,13 +458,13 @@ class LSeriesAbstract(object):
                     found_params = True
                     break
             if not found_params:
-                raise RuntimeError, "no choice of values for %s works"%(', '.join(v))
+                raise RuntimeError("no choice of values for {0} works".format(', '.join(v)))
 
     def _is_valid_parameters(self, prec=53, save=True, **kwds):
         valid = False
         try:
-            old = [(k, getattr(self, k)) for k in kwds.keys()]
-            for k,v in kwds.iteritems():
+            old = [(k, getattr(self, k)) for k in list(kwds.keys())]
+            for k,v in kwds.items():
                 setattr(self, k, v)
             self._function.clear_cache()
             self._function(prec=prec)
@@ -825,7 +830,7 @@ class LSeriesAbstract(object):
             1.0000000000000000000000000000000000000000000
         """
         if self._epsilon == 'solve' or (
-                  hasattr(self._epsilon, 'prec') and (prec is None or self._epsilon.prec() < prec)):
+                hasattr(self._epsilon, 'prec') and (prec is None or self._epsilon.prec() < prec)):
             return 'solve'
         if prec is not None:
             C = ComplexField(prec)
@@ -1040,7 +1045,7 @@ class LSeriesAbstract(object):
             ...
             NotImplementedError: must be implemented in the derived class
         """
-        raise NotImplementedError, "must be implemented in the derived class"
+        raise NotImplementedError("must be implemented in the derived class")
 
     def __repr__(self):
         """
@@ -1162,7 +1167,7 @@ class LSeriesAbstract(object):
 
         if prec is not None:
             # check if numerically computed already to at least this precision
-            t = [z for z in self._anlist.iteritems() if z[0] >= prec and len(z[1]) > bound]
+            t = [z for z in self._anlist.items() if z[0] >= prec and len(z[1]) > bound]
             if len(t) > 0:
                 C = ComplexField(prec)
                 return [C(a) for a in t[0][1][:bound+1]]
@@ -1243,7 +1248,7 @@ class LSeriesAbstract(object):
         """
         s = R.var('s')
         a = self.anlist(bound, prec)
-        return sum(a[n]/n**s for n in range(1,bound+1))
+        return sum(a[n]*n**(-s) for n in range(1,bound+1))
 
     def __call__(self, s):
         """
@@ -1290,7 +1295,7 @@ class LSeriesAbstract(object):
             ZeroDivisionError: pole at 1
         """
         if s in self._poles:
-            raise ZeroDivisionError, "pole at %s"%s
+            raise ZeroDivisionError("pole at {0}".format(s))
         return self._function(prec(s))(s)
 
     def derivative(self, k=1):
@@ -1375,11 +1380,11 @@ class LSeriesAbstract(object):
              
         """
         if center is None:
-            center = ComplexField(prec)(self._weight)/2
+            center = ComplexField(prec)(self._weight) / ComplexField(prec)(2)
         return self._function(prec).taylor_series(center, degree, variable)
 
     def analytic_rank(self, tiny=1e-8, prec=53):
-        center = ComplexField(prec)(self._weight) / 2
+        center = ComplexField(prec)(self._weight) / ComplexField(prec)(2)
         degree = 4
         while True:
             f = self.taylor_series(center, degree, prec=prec)
@@ -1409,9 +1414,8 @@ class LSeriesAbstract(object):
             eps = 'X'
         else:
             eps = epsilon
-        return Dokchitser(conductor = self.conductor(), gammaV = self.hodge_numbers(), weight = self.weight(),
-                       eps = eps, poles = self.poles(), residues = self.residues(),
-                       prec = prec)
+        return Dokchitser(conductor=self.conductor(), gammaV=self.hodge_numbers(), weight=self.weight(),
+                          eps=eps, poles=self.poles(), residues=self.residues(), prec=prec)
 
     def number_of_coefficients(self, prec=53, T=1.2):
         """
@@ -1458,7 +1462,7 @@ class LSeriesAbstract(object):
         for coeffs in coeff_lists:
             # Define a string that when evaluated in PARI defines a function
             # a(k), which returns the Dirichlet coefficient a_k.
-            s = 'v=[%s]; a(k)=v[k];'%','.join([str(z) if isinstance(z, (int,long,Integer)) else z._pari_init_() for z in coeffs[1:]])
+            s = 'v=[%s]; a(k)=v[k];'%','.join([str(z) if isinstance(z, (int,int,Integer)) else z._pari_init_() for z in coeffs[1:]])
 
             # Tell the L-series / PARI about the coefficients.
 
@@ -1475,7 +1479,8 @@ class LSeriesAbstract(object):
                 cmd = "sgneq = Vec(checkfeq()); sgn = -sgneq[2]/sgneq[1]; sgn"
                 epsilon = ComplexField(prec)(L._gp_eval(cmd))
                 if abs(abs(epsilon)-1) > tiny0:
-                    raise RuntimeError, "unable to determine epsilon from functional equation working to precision %s, since we get epsilon=%s, which is not sufficiently close to 1"%(prec, epsilon)
+                    raise RuntimeError("unable to determine epsilon from functional equation working to precision {0}, ".format(prec)+\
+                                        "since we get epsilon={0}, which is not sufficiently close to 1".format(epsilon))
                 # 1, -1 are two common special cases, where it is clear what the
                 # infinite precision version is.
                 if epsilon == 1:
@@ -1494,7 +1499,7 @@ class LSeriesAbstract(object):
                 pass
             
         # They all failed.
-        raise RuntimeError, "invalid L-series parameters: functional equation not satisfied"
+        raise RuntimeError("invalid L-series parameters: functional equation not satisfied")
 
     def check_functional_equation(self, T, prec=53):
         return self._function(prec=prec).check_functional_equation(T)
@@ -1525,7 +1530,7 @@ class LSeriesProduct(object):
             F = Factorization(F)
         F.sort(cmp)
         if len(F) == 0:
-            raise ValueError, "product must be nonempty"
+            raise ValueError("product must be nonempty")
         self._factorization = F
 
     def __cmp__(self, right):
@@ -1835,7 +1840,7 @@ class LSeriesDelta(LSeriesAbstract):
         T2 = T**2
         f = delta_qexp(bound)
         for p in prime_range(bound):
-            if not self._lf.has_key(p):
+            if p not in self._lf:
                 self._lf[p] = 1 - f[p]*T + (p**11)*T2
 
     def __repr__(self):
@@ -1911,11 +1916,11 @@ class LSeriesEllipticCurveQQ(LSeriesEllipticCurve):
 
     def _precompute_local_factors(self, bound, prec=None):
         for p in primes(bound):
-            if not self._lf.has_key(p):
+            if p not in self._lf:
                 self._lf[p] = self._lf0(p)
 
     def _local_factor(self, P, prec):
-        if self._lf.has_key(P):
+        if P in self._lf:
             return self._lf[P]
         else:
             return self._lf0(P)
@@ -1965,7 +1970,7 @@ class LSeriesEllipticCurveSqrt5(LSeriesEllipticCurve):
         from psage.number_fields.sqrt5.prime import Prime
         if not isinstance(P, Prime):
             P = Prime(P)
-        if self._lf.has_key(P):
+        if P in self._lf:
             return self._lf[P]
         else:
             return LSeriesEllipticCurve._local_factor(self, P.sage_ideal())
@@ -2036,11 +2041,11 @@ class LSeriesDirichletCharacter(LSeriesAbstract):
     """
     def __init__(self, chi):
         if not chi.is_primitive():
-            raise NotImplementedError, "chi must be primitive"
+            raise NotImplementedError("chi must be primitive")
         if chi.is_trivial():
-            raise NotImplementedError, "chi must be nontrivial"
+            raise NotImplementedError("chi must be nontrivial")
         if chi.base_ring().characteristic() != 0:
-            raise ValueError, "base ring must have characteristic 0"
+            raise ValueError("base ring must have characteristic 0")
         self._chi = chi
         LSeriesAbstract.__init__(self, conductor = chi.conductor(),
                                  hodge_numbers = [1] if chi.is_odd() else [0],
@@ -2078,7 +2083,7 @@ class LSeriesDirichletCharacter(LSeriesAbstract):
             x = C(chi.modulus()).sqrt() / chi.gauss_sum_numerical(prec=prec)
             if chi.is_odd():
                 x *= C.gen()
-            return 1/x
+            return x**-1
         
     def _local_factor(self, P, prec):
         a = self._chi(P)
@@ -2103,10 +2108,10 @@ class LSeriesModularSymbolsAbstract(LSeriesAbstract):
             sage: LSeries(f).__repr__()
             'L-series of a degree 2 newform of level 43 and weight 2'
         """
-        return "L-series of a degree %s newform of level %s and weight %s"%(self._M.dimension(), self._M.level(), self._M.weight())
+        return "L-series of a degree {0} newform of level {1} and weight {2}".format(self._M.dimension(), self._M.level(), self._M.weight())
     
     def _precompute_local_factors(self, bound, prec):
-        primes = [p for p in prime_range(bound) if not self._lf.has_key(p) or self._lf[p][0] < prec]
+        primes = [p for p in prime_range(bound) if p not in self._lf or self._lf[p][0] < prec]
         self._do_precompute(primes, prec)
 
     def _do_precompute(self, primes, prec):
@@ -2137,7 +2142,7 @@ class LSeriesModularSymbolsAbstract(LSeriesAbstract):
     def _local_factor(self, P, prec):
         # TODO: ugly -- get rid of all "prec=None" in whole program -- always use oo.
         if prec is None: prec = oo
-        if self._lf.has_key(P) and self._lf[P][0] >= prec:
+        if P in self._lf and self._lf[P][0] >= prec:
             return self._lf[P][1]
         else:
             self._do_precompute([P],prec)
@@ -2179,31 +2184,31 @@ class LSeriesModularSymbolsNewformGamma0(LSeriesModularSymbolsAbstract):
             0.921328017272472 + 0.492443075089339*z - 0.391019352704047*z^2 + 0.113271812405127*z^3 + 0.0213067052584679*z^4 - 0.0344198080536274*z^5 + O(z^6)
         """
         if M.dimension() == 0:
-            raise ValueError, "modular symbols space must positive dimension"
+            raise ValueError("modular symbols space must positive dimension")
         chi = M.character()
         if chi is None or not chi.is_trivial():
-            raise ValueError, "modular symbols space must have trivial character"
+            raise ValueError("modular symbols space must have trivial character")
         self._M = M
         N = M.level()
 
         if check:
             if not M.is_simple():
-                raise ValueError, "modular symbols space must be simple"
+                raise ValueError("modular symbols space must be simple")
             if not M.is_new():
-                raise ValueError, "modular symbols space must be new"
+                raise ValueError("modular symbols space must be new")
             if not M.is_cuspidal():
-                raise ValueError, "modular symbols space must be cuspidal"
+                raise ValueError("modular symbols space must be cuspidal")
 
         k = M.weight()
         if epsilon is None:
             w = M.atkin_lehner_operator(N).matrix()
             if w not in [-1, 1]:
-                raise ValueError, "modular symbols space must have constant Atkin-Lehner operator"
+                raise ValueError("modular symbols space must have constant Atkin-Lehner operator")
             epsilon = (-1)**(k/2) * w[0,0]
 
         conjugate = ZZ(conjugate)
         if conjugate < 0 or conjugate >= M.dimension():
-            raise ValueError, "conjugate must a nonnegative integer less than the dimension"
+            raise ValueError("conjugate must a nonnegative integer less than the dimension")
         self._conjugate = conjugate
         self._lf = {}
         
@@ -2218,17 +2223,17 @@ class LSeriesModularSymbolsNewformGamma0(LSeriesModularSymbolsAbstract):
 
 def _is_valid_modsym_space(M):
     if not is_ModularSymbolsSpace(M):
-        raise TypeError, "must be a modular symbols space"
+        raise TypeError("must be a modular symbols space")
     if M.dimension() == 0:
-        raise ValueError, "modular symbols space must positive dimension"
+        raise ValueError("modular symbols space must positive dimension")
     if M.character() is None:
-        raise ValueError, "modular symbols space must have associated character"
+        raise ValueError("modular symbols space must have associated character")
     if not M.is_simple():
-        raise ValueError, "modular symbols space must be simple"
+        raise ValueError("modular symbols space must be simple")
     if not M.is_new():
-        raise ValueError, "modular symbols space must be new"
+        raise ValueError("modular symbols space must be new")
     if not M.is_cuspidal():
-        raise ValueError, "modular symbols space must be cuspidal"
+        raise ValueError("modular symbols space must be cuspidal")
     
 
 class LSeriesModularSymbolsNewformCharacter(LSeriesModularSymbolsAbstract):
@@ -2252,7 +2257,7 @@ class LSeriesModularSymbolsNewformCharacter(LSeriesModularSymbolsAbstract):
         k = M.weight()
         conjugate = ZZ(conjugate)
         if conjugate < 0 or conjugate >= M.dimension():
-            raise ValueError, "conjugate must a nonnegative integer less than the dimension"
+            raise ValueError("conjugate must a nonnegative integer less than the dimension")
         self._conjugate = conjugate
 
 
@@ -2345,7 +2350,7 @@ class LSeriesModularSymbolsMotive(LSeriesProduct):
     def __init__(self, M):
         self._M = M
         if not is_ModularSymbolsSpace(M):
-            raise TypeError, "X must be a modular symbols space or have a modular symbols method"
+            raise TypeError("X must be a modular symbols space or have a modular symbols method")
         self._M = M
         D = M.decomposition()
         for A in D:
@@ -2407,7 +2412,7 @@ class LSeriesModularAbelianVariety(LSeriesProduct):
             else:
                 F *= L
         if F is None:
-            raise ValueError, "abelian variety must have positive dimension"
+            raise ValueError("abelian variety must have positive dimension")
         LSeriesProduct.__init__(self, F.factor())
 
     def abelian_variety(self):
@@ -2436,7 +2441,7 @@ class LSeriesTwist(LSeriesAbstract):
         self._chi = chi
 
         if not chi.is_primitive():
-            raise ValueError, "character must be primitive"
+            raise ValueError("character must be primitive")
         
         A = ZZ(L.conductor())
         B = chi.conductor()
@@ -2639,7 +2644,7 @@ def _lseries(X, *args, **kwds):
         elif y == 'delta':
             return LSeriesDelta(*args, **kwds)
         else:
-            raise ValueError, 'unknown L-series "%s"'%y
+            raise ValueError('unknown L-series "{0}"'.format(y))
 
     if isinstance(X, psage.modform.hilbert.sqrt5.hmf.EllipticCurveFactor):
         return LSeriesModularEllipticCurveSqrt5(X, *args, **kwds)

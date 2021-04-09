@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -19,10 +20,11 @@
 #
 #################################################################################
 
+from builtins import str
 def ellcurves_sqrt5(address='localhost:29000', username=None, password=None):
     from sage.databases.cremona import cremona_letter_code
     from psage.modform.hilbert.sqrt5.sqrt5 import F
-    from aplists import labeled_primes_of_bounded_norm
+    from .aplists import labeled_primes_of_bounded_norm
     labels, primes = labeled_primes_of_bounded_norm(F, 100)
 
     from pymongo import Connection
@@ -32,7 +34,7 @@ def ellcurves_sqrt5(address='localhost:29000', username=None, password=None):
         username, password = userpass()
         
     if not C.authenticate(username, password):
-        raise RuntimeError, "failed to authenticate"
+        raise RuntimeError("failed to authenticate")
     
     return C.ellcurves_sqrt5
 
@@ -45,9 +47,9 @@ def find_isogeneous_curves(ellcurves_sqrt5, E):
         - cursor iterating over entries in the collection that have
           the same good a_p, for p of norm up to 100.
     """
-    from aplists import aplist
+    from .aplists import aplist
     w = aplist(E, 100)
-    v = dict([('ap.%s'%p, a) for p, a in w.items()])
+    v = dict([('ap.%s'%p, a) for p, a in list(w.items())])
     from psage.modform.hilbert.sqrt5.tables import canonical_gen    
     v['level'] = str(canonical_gen(E.conductor())).replace(' ','')
     return ellcurves_sqrt5.find(v)

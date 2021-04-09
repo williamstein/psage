@@ -1,5 +1,6 @@
+from __future__ import absolute_import
 __all__ = ['all']
-from all import *
+from .all import *
 
 import logging
 import os

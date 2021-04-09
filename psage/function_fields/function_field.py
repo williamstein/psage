@@ -59,7 +59,10 @@ that arithmetic with a tower of 3 fields is fully supported::
     Rational function field in x over Finite Field in a of size 5^2
     
 """
+from __future__ import absolute_import
+from __future__ import division
 
+from builtins import range
 from sage.structure.category_object import CategoryObject
 from sage.rings.ring import Field
 from sage.rings.integer_ring import ZZ
@@ -67,11 +70,11 @@ from sage.structure.parent_gens import ParentWithGens
 #import function_field_element
 from sage.arith.all import lcm,gcd
 
-from category import FunctionFields
+from .category import FunctionFields
 from sage.rings.function_field import function_field_element
 CAT = FunctionFields()
 
-import maps
+from . import maps
 
 def is_FunctionField(x):
     """
@@ -192,7 +195,7 @@ class FunctionField(Field):
             sage: O.basis()
             (x, x*Y + x^2, 2/3*Y^2)
         """
-        from function_field_order import FunctionFieldOrder_basis
+        from .function_field_order import FunctionFieldOrder_basis
         return FunctionFieldOrder_basis([self(a) for a in basis], check=check)
 
     def order(self, x, check=True):
@@ -251,7 +254,7 @@ class FunctionField(Field):
             sage: L._coerce_map_from_(GF(7))
             False
         """
-        from function_field_order import FunctionFieldOrder
+        from .function_field_order import FunctionFieldOrder
         if isinstance(R, FunctionFieldOrder) and R.fraction_field() == self:
             return True
         return False
@@ -402,12 +405,12 @@ class FunctionField_polymod(FunctionField):
         if names is None:
             names = (polynomial.variable_name(), )
         if not is_Polynomial(polynomial):
-            raise TypeError, "polynomial must be a polynomial"
+            raise TypeError("polynomial must be a polynomial")
         if polynomial.degree() <= 0:
-            raise ValueError, "polynomial must have positive degree"
+            raise ValueError("polynomial must have positive degree")
         base_field = polynomial.base_ring()
         if not isinstance(base_field, FunctionField):
-            raise TypeError, "polynomial must be over a function"
+            raise TypeError("polynomial must be over a function")
         self._base_field = base_field
         self._polynomial = polynomial
         
@@ -756,7 +759,7 @@ class FunctionField_polymod(FunctionField):
             ...
             IndexError: Only one generator.
         """
-        if n != 0: raise IndexError, "Only one generator."
+        if n != 0: raise IndexError("Only one generator.")
         return self._gen
 
     def ngens(self):
@@ -864,11 +867,11 @@ class RationalFunctionField(FunctionField):
             TypeError: constant_field must be a field
         """
         if names is None:
-            raise ValueError, "variable name must be specified"
+            raise ValueError("variable name must be specified")
         elif not isinstance(names, tuple):
             names = (names, )
         if not constant_field.is_field():
-            raise TypeError, "constant_field must be a field"
+            raise TypeError("constant_field must be a field")
         ParentWithGens.__init__(self, self, names=names, category = category)
         R = constant_field[names[0]]
         self._hash = hash((constant_field, names))
@@ -1109,7 +1112,7 @@ class RationalFunctionField(FunctionField):
             IndexError: Only one generator.
         """
         if n != 0:
-            raise IndexError, "Only one generator."
+            raise IndexError("Only one generator.")
         return self._gen
 
     def ngens(self):
@@ -1175,7 +1178,7 @@ class RationalFunctionField(FunctionField):
         if not isinstance(im_gens, (list,tuple)):
             im_gens = [im_gens]
         if len(im_gens) != 1:
-            raise ValueError, "there must be exactly one generator"
+            raise ValueError("there must be exactly one generator")
         x = im_gens[0]
         return maps.FunctionFieldMorphism_rational(self.Hom(x.parent()), x)
 
@@ -1208,7 +1211,7 @@ class RationalFunctionField(FunctionField):
         """
         try: return self._maximal_order
         except AttributeError:
-            from function_field_order import FunctionFieldOrder_rational
+            from .function_field_order import FunctionFieldOrder_rational
             self._maximal_order = FunctionFieldOrder_rational(self)
             return self._maximal_order
 

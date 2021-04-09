@@ -22,28 +22,15 @@ Used by routines in development.
 
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-
 from sage.rings.number_field.number_field_element import is_NumberFieldElement
 from sage.matrix.matrix2 import Matrix
 from sage.matrix.matrix2 cimport Matrix
-
 from sage.all import real,NFCusp,copy,RR,CC,RealNumber,ComplexNumber,real,imag,vector,RealField,Infinity,ComplexField,QQ,MatrixSpace
-
-from psage.modform.hilbert.hn_class cimport Hn
 from psage.modform.hilbert.hn_class import is_Hn
-
-#from sage.libs.cypari2.gen import pari
-#   from sage.libs.cypari2.gen cimport Gen as gen
 from cypari2.gen cimport Gen as gen
-   
 import cython
-
-#from psage.rings.double_prec_math cimport *
-#include "../../rings/double_prec_math.pxi"
 from libc.math cimport sqrt,fabs,fmax,ceil,floor,sin,cos,log
-
-import numpy as np
-
+from psage.modform.hilbert.hn_class cimport Hn
 
 cpdef cusp_coordinates_gen(G,cuspi,z,int verbose=0):
     cdef Hn zz
@@ -1029,10 +1016,12 @@ cpdef get_initial_cusp_distance(x,y,G,denom_max=3,verbose=0):
 
     """
     cdef int degree = G._K.degree()
-    cdef double *xv=NULL,*yv=NULL
+    cdef double *xv=NULL
+    cdef double *yv=NULL
     cdef double d=1.0,ny=1.0
     cdef int i,i0,i1,j0,j1
-    cdef int *rho_min=NULL,*sigma_min=NULL
+    cdef int *rho_min=NULL
+    cdef int *sigma_min=NULL
     cdef list rho_v=[],sigma_v=[]
     cdef double disc
     cdef gen F
@@ -1121,7 +1110,10 @@ cdef get_initial_cusp_distance_c(double* x,double *y,double ny,int degree,int *r
     r"""
     Get an initial estimate for the cusp distance.
     """
-    cdef double *rho=NULL, *sigma=NULL,*xv=NULL,*yv=NULL
+    cdef double *rho=NULL
+    cdef double *sigma=NULL
+    cdef double *xv=NULL
+    cdef double *yv=NULL
     cdef double d0,d1,d2
     cdef int i,j
 
@@ -1255,7 +1247,10 @@ cpdef delta_cusp(Hn z,ca,cb,double norm, int degree,int verbose=0):
     r"""
     Compute the distance to a cusp.
     """
-    cdef double *x,*y,*rho,*sigma
+    cdef double *x
+    cdef double *y
+    cdef double *rho
+    cdef double *sigma
     cdef int i
     x=NULL;y=NULL;rho=NULL;sigma=NULL
     cdef double delta,ny=1.0

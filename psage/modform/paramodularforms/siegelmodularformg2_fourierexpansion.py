@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2009 - 07 - 28) Initial version
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,9 @@ AUTHORS:
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import TrivialCharacterMonoid, \
                                            TrivialRepresentation
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring import EquivariantMonoidPowerSeriesRing
@@ -44,6 +48,7 @@ from psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion_cython 
                      mult_coeff_generic_without_character, \
                      reduce_GL, xreduce_GL
 from sage.rings.integer import Integer
+from functools import reduce
 
 #===============================================================================
 # SiegelModularFormG2Filter_discriminant
@@ -106,26 +111,26 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
     
     def __iter__(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         if self.__reduced :
-            for c in xrange(0, self._indefinite_content_bound()) :
+            for c in range(0, self._indefinite_content_bound()) :
                 yield (0,0,c)
                 
-            for a in xrange(1,isqrt(self.__disc // 3) + 1) :
-                for b in xrange(a+1) :
-                    for c in xrange(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
+            for a in range(1,isqrt(self.__disc // 3) + 1) :
+                for b in range(a+1) :
+                    for c in range(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
                         yield (a,b,c)
         else :
             ##FIXME: These are not all matrices
-            for a in xrange(0, self._indefinite_content_bound()) :
+            for a in range(0, self._indefinite_content_bound()) :
                 yield (a,0,0)
-            for c in xrange(1, self._indefinite_content_bound()) :
+            for c in range(1, self._indefinite_content_bound()) :
                 yield (0,0,c)
             
             maxtrace = floor(5*self.__disc / 15 + sqrt(self.__disc)/2)
-            for a in xrange(1, maxtrace + 1) :
-                for c in xrange(1, maxtrace - a + 1) :
+            for a in range(1, maxtrace + 1) :
+                for c in range(1, maxtrace - a + 1) :
                     Bu = isqrt(4*a*c - 1)
 
                     di = 4*a*c - self.__disc
@@ -134,9 +139,9 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
                     else :
                         Bl = 0
                     
-                    for b in xrange(-Bu, -Bl + 1) :
+                    for b in range(-Bu, -Bl + 1) :
                         yield (a,b,c)
-                    for b in xrange(Bl, Bu + 1) :
+                    for b in range(Bl, Bu + 1) :
                         yield (a,b,c)
         #! if self.__reduced
         
@@ -144,19 +149,19 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
 
     def iter_positive_forms_with_content(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         
         if self.__reduced :        
-            for a in xrange(1,isqrt(self.__disc // 3) + 1) :
-                for b in xrange(a+1) :
+            for a in range(1,isqrt(self.__disc // 3) + 1) :
+                for b in range(a+1) :
                     g = gcd(a, b)
-                    for c in xrange(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
+                    for c in range(a, (b**2 + (self.__disc - 1))//(4*a) + 1) :
                         yield (a,b,c), gcd(g,c)
         else :
             maxtrace = floor(5*self.__disc / 15 + sqrt(self.__disc)/2)
-            for a in xrange(1, maxtrace + 1) :
-                for c in xrange(1, maxtrace - a + 1) :
+            for a in range(1, maxtrace + 1) :
+                for c in range(1, maxtrace - a + 1) :
                     g = gcd(a,c)
                     
                     Bu = isqrt(4*a*c - 1)
@@ -167,9 +172,9 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
                     else :
                         Bl = 0
                     
-                    for b in xrange(-Bu, -Bl + 1) :
+                    for b in range(-Bu, -Bl + 1) :
                         yield (a,b,c), gcd(g,b)
-                    for b in xrange(Bl, Bu + 1) :
+                    for b in range(Bl, Bu + 1) :
                         yield (a,b,c), gcd(g,b)
         #! if self.__reduced
 
@@ -177,11 +182,11 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
     
     def iter_indefinite_forms(self) :
         if self.__disc is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
         
         
         if self.__reduced :
-            for c in xrange(self._indefinite_content_bound()) :
+            for c in range(self._indefinite_content_bound()) :
                 yield (0, 0, c)
         else :
             raise NotImplementedError
@@ -201,7 +206,7 @@ class SiegelModularFormG2Filter_discriminant ( SageObject ) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [type(self), self.__reduced, self.__disc]))
+        return reduce(xor, list(map(hash, [type(self), self.__reduced, self.__disc])))
                                          
     def _repr_(self) :
         return "Discriminant filter (%s)" % self.__disc
@@ -233,10 +238,10 @@ class SiegelModularFormG2Indices_discriminant_xreduce( SageObject ) :
         elif not self.__reduced and i == 3 :
             return (1, -1, 1)
         
-        raise ValueError, "Generator not defined"
+        raise ValueError("Generator not defined")
     
     def gens(self) :    
-        return [self.gen(i) for i in xrange(self.ngens())]
+        return [self.gen(i) for i in range(self.ngens())]
 
     def is_commutative(self) :
         return True
@@ -270,8 +275,8 @@ class SiegelModularFormG2Indices_discriminant_xreduce( SageObject ) :
             return SiegelModularFormG2Filter_discriminant(min(4*a*c - b**2 for (a,b,c) in ls) + 1,
                                       self.__reduced)
         
-        raise ArithmeticError, "Discriminant filter does not " + \
-                               "admit minimal composition filters"
+        raise ArithmeticError("Discriminant filter does not " + \
+                               "admit minimal composition filters")
         
     def _reduction_function(self) :
         return xreduce_GL
@@ -282,14 +287,14 @@ class SiegelModularFormG2Indices_discriminant_xreduce( SageObject ) :
     def decompositions(self, s) :
         (a, b, c) = s
         
-        for a1 in xrange(a + 1) :
+        for a1 in range(a + 1) :
             a2 = a - a1
-            for c1 in xrange(c + 1) :
+            for c1 in range(c + 1) :
                 c2 = c - c1
                 
                 B1 = isqrt(4*a1*c1)
                 B2 = isqrt(4*a2*c2)
-                for b1 in xrange(max(-B1, b - B2), min(B1 + 1, b + B2 + 1)) :
+                for b1 in range(max(-B1, b - B2), min(B1 + 1, b + B2 + 1)) :
                     yield ((a1, b1, c1), (a2,b - b1, c2))
         
         raise StopIteration
@@ -346,7 +351,7 @@ class SiegelModularFormG2VVRepresentation ( SageObject ) :
         if L.has_coerce_map_from(self.__K) :
             return SiegelModularFormG2VVRepresentation( L )
         
-        raise ValueError, "Base extension of representation is not defined"
+        raise ValueError("Base extension of representation is not defined")
         
     def extends(self, other) :
         if isinstance(other, TrivialRepresentation) :

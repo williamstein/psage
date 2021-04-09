@@ -18,6 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+from __future__ import print_function
 
 #######################
 # ELLFF DATABASE CODE #
@@ -84,13 +85,13 @@ class jCurveDatabase(sage.databases.db.Database):
         
         """
         if self.read_only:
-            raise RuntimeError, 'The database must not be read_only.'
-        if self.has_key(q):
-            if self[q].has_key(n) and force:
+            raise RuntimeError('The database must not be read_only.')
+        if q in self:
+            if n in self[q] and force:
                 if verbose:
-                    print 'Already have this table; forcing overwrite'
+                    print('Already have this table; forcing overwrite')
                 if not self[q][n] == table:
-                    print 'Tables mismatch; replacing preexisting table with new given one'
+                    print('Tables mismatch; replacing preexisting table with new given one')
                 self[q][n] = table
                 self.changed(q)
                 # self[q][n] = self[q][n] # so database knows that self[q][n] changed
@@ -156,17 +157,17 @@ class LocalEulerDatabase(sage.databases.db.Database):
         
         """
         if self.read_only:
-            raise RuntimeError, 'The database must not be read_only.'
-        if self.has_key(ainvs):
-            if self[ainvs].has_key(q):
-                if self[ainvs][q].has_key(n):
+            raise RuntimeError('The database must not be read_only.')
+        if ainvs in self:
+            if q in self[ainvs]:
+                if n in self[ainvs][q]:
                     if verbose:
-                        print 'Already have this table;',
+                        print('Already have this table;')
                     if force:
                         if verbose:
-                            print 'forcing overwrite'
+                            print('forcing overwrite')
                         if not self[ainvs][q][n] == table:
-                            print 'Tables mismath; replacing preexisting table with new given one'
+                            print('Tables mismath; replacing preexisting table with new given one')
                         self[ainvs][q][n] = table
                         self.changed(ainvs)
                 else:
@@ -262,9 +263,9 @@ def _save_euler_table(self, n, verbose=False):
     # recognize if self is j-curve and use special repository
     if ainvs == [0,0,0,-27*t*(t-1728)**3,54*t*(t-1728)**5]:
         if verbose:
-            print 'j-curve recognized; saving euler table to database'
+            print('j-curve recognized; saving euler table to database')
         if not os.path.exists(SAGE_ROOT + '/data/jcurve_euler_tables/jcurve_euler_tables'):
-            print 'Database does not exist; starting a new one'
+            print('Database does not exist; starting a new one')
             if not os.path.exists(SAGE_ROOT + '/data/jcurve_euler_tables'):
                 os.makedirs(SAGE_ROOT + '/data/jcurve_euler_tables/')
             filedb = open(SAGE_ROOT + '/data/jcurve_euler_tables/jcurve_euler_tables', "wb")
@@ -273,14 +274,14 @@ def _save_euler_table(self, n, verbose=False):
         euler_db = jCurveEulerTables(read_only = False)
         euler_db._update_(q, n, self._euler_table(n))
         if verbose:
-            print euler_db.as_dict()
+            print(euler_db.as_dict())
         euler_db.commit()
 
             
         # work with user's repository of euler tables
     else:
         if not os.path.exists(SAGE_ROOT + '/data/local_euler_tables/local_euler_tables'):
-            print 'Database does not exist; creating a new one'
+            print('Database does not exist; creating a new one')
             if not os.path.exists(SAGE_ROOT + '/data/local_euler_tables'):
                 os.makedirs(SAGE_ROOT + '/data/jcurve_euler_tables/')
             filedb = open(SAGE_ROOT + '/data/local_euler_tables/local_euler_tables', "wb")
@@ -289,7 +290,7 @@ def _save_euler_table(self, n, verbose=False):
         local_euler_db = LocalEulerTables(read_only = False)
         local_euler_db._update_(ainvs_pairs, q, n, self._euler_table(n))
         if verbose:
-            print local_euler_db.as_dict()
+            print(local_euler_db.as_dict())
         local_euler_db.commit()
 
 def _load_euler_table(self, n, force=False, verbose=False):
@@ -360,9 +361,9 @@ def _load_euler_table(self, n, force=False, verbose=False):
     # recognize if self is j-curve and use special repository
     if ainvs == [0,0,0,-27*t*(t-1728)**3,54*t*(t-1728)**5]:
         if verbose:
-            print 'j-curve recognized; saving euler table to database'
+            print('j-curve recognized; saving euler table to database')
         if not os.path.exists(SAGE_ROOT + '/data/jcurve_euler_tables/jcurve_euler_tables'):
-            print 'Database does not exist; cannot load from it'
+            print('Database does not exist; cannot load from it')
         else:
             euler_db = jCurveEulerTables()
             # check that keys exist?
@@ -371,7 +372,7 @@ def _load_euler_table(self, n, force=False, verbose=False):
     # work with user's repository of euler tables
     else:
         if not os.path.exists(SAGE_ROOT + '/data/local_euler_tables/local_euler_tables'):
-            print 'Database does not exist; cannot load from it'
+            print('Database does not exist; cannot load from it')
         else:                
             local_euler_db = LocalEulerTables()
             # check that keys exist?

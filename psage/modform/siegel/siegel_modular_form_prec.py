@@ -1,8 +1,13 @@
 """
 Precision for Fourier expansions of Siegel modular forms
 """
+from __future__ import absolute_import
+from __future__ import division
 
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 from copy import deepcopy
 import operator
 
@@ -51,7 +56,7 @@ class SiegelModularFormPrecision (SageObject):
             with GL(2,Z)-reduced (a,b,c) are available such that
             either 4ac-b^2 < prec ('disc'-precision) or else
             one has componentwise
-            (a,b,c) < ( aprec, bprec, cprec)
+            (a,b,c) < (aprec, bprec, cprec)
             ('box'-precision).
 
         EXAMPLES::
@@ -91,7 +96,7 @@ class SiegelModularFormPrecision (SageObject):
             
         elif isinstance(prec, (int, Integer)):
             self.__type = 'disc'
-            prec = max( 0, prec)
+            prec = max(0, prec)
             Dmod = prec % 4
             if Dmod >= 2:
                 self.__prec = Integer(prec - Dmod + 1)
@@ -101,15 +106,15 @@ class SiegelModularFormPrecision (SageObject):
         elif isinstance(prec, tuple) and len(prec) == 3 and all([isinstance(e, (int, Integer)) for e in list(prec)]):
             self.__type = 'box'
             a,b,c = prec
-            a = min( a, c)
-            b = min( b, a)
+            a = min(a, c)
+            b = min(b, a)
             if b <= 0:
-                self.__prec = ( 0,0,0 )
+                self.__prec = (0,0,0)
             else:
-                self.__prec = ( Integer(a), Integer(b), Integer(c))
+                self.__prec = (Integer(a), Integer(b), Integer(c))
                 
         else:
-            raise TypeError, "incorrect type %s for prec" % type(prec)
+            raise TypeError("incorrect type {0} for prec".format(type(prec)))
     
     def _repr_(self):
         r"""
@@ -130,10 +135,9 @@ class SiegelModularFormPrecision (SageObject):
         elif self.type() == 'box':
             n = "Box"
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
             
-        return "%s precision for Siegel modular form with bound %s" % \
-               (n, repr(self.__prec))
+        return "{0} precision for Siegel modular form with bound {1}".format(n, repr(self.__prec))
 
     
     def _latex_(self):
@@ -156,9 +160,9 @@ class SiegelModularFormPrecision (SageObject):
         elif self.__type == 'box':
             n = "Box"
         else:
-            raise ValueError, "Unexpected value of self.__type"
+            raise ValueError("Unexpected value of self.__type")
 
-        return "%s precision for Siegel modular form with bound $%s$" %(str(n),str(latex(self.__prec)))
+        return "{0} precision for Siegel modular form with bound ${1}$".format(str(n),str(latex(self.__prec)))
 
 
     def type(self):
@@ -233,7 +237,7 @@ class SiegelModularFormPrecision (SageObject):
         """
         (a, b, c) = t
 
-        from fastmult import reduce_GL
+        from .fastmult import reduce_GL
         if self.__type == 'infinity':
             return True        
         elif self.__type == 'disc':
@@ -249,7 +253,7 @@ class SiegelModularFormPrecision (SageObject):
             (a, b, c) = reduce_GL(a, b, c)
             return a < self.__prec[0] and b < self.__prec[1] and c < self.__prec[2]
         else:
-            raise RuntimeError, "Unexpected value of self.__type"        
+            raise RuntimeError("Unexpected value of self.__type")        
 
 
     def get_contents_bound_for_semi_definite_forms(self):
@@ -281,7 +285,7 @@ class SiegelModularFormPrecision (SageObject):
         elif self.__type == 'box':
             return self.__prec[2]
         else:
-            raise RuntimeError, "Unexpected value of self.__type"        
+            raise RuntimeError("Unexpected value of self.__type")        
 
 
     def __lt__(self, other):
@@ -309,7 +313,7 @@ class SiegelModularFormPrecision (SageObject):
 
         """
         if not isinstance(other, SiegelModularFormPrecision):
-            raise NotImplementedError, "can only compare with elements of the same class"
+            raise NotImplementedError("can only compare with elements of the same class")
 
         ## TODO: implement comparison of precisions of different types
         if self.__type != other.__type:
@@ -325,7 +329,7 @@ class SiegelModularFormPrecision (SageObject):
             return self.__prec < other.__prec
 
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
 
         
     def __le__(self, other):
@@ -383,9 +387,9 @@ class SiegelModularFormPrecision (SageObject):
         """
 
         if not isinstance(other, SiegelModularFormPrecision):
-            raise NotImplementedError, "can only compare with elements of the same class"
+            raise NotImplementedError("can only compare with elements of the same class")
         
-        return ( self.__type == other.type() and self.__prec == other.prec())
+        return (self.__type == other.type() and self.__prec == other.prec())
 
     
     def __ne__(self, other):       
@@ -469,25 +473,25 @@ class SiegelModularFormPrecision (SageObject):
         """
         if self.__type == 'disc':
             bound = self.get_contents_bound_for_semi_definite_forms()
-            for c in xrange(0, bound):
+            for c in range(0, bound):
                 yield (0,0,c)
 
             atop = isqrt(self.__prec // 3)
             if 3*atop*atop == self.__prec: atop -= 1
-            for a in xrange(1,atop + 1):
-                for b in xrange(a+1):
-                    for c in xrange(a, ceil((b**2 + self.__prec)/(4*a))):
+            for a in range(1,atop + 1):
+                for b in range(a+1):
+                    for c in range(a, ceil((b**2 + self.__prec)/(4*a))):
                         yield (a,b,c)
 
         elif 'box' == self.__type:
             (am, bm, cm) = self.__prec
-            for a in xrange(am):
-                for b in xrange( min(bm,a+1)):
-                    for c in xrange(a, cm):
+            for a in range(am):
+                for b in range(min(bm,a+1)):
+                    for c in range(a, cm):
                         yield (a,b,c)
 
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
             
         raise StopIteration
 
@@ -513,19 +517,19 @@ class SiegelModularFormPrecision (SageObject):
         if self.__type == 'disc':
             atop = isqrt(self.__prec // 3)
             if 3*atop*atop == self.__prec: atop -= 1
-            for a in xrange(1,atop + 1):
-                for b in xrange(a+1):
-                    for c in xrange(a, ceil((b**2 + self.__prec)/(4*a))):
+            for a in range(1,atop + 1):
+                for b in range(a+1):
+                    for c in range(a, ceil((b**2 + self.__prec)/(4*a))):
                         yield (a,b,c)
 
         elif 'box' == self.__type:
             (am, bm, cm) = self.__prec
-            for a in xrange(am):
-                for b in xrange( min(bm,a+1)):
-                    for c in xrange(a, cm):
+            for a in range(am):
+                for b in range(min(bm,a+1)):
+                    for c in range(a, cm):
                         yield (a,b,c)
 
         else:
-            raise RuntimeError, "Unexpected value of self.__type"
+            raise RuntimeError("Unexpected value of self.__type")
             
         raise StopIteration

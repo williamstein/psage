@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -22,18 +23,24 @@
 #################################################################################
 
 
-import os, sys
+import os, sys, platform
 from sage.env import sage_include_directories,SAGE_INC,SAGE_LIB,SAGE_LOCAL
-import subprocess 
+import subprocess
+if 'Darwin' in platform.platform() or 'macOS' in platform.platform():
+    this_platform = 'darwin'
+elif 'Linux' in platform.platform():
+    this_platform = 'linux'
+else:
+    this_platform = 'unkonwn'
 
-if sys.maxint != 2**63 - 1:
-    print "*"*70
-    print "The PSAGE library only works on 64-bit computers.  Terminating build."
-    print "*"*70
+if sys.maxsize != 2**63 - 1:
+    print("*"*70)
+    print("The PSAGE library only works on 64-bit computers.  Terminating build.")
+    print("*"*70)
     sys.exit(1)
 
 if '-ba' in sys.argv:
-    print "Rebuilding all Cython extensions."
+    print("Rebuilding all Cython extensions.")
     sys.argv.remove('-ba')
     FORCE = True
 else:
@@ -42,12 +49,24 @@ else:
 from module_list import ext_modules,aliases
 
 include_dirs = sage_include_directories(use_sources=True)
-include_dirs = include_dirs + [SAGE_LIB]
+include_dirs = include_dirs + [SAGE_LIB] + ["/usr/local/lib"]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"cysignals/")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/ext/")]
 include_dirs = include_dirs + [os.path.join(SAGE_LIB,"sage/cpython/")]
-extra_compile_args = [ "-fno-strict-aliasing" ]
-extra_link_args = [ ]
+extra_compile_args = [ "-fno-strict-aliasing"]
+extra_link_args = []
+
+if this_platform == 'darwin':
+    extra_compile_args += ["-Wno-deprecated-register" ]
+    # Also check if we use LLVM clang
+    if subprocess.call("""$CC --version | grep -i 'LLVM' >/dev/null """, shell=True) == 0:
+        extra_compile_args += ['-Wno-nullability-completeness',
+                               '-Wno-expansion-to-defined',
+                               '-Wno-undef-prefix']
+        include_dirs += ['/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include']
+        extra_link_args += ['-L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib']
+elif this_platform == 'linux':
+    pass
 
 DEVEL = False
 if DEVEL:
@@ -110,7 +129,7 @@ def run_cythonize():
     # enclosing Python scope (e.g. to perform variable injection).
     Cython.Compiler.Options.old_style_globals = True
     Cython.Compiler.Main.default_options['cache'] = False
-    print "include_dirs1=",include_dirs
+    print("include_dirs1={0}".format(include_dirs))
     global ext_modules
     ext_modules = cythonize(
         ext_modules,
@@ -120,7 +139,7 @@ def run_cythonize():
         force=FORCE,
         include_path = include_dirs,
         aliases=aliases,
-        exclude_failures=True,
+        exclude_failures=False,
         compiler_directives={
             'embedsignature': True,
             'profile': profile,
@@ -133,29 +152,24 @@ print("Finished Cythonizing, time: %.2f seconds." % (time.time() - t))
 
 from setuptools import setup
 code = setup(
-    name = 'psage',
-    version = "2019.1.0",
-    description = "PSAGE: Software for Arithmetic Geometry",
-    author = 'Stephan Ehlen, William Stein,Fredrik Stromberg, et. al.',
-    author_email = 'fredrik314@gmail.com',
-    url = 'http://purple.sagemath.org',
-    license = 'GPL v2+',
-    packages = ['psage',
+    name='psage',
+    version="2021.1.0",
+    description="PSAGE: Software for Number Theory and Arithmetic Geometry",
+    author='Stephan Ehlen, William Stein,Fredrik Stromberg, et. al.',
+    author_email='fredrik314@gmail.com',
+    url='https://github.com/fredstro/psage',
+    license='GPL v2+',
+    packages=['psage',
                 'psage.ellcurve',
                 'psage.ellcurve.lseries',
                 'psage.functions',
 #                'psage.ellff',
-
 #                'psage.function_fields',
                 'psage.groups',
-                
-                
                 'psage.lmfdb',
                 'psage.lmfdb.ellcurves',
                 'psage.lmfdb.ellcurves.sqrt5',
-
          		'psage.matrix',
-
                 'psage.modform',
                 'psage.modform.arithgroup',
 
@@ -187,8 +201,11 @@ code = setup(
                 'psage.rings',
                 'psage.zfunctions'
                 ],
-    platforms = ['any'],
-    download_url = 'N/A',
-    ext_modules = ext_modules
+    platforms=['any'],
+    download_url='N/A',
+    ext_modules=ext_modules,
+    install_requires=[
+          'past' # Temporary add to be able to use old_div without checking everything...
+      ],
 )
 

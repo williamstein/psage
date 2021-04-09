@@ -2,7 +2,7 @@ r"""
 Interfaces for modular forms which admit Hecke actions or ring which have
 Maass lifts.
 
-AUTHOR :
+AUTHOR:
     -- Martin Raum (2009 - 07 - 30) Initial version
 """
 
@@ -25,6 +25,7 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_element import GradedExpansion_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_element import MonoidPowerSeries_abstract, \
                                                         EquivariantMonoidPowerSeries_abstract
@@ -35,7 +36,7 @@ from psage.modform.fourier_expansion_framework.gradedexpansions.fourierexpansion
 # ModularFormsAmbientWithHeckeAction_abstract
 #===============================================================================
 
-class ModularFormsAmbientWithHeckeAction_abstract :
+class ModularFormsAmbientWithHeckeAction_abstract(object):
     """
     The standard implementation assumes that the action only depends on the
     modulus and the weight.
@@ -43,7 +44,7 @@ class ModularFormsAmbientWithHeckeAction_abstract :
     be derived from the type. 
     """
     
-    def __init__(self, type) :
+    def __init__(self, type):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import *
@@ -58,21 +59,21 @@ class ModularFormsAmbientWithHeckeAction_abstract :
             ...
             ValueError: Type for modular forms ambients with Hecke action must support Hecke operators.
         """
-        if not hasattr(self, '_hecke_operator_class') :
-            if not type.has_hecke_action() :
-                raise ValueError( "Type for modular forms ambients with Hecke action must support Hecke operators." )
+        if not hasattr(self, '_hecke_operator_class'):
+            if not type.has_hecke_action():
+                raise ValueError("Type for modular forms ambients with Hecke action must support Hecke operators.")
             self._hecke_operator_class = type._hecke_operator_class()
         
-        hecke_invariant_pred = lambda basis, **kwds : "is_hecke_invariant" in kwds and kwds["is_hecke_invariant"]
-        def hecke_invariant_fcn(basis, **kwds) :
-            try :
+        hecke_invariant_pred = lambda basis, **kwds: "is_hecke_invariant" in kwds and kwds["is_hecke_invariant"]
+        def hecke_invariant_fcn(basis, **kwds):
+            try:
                 return self.type()._submodule_heckeinvariant_class(self, basis, **kwds)
-            except NotImplementedError :
+            except NotImplementedError:
                 return ModularFormsSubmoduleHeckeInvariant(self, basis, **kwds)
         
         self._submodule_classes.insert(-2, (hecke_invariant_pred, hecke_invariant_fcn))
 
-    def _hecke_action(self, n, form) :
+    def _hecke_action(self, n, form):
         """
         The image of ``form`` under the `n`-th Hecke operator.
         
@@ -101,24 +102,24 @@ class ModularFormsAmbientWithHeckeAction_abstract :
         """
         T = self._hecke_operator_class(n)
         
-        if isinstance(form, FourierExpansionWrapper) :
+        if isinstance(form, FourierExpansionWrapper):
             expansion = form.fourier_expansion()
-            try :
+            try:
                 weight = form.weight()
-            except AttributeError :
+            except AttributeError:
                 weight = None 
-        elif isinstance(form, (MonoidPowerSeries_abstract, EquivariantMonoidPowerSeries_abstract)) :
+        elif isinstance(form, (MonoidPowerSeries_abstract, EquivariantMonoidPowerSeries_abstract)):
             expansion = form
             weight = None
-        else :
-            raise TypeError( "Form must be a Fourier expansion or wrap one." ) 
+        else:
+            raise TypeError("Form must be a Fourier expansion or wrap one.")
         
         hecke_expansion = T.eval(expansion, weight)
         
-        if isinstance(form, FourierExpansionWrapper) :
-            try :
+        if isinstance(form, FourierExpansionWrapper):
+            try:
                 return form.parent()(hecke_expansion)
-            except (ValueError, ArithmeticError) :
+            except (ValueError, ArithmeticError):
                 pass
         
         return hecke_expansion

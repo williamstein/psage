@@ -23,7 +23,11 @@
 Python code for very fast high precision computation of certain
 specific modular forms of interest.
 """
+from __future__ import print_function
 
+from builtins import zip
+from builtins import range
+from builtins import object
 import sys
 from sage.rings.all import ZZ, QQ, PolynomialRing
 from sage.modular.all import eisenstein_series_qexp, ModularForms
@@ -84,9 +88,9 @@ def cached_eisenstein_series_qexp(k, prec, verbose=False):
         sage: cached_eisenstein_series_qexp(4, 5, verbose=True)  # cache used, so no timing printed
         1/240 + q + 9*q^2 + 28*q^3 + 73*q^4 + O(q^5)
     """
-    if verbose: print "Computing E_%s(q) + O(q^%s)..."%(k,prec),; sys.stdout.flush(); t = cputime()
+    if verbose: print("Computing E_{0}(q) + O(q^{1})...".format(k,prec)); sys.stdout.flush(); t = cputime()
     e = eisenstein_series_qexp(k, prec)
-    if verbose: print "(time = %.2f seconds)"%cputime(t)
+    if verbose: print("(time = {0:.2f} seconds)".format(cputime(t)))
     return e
 
 def eis_qexp(k, t, prec, verbose=False):
@@ -228,9 +232,9 @@ class EisensteinMonomial(object):
             -1/7374186086400 + 43/307257753600*q^5 - 671/102419251200*q^10 + O(q^11)        
         """
         z = [eis_qexp(k, t, prec, verbose=verbose)**e for t,k,e in self._v]
-        if verbose: print "Arithmetic to compute %s +O(q^%s)"%(self, prec); sys.stdout.flush(); t=cputime()
+        if verbose: print("Arithmetic to compute {0} +O(q^{1})".format(self, prec)); sys.stdout.flush(); t=cputime()
         p = prod(z)
-        if verbose: print "(time = %.2f seconds)"%cputime(t)
+        if verbose: print("(time = {0:.2f} seconds)".format(cputime(t)))
         return p
 
 
@@ -359,7 +363,7 @@ def eisenstein_basis(N, k, verbose=False):
             if V.dimension() == M.dimension():
                  return E, prec
 
-    if verbose: print "Warning -- not enough series."
+    if verbose: print("Warning -- not enough series.")
     return E, prec
     
 
@@ -412,7 +416,7 @@ class FastModularForm(object):
             raise TypeError
         chi = f.character()
         if not chi or not chi.is_trivial():
-            raise ValueError, "form must trivial character"
+            raise ValueError("form must trivial character")
         self._f = f
         
         N = f.level()
@@ -520,10 +524,10 @@ def elliptic_cm_form(E, n, prec, aplist_only=False, anlist_only=False):
         True
     """
     if not E.has_cm():
-        raise ValueError, "E must have CM"
+        raise ValueError("E must have CM")
     n = ZZ(n)
     if n <= 0:
-        raise ValueError, "n must be positive"
+        raise ValueError("n must be positive")
 
     prec = ZZ(prec)
     if prec <= 0:

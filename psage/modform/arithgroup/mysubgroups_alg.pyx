@@ -32,6 +32,7 @@ NOTE: We are (now) using a group *homomorphism* between permutations and subgrou
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from sage.libs.gmp.all cimport *
+from cysignals.memory cimport check_allocarray
 
 from psage.rings.mp_cimports cimport *
 from sage.rings.complex_mpc cimport * #MPComplexNumber

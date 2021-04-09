@@ -24,6 +24,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_functor import \
             GradedExpansionFunctor, GradedExpansionEvaluationHomomorphism
 from operator import xor
@@ -34,6 +37,7 @@ from sage.rings.all import Integer
 from sage.structure.element import Element
 from sage.structure.parent import Parent
 from sage.structure.sequence import Sequence
+from functools import reduce
 
 ## late import in GradedExpansionAmbient_abstract
 GradedExpansionSubmodule = None 
@@ -43,7 +47,7 @@ GradedExpansionSubmodule_abstract = None
 # GradedExpansionAmbient_abstract
 #===============================================================================
 
-class GradedExpansionAmbient_abstract :
+class GradedExpansionAmbient_abstract(object) :
     r"""
     A ring of graded expansions. This is a polynomial ring with relations
     and a mapping to an (equivariant) monoid power series. These should
@@ -99,10 +103,10 @@ class GradedExpansionAmbient_abstract :
             base_ring_generators = []
             base_ring_generators = Sequence([], universe = generators.universe().base_ring())
         self.__base_gens = \
-          tuple([ self.base_ring()._element_class( self.base_ring(), self.base_ring().relations().ring()(g) )
+          tuple([ self.base_ring()._element_class( self.base_ring(), self.base_ring().relations().ring()(g))
                   for g in self.__relations.ring().gens()[:len(base_ring_generators)] ])
         self.__gens = \
-         tuple([ self._element_class( self, g )
+         tuple([ self._element_class( self, g)
                  for g in self.__relations.ring().gens()[len(base_ring_generators):] ])
 
         # We expect the base ring generators to either admit coercion
@@ -111,7 +115,7 @@ class GradedExpansionAmbient_abstract :
         self.__gen_expansions = generators
         self.__evaluation_hom = GradedExpansionEvaluationHomomorphism( self.__relations, self.__base_gen_expansions,
                                                                        self.__gen_expansions, self.__gen_expansions.universe(),
-                                                                       reduce_before_evaluating )
+                                                                       reduce_before_evaluating)
         
         self.__graded_submodules = dict()
     
@@ -631,19 +635,19 @@ class GradedExpansionAmbient_abstract :
         elif isinstance(indices, list) :
             indices = tuple(indices)
         elif not isinstance(indices, tuple) :
-            raise TypeError( "Wrong type of indices." )
+            raise TypeError( "Wrong type of indices.")
             
         try :
             return self.__graded_submodules[indices]
         except KeyError :
             pass
 
-        module_gens = flatten(map(self._graded_monoms, indices), max_level = 1)        
+        module_gens = flatten(list(map(self._graded_monoms, indices)), max_level = 1)        
         
         if self.has_relation_free_generators() :
             basis = module_gens
         else :
-            module_gens_poly = map(lambda g: g.polynomial(), module_gens) 
+            module_gens_poly = [g.polynomial() for g in module_gens] 
             basis = list()
             
             I = self.relations().ring().zero_ideal()
@@ -734,8 +738,8 @@ class GradedExpansionAmbient_abstract :
             True
         """
         return ( GradedExpansionFunctor(self.__base_gen_expansions, self.__gen_expansions,
-                                        self.__relations, self.__grading, self.__all_relations ), \
-                 self.base_ring() )
+                                        self.__relations, self.__grading, self.__all_relations), \
+                 self.base_ring())
 
     def _element_constructor_(self, x) :
         r"""
@@ -779,7 +783,7 @@ class GradedExpansionAmbient_abstract :
             ## about additional relations which may occur. So deriving classes have
             ## to care about this.
                    
-        raise TypeError( "The element %s cannot be converted into %s," % (x, self) )
+        raise TypeError( "The element %s cannot be converted into %s," % (x, self))
 
     def __hash__(self) :
         r"""
@@ -795,5 +799,5 @@ class GradedExpansionAmbient_abstract :
             921050467 # 32-bit
             3906772531912514915 # 64-bit
         """
-        return reduce(xor, map(hash, [self.__grading, self.__relations,
-                                      self.__all_relations, self.__base_gens, self.__gens]) )
+        return reduce(xor, list(map(hash, [self.__grading, self.__relations,
+                                      self.__all_relations, self.__base_gens, self.__gens])))

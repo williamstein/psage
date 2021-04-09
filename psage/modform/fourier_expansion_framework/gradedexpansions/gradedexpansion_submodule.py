@@ -24,6 +24,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import map
+from builtins import str
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_lazy_evaluation import LazyFourierExpansionEvaluation
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_abstract
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule_generic, ExpansionModule_ambient_pid, \
@@ -52,6 +55,7 @@ from sage.rings.rational_field import QQ
 from sage.rings.ring import Ring
 from sage.structure.element import Element
 from sage.structure.sequence import Sequence
+from functools import reduce
 
 #===============================================================================
 # GradedExpansionSubmodule
@@ -158,12 +162,11 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
         
         if not "no_expansion_init" in kwds or not kwds["no_expansion_init"] :
             if graded_ambient.fourier_expansion_precision().is_infinite() or isinstance(self.__graded_ambient.fourier_ring(), MonoidPowerSeriesAmbient_abstract) :
-                ExpansionModule_abstract.__init__(self, Sequence( map( lambda b: b.fourier_expansion(), basis ),
+                ExpansionModule_abstract.__init__(self, Sequence( [b.fourier_expansion() for b in basis],
                                                                   universe = graded_ambient.fourier_ring() ))
             else :
-                ExpansionModule_abstract.__init__(self, Sequence( map( lambda b: LazyFourierExpansionEvaluation( graded_ambient.fourier_ring(), b,
-                                                                                                       graded_ambient.fourier_expansion_precision() ),
-                                                                       basis ),
+                ExpansionModule_abstract.__init__(self, Sequence( [LazyFourierExpansionEvaluation( graded_ambient.fourier_ring(), b,
+                                                                                                       graded_ambient.fourier_expansion_precision() ) for b in basis],
                                                                   universe = graded_ambient.fourier_ring(), check = False ))
         
     def graded_ambient(self) :
@@ -263,7 +266,7 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
             coerced_basis = self.__basis_in_graded_ambient
             relations = self.graded_ambient().relations()
         else :
-            coerced_basis = map(coerce_to, self.__basis_in_graded_ambient)
+            coerced_basis = list(map(coerce_to, self.__basis_in_graded_ambient))
             relations = coerce_to.relations()
         
         return Sequence( [ relations.reduce(b.polynomial())
@@ -513,14 +516,14 @@ class GradedExpansionSubmodule_abstract ( ExpansionModule_abstract ) :
                 try :
                     coords = magma(mon_matrix.transpose()).Solution(magma(matrix(x_mon_vector))).sage()
                     coords = coords.row(0)
-                except TypeError, msg :
-                    if "Runtime error in 'Solution': No solution exists" in msg :
-                        raise ArithmeticError( "%s is not contained in this space." % (x,) )
+                except TypeError as msg:
+                    if "Runtime error in 'Solution': No solution exists" in str(msg):
+                        raise ArithmeticError( "{0} is not contained in this space.".format(x))
                     
                     try :
                         coords = mon_matrix.solve_right(x_mon_vector)
-                    except ValueError :
-                        raise ArithmeticError( "%s is not contained in this space." % (x,) )
+                    except ValueError:
+                        raise ArithmeticError("{0} is not contained in this space.".format(x))
 
                 try :
                     # we used the base graded_ambient's fraction field, so convert it
@@ -815,7 +818,7 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
     if is_FreeModule(gens):
         gens = gens.gens()
     if not isinstance(gens, (list, tuple, Sequence)):
-        raise TypeError, "Argument gens (= %s) must be a list, tuple, or sequence."%gens
+        raise TypeError("Argument gens (= {0}) must be a list, tuple, or sequence.".format(gens))
     
     if base_ring is None or base_ring == self.base_ring():
         gens = Sequence(gens, check = check, universe = self.ambient_module())
@@ -825,13 +828,13 @@ def _span( self, gens, base_ring = None, check = True, already_echelonized = Fal
         try:
             M = self.change_ring(base_ring)
         except TypeError:
-            raise ValueError, "Argument base_ring (= %s) is not compatible " % (base_ring,) + \
-                "with the base field (= %s)." % (self.base_field(),)
+            raise ValueError("Argument base_ring (= {0}) is not compatible ".format(base_ring) + \
+                "with the base field (= {0}).".format(self.base_field()))
         try: 
             return M.span(gens)
         except TypeError:
-            raise ValueError, "Argument gens (= %s) is not compatible " % (gens,) + \
-                "with base_ring (= %s)." % (base_ring,)
+            raise ValueError("Argument gens (= {0}) is not compatible ".format(gens) + \
+                "with base_ring (= {0}).".format(base_ring))
 
 #===============================================================================
 # GradedExpansionSubmodule_ambient_pid
@@ -1137,4 +1140,4 @@ class GradedExpansionSubmoduleVector_generic ( ExpansionModuleVector_generic ) :
             a
         """
         return sum( self[k]*self.parent()._basis_in_graded_ambient()[k].polynomial()
-                    for k in xrange(self.parent().rank()) )
+                    for k in range(self.parent().rank()) )

@@ -43,7 +43,11 @@ AUTHORS:
     - Adam Sorkin (very early version: http://trac.sagemath.org/sage_trac/ticket/9402)
 
 """
+from __future__ import absolute_import
+from __future__ import division
 
+from builtins import range
+from past.utils import old_div
 import math
 
 from sage.all import (PowerSeriesRing, Integer, factor, QQ, ZZ,
@@ -84,7 +88,7 @@ def anlist_over_sqrt5(E, bound):
         sage: v = anlist_over_sqrt5(E, 10^4)
         sage: assert cputime(t) < 5
     """
-    import aplist_sqrt5
+    from . import aplist_sqrt5
     from psage.number_fields.sqrt5.prime import primes_of_bounded_norm, Prime
 
     # Compute all of the prime ideals of the ring of integers up to the given bound
@@ -133,7 +137,7 @@ def anlist_over_sqrt5(E, bound):
             i += 1
         p = P.p
         # We need enough terms t so that p^t > bound
-        accuracy_p = int(math.floor(math.log(bound)/math.log(p))) + 1
+        accuracy_p = int(math.floor(old_div(math.log(bound),math.log(p)))) + 1
         series_p = s.add_bigoh(accuracy_p)**(-1)
         for j in range(1, accuracy_p):
             coefficients[p**j] = series_p[j]
@@ -185,7 +189,7 @@ def get_coeffs_p_over_nf(curve, prime_number, accuracy=20 , conductor=None):
         conductor = curve.conductor()
     primes = curve.base_field().prime_factors(prime_number)
     series_p = [get_factor_over_nf(curve, prime_id, prime_number, conductor, accuracy) for prime_id in primes]
-    return ( prod(series_p).O(accuracy) )**(-1)
+    return (prod(series_p).O(accuracy))**(-1)
 
 def anlist_over_nf(E, bound):
     """
@@ -209,7 +213,7 @@ def anlist_over_nf(E, bound):
     conductor = E.conductor()
     coefficients = [0,1] + [0]*(bound-1)
     for p in prime_range(bound+1):
-        accuracy_p = int(math.floor(math.log(bound)/math.log(p))) + 1
+        accuracy_p = int(math.floor(old_div(math.log(bound),math.log(p)))) + 1
         series_p = get_coeffs_p_over_nf(E, p, accuracy_p, conductor)
         for i in range(1, accuracy_p):
             coefficients[p**i] = series_p[i]
@@ -363,7 +367,7 @@ def lseries_dokchitser(E, prec=53):
     # Check that we're over a number field.
     K = E.base_field()
     if not is_NumberField(K):
-        raise TypeError, "base field must be a number field"
+        raise TypeError("base field must be a number field")
 
     # Compute norm of the conductor -- awkward because QQ elements have no norm method (they should).
     N = E.conductor()
@@ -400,7 +404,7 @@ def lseries_dokchitser(E, prec=53):
     # very, very likely if we chose the sign of the functional
     # equation incorrectly, or made any mistake in computing the
     # Dirichlet series coefficients. 
-    tiny = max(1e-8, 1.0/2**(prec-1))
+    tiny = max(1e-8, old_div(1.0,2**(prec-1)))
     if abs(L.check_functional_equation()) > tiny:
         # The test failed, so we try the other choice of functional equation.
         epsilon *= -1
@@ -414,7 +418,7 @@ def lseries_dokchitser(E, prec=53):
         # there is definitely some other subtle bug, probably in computed
         # the Dirichlet series coefficients.  
         if abs(L.check_functional_equation()) > tiny: 
-            raise RuntimeError, "Functional equation not numerically satisfied for either choice of sign"
+            raise RuntimeError("Functional equation not numerically satisfied for either choice of sign")
         
     L.rename('Dokchitser L-function of %s'%E)
     return L

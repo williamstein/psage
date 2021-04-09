@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import object
 from copy import copy
 from sage.structure.element import AlgebraElement
 from sage.misc.latex import latex
@@ -31,6 +33,7 @@ from sage.misc.misc import union
 from sage.modules.module import Module 
 from sage.structure.element import ModuleElement
 from sage.rings.ring import Ring
+from functools import reduce
 
 #===============================================================================
 # MonoidPowerSeries
@@ -70,13 +73,13 @@ def MonoidPowerSeries( parent, coefficients, precision, cleanup_coefficients = F
     if isinstance(parent, Ring) :
         return MonoidPowerSeries_algebraelement(parent, coefficients, precision, cleanup_coefficients)
 
-    raise TypeError, "Unexpected type of parent"
+    raise TypeError("Unexpected type of parent")
 
 #===============================================================================
 # MonoidPowerSeries_abstract
 #===============================================================================
 
-class MonoidPowerSeries_abstract :
+class MonoidPowerSeries_abstract(object) :
     r"""
     An element of the monoid power series ring or module up to
     given precision.
@@ -161,7 +164,7 @@ class MonoidPowerSeries_abstract :
         if not self.precision().is_infinite() :
             return self.precision()
          
-        return self.parent().monoid().minimal_composition_filter( self.coefficients().keys(),
+        return self.parent().monoid().minimal_composition_filter( list(self.coefficients().keys()),
                                                                  [self.parent().monoid().zero_element()] )
 
     def coefficients(self) :
@@ -322,13 +325,13 @@ class MonoidPowerSeries_abstract :
             coeffs = c.coefficients()
             if len(coeffs) == 1 and self.parent().monoid().zero_element() in coeffs :
                 c = coeffs[self.parent().monoid().zero_element()]
-                d = dict((k, c*v) for (k,v) in self.coefficients().iteritems())
+                d = dict((k, c*v) for (k,v) in self.coefficients().items())
             
                 return MonoidPowerSeries(self.parent(), d, self.precision())
         
             return self._mul_(c, False)
         else :
-            d = dict((k, c*v) for (k,v) in self.coefficients().iteritems())
+            d = dict((k, c*v) for (k,v) in self.coefficients().items())
             
             return MonoidPowerSeries(self.parent(), d, self.precision())
     
@@ -356,13 +359,13 @@ class MonoidPowerSeries_abstract :
             coeffs = c.coefficients()
             if len(coeffs) == 1 and self.parent().monoid().zero_element() in coeffs :
                 c = coeffs[self.parent().monoid().zero_element()]
-                d = dict((k, v*c) for (k,v) in self.coefficients().iteritems())
+                d = dict((k, v*c) for (k,v) in self.coefficients().items())
             
                 return MonoidPowerSeries(self.parent(), d, self.precision())
             
             return self._mul_(c, True)
         else :
-            d = dict((k, v*c) for (k,v) in self.coefficients().iteritems())
+            d = dict((k, v*c) for (k,v) in self.coefficients().items())
             
             return MonoidPowerSeries(self.parent(), d, self.precision())
 
@@ -558,7 +561,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
             coefficients = self.__coefficients
         
         if in_place :
-            for s in coefficients.keys() :
+            for s in list(coefficients.keys()) :
                 if not s in self.precision() or coefficients[s].is_zero() :
                     del coefficients[s]
         else :
@@ -607,7 +610,7 @@ class MonoidPowerSeries_abstract_nonlazy (MonoidPowerSeries_abstract) :
 
         if nprec != self.precision() :
             coefficients = self.__coefficients
-            for k in coefficients.keys() :
+            for k in list(coefficients.keys()) :
                 if not k in nprec :
                     del coefficients[k]
             
@@ -765,13 +768,13 @@ def EquivariantMonoidPowerSeries( parent, coefficients, precision, symmetrise = 
         return EquivariantMonoidPowerSeries_algebraelement( parent, coefficients, precision, symmetrise,
                                                             cleanup_coefficients )
 
-    raise TypeError, "Unexpected type of parent"
+    raise TypeError("Unexpected type of parent")
     
 #===============================================================================
 # EquivariantMonoidPowerSeries_abstract
 #===============================================================================
 
-class EquivariantMonoidPowerSeries_abstract :
+class EquivariantMonoidPowerSeries_abstract(object) :
     r"""
     An abstract element of an equivariant monoid power series ring up to
     given precision.
@@ -883,7 +886,7 @@ class EquivariantMonoidPowerSeries_abstract :
         coeffs = self.coefficients(True)
         m = self.parent().action().zero_filter()
         for c in self.non_zero_components() :
-            m = max(m, self.parent().action().minimal_composition_filter( coeffs[c].keys(),
+            m = max(m, self.parent().action().minimal_composition_filter( list(coeffs[c].keys()),
                                                                           [self.parent().action().zero_element()] ))
         return m
     
@@ -1099,7 +1102,7 @@ class EquivariantMonoidPowerSeries_abstract :
                     self_coefficients = self.coefficients(True)
                     coefficients = dict()
                     for ch in self_coefficients :
-                        coefficients[ch] = dict((k, c*v) for (k,v) in self_coefficients[ch].iteritems())
+                        coefficients[ch] = dict((k, c*v) for (k,v) in self_coefficients[ch].items())
                     
                     return EquivariantMonoidPowerSeries(self.parent(),
                             coefficients, self.precision())
@@ -1109,7 +1112,7 @@ class EquivariantMonoidPowerSeries_abstract :
             self_coefficients = self.coefficients(True)
             coefficients = dict()
             for ch in self_coefficients :
-                coefficients[ch] = dict((k, c*v) for (k,v) in self_coefficients[ch].iteritems())
+                coefficients[ch] = dict((k, c*v) for (k,v) in self_coefficients[ch].items())
             
             return EquivariantMonoidPowerSeries(self.parent(),
                                                 coefficients, self.precision())
@@ -1144,7 +1147,7 @@ class EquivariantMonoidPowerSeries_abstract :
                     self_coefficients = self.coefficients(True)
                     coefficients = dict()
                     for ch in self_coefficients :
-                        coefficients[ch] = dict((k, v*c) for (k,v) in self_coefficients[ch].iteritems())
+                        coefficients[ch] = dict((k, v*c) for (k,v) in self_coefficients[ch].items())
                     
                     return EquivariantMonoidPowerSeries(self.parent(),
                             coefficients, self.precision())
@@ -1154,7 +1157,7 @@ class EquivariantMonoidPowerSeries_abstract :
             self_coefficients = self.coefficients(True)
             coefficients = dict()
             for ch in self_coefficients :
-                coefficients[ch] = dict((k, v*c) for (k,v) in self_coefficients[ch].iteritems())
+                coefficients[ch] = dict((k, v*c) for (k,v) in self_coefficients[ch].items())
                     
             return EquivariantMonoidPowerSeries(self.parent(),
                                                 coefficients, self.precision())
@@ -1374,7 +1377,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             sage: e.non_zero_components()
             []
         """
-        return self.__coefficients.keys()
+        return list(self.__coefficients.keys())
     
     def coefficients(self, force_characters = False) :
         r"""
@@ -1410,7 +1413,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
         if len(self.__coefficients) == 0 :
             return dict()
         elif not force_characters and len(self.__coefficients) == 1 :
-            return self.__coefficients.values()[0] 
+            return list(self.__coefficients.values())[0] 
         else :
             return self.__coefficients
 
@@ -1453,11 +1456,11 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
         if not in_place :
             ncoefficients = dict()
             
-        for ch in coefficients.keys() :
+        for ch in list(coefficients.keys()) :
             d = coefficients[ch]
             
             if in_place :
-                for s in d.keys() :
+                for s in list(d.keys()) :
                     if not s in self.precision() or d[s].is_zero() :
                         del d[s]
                         
@@ -1513,7 +1516,7 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
         if nprec != self.precision() :
             for c in self.__coefficients :
                 d = self.__coefficients[c]
-                for k in d.keys() :
+                for k in list(d.keys()) :
                     if not k in nprec :
                         del d[k]
             
@@ -1598,10 +1601,10 @@ class EquivariantMonoidPowerSeries_abstract_nonlazy ( EquivariantMonoidPowerSeri
             elif len(ns) == 1 :
                 ch = ns[0]
             else :
-                raise ValueError, "you must specify a character"
+                raise ValueError("you must specify a character")
         
         if not s in self.precision() :
-            raise ValueError, "%s out of bound" % (s,)
+            raise ValueError("{0} out of bound".format(s))
 
         try :
             return self.__coefficients[ch][s]

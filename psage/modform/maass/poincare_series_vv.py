@@ -23,6 +23,9 @@ EXAMPLES::
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -39,10 +42,12 @@ EXAMPLES::
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from builtins import str
+from builtins import range
 import re,os
 p= re.compile('MatrixSpace')
-from poincare_series_alg_vv import *
-
+from .poincare_series_alg_vv import *
+from sage.all import IntegerModRing,RR,RealField,matrix,norm,load,save,Matrix,pi,is_square,set_verbose,ZZ
 
 import mpmath
 # Unless the sage-addd-ons are installed 
@@ -53,7 +58,7 @@ try:
 except:
     ## If this does not exist.
     def dimension_jac_cusp_forms(a,b,c):
-        raise NotImplementedError,"You need the 'dimension_jac_form' package! Please call this routine with a set dimension instead!"
+        raise NotImplementedError("You need the 'dimension_jac_form' package! Please call this routine with a set dimension instead!")
 silent=0
 
 
@@ -86,9 +91,9 @@ def rn_from_Dn(N,sgn,l):
     N4=4*N
     ZR=IntegerModRing(4*N)
     x= ZR(D -sgn*r*r)
-    if( x <> 0):
-        raise ValueError, " Need D=sgn*r^2 mod 4N got N=%s, r=%s D=%s" %(N,r,D)
-    n=(D-sgn*r*r)/(4*N)
+    if x != 0:
+        raise ValueError(" Need D=sgn*r^2 mod 4N got N={0}, r={1} D={2}".format(N,r,D))
+    n=(D-sgn*r*r)/ZZ(4*N)
     return [n,r]
 
 
@@ -98,14 +103,14 @@ def rn_from_D(N,sgn,D):
     N4=4*N
     ZR=IntegerModRing(4*N)
     DD=sgn*ZR(D)
-    if(not DD.is_square()):
-        raise ValueError, " Need D square mod 4N got N=%s,  D=%s" %(N,D)
+    if not DD.is_square():
+        raise ValueError(" Need D square mod 4N got N={0},  D={1}".format(N,D))
     for j in range(N):        
         x= ZR(D -sgn*j*j)
-        if( x == 0):
+        if x == 0:
             r=j
-            n=(D-sgn*r*r)/(4*N)
-            exit
+            n=(D-sgn*r*r)/ZZ(4*N)
+            break
     return [n,r]
 
 
@@ -131,7 +136,7 @@ def ps_coefficients_holomorphic_vec(N,weight,l,tol=1E-40,prec=501,maxit=10000,fo
     b_m=0
     b_p=1
     if(silent>1):
-        print "l=",l
+        print("l={0}".format(l))
     try:
         l.keys()
         ll=l
@@ -145,9 +150,9 @@ def ps_coefficients_holomorphic_vec(N,weight,l,tol=1E-40,prec=501,maxit=10000,fo
         if(NN[j]>NNmax):
             NNmax=NN[j]
     if(NNmax>1E10):
-        raise ValueError,"Need too many (%s) terms! Probably to small weight!" %NN
+        raise ValueError("Need too many ({0}) terms! Probably to small weight!".format(NN))
     if(silent>1):
-        print "NNmax=",NNmax
+        print("NNmax={0}".format(NNmax))
     #for x in NN.keys():
     #    #print "NN(",x,")=",NN[x]
     #print "tol2=",tol
@@ -182,13 +187,13 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     fp.write("starting to find basis")
     fp.close()
     if(silent>0):
-        print "Forcing precision:",force_prec
-    set_silence_level(0)
-    if(bl<>None): 
+        print("Forcing precision:{0}".format(force_prec))
+    set_verbose(0)
+    if(bl!=None): 
         dim=len(bl)
         l=bl
     else:
-        if(set_dim<>None and set_dim >0):
+        if(set_dim!=None and set_dim >0):
             dim=set_dim
         else:
             dim=dimension_jac_cusp_forms(int(weight+0.5),N,-1)
@@ -197,7 +202,7 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     for [D,r] in l.values():
         for [Dp,rp] in l.values():
             # Recall that the gram matrix is symmetric. We need only compute the upper diagonal
-            if(v.values().count([Dp,rp,D,r])==0):
+            if(list(v.values()).count([Dp,rp,D,r])==0):
                 v[j]=[D,r,Dp,rp]
                 j=j+1
     # now v is a list we can get into computing coefficients
@@ -208,17 +213,17 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
         Delta=l[j][0]
         r=l[j][1]
         diff=(r*r-Delta) % (4*N)
-        if(diff<>0):
-            raise ValueError, "ERROR r^2=%s not congruent to Delta=%s mod %s!" %(r*r, Delta, 4*N)
+        if diff != 0:
+            raise ValueError("ERROR r^2={0} not congruent to Delta={1} mod {2}!".format(r*r, Delta, 4*N))
         s=s+"("+str(Delta)+","+str(r)+")"
         indices[j]=[Delta,r]
-        if(j<len(l)-1):
+        if j<len(l)-1:
             s=s+","
         else:
             s=s+"]),"
     s=s+"\n"
-    if(silent>0):
-        print s+"\n"
+    if silent>0:
+        print(s+"\n")
     filename2="PS_Gramdata"+stN+"-"+wt+".txt"
     fp=open(filename2,"write")
     fp.write(s)
@@ -226,17 +231,17 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     try:
         os.remove(filename_work)
     except os.error:
-        print "Could not remove file:",filename_work
+        print("Could not remove file:{0}".format(filename_work))
         pass
     filename_work="__N"+stN+"-"+wt+"--computing_gram_matrix.txt"
     fp=open(filename_work,"write")
     fp.write("")
     fp.close()
     #print "tol=",tol
-    #set_silence_level(2)
+    #set_verbose(2)
     #print "force_prec(gram_mat)=",force_prec
     res=ps_coefficients_holomorphic_vec(N,weight,v,tol,prec,force_prec=force_prec)
-    set_silence_level(0)
+    set_verbose(0)
 
     res['indices']=indices
     maxerr=0.0
@@ -247,8 +252,8 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
             maxerr=tmperr
         # switch format for easier vewing
         res['errs'][j]=RR(tmperr)
-    if(silent>0):
-        print "maxerr=",RR(maxerr)
+    if silent>0:
+        print("maxerr={0}".format(RR(maxerr)))
     res['maxerr']=maxerr
     wt_phalf='%.4f'% (weight+0.5)
     filename3="PS_Gramerr"+stN+"-"+wt+".txt"
@@ -260,7 +265,7 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     if(res['ok']):
         Cps=res['data']
     else:
-        print "Failed to compute Fourier coefficients!"
+        print("Failed to compute Fourier coefficients!")
         return 0
     RF=RealField(prec)
     A=matrix(RF,dim)
@@ -270,23 +275,23 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     N4=RF(4*N)
     C=dict()
     if(silent>1):
-        print "v=",v
-        print "dim=",dim
+        print("v={0}".format(v))
+        print("dim={0}".format(dim))
     lastix=0
     # First set the upper right part of A
     for j in range(dim):
         ddim=dim-j
         if(silent>1):
-            print "j=",j,"ddim=",ddim," lastix=",lastix
+            print("j={0} ddim={1} lastix={2]".format(j,ddim,lastix))
         for k in range(0,ddim):
             # need to scale with |D|^(k+0.5)
             if(silent>1):
-                print "k=",k
-                print "lastix+k=",lastix+k
+                print("k={0}".format(k))
+                print("lastix+k={0}".format(lastix+k))
             mm=RF(abs(v[lastix+k][0]))/N4
             tmp=RF(mm**(weight-one))
             if(silent>1):
-                print "ddim+k=",ddim+k
+                print("ddim+k={0}".format(ddim+k))
             A[j,j+k]=Cps[lastix+k]*tmp
             C[v[lastix+k][0],v[lastix+k][1]]=Cps[lastix+k]
         lastix=lastix+k+1
@@ -306,24 +311,24 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
             AMp[ir,ik]=mpmath.mpf(A[ir,ik])
     d=mpmath.det(AMp)
     if(silent>1):
-        print "det(A-as-mpmath)=",d
+        print("det(A-as-mpmath)={0}".format(d))
     di=mpmath.det(AInt)
     if(silent>1):
-        print "det(A-as-interval)=",di
+        print("det(A-as-interval)={0}".format(di))
     res['det']=(RF(di.a),RF(di.b))
     
     filename="PS_Gram"+stN+"-"+wt+".txt"
     if(silent>1):
-        print "printing to file: "+filename
+        print("printing to file: {0}".format(filename))
     print_matrix_to_file(A,filename,'A['+str(N)+']')
     if(silent>1):
-        print "A-A.transpose()=",norm(A-A.transpose())
+        print("A-A.transpose()={0}".format(norm(A-A.transpose())))
     B=A^-1
     #[d,B]=mat_inverse(A)
     if(silent>1):
-        print "A=",A.n(100)
-        print "det(A)=",di
-        print "Done making inverse!"
+        print("A={0}".format(A.n(100)))
+        print("det(A)={0}".format(di))
+        print("Done making inverse!")
     #res['det']=d
     res['inv']=B
     mpmath.mp.dps=dold
@@ -334,22 +339,22 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     filename3="PS_Coeffs"+stN+"-"+wt+"-"+s+".sobj"
     # If the file already exist we load it and append the new data
     if(silent>0):
-        print "saving data to ",filename3
+        print("saving data to: {0}".format(filename3))
     try:
         f=open(filename3,"read")
     except IOError:
         if(silent>0):
-            print "no file before!"
+            print("no file before!")
         # do nothing
     else:
-        if(silent>0):
-            print "file: "+filename3+" exists!"
+        if silent>0:
+            print("file: {0} exists!".format(filename3))
         f.close()
         Cold=load(filename3)
         for key in Cold.keys():
             #                print"key:",key
-            if(not C.has_key(key)): # then we addd it
-                print"key:",key," does not exist in the new version!"
+            if key not in C: # then we addd it
+                print("key:",key," does not exist in the new version!")
                 C[key]=Cold[key]
                 save(C,filename3)
     ## Save the whole thing
@@ -359,7 +364,7 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
     try:
         os.remove(filename_work)
     except os.error:
-        print "Could not remove file:",filename_work
+        print("Could not remove file: {0}".format(filename_work))
         pass
     return res
 
@@ -367,7 +372,7 @@ def list_of_basis(N,weight,prec=501,tol=1e-20,sv_min=1E-1,sv_max=1E15,set_dim=No
     r""" Returns a list of pairs (r,D) forming a basis
     """
     # First we find the smallest Discriminant for each of the components
-    if(set_dim<>None and set_dim >0):
+    if set_dim != None and set_dim >0:
         dim=set_dim
     else:
         dim=dimension_jac_cusp_forms(int(weight+0.5),N,-1)
@@ -378,10 +383,10 @@ def list_of_basis(N,weight,prec=501,tol=1e-20,sv_min=1E-1,sv_max=1E15,set_dim=No
     C0=1
     RF=RealField(prec)
     if(silent>1):
-        print "N=",N
-        print "dim=",dim
-        print "sv_min=",sv_min
-        print "sv_max=",sv_max
+        print("N={0}".format(N))
+        print("dim={0}".format(dim))
+        print("sv_min={0}".format(sv_min))
+        print("sv_max={0}".format(sv_max))
     Aold=Matrix(RF,1)
     tol0=1E-20  #tol
     # we start with the first discriminant, then the second etc.
@@ -448,7 +453,7 @@ def list_of_basis(N,weight,prec=501,tol=1e-20,sv_min=1E-1,sv_max=1E15,set_dim=No
             AInt=mpmath.matrix(int(A.nrows()),int(A.ncols()))
             AMp=mpmath.matrix(int(A.nrows()),int(A.ncols()))
             if(silent>0):
-                print "tol0=",tol0
+                print("tol0={0}".format(tol0))
             for ir in range(A.nrows()):
                 for ik in range(A.ncols()):
                     AInt[ir,ik]=mpmath.mp.mpi(A[ir,ik]-tol0,A[ir,ik]+tol0)
@@ -460,10 +465,10 @@ def list_of_basis(N,weight,prec=501,tol=1e-20,sv_min=1E-1,sv_max=1E15,set_dim=No
             #    for ik in range(A.ncols()):
             #        #print "A.d=",AInt[ir,ik].delta
             if(silent>0):
-                print "mpmath.mp.dps=",mpmath.mp.dps
-                print "det(A)=",d
-                print "det(A-as-interval)=",di
-                print "d.delta=",di.delta
+                print("mpmath.mp.dps={0}".format(mpmath.mp.dps))
+                print("det(A)={0}".format(d))
+                print("det(A-as-interval)={0}".format(di))
+                print("d.delta={0}".format(di.delta))
             #if(not mpmath.mpi(d) in di):
             #    raise ArithmeticError," Interval determinant not ok?"
             #ANP=A.numpy()
@@ -484,7 +489,7 @@ def list_of_basis(N,weight,prec=501,tol=1e-20,sv_min=1E-1,sv_max=1E15,set_dim=No
             zero=mpmath.mpi(0)
             if(zero not in di):
                 if(silent>1):
-                    print "Adding D,r=",D,r
+                    print("Adding D,r={0}, {1}".format(D,r))
                 basislist[num_gotten]=[D,r]
                 num_gotten=num_gotten+1
                 if(num_gotten>=dim):
@@ -494,12 +499,12 @@ def list_of_basis(N,weight,prec=501,tol=1e-20,sv_min=1E-1,sv_max=1E15,set_dim=No
                     Aold=A
             else:
                 if(silent>1):
-                    print " do not use D,r=",D,r
+                    print(" do not use D,r={0}, {1}".format(D,r))
             # endif
             mpmath.mp.dps=dold
     # endfor
     if(num_gotten < dim):
-        raise ValueError," did not find enough good elements for a basis list!"  
+        raise ValueError(" did not find enough good elements for a basis list!")  
 
 
 
@@ -541,8 +546,8 @@ def my_modsqrt(a,N):
     #print "amod4N=",amod4N
     sq=[]
     for i in range(0,N+1):
-        #print "i*i mod 4N=",((i*i) % N4 ) 
-        if( ((i*i) % N4 ) == amod4N):
+        #print "i*i mod 4N=",((i*i) % N4)
+        if( ((i*i) % N4) == amod4N):
             sq.append(i)
     return sq
 

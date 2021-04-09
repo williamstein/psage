@@ -67,7 +67,7 @@ cpdef cython_elt(long ii,gen_orders):
         c = ii%md
         elt.append(c)
         ii = ii-c
-        ii = ii/md
+        ii = ii//md
     return elt
 
 cpdef cython_neg_index(long ii, gen_orders):
@@ -125,8 +125,8 @@ cpdef cython_xis(int a, int b, int c, int d, W):
         t = None if (len(comp[1 ])==4 ) else comp[1 ][4 ]
         q=p**n
         qc=gcd(q,c)
-        qqc=Integer(q/qc)
-        ccq=Integer(c/qc)
+        qqc=Integer(q//qc)
+        ccq=Integer(c//qc)
         nq=valuation(qqc,p)
         gammaf=1 
         dc=1 
@@ -165,7 +165,7 @@ cpdef cython_get_gammaN_conjcl_reps(long N):
     four = F(4)
     if p == 3:
         eps = 2
-    for ii in range(0,(p-1)/2+1):
+    for ii in range(0,(p-1)//2+1):
         print ii, kronecker(ii,p)
         if ii != 0 and kronecker(ii,p)==-1:
             eps=ii
@@ -174,10 +174,10 @@ cpdef cython_get_gammaN_conjcl_reps(long N):
     cl=list()
     cl.append([[1,0,0,1],1])
     cl.append([[-1,0,0,-1],1])
-    cl.append([[1,1,0,1],(p-1)*(p+1)/2])
-    cl.append([[-1,1,0,-1],(p-1)*(p+1)/2])
-    cl.append([[1,eps,0,1],(p-1)*(p+1)/2])
-    cl.append([[-1,eps,0,-1],(p-1)*(p+1)/2])
+    cl.append([[1,1,0,1],(p-1)*(p+1)//2])
+    cl.append([[-1,1,0,-1],(p-1)*(p+1)//2])
+    cl.append([[1,eps,0,1],(p-1)*(p+1)//2])
+    cl.append([[-1,eps,0,-1],(p-1)*(p+1)//2])
     done=list()
     if kronecker(-1,p)==-1:
         cl.append([[0,-1,1,0],p*(p-1)])

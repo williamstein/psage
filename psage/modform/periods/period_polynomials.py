@@ -3,11 +3,16 @@ Classes and routines for working with spaces of (vector-valued) period polynomia
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
+from builtins import map
+from builtins import range
 from sage.all import SL2Z,SageObject,is_squarefree,RealField,ComplexField,Matrix,conjugate,binomial,Gamma0,is_prime,ZZ,Cusp,gcd,ceil,floor,log_b,CyclotomicField,divisors
 
 
-from period_polynomials_algs import *
+from .period_polynomials_algs import *
 
 class PeriodPolynomialSpace(SageObject):
     r"""
@@ -124,7 +129,7 @@ class PeriodPolynomial(SageObject):
         """
         self._f = f
         self._level = None
-        if data<>{}:
+        if data != {}:
             self.init_from_dict(data)
         if self._level==None:
             self._level = f.level()
@@ -238,7 +243,7 @@ class PeriodPolynomial(SageObject):
 
 
     def polynomial_plus(self,n):
-        if not self._pplus.has_key(n):
+        if n not in self._pplus:
             E = Matrix(ZZ,2,2,[-1,0,0,1])
             p1 = self.polynomial(n)
             p2 = self.slash_action(n,E)
@@ -247,7 +252,7 @@ class PeriodPolynomial(SageObject):
         return self._pplus[n]
 
     def polynomial_minus(self,n):
-        if not self._pminus.has_key(n):
+        if n not in self._pminus:
             E = Matrix(ZZ,2,2,[-1,0,0,1])
             p1 = self.polynomial(n)
             p2 = self.slash_action(n,E)
@@ -316,7 +321,7 @@ class PeriodPolynomial(SageObject):
         OUTPUT:
         - '\omega_{+},\omega_{-}'
         """
-        if self._canonical_periods<>[]:
+        if self._canonical_periods != []:
             return self._canonical_periods
         norm = self.petersson_norm()
         o1 = self.get_rk(0,0)
@@ -360,7 +365,7 @@ class PeriodPolynomial(SageObject):
         r"""
         Compute P(f|A_n)(X)
         """
-        if self._polynomials.has_key(n):
+        if n in self._polynomials:
             return self._polynomials[n]
         CF = ComplexField(self._prec)
         X=CF['X'].gens()[0]
@@ -371,7 +376,7 @@ class PeriodPolynomial(SageObject):
         for l in range(self._w+1):
             rk = self.get_rk(n,self._w-l)
             if self._verbose>0:
-                print "rk=",rk
+                print("rk={0}".format(rk))
             fak = binomial(self._w,l)*(-1)**l
             p+=CF(fak)*CF(rk)*X**l
         self._polynomials[n]=p
@@ -428,7 +433,7 @@ class PeriodPolynomial(SageObject):
             AE = SL2Z([An[0,0],-An[0,1],-An[1,0],An[1,1]])
             m = self._get_coset_n(AE)
         else:
-            raise ValueError("Call with SL2Z element or [-1,0,1,0]. Got:{0}".format(E))
+            raise ValueError("Call with SL2Z element or [-1,0,1,0]. Got:{0}".format(A))
         return m
         
     def slash_action(self,n,gamma,sym='none'):
@@ -496,7 +501,7 @@ class PeriodPolynomial(SageObject):
             for c,A in l:            
                 p+=c*self.slash_action(n,A,sym=sym)
         except:
-            raise ValueError,"Need a list of tuples! Got:{0}".format(l)
+            raise ValueError("Need a list of tuples! Got:{0}".format(l))
         return p
 
 
@@ -519,15 +524,15 @@ class PeriodPolynomial(SageObject):
                 self._M[n] = Mset
         if M0>Mset:
             self._M0 = Mset
-        if verbose>0:
-            print "Warning: the precision of results might be lower than expected!"
+        if self._verbose>0:
+            print("Warning: the precision of results might be lower than expected!")
         
     
     def truncation_M(self,n):
         r"""
         Compute the truncation point at coset nr. n.
         """        
-        if not self._M.has_key(n):
+        if n not in self._M:
             h,w = self.get_shift_and_width_for_coset(n)
             #self._M[n]=self._get_truncation(w,self._k,self._prec)
             self._M[n]=get_truncation(self._k,w,self._prec)
@@ -579,7 +584,7 @@ class PeriodPolynomial(SageObject):
         if not self._base_coeffs:
             self.coefficients_f()
         CF = ComplexField(self._prec)
-        if not self._coefficients_at_coset.has_key(n):
+        if n not in self._coefficients_at_coset:
             M = self.truncation_M(n)
             h,w = self.get_shift_and_width_for_coset(n)
             zN = CyclotomicField(w).gens()[0]
@@ -608,15 +613,15 @@ class PeriodPolynomial(SageObject):
         r"""
         Compute the coefficient r_k((f|A_n))
         """
-        if not self._rks.has_key((n,k)):
+        if (n,k) not in self._rks:
             S,T = SL2Z.gens()
             nstar = self._get_shifted_coset_m(n,S)
             kstar = self._k-2-k
             i1 = self.get_integral_from_1_to_oo(n,k)
             i2 = self.get_integral_from_1_to_oo(nstar,kstar)
             if self._verbose>0:
-                print "i1=",i1
-                print "i2=",i2
+                print("i1={0}".format(i1))
+                print("i2={0}".format(i2))
             self._rks[(n,k)] = i1+i2*(-1)**(k+1)
         return self._rks[(n,k)]
 
@@ -625,7 +630,7 @@ class PeriodPolynomial(SageObject):
         Compute \int_{1}^{+Infinity} f|A_n(it) t^k dt 
         """
         CF = ComplexField(self._prec)
-        if not self._integrals.has_key((n,k)):
+        if (n,k) not in self._integrals:
             c = self.coefficient_at_coset(n)
             w = self.width(n)
             my_integral = 0
@@ -653,7 +658,7 @@ class PeriodPolynomial(SageObject):
         r"""
         Compute the width of the cusp at coset nr. n.
         """
-        if not self._width.has_key(n):
+        if n not in self._width:
             self.get_shifts_and_widths()
         return self._width[n]
         
@@ -661,7 +666,7 @@ class PeriodPolynomial(SageObject):
         r"""
         Compute the Atkin-Lehner eigenvalue at the cusp of coset nr. n.
         """
-        if not self._atkin_lehner.has_key(n):
+        if n not in self._atkin_lehner:
             A = self.coset_rep(n)
             c = Cusp(A[0,0],A[1,0])
             G=Gamma0(self._level)
@@ -687,7 +692,7 @@ class PeriodPolynomial(SageObject):
         r"""
         Compute the shift and width of coset nr. n.
         """
-        if self._shift.has_key(n) and self._width.has_key(n):
+        if n in self._shift and n in self._width:
             return self._shift[n],self._width[n]
         if not is_squarefree(self._level):
             raise NotImplementedError("Only square-free levels implemented")
@@ -696,14 +701,14 @@ class PeriodPolynomial(SageObject):
         a = A[0,0]; c=A[1,0]
         width = G.cusp_width(Cusp(a,c))
         if self._verbose>0:
-            print "width=",width
+            print("width={0}".format(width))
         Amat = Matrix(ZZ,2,2,A.matrix().list())
         h = -1 
         for j in range(width):
             Th = Matrix(ZZ,2,2,[width,-j,0,1])
             W = Amat*Th
             if self._verbose>1:
-                print "W=",W
+                print("W={0}".format(W))
                 
             if self.is_involution(W):
                 h = j
@@ -723,7 +728,7 @@ class PeriodPolynomial(SageObject):
             gg = Matrix(ZZ,2,2,g.matrix().list())
             g1 = W*gg*W**-1
             if verbose>0:
-                print "WgW^-1=",g1
+                print("WgW^-1={0}".format(g1))
             if g1 not in G:
                 return False
         W2 = W*W
@@ -731,7 +736,7 @@ class PeriodPolynomial(SageObject):
         if c>1:
             W2 = W2/c
         if verbose>0:
-            print "W^2=",W2
+            print("W^2={0}".format(W2))
         if W2 not in G:
             return False
         return True
@@ -748,12 +753,12 @@ class PeriodPolynomial(SageObject):
         pU = self*lU 
         maxS = 0; maxU=0
         if self._verbose>0:
-            print "pS=",pS
-            print "pU=",pU
+            print("pS={0}".format(pS))
+            print("pU={0}".format(pU))
         for p in pS.values():
             if hasattr(p,"coeffs"):
-                if p.coefficients(sparse=False)<>[]:
-                    tmp = max(map(abs,p.coefficients(sparse=False)))
+                if p.coefficients(sparse=False) != []:
+                    tmp = max(list(map(abs,p.coefficients(sparse=False))))
                 else:
                     tmp = 0
             else:
@@ -762,16 +767,16 @@ class PeriodPolynomial(SageObject):
                 maxS = tmp
         for p in pU.values():
             if hasattr(p,"coefficients"):
-                if p.coefficients(sparse=False)<>[]:
-                    tmp = max(map(abs,p.coefficients(sparse=False)))
+                if p.coefficients(sparse=False) != []:
+                    tmp = max(list(map(abs,p.coefficients(sparse=False))))
                 else:
                     tmp = 0
             else:
                 tmp = abs(p)
             if tmp>maxU:
                 maxU = tmp                
-        print "Max coeff of self|(1+S)=",maxS
-        print "Max coeff of self|(1+U+U^2)=",maxU
+        print("Max coeff of self|(1+S)={0}".format(maxS))
+        print("Max coeff of self|(1+U+U^2)={0}".format(maxU))
 
 
     def test_relations_plusminus(self):
@@ -797,15 +802,15 @@ class PeriodPolynomial(SageObject):
             maxv=0
             for p in pp.values():
                 if hasattr(p,"coeffs"):
-                    if p.coefficients(sparse=False)<>[]:
-                        tmp = max(map(abs,p.coefficients(sparse=False)))
+                    if p.coefficients(sparse=False)!=[]:
+                        tmp = max(list(map(abs,p.coefficients(sparse=False))))
                     else:
                         tmp = 0
                 else:
                     tmp = abs(p)
                 if tmp>maxv:
                     maxv = tmp
-            print "maxv=",maxv
+            print("maxv={0}".format(maxv))
 
         #print "Max coeff of self|(1+S)=",maxS
         #print "Max coeff of self|(1+U+U^2)=",maxU
@@ -816,10 +821,10 @@ class PeriodPolynomial(SageObject):
         for n in range(self._dim):          
             pp = self.polynomial_plus(n)/omega1
             pm = self.polynomial_minus(n)/omega2
-            print "P(f{0:2d})^+/omega_+={1}".format(n,pp)
-            print "P(f{0:2d})^-/omega_-={1}".format(n,pm)
-        print "o1=",omega1
-        print "o2=",omega2
+            print("P(f{0:2d})^+/omega_+={1}".format(n,pp))
+            print("P(f{0:2d})^-/omega_-={1}".format(n,pm))
+        print("o1={0}".format(omega1))
+        print("o2={0}".format(omega2))
 
 
         

@@ -25,6 +25,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import DegreeGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsRing_generic,\
     ModularFormsModule_generic
@@ -40,6 +43,7 @@ from sage.modules.all import FreeModule
 from sage.rings.all import Integer
 from sage.rings.all import ZZ, PolynomialRing
 from sage.structure.all import Sequence, SageObject
+from functools import reduce
 
 #===============================================================================
 # ModularFormTestType_scalar
@@ -152,7 +156,7 @@ class ModularFormTestType_scalar ( ModularFormType_abstract ) :
             Degree grading (1, 2, 3, 4, 5)
         """
         if K.has_coerce_map_from(ZZ) :
-            return DegreeGrading(range(1, self.nmb_gens + 1))
+            return DegreeGrading(list(range(1, self.nmb_gens + 1)))
 
         raise NotImplementedError
 
@@ -312,7 +316,7 @@ class ModularFormTestType_scalar ( ModularFormType_abstract ) :
             ?? # 32-bit
             -4492425810583750348 # 64-bit
         """
-        return reduce(xor, map(hash, [self.nmb_gens, self._repr_()] ) )
+        return reduce(xor, list(map(hash, [self.nmb_gens, self._repr_()] )) )
     
     def _repr_(self) :
         """
@@ -460,7 +464,7 @@ class ModularFormTestType_vectorvalued ( ModularFormType_abstract ) :
             Degree grading (1, 2, 3, 4, 5, 3, 6, 9)
         """
         if K.has_coerce_map_from(ZZ) :
-            return DegreeGrading(list(self.non_vector_valued().weights(K)) + range(3, 3 * self.rank + 1, 3))
+            return DegreeGrading(list(self.non_vector_valued().weights(K)) + list(range(3, 3 * self.rank + 1, 3)))
 
         raise NotImplementedError
 
@@ -664,7 +668,7 @@ class ModularFormTestType_vectorvalued ( ModularFormType_abstract ) :
             ?? # 32-bit
             -3841460515652797985 # 64-bit
         """
-        return reduce(xor, map(hash, [self.rank, self._repr_()] ) )
+        return reduce(xor, list(map(hash, [self.rank, self._repr_()] )) )
     
     def _repr_(self) :
         """
@@ -725,7 +729,7 @@ class HeckeOperatorNN_test ( SageObject ) :
         hecke_expansion = dict()
         for ch in characters :
             res = dict()
-            for (n, v) in expansion.coefficients(True)[ch].iteritems() :
+            for (n, v) in expansion.coefficients(True)[ch].items() :
                 for m in range(n, precision.index(), self.__l) :
                     try :
                         res[m] += v

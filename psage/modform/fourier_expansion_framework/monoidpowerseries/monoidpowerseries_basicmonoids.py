@@ -25,6 +25,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import range
 from operator import xor
 from sage.misc.latex import latex
 from sage.categories.all import Rings
@@ -115,7 +117,7 @@ class CharacterMonoid_class ( SageObject ) :
             sage: cm.gens()
             (1,)
         """
-        return tuple(map(lambda c: CharacterMonoidElement_class(self, c), self.__C.gens()))
+        return tuple([CharacterMonoidElement_class(self, c) for c in self.__C.gens()])
     
     def group(self) :
         r"""
@@ -543,7 +545,7 @@ class TrivialMonoid ( SageObject ) :
         if i == 0 :
             return Integer(1)
         
-        raise ValueError, "Generator not defined."
+        raise ValueError("Generator not defined.")
     
     def gens(self) :
         r"""
@@ -999,7 +1001,7 @@ class NNMonoid( SageObject ) :
             sage: m.gens()
             (1,)
         """    
-        return tuple([self.gen(i) for i in xrange(self.ngens())])
+        return tuple([self.gen(i) for i in range(self.ngens())])
 
     def is_commutative(self) :
         r"""
@@ -1249,7 +1251,7 @@ class NNMonoid( SageObject ) :
             sage: list(m.decompositions(4))
             [(0, 4), (1, 3), (2, 2), (3, 1), (4, 0)]
         """
-        for n in xrange(s+1) :
+        for n in range(s+1) :
             yield (n, s-n)
         
         raise StopIteration
@@ -1464,7 +1466,7 @@ class NNFilter ( SageObject ) :
         if self.__bound is infinity :
             raise ArithmeticError( "Cannot iterate over infinite filters." )
         
-        for n in xrange(self.__bound) :
+        for n in range(self.__bound) :
             yield n
         
         raise StopIteration

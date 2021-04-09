@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 def SmallJac(f):
     try:
         d = f.degree()
@@ -5,12 +6,12 @@ def SmallJac(f):
         d = f.degree(f.variables()[0])
     g = (d - 1) // 2
     if g == 1:
-        import wrapper1
+        from . import wrapper1
         return wrapper1.SmallJac(f)
     elif g == 2:
-        import wrapper2
+        from . import wrapper2
         return wrapper2.SmallJac(f)
     elif g == 3:
-        import wrapper3
+        from . import wrapper3
         return wrapper3.SmallJac(f)
     raise NotImplementedError

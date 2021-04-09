@@ -1,4 +1,3 @@
-include "sage/ext/cdefs.pxi"
 from sage.libs.mpfr cimport *
 #include "sage/rings/mpc.pxi"
 #include "sage/ext/gmp.pxi"

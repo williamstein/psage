@@ -1,7 +1,7 @@
 r"""
 An abstract class for modular form types.
 
-AUTHOR :
+AUTHOR:
     -- Martin Raum (2009 - 07 - 30) Initial version
 """
 
@@ -30,12 +30,12 @@ from sage.structure.sage_object import SageObject
 # ModularFormType_abstract
 #===============================================================================
 
-class ModularFormType_abstract ( SageObject ) :
+class ModularFormType_abstract (SageObject):
     r"""
     Types should be globally unique.
     """
     
-    def _ambient_construction_function(self) :
+    def _ambient_construction_function(self):
         """
         Return a function that will construct the ambient ring or module
         of modular forms.
@@ -55,9 +55,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def _ambient_element_class(self) :
+    def _ambient_element_class(self):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_types import ModularFormType_abstract
@@ -66,9 +66,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def _space_element_class(self) :
+    def _space_element_class(self):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_types import ModularFormType_abstract
@@ -77,9 +77,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def _weight_submodule_class(self) :
+    def _weight_submodule_class(self):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_types import ModularFormType_abstract
@@ -88,9 +88,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def _submodule_heckeinvariant_class(self) :
+    def _submodule_heckeinvariant_class(self):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_types import ModularFormType_abstract
@@ -99,9 +99,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def group(self) :
+    def group(self):
         """
         The modular group which ``self`` is associated with.
         
@@ -119,9 +119,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def base_ring_generators(self, K, precision) :
+    def base_ring_generators(self, K, precision):
         """
         If the ring of modular forms can be interpreted as an algebra
         over a ring of modular forms with much simpler Fourier coefficient
@@ -144,7 +144,7 @@ class ModularFormType_abstract ( SageObject ) :
         """
         return None
     
-    def generators(self, K, precision) :
+    def generators(self, K, precision):
         """
         A list of Fourier expansions of forms that generate the ring
         or module of modular forms.
@@ -164,9 +164,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
 
-    def grading(self, K) :
+    def grading(self, K):
         """
         A grading for the ring or module of modular forms.
         
@@ -186,11 +186,11 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def _generator_names(self, K) :
+    def _generator_names(self, K):
         """
-        Names of the generators returned by :meth:~`.generators` within the
+        Names of the generators returned by:meth:~`.generators` within the
         attached polynomial ring.
         
         INPUT:
@@ -206,9 +206,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def _generator_by_name(self, K, name) :
+    def _generator_by_name(self, K, name):
         """
         Return the generator ``name`` as an element of the attached
         polynomial ring.
@@ -227,9 +227,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def generator_relations(self, K) :
+    def generator_relations(self, K):
         """
         An ideal `I` in the attach polynomial ring `R`, such that the ring or module of
         modular forms is a subquotient of `R / I`. This ideal must be unique for `K`.
@@ -247,9 +247,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
     
-    def reduce_before_evaluating(self, K) :
+    def reduce_before_evaluating(self, K):
         """
         Determine whether polynomials in the generators should first be
         Groebner reduced, before they are evaluated.
@@ -267,9 +267,9 @@ class ModularFormType_abstract ( SageObject ) :
         """
         return True
     
-    def weights(self, K) :
+    def weights(self, K):
         """
-        The weights of the generators returned by :meth:~`.generators`.
+        The weights of the generators returned by:meth:~`.generators`.
         
         INPUT:
             - `K`      -- A ring or module; The ring of Fourier coefficients.
@@ -284,9 +284,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
 
-    def is_vector_valued(self) :
+    def is_vector_valued(self):
         """
         ``True`` if this is the vector valued version of a scalar valued type of modular forms.
         
@@ -300,7 +300,7 @@ class ModularFormType_abstract ( SageObject ) :
         """
         return False
     
-    def _hom_base_extension(self, K, L) :
+    def _hom_base_extension(self, K, L):
         """
         Images of generators over `K` in terms of those over `L`.
         
@@ -317,10 +317,10 @@ class ModularFormType_abstract ( SageObject ) :
             sage: ModularFormTestType_scalar()._hom_base_extension(ZZ, QQ)
             {g4: g4, g5: g5, g2: g2, g3: g3, g1: g1}
         """
-        return dict( (self._generator_by_name(K, g), self._generator_by_name(L, g))
-                     for g in self._generator_names(K) )
+        return dict((self._generator_by_name(K, g), self._generator_by_name(L, g))
+                     for g in self._generator_names(K))
         
-    def non_vector_valued(self) :
+    def non_vector_valued(self):
         """
         Return the non vector values version of this type. 
         
@@ -336,7 +336,7 @@ class ModularFormType_abstract ( SageObject ) :
         """
         raise NotImplementedError
     
-    def _hom_to_vector_valued(self, K) :
+    def _hom_to_vector_valued(self, K):
         """
         This should be a homomorphism of the underlying polynomial rings.
         
@@ -352,15 +352,15 @@ class ModularFormType_abstract ( SageObject ) :
             sage: ModularFormTestType_scalar()._hom_to_vector_valued(QQ)
             {g4: g4, g5: g5, g2: g2, g3: g3, g1: g1}
         """
-        if self.is_vector_valued() :
-            raise ValueError( "This type is already vector valued." )
+        if self.is_vector_valued():
+            raise ValueError("This type is already vector valued.")
         
         nvvtype = self.non_vector_valued()
         
-        return dict( (nvvtype._generator_by_name(K, g), self._generator_by_name(K, g))
-                     for g in self._generator_names(K) )
+        return dict((nvvtype._generator_by_name(K, g), self._generator_by_name(K, g))
+                     for g in self._generator_names(K))
     
-    def graded_submodules_are_free(self, K = None) :
+    def graded_submodules_are_free(self, K = None):
         """
         Whether the modules of elements of fixed grading are free over
         their base ring `K' or over all base rings, respectively.
@@ -378,9 +378,9 @@ class ModularFormType_abstract ( SageObject ) :
             ...
             NotImplementedError: Subclass has to implement this function.
         """
-        raise NotImplementedError( "Subclass has to implement this function." )
+        raise NotImplementedError("Subclass has to implement this function.")
 
-    def has_hecke_action(self) :
+    def has_hecke_action(self):
         """
         Whether the associated modular forms are equipped with a Hecke action.
         
@@ -394,7 +394,7 @@ class ModularFormType_abstract ( SageObject ) :
         """
         return False
     
-    def _hecke_operator_class(self) :
+    def _hecke_operator_class(self):
         """
         A class that implements the Hecke operation.
         

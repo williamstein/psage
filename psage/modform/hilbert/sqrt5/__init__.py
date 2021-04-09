@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -20,6 +21,6 @@
 #################################################################################
 
 
-from hmf import HilbertModularForms
+from .hmf import HilbertModularForms
 
-from tables import primes_of_bounded_norm
+from .tables import primes_of_bounded_norm

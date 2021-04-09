@@ -1,11 +1,6 @@
-include '../ext/stdsage.pxi'
-include '../ext/cdefs.pxi'
-#include "../rings/mpc.pxi"
-#include "../ext/gmp.pxi"
 
 from sage.modules.free_module_element cimport FreeModuleElement
 
-#from sage.rings.complex_mpc cimport *
 from sage.rings.real_mpfr cimport *
 from sage.structure.element cimport Vector,Element
 

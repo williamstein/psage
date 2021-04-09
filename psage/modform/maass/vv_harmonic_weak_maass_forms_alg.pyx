@@ -18,6 +18,7 @@ from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off  
 from sage.libs.gmp.all cimport *
 from psage.rings.mpfr_nogil cimport *
+from sage.ext.stdsage cimport PY_NEW
 
 cdef mpc_rnd_t rnd
 cdef mpfr_rnd_t rnd_re

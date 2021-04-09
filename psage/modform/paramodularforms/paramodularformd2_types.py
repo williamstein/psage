@@ -4,6 +4,7 @@ Types for paramodular forms of fixed level and weight.
 AUTHOR :
     -- Martin Raum (2010 - 04 - 15) Initial version.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -24,6 +25,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.expansion_module import ExpansionModule
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import TrivialGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsModule_generic
@@ -46,6 +50,7 @@ from sage.rings.power_series_ring import PowerSeriesRing
 from sage.rings.rational_field import QQ
 from sage.structure.sequence import Sequence
 from sage.modular.all import ModularForms
+from functools import reduce
 
 #===============================================================================
 # ParamodularFormsD2
@@ -65,7 +70,7 @@ def ParamodularFormsD2(A, type, precision, *args, **kwds) :
         if isinstance(type,ParamodularFormD2_Gamma) :
             M = ModularFormsModule_generic(A, type, precision)
         else :
-            raise TypeError, "%s must be a paramodular form type" % (type,)
+            raise TypeError("{0} must be a paramodular form type".format(type))
         
         _paramodularforms_cache[k] = M
         return M
@@ -80,10 +85,10 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
     """
     def __init__(self, level, weight) :
         if weight % 2 != 0 :
-            raise NotImplementedError, "Only even weight forms are implemented."
+            raise NotImplementedError("Only even weight forms are implemented.")
   
         if level != 1 and not Integer(level).is_prime() :
-            raise NotImplementedError, "Only prime level or level 1 is implemented."
+            raise NotImplementedError("Only prime level or level 1 is implemented.")
   
         self.__level = Integer(level)
         self.__weight = weight        
@@ -166,7 +171,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             raise NotImplementedError
         elif self.__weight == 4 :
             ## This is the formula cited by Poor and Yuen in Paramodular cusp forms
-            cuspidal_dim =  Integer(   (N**2 - 143) / Integer(576) + N / Integer(8)
+            cuspidal_dim =  Integer( (N**2 - 143) / Integer(576) + N / Integer(8)
                                      + kronecker_symbol(-1, N) * (N - 12) / Integer(96)
                                      + kronecker_symbol(2, N) / Integer(8)
                                      + kronecker_symbol(3, N) / Integer(12)
@@ -295,14 +300,14 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             if len(gps) != self._rank(QQ) :
                 syms = self._symmetrised_siegel_modular_forms(precision)
                 em = ExpansionModule(Sequence(gps + syms, universe = ParamodularFormD2FourierExpansionRing(QQ, self.__level) ) )
-                gens = map(lambda e: e.fourier_expansion(), em.pivot_elements())
+                gens = [e.fourier_expansion() for e in em.pivot_elements()]
             else :
                 gens = gps
                             
             if len(gens) == self._rank(QQ) :
                 return Sequence( gens, universe = ParamodularFormD2FourierExpansionRing(QQ, self.__level) )
             
-            raise ArithmeticError, "Gritsenko products do not span this space."
+            raise ArithmeticError("Gritsenko products do not span this space.")
             
         raise NotImplementedError
     
@@ -317,8 +322,8 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             ## We assume that the space is spanned by Gritsenko products
             ## Introduce new names, as soon as new cases are implemented
             nmb_gps = len(self._gritsenko_products(None)[0])
-            return [ "GP_%s" % (i,) for i in xrange(nmb_gps)] + \
-                   [ "SymS_%s" % (i,) for i in xrange(self._rank(K) - nmb_gps) ]
+            return [ "GP_%s" % (i,) for i in range(nmb_gps)] + \
+                   [ "SymS_%s" % (i,) for i in range(self._rank(K) - nmb_gps) ]
 
         raise NotImplementedError
     
@@ -328,7 +333,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
             try :
                 return R.gen(self._generator_names(K).index(name))
             except ValueError :
-                raise ValueError, "name %s doesn't exist for %s" % (name, K)
+                raise ValueError("name {0} doesn't exist for {1}".format(name, K))
         
         raise NotImplementedError
     
@@ -373,4 +378,4 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [self.__level, self.__weight]))
+        return reduce(xor, list(map(hash, [self.__level, self.__weight])))

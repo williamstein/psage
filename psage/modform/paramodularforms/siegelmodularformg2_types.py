@@ -26,6 +26,7 @@ AUTHORS:
 #
 #===============================================================================
 
+from past.builtins import cmp
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import DegreeGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsRing_withheckeaction,\
                                              ModularFormsModule_generic
@@ -99,7 +100,7 @@ def SiegelModularFormsG2(A, type, precision, *args, **kwds) :
             precision = SiegelModularFormG2Filter_discriminant(precision)
             R = ModularFormsModule_generic(A, type, precision)
         else :
-            raise TypeError, "%s must be an Siegel modular form type" % type
+            raise TypeError("{0} must be an Siegel modular form type".format(type))
                 
         _siegelmodularforms_cache[k] = R
         return R
@@ -203,7 +204,7 @@ class SiegelModularFormG2_Classical_Gamma ( ModularFormType_abstract ) :
             elif name == "I10" : return R.gen(2)
             elif name == "I12" : return R.gen(3)
             
-            raise ValueError, "name %s doesn't exist for %s" % (name, K)
+            raise ValueError("name {0} doesn't exist for {1}".format(name, K))
             
         raise NotImplementedError
         
@@ -348,7 +349,7 @@ class SiegelModularFormG2_VectorValuedW2_Gamma ( ModularFormType_abstract ) :
                 i = self._generator_names(K).index(name)
                 return R.gen(i)
             except ValueError:
-                raise ValueError, "name %s doesn't exist for %s" % (name, K)
+                raise ValueError("name {0} doesn't exist for {1}".format(name, K))
 
             #===================================================================
             # if name == "I4" : return R.gen(0)

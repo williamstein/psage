@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2010 Fredrik Stroemberg
@@ -19,10 +20,10 @@
 #
 #################################################################################
 
+from builtins import range
 from sage.rings.complex_mpc import MPComplexField
-from sage.all import ZZ,MatrixSpace,Matrix
-from linalg_complex_dense import *
-from matrix_complex_dense import *
+from sage.all import ZZ, MatrixSpace,Matrix
+from .matrix_complex_dense import random_unitary_matrix
 
 
 def test_eigenvalues(prec=100,nmax=10,dimmax=10):
@@ -33,11 +34,11 @@ def test_eigenvalues(prec=100,nmax=10,dimmax=10):
     dim = ZZ.random_element(2,dimmax)
     M = MatrixSpace(F,dim)
     for n in range(nmax):
-	A,U,l=random_matrix_eigenvalues(F,dim)
-	ev = A.eigenvalues()
-	ev.sort(); l.sort()
-	test = max([abs(ev[j]-l[j]) for j in range(len(ev))])
-	assert test < A.eps()*100
+        A,U,l=random_matrix_eigenvalues(F,dim)
+        ev = A.eigenvalues()
+        ev.sort(); l.sort()
+        test = max([abs(ev[j]-l[j]) for j in range(len(ev))])
+        assert test < A.eps()*100
 
 ##
 ## Helper functions
@@ -47,11 +48,12 @@ def random_matrix_eigenvalues(F,n):
     r"""
     Give a random matrix together with its eigenvalues.
     """
+    from sage.matrix.all import random_matrix
     l=list()
     M = MatrixSpace(F,n)
     U = Matrix(F,n)
     D = Matrix(F,n)
-    for i in xrange(n):
+    for i in range(n):
         x = F.random_element()
         l.append(x)
         D[i,i]=x
@@ -60,5 +62,5 @@ def random_matrix_eigenvalues(F,n):
     U = random_unitary_matrix(F,n)
     UT = U.transpose().conjugate()
     A = U*D*UT
-    l.sort(cmp=my_abscmp)
+    l.sort(key=abs)
     return   A,U,l

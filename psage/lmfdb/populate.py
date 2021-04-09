@@ -27,8 +27,10 @@ the database.
 This is an abstract base class for other classes, e.g., for populating
 the database with newforms.
 """
+from __future__ import print_function
 
-class Populate:
+from builtins import object
+class Populate(object):
     def __init__(self, collection):
         self.collection = collection
         
@@ -40,6 +42,6 @@ class Populate:
             if self.count() == self.collection.count():
                 break
             d = self.percent_done()
-            if verbose: print "Percent done: %.2f%%"%d
+            if verbose: print("Percent done: {0:.2f}%".format(d))
             self.populate_one(verbose=verbose)
 

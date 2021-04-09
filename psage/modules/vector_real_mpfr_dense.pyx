@@ -30,6 +30,9 @@ TESTS:
 from sage.libs.mpfr.types cimport MPFR_RNDN
 from sage.libs.mpfr cimport *
 from sage.libs.mpfr cimport mpfr_init2,mpfr_set_si,mpfr_sub
+from sage.ext.stdsage cimport PY_NEW
+from cysignals.memory cimport sig_free,sig_malloc
+from cysignals.signals cimport sig_on,sig_off
 
 cdef mpfr_rnd_t rnd
 rnd = MPFR_RNDN

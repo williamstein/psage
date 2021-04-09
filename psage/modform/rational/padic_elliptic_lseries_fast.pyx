@@ -20,9 +20,9 @@
 #################################################################################
 
 
-include 'stdsage.pxi'
-from cysignals.signals cimport *
 
+from cysignals.signals cimport *
+from cysignals.memory cimport sig_free,sig_malloc
 from sage.rings.all import ZZ, Zp, Qp, Integers, infinity, binomial, Mod, O
 
 from sage.rings.integer cimport Integer

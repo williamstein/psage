@@ -25,6 +25,9 @@ sage: st8=Z.make_table_phi(prec=249,M0=150,N=2,outprec=66)
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 #*****************************************************************************
 #  Copyright (C) 2012 Fredrik Strömberg <fredrik314@gmail.com>
 #
@@ -41,9 +44,13 @@ sage: st8=Z.make_table_phi(prec=249,M0=150,N=2,outprec=66)
 #*****************************************************************************
 
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 import mpmath as mpmath
-from sage.all import  Parent,RR,ZZ,QQ,is_even,matrix,zeta,is_odd,is_even,ceil,log_b,log,gamma,tan,cos,sin,latex,CyclotomicField,MatrixSpace,sign,binomial
-from selberg_z_alg import *
+from sage.all import  Parent,RR,ZZ,QQ,is_even,matrix,zeta,is_odd,is_even,ceil,log_b,log,gamma,tan,cos,sin,latex,\
+    CyclotomicField,MatrixSpace,sign,binomial,RealField,exp,Rational, arg
+from .selberg_z_alg import *
 from psage.rings import mpc_pochammer
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.complex_field import ComplexField
@@ -92,7 +99,7 @@ class SelbergZeta(Parent):
         #if self._eps < 2.0**(1-prec):
         #    print "Not high enough precision to obtain eps={0}".format(self._eps)
         if self._delta < 2.0**(1-working_prec):
-            print "Not high enough precision to obtain delta={0}".format(self._delta)
+            print("Not high enough precision to obtain delta={0}".format(self._delta))
             self._delta = 2.0**(3-working_prec)
         self._deltad=ceil(abs(log_b(self._eps,10)))
         #self._epsd=digits #ceil(abs(log_b(self._eps,10)))
@@ -166,7 +173,7 @@ class SelbergZeta(Parent):
             else:
                 eps=get_eps
             if verbose>0:
-                print "eps=",eps
+                print("eps={0}".format(eps))
         else:
             eps = 1.0
         delta_eps = 1
@@ -183,18 +190,18 @@ class SelbergZeta(Parent):
         err_old = 1
         M_new=0
         if verbose>0:
-            print "l=",l
+            print("l={0}".format(l))
 
-        if A1_in<>None or A2_in<>None:
+        if A1_in is not None or A2_in is not None:
             A_tmp = self._transfer_operator.matrix_approximation(s,1)
         else:
             A_tmp = 0
         for mj in range(1000):
             #self._working_prec=current_prec
             #s_hp = MPComplexField(self._working_prec)(s.real(),s.imag())
-            if A1_in<>None and type(A1_in)==type(A_tmp):
+            if A1_in is not None and type(A1_in) == type(A_tmp):
                 A1 = A1_in
-            elif approx==3:
+            elif approx == 3:
                 A1=self._transfer_operator._approximation3(s,M)
             else:
                 if sym==1:
@@ -203,7 +210,7 @@ class SelbergZeta(Parent):
                 else:
                     A1=self._transfer_operator.matrix_approximation(s,M,sym=sym)
 
-            if A2_in<>None and type(A2_in)==type(A_tmp):
+            if A2_in!=None and type(A2_in)==type(A_tmp):
                 A2 = A2_in
             elif approx==3:
                 A2=self._transfer_operator._approximation3(s,M+l)
@@ -224,69 +231,69 @@ class SelbergZeta(Parent):
                 ev1=A1.eigenvalues(sorted=1)
                 ev2=A2.eigenvalues(sorted=1)
             if verbose>2:
-                print "ev1=",ev1
-                print "ev2=",ev2
+                print("ev1={0}".format(ev1))
+                print("ev2={0}".format(ev2))
             if checks>=1:
                 evs,delta_eps = get_close_values(ev1,ev2,self._delta,ret_err=1)
             else:
                 evs = get_close_values(ev1,ev2,self._delta,ret_err=0,verbose=verbose)
             if verbose>1:
-                print "evs=",evs
+                print("evs={0}".format(evs))
             if  verbose>0:
-                print "len(evs)=",len(evs)
+                print("len(evs)={0}".format(len(evs)))
             z=CF(1)
             for d in evs:
                z*=(1-d)
             if verbose>0:
-                print "M=",M
+                print("M={0}".format(M))
             # We know that the "true" eigenvalues decrease to 0
             # Hence the error can be estimated by the smallest
             # "true" eigenvalue
             if len(evs)>0:
-                err = min(map(abs,evs))
+                err = min(list(map(abs,evs)))
             else:
                 err=1
             if verbose>0:
-                print "Error estimate={0}".format(err)
-                print "Desired eps={0}".format(eps)
-                print "det(1-L)=",z
+                print("Error estimate={0}".format(err))
+                print("Desired eps={0}".format(eps))
+                print("det(1-L)={0}".format(z))
                 ## Also print the quotient
                 k=self._transfer_operator.det_1_minus_K(s,prec=current_prec)
-                print "det(1-L)/det(1-K)=",z/k
-            if get_evs==1:
+                print("det(1-L)/det(1-K)={0}".format(z/k))
+            if get_evs == 1:
                 return evs
             if err<eps or (get_digits==0 and get_eps==0):
                 if verbose>0:
-                    print "exit loop: Error={0} less than eps={1}".format(err,eps)
+                    print("exit loop: Error={0} less than eps={1}".format(err,eps))
                 break
             ## We now have to decide if we need to raise precision
             ## To choose a precision and appriximation size is the most difficult part of the algorithm
             inc_prec=0; inc_appr=0
             ## The first time we always increase the approximation
             ## so we can get a better estimate of the error
-            if err_old==1:
+            if err_old == 1:
                 inc_appr=1; err_old = err
                 M_old = M
-            elif M_new>0:
+            elif M_new > 0:
                 ## If we have already tried to increase the approximation
                 ## to an estimated 'good' value without success
                 ## we try to increase the precision
                 inc_prec=1
                 if verbose>0:
-                    print "inc_prec=",inc_prec
+                    print("inc_prec={0}".format(inc_prec))
             else:
                 r_test = exp(log(err_old/err)/(M_old-M))
                 C_test = err / r_test**M
                 if verbose>0:
-                    print "r_test=",r_test
-                    print "C_test=",C_test
+                    print("r_test={0}".format(r_test))
+                    print("C_test={0}".format(C_test))
                 if r_test<1:
                     M_new = ceil(abs(log(C_test/eps)/log(r_test)))
                 if M_new > 1.5*M:
                     M_new = M
 
                 if verbose>0:
-                    print "M_new=",M_new
+                    print("M_new={0}".format(M_new))
                 if M_new > M:
                     Nh0=M_new-M
                     inc_appr=0
@@ -300,28 +307,28 @@ class SelbergZeta(Parent):
                 inc_appr=1; Nh0=5
             if inc_appr==1:
                 if verbose>0:
-                    print "Adding to M! M={0} Mplus={1}".format(M,Nh0)
+                    print("Adding to M! M={0} Mplus={1}".format(M,Nh0))
                 M += Nh0
             if inc_prec==1:
                 current_prec+=20
                 CF = MPComplexField(current_prec)
                 if verbose>0:
-                    print "raising number of bits to {0}".format(current_prec)
+                    print("raising number of bits to {0}".format(current_prec))
                 s = CF(s0)
                 if verbose>0:
-                    print "j={0}".format(mj)
+                    print("j={0}".format(mj))
         if verbose>0:
             if mj>=999:
-                print "warning: error={0}".format(err)
-            print "det(1-L)=",z
+                print("warning: error={0}".format(err))
+            print("det(1-L)=",z)
         k=self._transfer_operator.det_1_minus_K(s,prec=current_prec)
         if verbose>0:
-            print "det(1-K)=",k
-            print "get_err=",get_err
-            print "prec=",prec
-            print "current_prec=",current_prec
+            print("det(1-K)={0}".format(k))
+            print("get_err={0}".format(get_err))
+            print("prec={0}".format(prec))
+            print("current_prec={0}".format(current_prec))
             if hasattr(s,"prec"):
-                print "s.prec()=",s.prec()
+                print("s.prec()={0}".format(s.prec()))
         z = z/k
         if checks==1:
             if ret_param==0:
@@ -333,17 +340,17 @@ class SelbergZeta(Parent):
             #    return z,float(err)
             #else:
             ## Use scattering determinant
-            if s.real()<>0.5:
+            if s.real()!=0.5:
                 if verbose>0:
-                    print "computing L(1-s) with M=",M
+                    print("computing L(1-s) with M={0}".format(M))
                 z2 =self.value(1-s,N=M,Nh=Nh,sym=sym,checks=0,get_digits=get_digits,get_eps=get_eps,get_err=0,prec=prec,approx=approx)[0]
             else:
                 z2 = z.conjugate()
             p = self._psi(s,prec=prec)
             ph = z2/z/p
             if verbose>0:
-                print "psi=",p
-                print "ph=",ph
+                print("psi={0}".format(p))
+                print("ph={0}".format(ph))
             if self._q in [3,4,6]:
                 p1=scattering_determinant_Hecke_triangle(s,self._q,prec=current_prec)
             else:
@@ -354,13 +361,13 @@ class SelbergZeta(Parent):
                     ndig = min(ndig,ceil(abs(log_b(get_eps,10))))
                 pprec=dps_to_prec(ndig)
                 if verbose>0:
-                    print "Compute Eisen with prec=",pprec
+                    print("Compute Eisen with prec={0}".format(pprec))
                 p1=scattering_determinant_Hecke_triangle(s,self._q,prec=pprec,use_eisenstein=1)
             if verbose>0:
-                print "phi=",p1
+                print("phi={0}".format(p1))
             er = abs(p1-ph)
             if verbose>0:
-                print "er=",er
+                print("er={0}".format(er))
             lev = len(evs)
             err = float(RR(err))
             delta_eps = float(RR(delta_eps))
@@ -373,6 +380,10 @@ class SelbergZeta(Parent):
             if ret_param==0:
                 return z
             else:
+                lev = len(evs)
+                err = float(RR(err))
+                delta_eps = float(RR(delta_eps))
+                er = err
                 return (z,lev,err,delta_eps,er),(M,current_prec)
         else:
             if ret_param==0:
@@ -403,30 +414,30 @@ class SelbergZeta(Parent):
             M,pprec = l[1]
             l = l[0]
             if verbose>0:
-                print "M,pprec=",M,pprec
+                print("M,pprec={0},{1}".format(M,pprec))
         if verbose>0:
-            print "self.value=",l
+            print("self.value={0}".format(l))
         p = self._psi(s,prec=self._working_prec)
         if verbose>0:
-            print "self._psi={0} with prec={1}".format(p,p.prec())
+            print("self._psi={0} with prec={1}".format(p,p.prec()))
         if checks>=1:
             z=l[0]; K=l[1];er=l[2]; delta=l[3]
-        elif get_err<>0:
+        elif get_err!=0:
             z = l[0]
         else:
             z=l
-        if s.real()<>0.5:
+        if s.real()!=0.5:
             if verbose>0:
-                print "Computing L(1-s) with N=",N
-            z2 =  self.value(CF(1)-s,N=N,Nh=Nh,sym=sym,checks=checks,get_digits=get_digits, get_err=ge_err,ret_param=0,prec=prec,approx=approx,verbose=verbose)
+                print("Computing L(1-s) with N={0}".format(N))
+            z2 =  self.value(CF(1)-s,N=N,Nh=Nh,sym=sym,checks=checks,get_digits=get_digits, get_err=get_err,ret_param=0,prec=prec,approx=approx,verbose=verbose)
             #self.value(1-s,M0=M0_start,Mh=Mh_start,checks=0)
         else:
             z2 = z.conjugate()
         if verbose>0:
-            print "working_prec=",self._working_prec
-        if z.prec()<>self._working_prec:
+            print("working_prec={0}".format(self._working_prec))
+        if z.prec()!=self._working_prec:
             z = CF(z.real(),z.imag())
-        if z2.prec()<>self._working_prec:
+        if z2.prec()!=self._working_prec:
             z2 = CF(z2.real(),z2.imag())
         ph = z2/z/p
         ph = CF(ph.real(),ph.imag())
@@ -442,7 +453,7 @@ class SelbergZeta(Parent):
             else:
                 p1=0
             if verbose>0:
-                print "p1=",p1
+                print("p1={0}".format(p1))
             RF = RealField(3)
             er1=RF(abs(p1-ph))
 
@@ -453,11 +464,11 @@ class SelbergZeta(Parent):
             if eisen_prec<53:
                 eisen_prec=53 ## We want to use at least double precision
             if verbose>0:
-                print "Need {0} digits.".format(ndig)
-                print "Compute Eisen with prec=",eisen_prec
+                print("Need {0} digits.".format(ndig))
+                print("Compute Eisen with prec={0}".format(eisen_prec))
             p2 = scattering_determinant_Hecke_triangle(s,self._q,prec=eisen_prec,use_eisenstein=1)
             if verbose>0:
-                print "p2=",p2
+                print("p2={0}".format(p2))
             er2=RF(abs(p2-ph))
             er =RF(er)
             delta = RF(delta)
@@ -489,7 +500,7 @@ class SelbergZeta(Parent):
         z = scattering_determinant_Hecke_triangle(s,self._q,use_eisenstein=0)
         z = z*self._psi(s)
         ar = z.argument()
-        if branch <> 0:
+        if branch != 0:
             x = z.real()
             y = z.imag()
             if y<0:
@@ -574,17 +585,17 @@ class SelbergZeta(Parent):
             #stl = self.make_table_row(l,prec=prec,N=N,target_dig=target_dig,get_times=get_times,outprec=outprec,verbose=verbose)
         rows = sorted(list(self.make_table_row(row_args)))
         st=""
-        print "rows=",rows
+        print("rows={0}".format(rows))
         for row in rows:
             if verbose>0:
-                print "row=",row
+                print("row={0}".format(row))
             if len(row[1])>1:
                 l,stl = row[1]
             else:
                 l = row[1]
             if verbose>0:
-                print "l=",l
-                print "stl=",stl
+                print("l={0}".format(l))
+                print("stl={0}".format(stl))
             st+=stl
         self._working_prec=precold
         return st
@@ -600,10 +611,10 @@ class SelbergZeta(Parent):
             ll,prec,N,target_dig,get_times,outprec,verbose=l[0]
             l = ll
         #if verbose>0:
-        print "l=",l
+        print("l={0}".format(l))
         s = CF(0.5,l)
         if verbose>0:
-            print "Making table row for s={0} with N={1} and prec={2}".format(s,N,self._working_prec)
+            print("Making table row for s={0} with N={1} and prec={2}".format(s,N,self._working_prec))
         if target_dig==0:
             ll = self.scattering_determinant(s,N=N,checks=3,outprec=outprec,verbose=verbose-1)
         else:
@@ -613,14 +624,14 @@ class SelbergZeta(Parent):
             if M>N:                    
                 N = M
                 if verbose>0:
-                    print "Increased: Got M ={0} and pprec= {1}.".format(M,pprec)
+                    print("Increased: Got M ={0} and pprec= {1}.".format(M,pprec))
             if pprec>self._working_prec:
                 self._working_prec=pprec
             pprec = latex(pprec)
             if get_times:
                 if verbose>0:
-                    print "ROW: {0}".format(ll)
-                    print "We are now recomputing in order to get the time."
+                    print("ROW: {0}".format(ll))
+                    print("We are now recomputing in order to get the time.")
                 globals_dict = globals()
                 globals_dict['self']=self
                 globals_dict['s1']=ComplexField(self._working_prec)(0.5,l)
@@ -630,7 +641,7 @@ class SelbergZeta(Parent):
                                     globals_dict=globals_dict,seconds=True,number=1,repeat=1)
             else:
                 stime=""
-        z,K,er,delta,er1,er2=map(latex,ll)
+        z,K,er,delta,er1,er2=list(map(latex,ll))
         if target_dig==0:
             if self._q in [3,4,6]:
                 stl="${0}$ & ${1}$ & ${2}$ & ${3}$ & ${4}$ & ${5}$ & ${6}$\\\\ \n".format(l,z,er1,er2,K,er,delta)
@@ -642,7 +653,7 @@ class SelbergZeta(Parent):
             else:
                 stl="${0}$ & ${1}$ & ${2}$ & ${3}$ & ${4}$ & ${5}$ & ${6}$  & ${7}$ & ${8}$ \\\\ \n".format(l,z,er2,K,er,delta,M,pprec,stime)
         if verbose>0:
-            print "stl=",stl
+            print("stl=",stl)
         return l,stl
                     
 
@@ -677,13 +688,13 @@ class SelbergZeta(Parent):
             s1 = ComplexField(p)(s.real(),s.imag())
             for N in range(N1,N2+1,10):
                 if verbose>0:
-                    print "Calculate for prec={0} and N={1}".format(p,N)
+                    print("Calculate for prec={0} and N={1}".format(p,N))
                 if N == N1:
                     p0 = p
                 else:
                     p0 =""
                 ll = self.scattering_determinant(s1,N=N,checks=3,outprec=outprec)
-                z,K,er,delta,er1,er2=map(latex,ll)
+                z,K,er,delta,er1,er2=list(map(latex,ll))
                 if time==1:
                     ## Do a timeit for the proces without checks
                     globals_dict = globals()
@@ -715,9 +726,9 @@ class SelbergZeta(Parent):
         phi = scattering_determinant_Hecke_triangle(self._q,s,prec)
 
         if self._verbose>0:
-            print "Z(s)=",z
-            print "phi(Zeta)(s)=",lhs
-            print "phi(s)=",phi
+            # print("Z(s)={0}".format(z))
+            print("phi(Zeta)(s)={0}".format(lhs))
+            print("phi(s)={0}".format(phi))
         return abs(lhs-phi)
 
             
@@ -766,40 +777,46 @@ class SelbergZeta(Parent):
         m=self._q
         E1=mppi*(IE1+IE2)/mpmath.mp.mpf(2)
         if self._verbose>2:
-            print "prec=",prec
-            print "mpmath.mp.dps=",mpmath.mp.dps
-            print "mpmath.mp.prec=",mpmath.mp.prec
-            print "IH1=",IH1
-            print "IH2=",IH2
-            print "IE1=",IE1
-            print "IE2=",IE2
-            print "E1=",E1
+            print("prec={0}".format(prec))
+            print("mpmath.mp.dps={0}".format(mpmath.mp.dps))
+            print("mpmath.mp.prec={0}".format(mpmath.mp.prec))
+            print("IH1={0}".format(IH1))
+            print("IH2={0}".format(IH2))
+            print("IE1={0}".format(IE1))
+            print("IE2={0}".format(IE2))
+            print("E1={0}".format(E1))
         for k in range(1,m): #from 1 to m-1 do:
             km = mpmath.mp.mpf(k)/mpmath.mp.mpf(m)
-            g1 = lambda t: mpmath.mp.exp(twopi*km*t)  / (mp1+mpmath.mp.exp(twopi*t ))+mpmath.mp.exp(-twopi*km*t)/(mp1+mpmath.mp.exp(-twopi*t))
+
+            def g1(t):
+                return mpmath.mp.exp(twopi*km*t) / (mp1+mpmath.mp.exp(twopi*t )) + \
+                       mpmath.mp.exp(-twopi*km*t) / (mp1+mpmath.mp.exp(-twopi*t))
             IE11 = mpi*mpmath.mp.quad(g1,[0,T])
-            g2 = lambda x: mpmath.mp.exp(-twopii*km*mpmath.mp.mpc(x,T))  / (mp1+mpmath.mp.exp(-twopii*mpmath.mp.mpc(x,T) ))+mpmath.mp.exp(twopii*km*mpmath.mp.mpc(x,T))/(mp1+mpmath.mp.exp(twopii*mpmath.mp.mpc(x,T)))
+
+            def g2(x):
+                return mpmath.mp.exp(-twopii*km*mpmath.mp.mpc(x,T)) / (mp1+mpmath.mp.exp(-twopii*mpmath.mp.mpc(x,T) )) +\
+                       mpmath.mp.exp(twopii*km*mpmath.mp.mpc(x,T)) / (mp1+mpmath.mp.exp(twopii*mpmath.mp.mpc(x,T)))
 
             IE12 = mpmath.mp.quad(g2,[0,sigma])
             E1=E1+mppi*(IE11+IE12)/mpmath.mp.mpf(m)/mpmath.mp.sin(mppi*km)
             if self._verbose>2:
-                print "E1[",k,"]=",E1
+                print("E1[{0}]={1}".format(k,E1))
         P1=CF(1-2*s.real(),-2*s.imag())*mpmath.mp.ln(mpmath.mp.mpf(2))
         P=fak1*mpmath.mp.exp(H1+E1+P1)
         if self._verbose>2:
-            print "P1=",P1
-            print "E1=",E1
-            print "H1=",H1            
+            print("P1={0}".format(P1))
+            print("E1={0}".format(E1))
+            print("H1={0}".format(H1))
         return ComplexField(prec)(P.real,P.imag)
 
 
     def RealZ(self,t,M0=0,Mh=3,do_once=0,branch=0,prec=0,tol=0.01,get_err=0):
         r"""  Compute the rotated Selberg zeta function, i.e. Z(1/2+it)*exp(-iArgZ(1/2+it)).   """
         if self._verbose>0:
-            print "RealZ at t=",t
+            print("RealZ at t={0}".format(t))
         if hasattr(t,"imag"):            
-            if t.imag()<>0:
-                raise ValueError,"Call with real argument only! Got:{0}".format(t)
+            if t.imag()!=0:
+                raise ValueError("Call with real argument only! Got:{0}".format(t))
             t = t.real()
         self.set_prec(t,prec)
         CF = ComplexField(self._working_prec)
@@ -811,13 +828,13 @@ class SelbergZeta(Parent):
             z = z[0]
         res = z*CF(0,0.5*th).exp()
         if abs(res.imag())>tol:
-            print "Warning: function not real:{0}".format(res)
+            print("Warning: function not real:{0}".format(res))
         if get_err==0:
             return res
         else:
             return res,er
 
-    def theta(t,branch=0):
+    def theta(self,t,branch=0):
         r"""
         The argument of Z(1/2+it).
 
@@ -830,9 +847,9 @@ class SelbergZeta(Parent):
         prec  = t.prec()
         CF = ComplexField(prec)
         s = CF(0.5,t)
-        z=scattering_determinant_hecke_triangle(self._q,s)*self._psi(s,q)
+        z=self.scattering_determinant(s)*self._psi(s)
         ar=arg(z)
-        if branch<>0: # Do not use principal branch 
+        if branch!=0: # Do not use principal branch 
             # Use branch cut at positive axis instead 
             x=z.real()
             y=z.imag()
@@ -840,7 +857,7 @@ class SelbergZeta(Parent):
                 ar=ar+CF(2)*CF.base_ring().pi()
         return ar
 
-    def values_on_interval(t1,t2,step_size=0.05,M0=0,tol=1E-4,filename=None):
+    def values_on_interval(self,t1,t2,step_size=0.05,M0=0,ns=0,tol=1E-4,filename=None):
         r"""
         Computes the Selberg zeta function along an interval
         and writes the values into a file
@@ -853,11 +870,10 @@ class SelbergZeta(Parent):
         if M0==0:
             M0=20
         if t2<t1:
-            raise ValueError,"Need t2 > t1!"
+            raise ValueError("Need t2 > t1!")
         if step_size==0:
             if ns==0:
-            
-                raise ValueError,"Need either number of steps or stepsize!"
+                raise ValueError("Need either number of steps or stepsize!")
             step_size = RF(t2-t1)/RF(ns)
         if ns==0:
             ns = ceil(RF(t2-t1)/step_size)
@@ -884,7 +900,7 @@ class SelbergZeta(Parent):
                     branch = 1
                 continue
             ### Determine (experimentally) the branch to use
-            if abs(z)<0.5*h: # We are probably close to or just passed a zero
+            if abs(z)<0.5*step_size: # We are probably close to or just passed a zero
                 slope = (zl[i]-zl[i-2])/(t[i]-t[i-2])
                 const = zl[i-1] - slope*tl[i-1]
                 app_val = slope*t+ const
@@ -980,8 +996,8 @@ class TransferOperator(Parent):
             NIJ[0,2*h]=3
             NIJ[1,2*h]=2
             if self._verbose>0:
-                print "h=",h
-                print "dim=",dim
+                print("h={0}".format(h))
+                print("dim={0}".format(dim))
             for i in range(2,2*h+2):
                 NIJ[i,i-2]=1
                 NIJ[i,2*h]=2
@@ -990,7 +1006,7 @@ class TransferOperator(Parent):
                 NIJ[i,2*h]=2
             for i in range(4*h+1,4*h+2):
                 if self._verbose>1:
-                    print i,2*h-1,2*h
+                    print(i,2*h-1,2*h)
                 NIJ[i,2*h-1]=1
                 NIJ[i,2*h]=2
             for j in range(0,dim):
@@ -1001,23 +1017,23 @@ class TransferOperator(Parent):
         self._h=h
         self._lambdaq_r=llambda
         self._R=self.R(prec=prec)
-        if self._q<>3:
+        if self._q!=3:
             K = CyclotomicField(2*self._q)
             z = K.gens()[0]
             llambda = z+z.conjugate()
             if self._verbose>0:
-                print "lambda=",llambda
-                print "RR(lambda)=",llambda.complex_embedding()
-                print "RR(z)=",z.complex_embedding()
+                print("lambda={0}".format(llambda))
+                print("RR(lambda)={0}".format(llambda.complex_embedding()))
+                print("RR(z)={0}".format(z.complex_embedding()))
             if not llambda.is_real_positive():
                 if not (-llambda.is_real_positive()):
-                    raise ArithmeticError,"Could not get lambda!"
+                    raise ArithmeticError("Could not get lambda!")
                 else:
                     llambda = -llambda
         else:
             llambda=1
         if self._verbose>0:
-            print "lambda=",llambda
+            print("lambda={0}".format(llambda))
         self._lambdaq=llambda
         self._dim=dim
         self._Nij=NIJ
@@ -1034,7 +1050,7 @@ class TransferOperator(Parent):
             prec = self._prec
             RF = RealField(self._prec)
         if format=='float':
-            if self._R<>0 and self._prec>=prec:
+            if self._R != 0 and self._prec >= prec:
                 return RF(self._R)
             if is_even(self._q):
                 self._R=RF(1)
@@ -1044,11 +1060,11 @@ class TransferOperator(Parent):
                 lambdaq=self.lambdaq_r(prec)
                 self._R = RF((2-lambdaq)**2+4).sqrt()/RF(2) + lambdaq/RF(2)-RF(1)
                 if verbose>0:
-                    print "R1=",RF((2-lambdaq)**2+4).sqrt()/RF(2) + lambdaq/RF(2)-RF(1)
-                    print "R2=",-RF((2-lambdaq)**2+4).sqrt()/RF(2) + lambdaq/RF(2)-RF(1)
+                    print("R1={0}".format(RF((2-lambdaq)**2+4).sqrt()/RF(2) + lambdaq/RF(2)-RF(1)))
+                    print("R2={0}".format(-RF((2-lambdaq)**2+4).sqrt()/RF(2) + lambdaq/RF(2)-RF(1)))
             return self._R
         elif format=='alg':            
-            if self._R_alg<>0:
+            if self._R_alg != 0:
                 return self._R_alg
             if is_even(self._q):
                 self._R_alg = 1
@@ -1059,8 +1075,8 @@ class TransferOperator(Parent):
                 lambdaq=self.lambdaq()
                 F = lambdaq.parent()
                 z = F['z'].gens()[0]
-                f = z^2+(2-llambda)*z+1
-                print "f=",f
+                f = z^2+(2-lambdaq)*z+1
+                print("f={0}".format(f))
                 #self._R = RF((2-lambdaq)**2+4).sqrt()/RF(2) + lambdaq/RF(2)-RF(1)
             
     def lambdaq(self):
@@ -1107,9 +1123,9 @@ class TransferOperator(Parent):
                 if abs(tmp)<eps and n>10:
                     break
             if self._verbose>0:
-                print "number of iterations: {0}".format(n)
-                print "Trace[{0}]={1}".format(m,tmptrace)
-                print "Lasterr=",abs(tmp)
+                print("number of iterations: {0}".format(n))
+                print("Trace[{0}]={1}".format(m,tmptrace))
+                print("Lasterr={0}".format(abs(tmp)))
             trace+=tmptrace
         return trace
 
@@ -1125,7 +1141,7 @@ class TransferOperator(Parent):
         r"""
         Returns the trace of pi_s(ST^n) = N(ST^n)^-s/(1-N(ST^n)^-1)
         """
-        if prec<>None:
+        if prec!=None:
             l = self.lambdaq_r(prec)
         else:
             l = self.lambdaq_r()
@@ -1136,8 +1152,8 @@ class TransferOperator(Parent):
         x = (a+b)/two
         if x<1:
             if self._verbose>0:
-                print "n=",n
-                print "x=",x
+                print("n={0}".format(n))
+                print("x={0}".format(x))
             x = x - b
         assert x>1
         return x
@@ -1155,24 +1171,24 @@ class TransferOperator(Parent):
         llambda_2 = self.lambdaq()/QQ(2)
         iphi=[llambda_2]
         numi = self.numi()
+        if prec == 0:
+            prec = self._prec
+        RF = RealField(self._prec)
         if self._verbose>1:
-            print "num int=",numi
-            print "lambda/2=",llambda_2
+            print("num int={0}".format(numi))
+            print("lambda/2={0}".format(llambda_2))
             if hasattr(llambda_2,"complex_embedding"):
-                print "lambda/2=",llambda_2.complex_embedding()
+                print("lambda/2={0}".format(llambda_2.complex_embedding()))
         y = llambda_2
         for i in range(numi):
             if self._verbose>1:
-                print "y=",y
+                print("y={0}".format(y))
             y = self.fq(y)
             iphi.append(y)
         if self._verbose>1:
-            print "iphi=",iphi
-        if itype=='float':
+            print("iphi={0}".format(iphi))
+        if itype == 'float':
             res = []
-            if prec==0:
-                prec = self._prec
-            RF = RealField(self._prec)
             for x in iphi:
                 if hasattr(x,"complex_embedding"):
                     x = x.complex_embedding(prec).real()
@@ -1183,7 +1199,7 @@ class TransferOperator(Parent):
                 res.append(x)
             res.sort()
         else:
-            iphi.sort(cmp=my_alg_sort)
+            iphi.sort(key=my_alg_sort_key)
             res = iphi
         if iformat=='ie':
             return res
@@ -1204,12 +1220,12 @@ class TransferOperator(Parent):
             res.reverse()
             for i in range(len(res)-1):
                 x1=res[i]; x2=res[i+1]
-                c = (x1+x2)/2
-                r = abs(x2-x1)/2
+                c = (x1+x2)/RF(2)
+                r = abs(x2-x1)/RF(2)
                 alphas[i]=-c
-                alphas[i+self._dim/2]=c
+                alphas[i+self._dim/RF(2)]=c
                 rhos[i]=r
-                rhos[i+self._dim/2]=r
+                rhos[i+self._dim/2.0]=r
                 i+=1
             return alphas,rhos
 
@@ -1227,13 +1243,14 @@ class TransferOperator(Parent):
             [MMS2012]   Mayer, M\"uhlenbruch, Str\"omberg, 'The Transfer Operator for the Hecke Triangle Groups', Discrete Contin. Dyn. Syst, Vol. 32, No. 7, 2012. 
         """
         intervals={}
+        RF = self.lambdaq_r().parent()
         if self._q==3:
             intervals={1:[-1,QQ(1)/QQ(2)],2:[-QQ(1)/QQ(2),1]}
         elif self._q==4:
-            intervals={1:[-1,self.lambdaq_r()/4],2:[-self.lambdaq_r()/4,1]}
+            intervals={1:[-1,self.lambdaq_r()/RF(4)],2:[-self.lambdaq_r()/RF(4),1]}
         elif is_odd(self._q):
             dim_2=ZZ(self._dim).divide_knowing_divisible_by(ZZ(2))
-            llambdaq_4=self.lambdaq_r()/4
+            llambdaq_4=self.lambdaq_r()/RF(4)
             for i in range(self._h+1):
                 l2ip1=[-1]
                 for j in range(i):
@@ -1242,11 +1259,11 @@ class TransferOperator(Parent):
                 for j in range(self._h):
                     l2ip1.append(-1)
                 if verbose>0:
-                    print "cf[2*{0}+1]={1}".format(i,l2ip1)
+                    print("cf[2*{0}+1]={1}".format(i,l2ip1))
                 x0 = self.cont_frac_to_pt(l2ip1)
                 intervals[2*i+1]=[x0,llambdaq_4]
                 if verbose>0:
-                    print "intervals[{0}]={1}".format(2*i+1,intervals[2*i+1])
+                    print("intervals[{0}]={1}".format(2*i+1,intervals[2*i+1]))
             for i in range(1,self._h+1):
                 l2i=[-1]
                 for j in range(i):
@@ -1254,35 +1271,35 @@ class TransferOperator(Parent):
                 x0 = self.cont_frac_to_pt(l2i)
                 intervals[2*i]=[x0,llambdaq_4]
                 if verbose>0:
-                    print "intervals[{0}]={1}".format(2*i,intervals[2*i])
+                    print("intervals[{0}]={1}".format(2*i,intervals[2*i]))
             ## THen use the reflection
             for i in range(1,self._h+1):
                 x1 = intervals[2*i][0]; x2 = intervals[2*i][1]
                 if verbose>1:
-                    print "x1,x2[{0}]={1}".format(2*i,(x1,x2))
-                    print "index=",2*(dim_2-i)+1
+                    print("x1,x2[{0}]={1}".format(2*i,(x1,x2)))
+                    print("index={0}".format(2*(dim_2-i)+1))
                 intervals[1+2*(dim_2-i)]=[-x2,-x1]
             for i in range(self._h+1):
                 x1 = intervals[2*i+1][0]; x2 = intervals[2*i+1][1]
                 if verbose>1:
-                    print "x1,x2[{0}]={1}".format(2*i+1,(x1,x2))
-                    print "index=",2*(dim_2)-(2*i+1)+1
+                    print("x1,x2[{0}]={1}".format(2*i+1,(x1,x2)))
+                    print("index={0}".format(2*(dim_2)-(2*i+1)+1))
                 intervals[1+2*dim_2 - (2*i+1)]=[-x2,-x1]
 
         else:
             raise NotImplementedError
         if verbose>1:
-            print "intervals=",intervals
-            print "intervals.keys()=",intervals.keys()
+            print("intervals={0}".format(intervals))
+            print("intervals.keys()={0}".format(list(intervals.keys())))
         if iformat=='ar':
             alphas={}
             rhos={}
             for i in range(1,len(intervals)+1):
                 x1 = intervals[i][0];x2 = intervals[i][1]
                 if verbose>1:
-                    print "x1,x2[{0}]={1}".format(i,(x1,x2))
-                c = (x1+x2)/2
-                r = abs(x1-x2)/2
+                    print("x1,x2[{0}]={1}".format(i,(x1,x2)))
+                c = (x1+x2)/RF(2)
+                r = abs(x1-x2)/RF(2)
                 alphas[i-1]=c
                 rhos[i-1]=r
             return alphas,rhos
@@ -1294,7 +1311,7 @@ class TransferOperator(Parent):
         Returns the max quotient of the radii of the contracting disks
         
         """
-        if self._contraction_factor<>0:
+        if self._contraction_factor!=0:
             return self._contraction_factor
         ## Check the contracting properties so that we are ok.
         d = self._dim
@@ -1311,19 +1328,19 @@ class TransferOperator(Parent):
             for j in range(d):
                 n = self._Nij[i,j]
                 if n >= aa and n <= bb:
-                    print "singularity at x={0} in [{1},{2}]".format(n,aa,bb)
+                    print("singularity at x={0} in [{1},{2}]".format(n,aa,bb))
                 t =  self.STn_fixed_pts(n)
                 if isinstance(t,tuple):
                     x1,x2 = t
                 else:
                     x1=t; x2 = t
                 if  x2 >= aa and x2 <= bb:
-                    print "Interval contains repelling fixed point! x={0} in [{1},{2}]".format(x2,aa,bb)
-                if not x1 > aa and x1 < bb and x1<>x2:
-                    print "Interval does not contain attractive fixed point! x={0} in [{1},{2}]".format(x1,aa,bb)    
+                    print("Interval contains repelling fixed point! x={0} in [{1},{2}]".format(x2,aa,bb))
+                if not x1 > aa and x1 < bb and x1!=x2:
+                    print("Interval does not contain attractive fixed point! x={0} in [{1},{2}]".format(x1,aa,bb))    
         if self._verbose>0:
-            print "c=",centers
-            print "r=",r1s
+            print("c={0}".format(centers))
+            print("r={0}".format(r1s))
         for i in range(d):        
             for j in range(d):
                 n = self._Nij[i,j]
@@ -1335,12 +1352,12 @@ class TransferOperator(Parent):
                 if max(phia,phib) > maxb[j]:
                     maxb[j] = max(phia,phib)            
                 if self._verbose>0:
-                    print "ST^[n>={n}]({a},{b})=[{x},{y}]".                 format(n=n,a=aa,b=bb,x=mina[j],y=maxb[j])
+                    print("ST^[n>={n}]({a},{b})=[{x},{y}]".                 format(n=n,a=aa,b=bb,x=mina[j],y=maxb[j]))
         if self._verbose>0:
-            print "mina=",mina
-            print "maxb=",maxb
+            print("mina={0}".format(mina))
+            print("maxb={0}".format(maxb))
             for j in range(d):            
-                print "Phi(I_{j}) \subset [{a},{b}]".format(j=j,a=mina[j],b=maxb[j])
+                print("Phi(I_{j}) \subset [{a},{b}]".format(j=j,a=mina[j],b=maxb[j]))
         # We now need to find disks with the same center as before
         radii={};rho={}
         for j in range(d):
@@ -1348,7 +1365,7 @@ class TransferOperator(Parent):
             tmpr2 = abs(maxb[j]-centers[j])
             radii[j]=max(tmpr1,tmpr2)
             if self._verbose>0:
-                print "Disk[{0}]=D({1},{2})".format(j,centers[j],radii[j])
+                print("Disk[{0}]=D({1},{2})".format(j,centers[j],radii[j]))
         r3s={}; r2s={};rhos={};r4s={}
         rho1s={};rho2s={};rho3s={}
         for i in range(d):
@@ -1373,12 +1390,12 @@ class TransferOperator(Parent):
         rho2 = max(rho2s.values())
         rho3 = max(rho3s.values())
         rho = max([rho1,rho2,rho3])
-        print "r4=",r4s
-        print "r3=",r3s
-        print "r2=",r2s
+        print("r4={0}".format(r4s))
+        print("r3={0}".format(r3s))
+        print("r2={0}".format(r2s))
         # Should check that this gives a valid r4
-        t =check_mapping_into(T,centers,r2s,centers,r4s,verbose=verbose)
-        print "maps into=",t
+        t = self.check_mapping_into(centers,r2s,centers,r4s,verbose=self._verbose)
+        print("maps into={0}".format(t))
         self._contraction_factor=rho
         return rho
         
@@ -1394,15 +1411,15 @@ class TransferOperator(Parent):
         for i in range(d):
             a1 = c1[i]-r1[i]; b1 = c1[i]+r1[i]
             if self._verbose>0:
-                print "a1=",a1
-                print "b1=",b1
+                print("a1={0}".format(a1))
+                print("b1={0}".format(b1))
             for j in range(d):
-                n = T.Nij()[i,j]
+                n = self.Nij()[i,j]
                 a2 = c2[j]-r2[j]; b2 = c2[j]+r2[j]
-                a,b = image_of_interval(T,a1,b1,n)
+                a,b = image_of_interval(self,a1,b1,n)
                 if self._verbose>0:
-                    print "F^{i}{j}({a1},{b1}) = ({a2},{b2})".format(i=i,j=j,a1=a1,b1=b1,a2=a,b2=b)
-                    print "I_{j}=({a},{b})".format(j=j,a=a2,b=b2)
+                    print("F^{i}{j}({a1},{b1}) = ({a2},{b2})".format(i=i,j=j,a1=a1,b1=b1,a2=a,b2=b))
+                    print("I_{j}=({a},{b})".format(j=j,a=a2,b=b2))
                 if a < a2 or b > b2:
                     return False
         return True
@@ -1436,7 +1453,7 @@ class TransferOperator(Parent):
         for j in range(n):
             x1 = self.STn(x,frac_part[n-j-1])
             if verbose>1:
-                print "ST^{0}({1})={2}".format(frac_part[n-j-1],x,x1)
+                print("ST^{0}({1})={2}".format(frac_part[n-j-1],x,x1))
             x = x1
         if format == 'float':
             x = x+self.lambdaq_r(prec)*RF(cf[0])
@@ -1458,15 +1475,15 @@ class TransferOperator(Parent):
             prec = 53
             lambdaq_r = self.lambdaq_r(prec)
         RF = RealField(prec)
-        a0 = self.nearest_lambda_mult(z)
+        a0 = self.nearest_lambda_mult(x)
         res = [a0]
         if prec>0:
             x = x - a0*lambdaq_r
         else:
             x = x - a0*lambdaq
         j = 0
-        while x<>0:
-            x1,n =  self.fq(y,retn=1)
+        while x != 0:
+            x1,n = self.fq(x,retn=1)
             x = x1
             res.append(n)
             if j>=N and N>0:
@@ -1505,7 +1522,7 @@ class TransferOperator(Parent):
         r""" Compute f_q(x)=-1/x - n*lambda_q where n = nearest lambda multiple to -1/x. """
         if y==0:
             return 0
-        if abs(y) > self.lambdaq_r()/2:
+        if abs(y) > self.lambdaq_r()/2.0:
             n = self.nearest_lambda_mult(y)
             y = y - n
         else:
@@ -1513,8 +1530,8 @@ class TransferOperator(Parent):
             n = self.nearest_lambda_mult(z)
             y = z - n*self.lambdaq_r()
         if self._verbose>1:
-            print "-1/x={0}".format(z)
-            print "-1/x-{0}*lambda={1}".format(n,y)
+            print("-1/x={0}".format(z))
+            print("-1/x-{0}*lambda={1}".format(n,y))
         if retn==1:
             return y,n
         return y
@@ -1527,23 +1544,23 @@ class TransferOperator(Parent):
             prec = 53
         RF = RealField(prec)
         if hasattr(x,"complex_embedding"):
-            if x<>x.conjugate():
-                raise ArithmeticError,"Call only with real argument!"
+            if x!=x.conjugate():
+                raise ArithmeticError("Call only with real argument!")
             x = x.complex_embedding().real()
         elif hasattr(x,"real"):
             x = x.real()
         else:
             x = RF(x)
-        if self._q<>3:
+        if self._q!=3:
             x = x.real()/self.lambdaq_r(prec)
 
         y = x+RF(0.5)
         if self._verbose>1:
-            print "x/lambda+1/2={0}".format(y)
+            print("x/lambda+1/2={0}".format(y))
         ## Need my own defined floor function
         return my_floor(float(y))
         
-    def matrix_approximation(self,s,M,sym=1,it=1,eps=1,alpha_in={},rhos_in={}):
+    def matrix_approximation(self,s,M,sym=1,it=1,eps=1,alphas_in={},rhos_in={}):
         r"""
         Compute the approximation to self at s by a finite rank (matrix) operator acting on the Banach space B of vector-valued holomorphic functions on a product of discs D x ... x D with D centered at 0.
 
@@ -1563,23 +1580,23 @@ class TransferOperator(Parent):
         dim=self._dim
         B = self._Nij
         ll = self.lambdaq_r(prec) #CF._base(self._lambdaq)
-        Nmax = max(map(abs,self._Nij.list()))
+        Nmax = max(list(map(abs,self._Nij.list())))
         
         if self._verbose>0:
-            print "Nmax = ",Nmax
-            print "M=",M
-            print "dim=",dim
+            print("Nmax = {0}".format(Nmax))
+            print("M={0}".format(M))
+            print("dim={0}".format(dim))
         s = CF(s.real(),s.imag())
         if sym==0:
             ## We use unsymmetrized operator            
             MS=MatrixSpace(CF,dim*(M+1))
             A=Matrix_complex_dense(MS,0)
-            trop_approximation(A,self._Nij,M,self._q, dim, Nmax, s,ll,verbose=verbose)
+            trop_approximation(A,self._Nij,M,self._q, dim, Nmax, s,ll,verbose=self._verbose)
         else:
             ## We use symmetrized operator
             sym_dim=ZZ(dim).divide_knowing_divisible_by(ZZ(2))
             if self._verbose>0:
-                print "sym_dim=",sym_dim                
+                print("sym_dim={0}".format(sym_dim))
             MS=MatrixSpace(CF,sym_dim*(M+1))
             A=Matrix_complex_dense(MS,0)
             ## The question is now which intervals to use.
@@ -1590,27 +1607,27 @@ class TransferOperator(Parent):
                 alphas,rhos=self.get_markov_partition(itype='float',iformat='ar')                
             else:
                 alphas,rhos=self.get_contracting_discs(iformat='ar')
-            if alpha_in or rhos_in:
+            if alphas_in or rhos_in:
                 if isinstance(alphas_in,dict):
                     for j in alphas_in.keys():
                         alphas[j-1]=RF(alphas_in[j])
                 elif isinstance(alphas_in,list):
-                    for j in len(alphas_in):
-                        alphas[j]=RF(alphas_in[j])
+                    for j,a in enumerate(alphas_in):
+                        alphas[j]=RF(a)
                 else:
-                    raise ValueError,"Got intervals in wrong format! alphas={0}".format(alphas_in)
+                    raise ValueError("Got intervals in wrong format! alphas={0}".format(alphas_in))
                 if isinstance(rhos_in,dict):
                     for j in rhos_in.keys():
                         rhos[j-1]=RF(rhos_in[j])
                 elif isinstance(rhos_in,list):
-                    for j in len(rhos_in):
-                        rhos[j]=RF(rhos_in[j])
+                    for j,r in enumerate(rhos_in):
+                        rhos[j]=RF(r)
                 else:
-                    raise ValueError,"Got intervals in wrong format! rhos={0}".format(rhos_in)
+                    raise ValueError("Got intervals in wrong format! rhos={0}".format(rhos_in))
                         
             if self._verbose>1:
-                print "alphas=",alphas
-                print "rhos=",rhos
+                print("alphas={0}".format(alphas))
+                print("rhos={0}".format(rhos))
             trop_approximation(A,self._Nij,M,self._q, dim, Nmax, s,ll,verbose=self._verbose,approx_type=3,eps=eps,alphas=alphas,rhos=rhos)
             
         return A
@@ -1652,7 +1669,7 @@ class TransferOperator(Parent):
         A = Matrix_complex_dense(MS,0)
         B = Matrix_complex_dense(MS,0)
         xj = {}
-        if self.lambdaq()<>1:
+        if self.lambdaq() != 1:
             l = self.lambdaq_r(prec)
         else:
             l = 1
@@ -1679,7 +1696,7 @@ class TransferOperator(Parent):
                     ri = i*M+r
                     for k in range(M):
                         kj = j*M+k
-                        if l<>1:
+                        if l != 1:
                             xj_l = xj[k]/l
                             f = l**-zarg
                         else:
@@ -1740,21 +1757,21 @@ class TransferOperator(Parent):
             rhos=[llambda/RF(2) for x in range(self._dim)]
         else:
             alphas,rhos=self.get_markov_partition(itype='float',iformat='ar')
-        if alphas_in<>{}:
+        if alphas_in != {}:
             alphas={}
             for j in alphas_in.keys():
                 alphas[j]=RF(alphas_in[j])
-        if rhos_in<>{}:
+        if rhos_in != {}:
             rhos={}
             for j in rhos_in.keys():
                 rhos[j]=RF(rhos_in[j])            
         ## Checking that the order is ok, i.e. that the 
         if verbose>0:
-            print "alphas=",alphas
-            print "rhos=",rhos
+            print("alphas={0}".format(alphas))
+            print("rhos={0}".format(rhos))
         if dprec>maxprec:
-            print "Warning: Can not get more than %s bits of precision!" %(CF.prec())
-            print "Please redefine the Transfer operator!"
+            print("Warning: Can not get more than {0} bits of precision!".format(CF.prec()))
+            print("Please redefine the Transfer operator!")
         twos=CF(2)*CF(s.real(),s.imag())
         dim=self._dim
         MS = MatrixSpace(CF,dim*(M+1))
@@ -1772,7 +1789,7 @@ class TransferOperator(Parent):
                     Z[i][l]=CF(z.real(),z.imag())
             else:
                 for i in range(dim):
-                    if alphas[i]<>0:
+                    if alphas[i] != 0:
                         z = mpmath.mp.zeta(zarg,alphas[i]/llambda+1)
                     else:
                         z = mpmath.mp.zeta(zarg,1)
@@ -1783,7 +1800,7 @@ class TransferOperator(Parent):
         for l in range(M+1,2*M+1):
             lr=CF(l)
         if verbose>0:
-            print "dim=",dim
+            print("dim={0}".format(dim))
         #llambda=CF(self._lambdaq_r.real(),self._lambdaq_r.imag())
         for n in range(M+1):
             #pow=nr[n]+twos
@@ -1800,7 +1817,7 @@ class TransferOperator(Parent):
                         ri = rhos[i]; rj=rhos[j]
                         abB=B.abs()
                         if verbose>1 and n==0 and i==0:
-                            print "B,|B=",B,abB
+                            print("B,|B={0}, {1}".format(B,abB))
                         if B==0:
                             AA=CFF(0)
                         else:
@@ -1828,18 +1845,18 @@ class TransferOperator(Parent):
                                         for a in range(1,abB):
                                             ztmp += CF(aj/llambda+RF(a),0)**(-zarg)
                                             if verbose>1:
-                                                print "ztmp+[{0}]={1}".format(a,CF(aj/llambda+RF(a),0)**(-zarg))
-                                                print "aj/lambda+a=",CF(aj/llambda+RF(a))
+                                                print("ztmp+[{0}]={1}".format(a,CF(aj/llambda+RF(a),0)**(-zarg)))
+                                                print("aj/lambda+a={0}".format(CF(aj/llambda+RF(a))))
                                     z = z - ztmp
                                     if check==1: ## Extra check that we computed the Hurwitz zeta func. correctly
                                         z1 = mpmath.mp.zeta(zarg,aj/llambda+abB)
                                         z1 = CF(z1.real,z1.imag)
                                         if verbose>1:
-                                            print "diff=",abs(z-z1)
+                                            print("diff={0}".format(abs(z-z1)))
                                         if abs(z-z1)>1e-10:
-                                            print "z0=Z[",jj,"][",l+n,"]=",Z[jj][l+n]
-                                            print "z,z1=",z,z1
-                                            raise ArithmeticError,"Problem with H-Z!"
+                                            print("z0=Z[",jj,"][",l+n,"]=",Z[jj][l+n])
+                                            print("z,z1={0}, {1}".format(z,z1))
+                                            raise ArithmeticError("Problem with H-Z!")
                                     z = CF(z.real(),z.imag())
                                     ## test for lambda=1 z = z*llambda**(-zarg)                                    
                                 tmp = tmp*z
@@ -1847,7 +1864,7 @@ class TransferOperator(Parent):
                             AA=summa
                         fak=fakn*(ri**-k*rj**n) #*RF.factorial(k).sqrt()/RF.factorial(n).sqrt()   #*ri**-k)*(rj**n/RF.factorial(n))
                         if verbose>2:
-                            print "fak[{0}][{1}]={2}".format(n,k,fak)
+                            print("fak[{0}][{1}]={2}".format(n,k,fak))
                         AA = AA *fak
                         AA = CF(AA.real(),AA.imag())
                         if B>0 and sg<0:
@@ -1906,13 +1923,13 @@ class TransferOperator(Parent):
             alphas,rhos=self.get_contracting_discs(iformat='ar')
             # USe the contracting discs
         elif alphas_in=={} or rhos_in=={}:
-            raise ValueError,"Must have valid format for intervals! Got alphas={0} and rhos={1}".format(alphas,rhos)
+            raise ValueError("Must have valid format for intervals! Got alphas={0} and rhos={1}".format(alphas,rhos))
         ## If we set intervals we apply them now
-        if alphas_in<>{}:
+        if alphas_in != {}:
             alphas={}
             for j in alphas_in.keys():
                 alphas[j]=RF(alphas_in[j])
-        if rhos_in<>{}:
+        if rhos_in != {}:
             rhos={}
             for j in rhos_in.keys():
                 rhos[j]=RF(rhos_in[j])
@@ -1922,17 +1939,17 @@ class TransferOperator(Parent):
             rhos=list(rhos.values())
         dim=self._dim
         ### Check that alpha and rhos have correct format
-        if len(alphas)<>dim or len(rhos)<>dim:
-            raise ValueError,"Must have valid format for intervals! Got alphas={0} and rhos={1}".format(alphas,rhos)
+        if len(alphas)!=dim or len(rhos)!=dim:
+            raise ValueError("Must have valid format for intervals! Got alphas={0} and rhos={1}".format(alphas,rhos))
         for j in range(dim):            
             if j<dim/2 and alphas[j]>0 or j>=dim/2 and alphas[j]<0:
-                raise ValueError,"Must have valid format for intervals! Got alphas={0} and rhos={1}".format(alphas,rhos)
+                raise ValueError("Must have valid format for intervals! Got alphas={0} and rhos={1}".format(alphas,rhos))
         if verbose>0:
-            print "alphas=",alphas
-            print "rhos=",rhos
+            print("alphas={0}".format(alphas))
+            print("rhos={0}".format(rhos))
         if dprec>maxprec:
-            print "Warning: Can not get more than %s bits of precision!" %(CF.prec())
-            print "Please redefine the Transfer operator!"
+            print("Warning: Can not get more than {0} bits of precision!".format(CF.prec()))
+            print("Please redefine the Transfer operator!")
         twos=CF(2)*CF(s.real(),s.imag())
 
         sym_dim=ZZ(dim).divide_knowing_divisible_by(ZZ(2))
@@ -1976,7 +1993,7 @@ class TransferOperator(Parent):
         for l in range(M+1,2*M+1):
             lr=CF(l)
         if verbose>0:
-            print "dim=",dim
+            print("dim={0}".format(dim))
         for n in range(M+1):
             fakn=RF.factorial(n)**-1
             for k in range(M+1):
@@ -2016,7 +2033,7 @@ class TransferOperator(Parent):
                             #if ni==0 and kj==32:
                             #    print 
                             if verbose>2:
-                                print "fak[{0}][{1}]={2}".format(n,k,fak)
+                                print("fak[{0}][{1}]={2}".format(n,k,fak))
                             #AA[ii] = AA[ii] *fak
                             AA[ii] = CF(AA[ii].real(),AA[ii].imag())
                         fak=fakn*(rj**-k*ri**n) #*RF.factorial(k).sqrt                        
@@ -2083,7 +2100,7 @@ class TransferOperator(Parent):
                 if err<eps:
                     break
         if n > self._MAXIT-2:
-            raise ArithmeticError,"Could not obtain approximation in %s iteraations. Raise value of self._MAXIT?"
+            raise ArithmeticError("Could not obtain approximation in {0} iteraations. Raise value of self._MAXIT?".format(n))
         #ctx.dps=old_prec
         return K
 
@@ -2118,20 +2135,20 @@ def Gauss_approximation(s,M):
 
     
 
-def eigenvalues_Gauss(s,M,h=3,delta=1e-7):
+def eigenvalues_Gauss(T,s,M,h=3,delta=1e-7,verbose=0):
     r"""
     Get approximations to the eigenvalues of the Gauss transfer operator
     """
-    A1 = self._approximation_GaussZ_one_mat(s,M)
-    A2 = self._approximation_GaussZ_one_mat(s,M+h)
+    A1 = Gauss_approximation(s,M)
+    A2 = Gauss_approximation(s,M+h)
     ev1 = A1.eigenvalues(sorted=1)
     ev2 = A2.eigenvalues(sorted=1)
-    if self._verbose>0:
-        print "ev1=",ev1
-        print "min(ev1-1)=",min(map(lambda x:abs(x-1),ev1))
-        print "ev2=",ev2
-        print "min(ev2-1)=",min(map(lambda x:abs(x-1),ev2))
-    evs = get_close_values(ev1,ev2,delta,ret_err=0,verbose=self._verbose)
+    if verbose>0:
+        print("ev1={0}".format(ev1))
+        print("min(ev1-1)=",min([abs(x-1) for x in ev1]))
+        print("ev2={0}".format(ev2))
+        print("min(ev2-1)={0}".format(min([abs(x-1) for x in ev2])))
+    evs = get_close_values(ev1,ev2,delta,ret_err=0,verbose=verbose)
     return evs
 
 
@@ -2170,12 +2187,12 @@ def get_close_values(l1,l2,delta,test='rel',ret_err=0,verbose=0):
             elif test=='abs':
                 err=abs(l1[i]-l2[j])
             else:
-                raise ValueError,"test must be one of 'rel' or 'abs'!"
+                raise ValueError("test must be one of 'rel' or 'abs'!")
             if err<delta:
                 if verbose>0:
-                    print "(rel)err=",err
-                    print "l1[{0}]={1}".format(i,l1[i])
-                    print "l2=[{0}]={1}".format(j,l2[j])
+                    print("(rel)err={0}".format(err))
+                    print("l1[{0}]={1}".format(i,l1[i]))
+                    print("l2=[{0}]={1}".format(j,l2[j]))
                 if ret_err==1:
                     if err > delta_eps:
                         delta_eps = err
@@ -2195,17 +2212,13 @@ def prec_to_dps(prec):
     return int(RR(prec*log(2)/log(10)))
 
 
-def my_alg_sort(x,y):
+def my_alg_sort_key(x):
     r"""  Sort numbers in a number field."""
     if hasattr(x,"complex_embedding"):
         xx = x.complex_embedding().real()
     else:
         xx = x.real()
-    if hasattr(y,"complex_embedding"):
-        yy = y.complex_embedding().real()
-    else:
-        yy = y.real()
-    return cmp(xx,yy)
+    return xx
 
 def Hausdorff_distance(l1,l2):
     r"""
@@ -2234,7 +2247,7 @@ def image_of_interval(T,a,b,n):
     RF = a.base_ring()
     nn = RF(n*T._lambda)
     if a <= n and n <= b:
-        raise ValueError,"Apply to region not containing: {0}".format(n*T._lambda)
+        raise ValueError("Apply to region not containing: {0}".format(n*T._lambda))
     fa = -(a+nn)**-1
     fb = -(b+nn)**-1
     if fb < fa:

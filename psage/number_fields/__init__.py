@@ -1,1 +1,2 @@
-import sqrt5
+from __future__ import absolute_import
+from . import sqrt5

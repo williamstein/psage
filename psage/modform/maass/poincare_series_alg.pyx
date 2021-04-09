@@ -21,7 +21,7 @@ TODO: add proven error estimates
 
 """
 from psage.rings.mp_cimports cimport *
-
+from sage.libs.gmp.all cimport *
 from sage.rings.complex_mpc import MPComplexField
 from sage.rings.real_mpfr import RealField
 import mpmath

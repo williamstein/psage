@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -23,10 +24,10 @@
 import os, sys
 
 
-if sys.maxint != 2**63 - 1:
-    print "*"*70
-    print "The PSAGE library only works on 64-bit computers.  Terminating build."
-    print "*"*70
+if sys.maxsize != 2**63 - 1:
+    print("*"*70)
+    print("The PSAGE library only works on 64-bit computers.  Terminating build.")
+    print("*"*70)
     sys.exit(1)
 
 
@@ -45,26 +46,26 @@ INCLUDES = ['%s/%s/'%(SAGE_ROOT,x) for x in
          + ['%s/%s/'%(SAGE_LOCAL,x) for x in
              ('include', 'include/python',
               'include/python2.7')]
-print "INCLUDES=",INCLUDES
+print("INCLUDES=",INCLUDES)
 
 if '-ba' in sys.argv:
-    print "Rebuilding all Cython extensions."
+    print("Rebuilding all Cython extensions.")
     sys.argv.remove('-ba')
     FORCE = True
 else:
     FORCE = False
 
 def Extension(*args, **kwds):
-    if not kwds.has_key('include_dirs'):
+    if 'include_dirs' not in kwds:
         kwds['include_dirs'] = INCLUDES
     else:
         kwds['include_dirs'] += INCLUDES
-    if not kwds.has_key('force'):
+    if 'force' not in kwds:
         kwds['force'] = FORCE
 
     # Disable warnings when running GCC step -- cython has already parsed the code and
     # generated any warnings; the GCC ones are noise.
-    if not kwds.has_key('extra_compile_args'):
+    if 'extra_compile_args' not in kwds:
         kwds['extra_compile_args'] = ['-w']
     else:
         kwds['extra_compile_args'].append('-w')

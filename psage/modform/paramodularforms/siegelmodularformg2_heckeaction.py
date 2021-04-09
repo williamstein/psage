@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2009 - 08 - 28) Initial version based on code by Nathan Ryan.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -68,7 +69,7 @@ class SiegelModularFormG2FourierExpansionHeckeAction_class (SageObject):
             try :
                 weight = expansion.weight()
             except AttributeError :
-                raise ValueError, "weight must be defined for the Hecke action"
+                raise ValueError("weight must be defined for the Hecke action")
             
         precision = expansion.precision()
         if precision.is_infinite() :
@@ -87,10 +88,11 @@ class SiegelModularFormG2FourierExpansionHeckeAction_class (SageObject):
         return result
         
     # TODO : reimplement in cython
-    def hecke_coeff(self, expansion, ch, (a,b,c), k) :
+    def hecke_coeff(self, expansion, ch, a_b_c, k) :
         r"""
         Computes the coefficient indexed by `(a, b, c)` of `T(\ell) (F)`.
         """
+        (a,b,c) = a_b_c
         character_eval = expansion.parent()._character_eval_function()
         
         ell = self.__l
@@ -104,8 +106,8 @@ class SiegelModularFormG2FourierExpansionHeckeAction_class (SageObject):
                             coeff = coeff + character_eval(V, ch) * t1**(k-2)*t2**(k-1)*expansion[( ch, ((ell*aprime) //t1**2,
                                                                                                          (ell*bprime) //t1//t2,
                                                                                                          (ell*cprime) //t2**2) )]
-                        except KeyError, msg:
-                            raise ValueError, '%s' %(expansion,msg)
+                        except KeyError as msg:
+                            raise ValueError('{0},{1}'.format(expansion,msg))
         return coeff
 
     @cached_method
@@ -134,12 +136,14 @@ class SiegelModularFormG2FourierExpansionHeckeAction_class (SageObject):
         return rep_list
 
     @staticmethod
-    def change_variables((a,b,c,d), (n,r,m)):
+    def change_variables(a_b_c_d, n_r_m):
         r"""
         A helper function used in hecke_coeff that computes the
         quadratic form [nprime,rprime,mprime] given by $Q((x,y) V)$
         where $Q=[n,r,m]$ and $V$ is a 2 by 2 matrix given by `(a, b, c, d)`
         """        
+        (a,b,c,d) = a_b_c_d
+        (n,r,m) = n_r_m
         return ( n*a**2 + r*a*b + m*b**2, 2*(n*a*c + m*b*d) + r*(a*d + c*b), \
                  n*c**2 + r*c*d + m*d**2 )
 

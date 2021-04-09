@@ -32,11 +32,16 @@ sage: fak=CC(1/sqrt(7*I))
 
 
 """
+from __future__ import print_function
+from __future__ import division
 
-from sage.all import SageObject,CyclotomicField,Integer,is_even,ZZ,QQ,Rational,kronecker,is_odd,SL2Z,Gamma0,matrix,floor,ceil,lcm,copy,trivial_character,qexp_eta,var,DirichletGroup
-from sage.all import kronecker_character,kronecker_character_upside_down
+from builtins import str
+from builtins import range
+from sage.all import SageObject,CyclotomicField,Integer,is_even,ZZ,QQ,Rational,kronecker,is_odd,SL2Z,Gamma0,matrix,floor,ceil,lcm,copy,trivial_character,var,DirichletGroup
+from sage.all import kronecker_character,kronecker_character_upside_down,I
 from sage.misc.cachefunc import cached_function,cached_method
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
+from sage.modular.etaproducts import eta_qexp
 from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z,SL2Z_elt
 from psage.modform.arithgroup.mysubgroup import MySubgroup
 from psage.modules.weil_module import WeilModule
@@ -67,13 +72,13 @@ class MultiplierSystem(SageObject):
         self._kwargs = kwargs
         self._verbose = kwargs.get("verbose",0)
         if self._verbose>0:
-             print "Init multiplier system!"
+             print("Init multiplier system!")
         (conductor,char_nr)=dchar
         self._conductor=conductor
         self._char_nr=char_nr
         self._character = None
         self._level = group.generalised_level()
-        if kwargs.has_key('character'):
+        if 'character' in kwargs:
             if str(type(kwargs['character'])).find('Dirichlet')>=0:
                 self._character = kwargs['character']
                 self._conductor=self._character.conductor()
@@ -111,7 +116,7 @@ class MultiplierSystem(SageObject):
         ## Extract the class name for the reduce algorithm
         self._class_name=str(type(self))[1:-2].split(".")[-1]
         if not isinstance(dimension,(int,Integer)):
-            raise ValueError,"Dimension must be integer!"
+            raise ValueError("Dimension must be integer!")
         self._is_dual = dual
         self._is_trivial=is_trivial and self._character.is_trivial()
         if is_trivial and self._character.order()<=2:
@@ -184,15 +189,15 @@ class MultiplierSystem(SageObject):
         """
         if isinstance(A,(ArithmeticSubgroupElement,SL2Z_elt,list)):
             if A not in self._group:
-                raise ValueError,"Element %s is not in %s! " %(A,self._group)
+                raise ValueError("Element {0} is not in {1}! ".format(A,self._group))
             return self._action(A)
         else:
-            raise NotImplementedError,"Do not know how the multiplier should act on {0}".format(A)
+            raise NotImplementedError("Do not know how the multiplier should act on {0}".format(A))
 
         
         
     def _action(self):
-        raise NotImplemented," Needs to be overridden by subclasses!"
+        raise NotImplemented(" Needs to be overridden by subclasses!")
     def is_trivial(self):
         return self._is_trivial
     def is_real(self):
@@ -207,7 +212,7 @@ class MultiplierSystem(SageObject):
     def weil_module(self):
         if hasattr(self,"_weil_module"):
             if self._verbose>1:
-                print "self has weil_module!"
+                print("self has weil_module!")
             return self._weil_module
         return None
             
@@ -219,7 +224,7 @@ class MultiplierSystem(SageObject):
         r"""
         Return the dimension of the unsymmetrized space containing self.
         """
-        if self._ambient_rank<>None:
+        if self._ambient_rank!=None:
             return self._ambient_rank
         else:
             return self._dim
@@ -230,9 +235,9 @@ class MultiplierSystem(SageObject):
         """
         if str(type(other)).find('Multiplier')<0:
             return False
-        if self._group<>other._group:
+        if self._group != other._group:
             return False
-        if self._dim<>other._dim:
+        if self._dim != other._dim:
             return False
         return self.__repr__()==other.__repr__()
 
@@ -247,8 +252,8 @@ class MultiplierSystem(SageObject):
         zi=CyclotomicField(4).gen()
         v = self._action(Z)
         if self._verbose>0: 
-            print "test consistency for k=",k
-            print "v(Z)=",v
+            print("test consistency for k={0}".format(k))
+            print("v(Z)={0}".format(v))
         if self._dim==1:
             if isinstance(k,Integer) or k.is_integral():
                 if is_even(k):
@@ -258,11 +263,11 @@ class MultiplierSystem(SageObject):
             elif isinstance(k,Rational) and (k.denominator()==2 or k==0):
                 v1 = zi**(-QQ(2*k))
                 if self._verbose>0: 
-                     print "I**(-2k)=",v1
+                     print("I**(-2k)={0}".format(v1))
             else:
-                raise ValueError,"Only integral and half-integral weight is currently supported! Got weight:{0} of type:{1}".format(k,type(k))
+                raise ValueError("Only integral and half-integral weight is currently supported! Got weight:{0} of type:{1}".format(k,type(k)))
         else:
-            raise NotImplemented,"Override this function for vector-valued multipliers!"
+            raise NotImplemented("Override this function for vector-valued multipliers!")
         return v1==v
     
         
@@ -275,7 +280,7 @@ class TrivialMultiplier(MultiplierSystem):
         MultiplierSystem.__init__(self,group,dchar=dchar,dual=dual,is_trivial=True,dimension=dimension,**kwargs)
 
     def __repr__(self):
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s="Character "+str(self._character)
         else:
             s="Trivial multiplier!"
@@ -286,7 +291,7 @@ class TrivialMultiplier(MultiplierSystem):
         
     
     def _action(self,A):
-        if self._character<>None:
+        if self._character != None:
             if isinstance(A,(list,SL2Z_elt)):
                 d=A[3]
             else:
@@ -309,12 +314,12 @@ class TrivialMultiplier(MultiplierSystem):
         return 1
         
     def set_character_values(self):
-        l = self._character.values()
+        l = list(self._character.values())
         self._character_values=[]
-        if prec=="float":
+        if self._prec=="float":
             for x in l:
                 self._character_values.append(complex(x))
-        elif prec=="double":
+        elif self._prec=="double":
             for x in l:
                 self._character_values.append(complex(x))
             
@@ -324,22 +329,22 @@ class ThetaMultiplier(MultiplierSystem):
     """
     def __init__(self,group,dchar=(0,0),dual=False,is_trivial=False,dimension=1,**kwargs):
         if not ZZ(4).divides(group.level()):
-            raise ValueError," Need level divisible by 4. Got:%s " % self._group.level()
+            raise ValueError(" Need level divisible by 4. Got: {0} ".format(self._group.level()))
         MultiplierSystem.__init__(self,group,dchar=dchar,dual=dual,is_trivial=is_trivial,dimension=dimension,**kwargs)
         self._i = CyclotomicField(4).gen()
         self._one = self._i**4
         self._weight= QQ(kwargs.get("weight",QQ(1)/QQ(2)))
         ## We have to make sure that we have the correct multiplier & character 
         ## for the desired weight
-        if self._weight<>None:
-            if floor(2*self._weight)<>ceil(2*self._weight):
-                raise ValueError," Use ThetaMultiplier for half integral or integral weight only!"
+        if self._weight!=None:
+            if floor(2*self._weight)!=ceil(2*self._weight):
+                raise ValueError(" Use ThetaMultiplier for half integral or integral weight only!")
             t = self.is_consistent(self._weight)
             if not t:
                 self.set_dual()
                 t1 = self.is_consistent(self._weight)    
                 if not t1:
-                    raise ArithmeticError,"Could not find consistent theta multiplier! Try to add a character."
+                    raise ArithmeticError("Could not find consistent theta multiplier! Try to add a character.")
                 
     def __repr__(self):
         s="Theta multiplier"
@@ -347,7 +352,7 @@ class ThetaMultiplier(MultiplierSystem):
             s+=" v^-1 "
         else:
             s+=" v "
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s+=" and character "+str(self._character)
         return s
     def __latex__(self):
@@ -355,7 +360,7 @@ class ThetaMultiplier(MultiplierSystem):
             s=" \bar{v_{\theta}} "
         else:
             s=" v_{\theta} "
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s+=" \cdot "
             if self._character == kronecker_character(self._conductor):
                 s+=" \left( \frac\{\cdot\}\{ {0} \}\right)".format(self._conductor)
@@ -376,9 +381,9 @@ class ThetaMultiplier(MultiplierSystem):
         v=kronecker(c,d)*self._one  ### I want the type of the result always be a number field element
         if(d % 4 == 3):
             v=-v*self._i
-        elif (c % 4 <> 0):
-            raise ValueError,"Only use theta multiplier for 4|c!"
-        if self._character<>None:
+        elif (c % 4 != 0):
+            raise ValueError("Only use theta multiplier for 4|c!")
+        if self._character!=None:
             v = self._character(d)*v
         if self._is_dual:
             v = v**-1
@@ -408,7 +413,7 @@ class EtaMultiplier(MultiplierSystem):
         MultiplierSystem.__init__(self,G,character=ch,dual=dual,dimension=dimension)
         number = number % 12
         if not is_even(number):
-            raise ValueError,"Need to have v_eta^(2(k+r)) with r even!"
+            raise ValueError("Need to have v_eta^(2(k+r)) with r even!")
         self._pow=QQ((self._weight+number)) ## k+r
         self._k_den=self._pow.denominator()
         self._k_num=self._pow.numerator()
@@ -422,9 +427,9 @@ class EtaMultiplier(MultiplierSystem):
 
     def __repr__(self):
         s="Eta multiplier "
-        if self._pow<>1:
+        if self._pow != 1:
             s+="to power 2*"+str(self._pow)+" "
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s+=" and character "+str(self._character)
         s+="with weight="+str(self._weight)
         return s
@@ -540,7 +545,7 @@ class TestMultiplier(MultiplierSystem):
 
     def __repr__(self):
         s="Test multiplier"
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s+="and character "+str(self._character)
         return s
 
@@ -594,8 +599,8 @@ class MultiplierByGenerator(MultiplierSystem):
     
     """
     def __init__(self,group,gens=[],vs=[],**kwargs):
-        if len(gens)<>len(vs):
-            raise ValueError,"Need generators and values of the same form!"
+        if len(gens)!=len(vs):
+            raise ValueError("Need generators and values of the same form!")
         if hasattr(vs[0],'nrows'):
             dim=vs[0].nrows()
             assert vs[0].ncols()==dim and vs[0].nrows()==dim
@@ -630,18 +635,18 @@ class MultiplierByGenerator(MultiplierSystem):
             [z,n,l]=factor_matrix_in_sl2z(int(a),int(b),int(c),int(d))
             # l,ep = factor_matrix_in_sl2z_in_S_and_T(A_in)
             res = self.T.parent().one()
-            if z==-1 and self.Z<>None:
+            if z==-1 and self.Z != None:
                 res = self.Z #v(SL2Z[-1,0,0,-1])
                 # for j in range(self.dim):
                 #    res[j,j]=tmp
-            if n<>0:
+            if n != 0:
                 res = self.T**n
             for i in range(len(l)):
                 res = res*self.S*self.T**l[i]
         elif A in self.vals.keys():
             res = self.vals[A]
         else:
-            raise NotImplementedError,"Can not write as word in generators of {0}".format(self._group)
+            raise NotImplementedError("Can not write as word in generators of {0}".format(self._group))
         return res
 
 class InducedRepresentationMultiplier(MultiplierSystem):
@@ -660,7 +665,7 @@ class InducedRepresentationMultiplier(MultiplierSystem):
         self._induced_from=G
         # setup the action on S and T (should be faster...)
         self.v = v        
-        if v<>None:
+        if v != None:
 
             k = v.order()
             if k>2:
@@ -681,7 +686,7 @@ class InducedRepresentationMultiplier(MultiplierSystem):
         elif hasattr(G,"_G"):
             Vl=list(G._G.coset_reps())
         else:
-            raise ValueError,"Could not get coset representatives from {0}!".format(G)
+            raise ValueError("Could not get coset representatives from {0}!".format(G))
         self.repsT=dict()
         self.repsS=dict()
         for i in range(dim):
@@ -694,14 +699,14 @@ class InducedRepresentationMultiplier(MultiplierSystem):
                 #print "ViSVj^-1=",BS
                 #print "ViTVj^-1=",BT
                 if BS in G:
-                    if v<>None:
+                    if v != None:
                         vS=v(BS)
                     else:
                         vS=1
                     self.S[i,j]=vS
                     self.repsS[(i,j)]=BS
                 if BT in G:
-                    if v<>None:
+                    if v != None:
                         vT=v(BT)
                     else:
                         vT=1
@@ -725,11 +730,11 @@ class InducedRepresentationMultiplier(MultiplierSystem):
         [z,n,l]=factor_matrix_in_sl2z(int(a),int(b),int(c),int(d))
         #l,ep = factor_matrix_in_sl2z_in_S_and_T(A_in)
         res = copy(self.T.parent().one())
-        if z==-1 and self.v<>None:
+        if z==-1 and self.v != None:
             tmp = self.v(SL2Z([-1,0,0,-1]))
             for j in range(self._dim):
                 res[j,j]=tmp
-        if n<>0:
+        if n != 0:
             res = self.T**n
         for i in range(len(l)):
             res = res*self.S*self.T**l[i]
@@ -754,11 +759,11 @@ class WeilRepMultiplier(MultiplierSystem):
         elif hasattr(WR,"signature"):
             self._weil_module=WR
         else:
-            raise ValueError,"{0} is not a Weil module!".format(WR)
+            raise ValueError("{0} is not a Weil module!".format(WR))
         self._sym_type = 0
 
-        if group.level() <>1:
-            raise NotImplementedError,"Only Weil representations of SL2Z implemented!"
+        if group.level() != 1:
+            raise NotImplementedError("Only Weil representations of SL2Z implemented!")
         self._group = MySubgroup(Gamma0(1))
         self._dual = int(dual)
         self._sgn = (-1)**self._dual
@@ -773,7 +778,7 @@ class WeilRepMultiplier(MultiplierSystem):
             ## First find weight mod 2:
             twok= QQ(2)*QQ(weight)
             if not twok.is_integral():
-                raise ValueError,"Only integral or half-integral weights implemented!"
+                raise ValueError("Only integral or half-integral weights implemented!")
             kmod2 = QQ(twok % 4)/QQ(2)
             if dual:
                 sig_mod_4 = -self._weil_module.signature() % 4
@@ -785,7 +790,7 @@ class WeilRepMultiplier(MultiplierSystem):
             elif (kmod2,sig_mod_4) in [(half,3),(threehalf,1),(0,2),(1,0)]:
                 sym_type = -1
             else:
-                raise ValueError,"The Weil module with signature {0} is incompatible with the weight {1}!".format( self._weil_module.signature(),weight)
+                raise ValueError("The Weil module with signature {0} is incompatible with the weight {1}!".format( self._weil_module.signature(),weight))
             ## Deven and Dodd contains the indices for the even and odd basis
             Deven=[]; Dodd=[]
             if sym_type==1:
@@ -796,7 +801,7 @@ class WeilRepMultiplier(MultiplierSystem):
             dim = len(self._D)  #Dfinish-Dstart+1
         else:
             dim = len(self._weil_module.finite_quadratic_module().list())
-            self._D = range(dim)
+            self._D = list(range(dim))
             self._sym_type=0
         if hasattr(self._weil_module,"finite_quadratic_module"):
 #            for x in list(self._weil_module.finite_quadratic_module()):
@@ -825,7 +830,7 @@ class WeilRepMultiplier(MultiplierSystem):
         """
         weight = QQ(2) - QQ(self._weight)
         dual = int(not self._is_dual)
-        m = WeilRepMultiplier(self._weil_module,weight,use_symmetry,self._group,dual=dual,**self._kwargs)
+        m = WeilRepMultiplier(self._weil_module,weight,self._use_symmetry,self._group,dual=dual,**self._kwargs)
         return m
    
     def D(self):
@@ -846,11 +851,11 @@ class WeilRepMultiplier(MultiplierSystem):
         Return True if the Weil representation is a multiplier of weight k.
         """
         if self._verbose>0:
-            print "is_consistent at wr! k={0}".format(k)
+            print("is_consistent at wr! k={0}".format(k))
         twok =QQ(2)*QQ(k)
         if not twok.is_integral():
             return False
-        if self._sym_type <>0:
+        if self._sym_type != 0:
             if self.is_dual():
                 sig_mod_4 = -self._weil_module.signature() % 4
             else:
@@ -940,7 +945,7 @@ class EtaQuotientMultiplier(MultiplierSystem):
             s+="eta({0}z)^{1}".format(n,e)
             if i < len(self._arguments)-1:
                 s+="*"
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s+=" and character "+str(self._character)
         s+=" with weight="+str(self._weight)
         return s
@@ -976,9 +981,9 @@ class EtaQuotientMultiplier(MultiplierSystem):
             res = res*eta.subs({q:q**self._arguments[i]})**self._exponents[i]
             prefak = prefak+self._arguments[i]*self._exponents[i]
         if prefak % 24 == 0:
-            return res*q**(prefak/24)
+            return res*q**(prefak/QQ(24))
         else:
-            return res,prefak/24
+            return res,prefak/QQ(24)
         #etA= et.subs(q=q**self._arg_num).power_series(ZZ[['q']])
         #etB= et.subs(q=q**self._arg_den).power_series(ZZ[['q']])
         #res = etA**(self._exp_num)/etB**(self._exp_den)
@@ -989,7 +994,7 @@ class EtaQuotientMultiplier(MultiplierSystem):
     def _action(self,A):
         [a,b,c,d]=A
         if not c % self._level == 0 :
-            raise ValueError,"Need A in {0}! Got: {1}".format(self.group,A)
+            raise ValueError("Need A in {0}! Got: {1}".format(self.group,A))
         fak=1
         if c<0:
             a=-a; b=-b; c=-c;  d=-d; fak=-self._fak
@@ -1002,13 +1007,13 @@ class EtaQuotientMultiplier(MultiplierSystem):
             #arg2,v2 = eta_conjugated(a,b,c,d,self._arg_den)
             #res=self._z**(arg1*self._exp_num-arg2*self._exp_den)
 #            exp += arg*self._exponents[i]
-            if v<>1:
+            if v != 1:
                 res=res*v**self._exponents[i]
             #if v2<>1:
             #res=res/v2**self._exp_den
             res = res*z**(arg*self._exponents[i].numerator())
 #        res = res*self._z**exp
-        if fak<>1:
+        if fak != 1:
             res=res*fak**exp
         return res
 
@@ -1046,7 +1051,7 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
         MultiplierSystem.__init__(self,G,dimension=1,character=ch,dual=dual)
         number = number % 12
         if not is_even(number):
-            raise ValueError,"Need to have v_eta^(2(k+r)) with r even!"
+            raise ValueError("Need to have v_eta^(2(k+r)) with r even!")
         self._arg_num = A
         self._arg_den = B
         self._exp_num = r
@@ -1064,7 +1069,7 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
     def __repr__(self):
         s="Quotient of Eta multipliers :  "
         s+="eta({0})^{1}/eta({2})^{3}".format(self._arg_num,self._exp_num,self._arg_den,self._exp_den)
-        if self._character<>None and not self._character.is_trivial():
+        if self._character != None and not self._character.is_trivial():
             s+=" and character "+str(self._character)
         s+=" with weight="+str(self._weight)
         return s
@@ -1090,11 +1095,11 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
         r"""
         Give the q-expansion of the quotient.
         """
-        var('q')
+        q = ZZ[['q']].gen()
         et = qexp_eta(ZZ[['q']],n)
         etA= et.subs(q=q**self._arg_num).power_series(ZZ[['q']])
         etB= et.subs(q=q**self._arg_den).power_series(ZZ[['q']])
-        res = etA**(self._exp_num)/etB**(self._exp_den)
+        res = etA**(self._exp_num)*etB**(-self._exp_den)
         return res
     #def _action(self,A):
     #    return self._action(A)
@@ -1102,7 +1107,7 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
     def _action(self,A):
         [a,b,c,d]=A
         if not c % self._level == 0 :
-            raise ValueError,"Need A in {0}! Got: {1}".format(self.group,A)
+            raise ValueError("Need A in {0}! Got: {1}".format(self.group,A))
         fak=1
         if c<0:
             a=-a; b=-b; c=-c;  d=-d; fak=-self._fak
@@ -1110,11 +1115,11 @@ class EtaQuotientMultiplier_2(MultiplierSystem):
         arg1,v1 = eta_conjugated(a,b,c,d,self._arg_num)
         arg2,v2 = eta_conjugated(a,b,c,d,self._arg_den)
         res=self._z**(arg1*self._exp_num-arg2*self._exp_den)
-        if v1<>1:
+        if v1 != 1:
             res=res*v1**self._exp_num
-        if v2<>1:
-            res=res/v2**self._exp_den
-        if fak<>1:
+        if v2 != 1:
+            res=res*v2**(-self._exp_den)
+        if fak != 1:
             res=res*fak**(self._exp_num-self._exp_den)
         return res
             
@@ -1123,7 +1128,7 @@ def eta_conjugated(a,b,c,d,l):
     Gives eta(V_l A V_l^-1) with A=(a,b,c,d) for c>0
     """
     assert c>=0 and (c%l)==0
-    if l<>1:
+    if l != 1:
         cp = QQ(c)/QQ(l)
         bp = QQ(b)*QQ(l)
     else:

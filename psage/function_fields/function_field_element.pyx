@@ -21,7 +21,7 @@
 
 
 from sage.ext.stdsage cimport PY_NEW
-
+from past.builtins import cmp
 from sage.structure.element cimport FieldElement, RingElement, ModuleElement, Element
 
 def is_FunctionFieldElement(x):

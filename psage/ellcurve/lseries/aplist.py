@@ -33,6 +33,7 @@ have different hashes and (2) this format is much easier to look at.
 
 from sage.all import ZZ
 
+
 def ap(E, p):
     """
     INPUT:
@@ -57,6 +58,7 @@ def ap(E, p):
         return ZZ(-1)
     else:
         return ZZ(0)
+
 
 def primes_of_bounded_norm(F, B):
     r"""
@@ -153,7 +155,7 @@ def an_dict_from_ap(ap, N, B):
     for n in sorted(A.keys()):
         X = A[n]
         for I in X:
-            if an.has_key(reduced_rep(I)):
+            if reduced_rep(I) in an:
                 # prime case, already done
                 pass
             else:
@@ -234,7 +236,7 @@ def _test_an_dict_over_Q(ainvs, B=100):
     EQ = EllipticCurve(QQ, ainvs)
     v = EQ.anlist(B)
     an = an_dict(E, B)
-    for i, j in an.iteritems():
+    for i, j in an.items():
         assert j == v[i[0]]
 
 def test_an_dict_over_Q():

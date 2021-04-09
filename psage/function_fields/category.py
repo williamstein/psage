@@ -23,6 +23,7 @@ Category of function fields
 """
 
 
+from builtins import object
 from sage.categories.category import Category
 from sage.misc.cachefunc import cached_method
 from sage.categories.basic import Fields
@@ -78,11 +79,11 @@ class FunctionFields(Category):
         try:
             return x.function_field()
         except AttributeError:
-            raise  TypeError, "unable to canonically associate a function field to %s"%x
+            raise  TypeError("unable to canonically associate a function field to {0}".format(x))
 
 
-    class ParentMethods:
+    class ParentMethods(object):
         pass
 
-    class ElementMethods:
+    class ElementMethods(object):
         pass

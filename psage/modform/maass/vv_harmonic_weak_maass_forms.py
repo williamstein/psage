@@ -42,20 +42,28 @@ EXAMPLES::
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
+from builtins import map
+from builtins import str
+from builtins import range
 import mpmath as mpmath
 # ugly fix to support pickling of mpmath matrices
 import mpmath.matrices.matrices
 mpmath.matrices.matrices.matrix = mpmath.matrix
 import random
 import tempfile,os
-from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign,Newforms
+from sage.all import Parent,SageObject,Integer,Rational,SL2Z,QQ,ZZ,CC,RR,Newform,sign,Newforms,RealField,save,load,\
+    latex,log_b,vector,dimension_new_cusp_forms,dimension_cusp_forms,is_square,kronecker,numerator,denominator,\
+    cached_function,is_odd,MatrixSpace,is_fundamental_discriminant
 from sage.rings.complex_mpc import MPComplexField,MPComplexNumber
 
 from psage.modform.arithgroup.mysubgroup import *
-from automorphic_forms import *
-from weil_rep_simple import *
-from vv_harmonic_weak_maass_forms_alg import *
+from .automorphic_forms import *
+from .weil_rep_simple import *
+from .vv_harmonic_weak_maass_forms_alg import *
 from psage.modules.vector_complex_dense import *
 from psage.matrix.matrix_complex_dense import *
 
@@ -115,9 +123,9 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             else:
                 N = WM.N
             WR = WeilModule(N)
-            self.WM=WeilRepMultiplier(WR,weight=QQ(k),dual=dr)
+            self.WM=WeilRepMultiplier(WR,weight=QQ(k),dual=dual)
         else:
-            raise ValueError,"Got invalid multiplier: {0}".format(WM)
+            raise ValueError("Got invalid multiplier: {0}".format(WM))
         self.group=MySubgroup(self.WM.group())
         self.weight=k
         self._weight_rat=QQ(RR(k))
@@ -149,7 +157,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                 rep='dual rep.'
             else:
                 rep='reg. rep.'
-            raise ValueError,"Space only contains the zero function! Change weight (%s) or representation (%s)" %(self._weight_rat,rep)
+            raise ValueError("Space only contains the zero function! Change weight ({0}) or representation ({1})".format(self._weight_rat,rep))
         self.members=list() 
         #if hasattr(self.WM.WR
         #self._dimension_cusp_forms = 
@@ -277,9 +285,9 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         #M0_set=None
         if PP==None:
             PP=self.smallest_pp() ## Use the smallest discriminant possible
-        if(prec == None and maxD==None and maxC==None):
-            raise ValueError,"Need either desired precision, number of discriminants or number of coefficients!"
-        elif maxD<>None:
+        if prec == None and maxD == None and maxC == None:
+            raise ValueError("Need either desired precision, number of discriminants or number of coefficients!")
+        elif maxD != None:
             # Need the correct M0 to use for getting this many coefficients. 
             prec = None
             M0_set=ceil(maxD/self.rank()) # should be approximately good
@@ -290,15 +298,15 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                     D=D_from_rn(self.multiplier(),(r,m))
                     if D < min_d:
                         min_d=D
-                if(min_d >= maxD):
+                if min_d >= maxD:
                     M0_set=m
                     break
-        elif(maxC<>None):
+        elif maxC != None:
             prec=None
             M0_set=maxC
             
-        if(not isinstance(PP,(dict,list))):
-            raise TypeError,"Need principal part in form of dictionary! Got:%s" % PP
+        if not isinstance(PP,(dict,list)):
+            raise TypeError("Need principal part in form of dictionary! Got:{0}".format(PP))
         if isinstance(PP,dict):
             Ptmp = [PP]
         else:
@@ -312,58 +320,58 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                     (r,m) = t
                 if isinstance(t,(int,Integer)):
                     if not self.is_Heegner_disc(t):
-                        raise ValueError,"Need discriminant satisfying Heegner condition, i.e. square mod %s. Got:%s" %(self.multiplier().level(),t)
+                        raise ValueError("Need discriminant satisfying Heegner condition, i.e. square mod {0}. Got: {1}".format(self.multiplier().level(),t))
                     (r,m) = rn_from_D(self.multiplier(),t)
                 d[(r,m)]=p[t]
                 # Also check that principal part adheres to the symmetry if present
-                if self._sym_type<>0:
+                if self._sym_type!=0:
                     minus_r = self.multiplier().weil_module().neg_index(r)
-                    if p.has_key((minus_r,m)):
-                        if p[(minus_r,m)]<>self.sym_type*p[(r,m)]:
-                            raise ValueError,"Need symmetric principal part! Got:{0}".format(PP)
+                    if (minus_r,m) in p:
+                        if p[(minus_r,m)]!=self.sym_type*p[(r,m)]:
+                            raise ValueError("Need symmetric principal part! Got:{0}".format(PP))
             P0.append(d)
         P=P0[0]  ### More than one principal part is not implemented yet...
         if self._verbose > 0:
-            print "P=",P
-            print "M0_set=",M0_set
+            print("P={0}".format(P))
+            print("M0_set={0}".format(M0_set))
         F=VVHarmonicWeakMaassFormElement(self,P)
-        if(self._verbose>0):
+        if self._verbose>0:
             sys.stdout.flush()
-        if(M0_set<>None and M0_set <>0):
+        if M0_set != None and M0_set != 0:
             if self._verbose > 0:
-                print "M0_set=",M0_set
+                print("M0_set={0}".format(M0_set))
             mpmath.mp.dps = 53 ## Do the estimate in low precision
             Y=mpmath.mpf(0.75); M=M0_set
             [er1,er2]=F.get_error_estimates(Y,M0_set)
             prec=max(er1,er2)
-        elif(prec<>None):
+        elif prec != None:
             [Y,M]=self.get_Y_and_M(P,self.weight,prec)
         else:
-            raise ValueError,"Could not deicide number of coefficients to compute from input!"
-        if(minprec<>None and prec>minprec):
+            raise ValueError("Could not deicide number of coefficients to compute from input!")
+        if minprec != None and prec > minprec:
             prec=minprec
             [Y,M]=self.get_Y_and_M(P,self.weight,minprec)
         Q=M+50
-        if(Y_set<>None):  
-            if(Y_set>0 and Y_set < 0.866):
+        if(Y_set!=None):  
+            if Y_set>0 and Y_set < 0.866:
                 Y=Y_set
-        if(self._verbose > 1):
-            print "prec=",prec
-            print "Y=",Y
-            print "M=",M
-            print "Q=",Q
+        if self._verbose > 1:
+            print("prec=",prec)
+            print("Y=",Y)
+            print("M=",M)
+            print("Q=",Q)
         dold=mpmath.mp.dps
         mpmath.mp.dps=max(self._dprec,prec+10)
         if self._verbose > 0:
-            print "using ",mpmath.mp.dps," digits!"
-            print "P=",P
-            print "ef=",ef
-	RF = RealField(self._prec)
-        if(ef):
+            print("using {0} digits".format(mpmath.mp.dps))
+            print("P={0}".format(P))
+            print("ef={0}".format(ef))
+        if ef:
             if use_mpmath:
                 Y = mpmath.mp.mpf(Y)
                 W=vv_harmonic_wmwf_setupV_ef(self,P,Y,M,Q,mpmath.mp.mpf(self.weight))
             else:
+                RF = RealField(self._prec)
                 Y = RF(Y)
                 mpmath.mp.dps = self._setupV_prec
                 W=vv_harmonic_wmwf_setupV_mpc2(self,P,Y,M,Q)
@@ -386,26 +394,26 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         except StopIteration:
             pass
         if self._verbose > 0:
-            print "tmpfilename=",tmpfilename
+            print("tmpfilename={0}".format(tmpfilename))
         try:
             save(W,tmpfilename)
         except MemoryError:
-            print "Could not save to file!"
+            print("Could not save to file!")
             pass
         #if(PP.has_key((0,0))):
         #    N=self.set_norm(P=PP,C=SetCs)
         #else:
         N=self.set_norm(P=PP,C=SetCs)
         if self._verbose>0:
-            print "N = ",N
-            print "V.parent=",W['V'].parent()
+            print("N = {0}".format(N))
+            print("V.parent={0}".format(W['V'].parent()))
         #return (W,N)
         if use_mpmath:
             C=solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N,deb=False)
         else:
             C=solve_system_for_vv_harmonic_weak_Maass_waveforms_new(self,W,N)
         if self._verbose > 0:
-            print "C001=",C[0][0][1]
+            print("C001={0}".format(C[0][0][1]))
         D=self.D
         CC=dict()
         # we need to shift the indices of C to the (semi-)correct indices
@@ -445,19 +453,19 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             m_stop=m_start+1
         rmin=1; xmin=self.D_as_int[0]
         if self._verbose > 0:
-            print "m_start=",m_start
+            print("m_start={0}".format(m_start))
         for m in range(m_start,m_stop):
             #m=m*sgn
             for x in self.multiplier().Qv:
                 y=QQ(x+m)
                 D=ZZ(y*self.multiplier().level())
                 if self._verbose > 0:
-                    print m,self.multiplier().Qv.index(x),D,y
-                if(D==0 and sgn<>0): # don't count the zero unless we want zero
+                    print(m,self.multiplier().Qv.index(x),D,y)
+                if D==0 and sgn!=0: # don't count the zero unless we want zero
                     continue
-                if(res.count(D)==0):
+                if res.count(D) == 0:
                     res.append(D)
-                if(abs(y)<xmin and n==1):
+                if abs(y) < xmin and n == 1:
                     j = self.multiplier().Qv.index(x)
                     if j in self.D(): #_as_int):
                         rmin=j
@@ -469,7 +477,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         else:
             res.sort(reverse=True)
         if self._verbose > 0:
-            print res
+            print(res)
         # make unique
         return {res[n-1]:1}
                 
@@ -485,7 +493,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             DD=D*sgn
             if(self.is_Heegner_disc(DD)):
                 return DD
-        raise ArithmeticError," COuld not find any Heegner discriminat > %s !" %n
+        raise ArithmeticError(" COuld not find any Heegner discriminat > {0} !".format(n))
             
 
     def is_Heegner_disc(self,D):
@@ -508,7 +516,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         
         """
         # generalized_level
-        if(Yin<>None):
+        if(Yin!=None):
             Y0=Yin
         else:
             Y0=min(self.group.minimal_height(),0.5)
@@ -521,15 +529,15 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             elif isinstance(t,(int,Integer)):
                 (c,l)=rn_from_D(self.multiplier(),t)
             else:
-                raise ValueError,"Incorrect principal part: t={0}".format(t)
+                raise ValueError("Incorrect principal part: t={0}".format(t))
             if c in self.multiplier().D:
                 tmp=l+self.multiplier().Qv[self.multiplier().D.index(c)]
             elif c in range(len(self.multiplier().Qv)):
                 tmp=l+self.multiplier().Qv[c]
             else:
-                    raise ValueError,"Incorrect principal part: c,l={0},{1}".format(c,l)
+                    raise ValueError("Incorrect principal part: c,l={0},{1}".format(c,l))
             if self._verbose>0:
-                print "tmp=",tmp
+                print("tmp={0}".format(tmp))
             if abs(tmp)>Kmax:
                 Kmax=abs(tmp)
             #x
@@ -566,13 +574,13 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                 #print "er2-(",m,")=",mppr(errest2)
                 if(max(abs(errest1),abs(errest2))<eps):
                     raise StopIteration()
-            raise ArithmeticError,"Could not find M<%s such that error bound in truncation is <%s! and Y,K0,K1=%s,%s,%s \n err+=%s \n err-=%s" %(m,eps,mppr(Y),K0,K1,mppr(errest1),mppr(errest2))
+            raise ArithmeticError("Could not find M<%s such that error bound in truncation is <{0}! and Y,K0,K1={1},{2},{3} \n err+={4} \n err-={5}".format(m,eps,mppr(Y),K0,K1,mppr(errest1),mppr(errest2)))
         except StopIteration:
             if(self._verbose > 2):
-                print "er +=",errest1
-                print "er -=",errest2
-                print "m=",m
-                print "Y=",Y
+                print("er +={0}".format(errest1))
+                print("er -={0}".format(errest2))
+                print("m={0}".format(m))
+                print("Y={0}".format(Y))
         mpmath.mp.dps=dold
         return m
 
@@ -585,7 +593,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         
         t=self.weight-0.5
         if(not is_int(t)):
-            raise ValueError, "Need half-integral value of weight! Got k=%s, k-1/2=%s" %(self.weight,t)
+            raise ValueError("Need half-integral value of weight! Got k={0}, k-1/2={1}".format(self.weight,t))
         ti=Integer(float(t))
         if is_odd(ti):
             sym_type=-1
@@ -699,13 +707,13 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
             Cl=[C]        
         if len(Pl)>0:
             N['comp_dim']=len(Pl)
-        if len(Cl)>0:
-            if len(Cl)<>len(Pl):
-                raise ValueError,"Need same number of principal parts and coefficients to set!"
-            keys = Cl[0].keys()
+        if len(Cl) > 0:
+            if len(Cl) != len(Pl):
+                raise ValueError("Need same number of principal parts and coefficients to set!")
+            keys = list(Cl[0].keys())
             for j in range(1,N['comp_dim']):
-                if Cl[j].keys()<>keys:
-                    raise ValueError,"Need to set the same coefficients! (or call the method more than once)"
+                if list(Cl[j].keys()) != keys:
+                    raise ValueError("Need to set the same coefficients! (or call the method more than once)")
         else:
             Cl=[]
             for j in range(N['comp_dim']):
@@ -725,7 +733,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
                     if c_t=="pp":
                         #N['comp_dim']=N['comp_dim']+1
                         N['SetCs'][i].append((j,0))
-                        if Pl[i].has_key((0,j)):
+                        if (0,j) in Pl[i]:
                             N['Vals'][i][(j,0)]=Pl[i][(j,0)]
                         else:
                             N['Vals'][i][(j,0)]=0 #P[(0,0)]
@@ -873,7 +881,7 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
     s=s.replace("(","")
     s=s.replace(")","")
     s=s.strip()
-    if(s.count("I")+s.count("i")+s.count("j")>0):
+    if s.count("I")+s.count("i")+s.count("j") > 0:
         # Get a default complex notation
         s=s.replace("*","")
         s=s.replace("I","i")
@@ -898,22 +906,22 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
         else:
             sims=sims+"i"
 
-        if(sims.count("-")>0):
+        if sims.count("-") > 0:
             return sres+" "+sims.replace(" -"," - ")
-        elif(sims<>"" and sres<>""):
+        elif sims != "" and sres!="":
             return sres+" + "+sims
-        elif(sres<>""):
+        elif sres != "":
             return sres
-        elif(sims<>""):
+        elif sims != "":
             return sims
         else:
-            raise ValueError,"Could not find pretty print for s=%s " %s 
+            raise ValueError("Could not find pretty print for s={0} ".format(s))
     s=s.strip()    
-    if( len(s.replace(".","").strip("0"))==0):
+    if len(s.replace(".","").strip("0")) == 0:
         return "0"
-    if(s.count(".")==0):
+    if s.count(".") == 0:
         s=s+".0"
-    if(s[0]=='-'):
+    if s[0] == '-':
         ss=s.strip("-")
         ss=sci_pretty_print(ss,nd,es,latex_pow)    
         return "-"+ss
@@ -927,15 +935,15 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
         sint=l[0]
         sdigs=""
     else:
-        raise ValueError," Can not do pretty print for s=%s" %s
+        raise ValueError(" Can not do pretty print for s={0}".format(s))
 
-    if(sdigs.count("e")>0):
+    if sdigs.count("e") > 0:
         l=sdigs.split("e")
         sdigs=l[0]
         ex=int(l[1])
     else:
         ex=0
-    if(len(sint)==1 and sint=="0"):
+    if len(sint) == 1 and sint == "0":
         # find the number of leading zeros
         sss=sdigs.lstrip("0")        
         nz=len(sdigs)-len(sss)+1
@@ -946,11 +954,11 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
         # Fix correct rounding
         rest=sss[nd:len(sss)]
         ix=nd-1
-        if(len(rest)>0):
-            if(int(rest) < 5*10**(len(rest)-1)):
+        if len(rest)>0:
+            if int(rest) < 5*10**(len(rest)-1):
                 # print " round < : since "+rest+"<"+str(5*10**(len(rest)-1))
                 d=int(sss[ix])
-            elif(int(rest) > 5*10**(len(rest)-1)):
+            elif int(rest) > 5*10**(len(rest)-1):
                 # print " round > : since "+rest+">"+str(5*10**(len(rest)-1))
                 d=int(sss[ix])+1
             else:
@@ -1009,7 +1017,7 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
     else:
         ssdigs=sint[1:len(sint)]+sdigs    
 
-    if(latex_pow):
+    if latex_pow:
         res=sint[0]+"."+ssdigs+" \cdot 10^{"+ex+"}"
         return res 
     else:
@@ -1116,13 +1124,13 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
     get_reduced_matrix=gr
     comp_norm=cn
     if(W['sym_type']==1):
-        setD=range(0,WR.N+1)  # 0,1,...,N
+        setD=list(range(0,WR.N+1))  # 0,1,...,N
     elif(W['sym_type']==-1):
-        setD=range(1,WR.N)    # 1,2,...,N-1  (since -0=0 and -N=N)
+        setD=list(range(1,WR.N))    # 1,2,...,N-1  (since -0=0 and -N=N)
     nc=len(setD)
-    if(V.cols<>Ml*nc or V.rows<>Ml*nc):
-        raise Exception," Wrong dimension of input matrix!"
-    if(N==None):
+    if V.cols != Ml*nc or V.rows != Ml*nc:
+        raise Exception(" Wrong dimension of input matrix!")
+    if N == None:
         SetCs=[]
         Vals=dict();Vals[0]=dict()
         for b in WR.D:
@@ -1153,43 +1161,43 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
     #print "mpmath_ctx=",mpmath_ctx
     #use_symmetry=False
     RHS=mpmath_ctx.matrix(int(Ml*nc-num_set),int(comp_dim))
-    if(W.has_key('RHS')):
-        if(W['RHS'].cols<>comp_dim):
-            raise ValueError,"Incorrect number of right hand sides!"
+    if 'RHS' in W:
+        if W['RHS'].cols!=comp_dim:
+            raise ValueError("Incorrect number of right hand sides!")
 
     LHS=mpmath_ctx.matrix(int(Ml*nc-num_set),int(Ml*nc-num_set))
     roffs=0
     if(deb):
-        print "Ml=",Ml
-        print "num_set=",num_set
-        print "SetCs=",SetCs
-        print "Vals=",Vals
-        print "V.rows=",V.rows
-        print "V.cols=",V.cols
-        print "LHS.rows=",LHS.rows
-        print "LHS.cols=",LHS.cols
-        print "RHS.rows=",RHS.rows
-        print "RHS.cols=",RHS.cols
-        print "use_sym=",use_sym
+        print("Ml={0}".format(Ml))
+        print("num_set={0}".format(num_set))
+        print("SetCs={0}".format(SetCs))
+        print("Vals={0}".format(Vals))
+        print("V.rows={0}".format(V.rows))
+        print("V.cols={0}".format(V.cols))
+        print("LHS.rows={0}".format(LHS.rows))
+        print("LHS.cols={0}".format(LHS.cols))
+        print("RHS.rows={0}".format(RHS.rows))
+        print("RHS.cols={0}".format(RHS.cols))
+        print("use_sym={0}".format(use_sym))
 
-    if(V.rows <> nc*Ml):
-        raise ArithmeticError," Matrix does not have correct size!"
-    if( len(SetCs)>0):
+    if V.rows != nc*Ml:
+        raise ArithmeticError(" Matrix does not have correct size!")
+    if len(SetCs)>0:
         for a in range(nc):
             for n in range(Ms,Mf+1):
                 r=a*Ml+n-Ms
-                if(SetCs.count((a,n))>0):
-                    print " set row a,n=",a,n
+                if SetCs.count((a,n))>0:
+                    print(" set row a,n={0}, {1}".format(a,n))
                     roffs=roffs+1
                     continue
                 for fn_j in range(comp_dim):
-                    if(W.has_key('RHS')):
+                    if 'RHS' in W:
                         RHS[r-roffs,fn_j]=-W['RHS'][r,fn_j]
                     for (i,cset) in SetCs:
                         v=Vals[fn_j][i][cset]
-                        if(mpmath_ctx==mpmath.mp):
+                        if mpmath_ctx == mpmath.mp:
                             tmp=mpmath_ctx.mpmathify(v)
-                        elif(isinstance(v,float)):
+                        elif isinstance(v,float):
                             tmp=mpmath_ctx.mpf(v)
                         else:
                             tmp=mpmath_ctx.mpc(v)
@@ -1222,13 +1230,13 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
                 sinf=smallest_inf_norm_mpmath(LHS)
                 t=int(mpmath_ctx.ceil(-mpmath_ctx.log10(sinf)))
             except ValueError:
-                print "Warning: Got smallest inf. norm=",sinf
+                print("Warning: Got smallest inf. norm={0}".format(sinf))
                 t = mpmath.mp.dps+10
             mpmath.mp.dps=t+5*i; i=i+1
-            print "raising number of digits to:",mpmath.mp.dps
+            print("raising number of digits to:{0}".format(mpmath.mp.dps))
             # raise ZeroDivisionError,"Need higher precision! Use > %s digits!" % t
     if(i>=maxit):
-        raise ZeroDivisionError,"Can not raise precision enough to solve system! Should need > %s digits! and %s digits was not enough!" % (t,mpmath.mp.dps)
+        raise ZeroDivisionError("Can not raise precision enough to solve system! Should need > {0} digits! and {1} digits was not enough!".format(t,mpmath.mp.dps))
     # Use the LU-decomposition to compute the inf- norm of A^-1
     # Note that Ax=LUx=y and we get columns of A^-1 by solving for y1=(1,0,...), y2=(0,1,0,...) etc.
     if(comp_norm):
@@ -1237,21 +1245,21 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N=None,deb=False,gr=Fals
             y=mpmath_ctx.matrix(LHS.rows,int(1)); y[j,0]=1            
             b = mpmath_ctx.L_solve(A,y, p)
             TMP = mpmath_ctx.U_solve(A, b)
-            tmpnorm=max(map(abs,TMP))
+            tmpnorm=max(list(map(abs,TMP)))
             if(tmpnorm>max_norm):
                 max_norm=tmpnorm
-        print "max norm of V^-1=",max_norm
+        print("max norm of V^-1={0}".format(max_norm))
     mpmath.mp.dps=dpold
     X=dict()
     for fn_j in range(comp_dim):
         X[fn_j] = dict() #mpmath.matrix(int(Ml),int(1))
-        print "len(B)=",len(RHS.column(fn_j))
+        print("len(B)={0}".format(len(RHS.column(fn_j))))
         b = mpmath_ctx.L_solve(A, RHS.column(fn_j), p)
         #return b
         TMP = mpmath_ctx.U_solve(A, b)
         roffs=0
         res = mpmath_ctx.norm(mpmath_ctx.residual(LHS, TMP, RHS.column(fn_j)))
-        print "res(",fn_j,")=",res
+        print("res({0}={1}".format(fn_j,res))
         for ai in range(nc):
             X[fn_j][ai]=dict()
             for n in range(Ms,Mf+1):
@@ -1338,8 +1346,8 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
     comp_norm=cn
     r = W['r'] #WM.rank()
     if verbose>0:
-        print "Ml=",Ml
-        print "nv=",nc
+        print("Ml={0}".format(Ml))
+        print("nv={0}".format(nc))
     #if W['sym_type']==1:
     #    setD=range(0,WM.rank()/2+1)  # 0,1,...,N
     #    #setD=range(0,WR.N+1)  # 0,1,...,N
@@ -1348,15 +1356,15 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
     setD = X.D()
     Ds =setD[0]
     num_comp=nc*r
-    if num_comp<>len(setD):
-        raise Exception," Wrong dimension of input matrix! r={0},nc={1},setD={2}".format(r,nc,setD)
-    if V.ncols()<>Ml*num_comp or V.nrows()<>Ml*num_comp:
-        raise Exception," Wrong dimension of input matrix!"
-    if N==None:
+    if num_comp != len(setD):
+        raise Exception(" Wrong dimension of input matrix! r={0},nc={1},setD={2}".format(r,nc,setD))
+    if V.ncols()!=Ml*num_comp or V.nrows()!=Ml*num_comp:
+        raise Exception(" Wrong dimension of input matrix!")
+    if N == None:
         SetCs=[[]]
         Vals=[{}] 
         for b in WM.basis():
-            if(WM.Q(b)==0):
+            if WM.Q(b) == 0:
                 SetCs[0].append((b,0))
                 Vals[0][(b,0)]=0
         comp_dim=1
@@ -1373,9 +1381,9 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
     else:
         use_sym=1
     if verbose>0:
-        print "Before SetCs=",SetCs
-    if use_sym==1:
-        if len(SetCs[0])>0:
+        print("Before SetCs={0}".format(SetCs))
+    if use_sym == 1:
+        if len(SetCs[0]) > 0:
             num_set=0 #
             for (r,m) in SetCs[0]:
                 if r in X.D(): #)_as_int:
@@ -1392,31 +1400,31 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
     MS = MatrixSpace(CF,int(Ml*num_comp-num_set),int(Ml*num_comp-num_set))
     LHS=Matrix_complex_dense(MS,0,True,True)
     if verbose>0:
-        print "Ml=",Ml
-        print "num_set=",num_set
-        print "num_comp=",num_comp
-        print "SetCs=",SetCs
-        print "setD=",setD
-        print "Vals=",Vals
-        print "V.rows=",V.nrows()
-        print "V.cols=",V.ncols()
-        print "LHS.rows=",LHS.nrows()
-        print "LHS.cols=",LHS.ncols()
-        print "RHS.rows=",RHS.nrows()
-        print "RHS.cols=",RHS.ncols()
-        print "use_sym=",use_sym
-        print "N=",N
+        print("Ml={0}".format(Ml))
+        print("num_set={0}".format(num_set))
+        print("num_comp={0}".format(num_comp))
+        print("SetCs={0}".format(SetCs))
+        print("setD={0}".format(setD))
+        print("Vals={0}".format(Vals))
+        print("V.rows={0}".format(V.nrows()))
+        print("V.cols={0}".format(V.ncols()))
+        print("LHS.rows={0}".format(LHS.nrows()))
+        print("LHS.cols={0}".format(LHS.ncols()))
+        print("RHS.rows={0}".format(RHS.nrows()))
+        print("RHS.cols={0}".format(RHS.ncols()))
+        print("use_sym={0}".format(use_sym))
+        print("N={0}".format(N))
 
     num_rhs=0
-    if(W.has_key('RHS')):
+    if 'RHS' in W:
         num_rhs=W['RHS'].ncols()
     else:
         num_rhs = 1
-    if num_rhs<>1 and num_rhs<>comp_dim:
-        raise ValueError,"Need same number of right hand sides (or just one) as the number of set coefficients!"
+    if num_rhs!=1 and num_rhs!=comp_dim:
+        raise ValueError("Need same number of right hand sides (or just one) as the number of set coefficients!")
 
-    if V.nrows() <> num_comp*Ml:
-        raise ArithmeticError," Matrix does not have correct size!"
+    if V.nrows() != num_comp*Ml:
+        raise ArithmeticError(" Matrix does not have correct size!")
     roffs=0
     for a in range(num_comp):
         for n in range(Ms,Mf+1):
@@ -1428,13 +1436,13 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
             for fn_j in range(comp_dim):
                 #ztmp=CF(ztmp.real(),ztmp.imag())
                 if verbose>3:
-                    print "fn_j=",fn_j
-                    print "r,roffs=",r,roffs,r-roffs
+                    print("fn_j={0}".format(fn_j))
+                    print("r,roffs={0},{1},{2}".format(r,roffs,r-roffs))
                 if num_rhs==comp_dim:
                     rhs_j =fn_j
                 else:
                     rhs_j = 0
-                if(W.has_key('RHS')):
+                if 'RHS' in W:
                     RHS[r-roffs,fn_j]=-W['RHS'][r,rhs_j]
                 else:
                     RHS[r-roffs,fn_j]=0
@@ -1444,8 +1452,8 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
                         #k = i*Ml+cset-Ms
                         k = (i-Ds)*Ml+cset-Ms
                         if verbose>3:
-                            print "fi,cset=",i,cset
-                            print "r,k=",r,k
+                            print("fi,cset={0},{1}".format(i,cset))
+                            print("r,k={0},{1}".format(r,k))
                         tmp = CF(v)*V[r,k]
                         RHS[r-roffs,fn_j]=RHS[r-roffs,fn_j]- tmp
             coffs=0
@@ -1456,8 +1464,8 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
                         coffs=coffs+1
                         continue
                     if verbose>3:
-                        print "r,k=",r,k
-                        print "r-roffs,k-coffs=",r-roffs,k-coffs
+                        print("r,k={0},{1}".format(r,k))
+                        print("r-roffs,k-coffs={0},{1}".format(r-roffs,k-coffs))
                     LHS[r-roffs,k-coffs]=V[r,k]
         #print "LHS[",r,k,"]=",LHS[r-roffs,k-coffs]
     #else:
@@ -1475,34 +1483,34 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
         except ZeroDivisionError:
             t=int(ceil(-log_b(smallest_inf_norm(LHS),10)))
             dps=t+5*i; i=i+1
-            print "raising number of digits to:",dps
+            print("raising number of digits to:{0}".format(dps))
             LHS.set_prec(dps)
             # raise ZeroDivisionError,"Need higher precision! Use > %s digits!" % t
     if i>=maxit:
-        raise ZeroDivisionError,"Can not raise precision enough to solve system! Should need > %s digits! and %s digits was not enough!" % (t,dps)
+        raise ZeroDivisionError("Can not raise precision enough to solve system! Should need > {0} digits! and {1} digits was not enough!".format(t,dps))
     if comp_norm:
         max_norm=LHS.norm()
         for j in range(LHS.rows):
             #y=mpmath_ctx.matrix(LHS.rows,int(1)); y[j,0]=1
-            y = Vector_complex_dense(vector(F,LHS.rows).parent(),0)
+            y = Vector_complex_dense(vector(CF,LHS.rows).parent(),0)
             y[j]=1
             TMP = RHS.solve(b) #pmath_ctx.U_solve(A, b)
-            tmpnorm=max(map(abs,TMP))
+            tmpnorm=max(list(map(abs,TMP)))
             if(tmpnorm>max_norm):
                 max_norm=tmpnorm
-        print "max norm of V^-1=",max_norm
+        print("max norm of V^-1={0}".format(max_norm))
     X=dict()
     for fn_j in range(comp_dim):
         X[fn_j] = dict() #mpmath.matrix(int(Ml),int(1))
         #b = mpmath_ctx.L_solve(A, RHS.column(fn_j), p)
         v = RHS.column(fn_j)
-        print "len(B)=",len(v)
+        print("len(B)={0}".format(len(v)))
         TMP = LHS.solve(v)
         #TMP = mpmath_ctx.U_solve(A, b)
         roffs=0
         #res = mpmath_ctx.norm(mpmath_ctx.residual(LHS, TMP, RHS.column(fn_j)))
         res = (LHS*TMP-v).norm()
-        print "res(",fn_j,")=",res
+        print("res(",fn_j,")={0}".format(res))
         for ai in range(num_comp):
             X[fn_j][ai]=dict()
             for n in range(Ms,Mf+1):
@@ -1524,14 +1532,14 @@ def vv_harmonic_wmwf_phase2_tst1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
         CC=vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is,prec,Yin)
         return CC
     except KeyboardInterrupt:
-        print "Stopping!"
+        print("Stopping!")
 
 def vv_harmonic_wmwf_phase2_tst2(M,PP,C,Ns,Is=None,prec=20,Yin=None,do_save=False):
     try:
         CC=vv_harmonic_wmwf_phase2_2(M,PP,C,Ns,Is,prec,Yin,do_save)
         return CC
     except KeyboardInterrupt:
-        print "Stopping!"
+        print("Stopping!")
 
 
 
@@ -1543,8 +1551,8 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
     kappa=M.weight
     D=WR.D  
     Dsym=M.D # the symmetrized index set
-    if(len(Dsym)<>len(C.keys())):
-        raise ValueError,"Got incompatible coefficient vector! indices=%s" % C.keys()
+    if len(Dsym) != len(C.keys()):
+        raise ValueError("Got incompatible coefficient vector! indices={0}".format(list(C.keys())))
     
     #we only use symmetrized values
     if(Is==None):
@@ -1556,9 +1564,9 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
     verbose=M._verbose
     #ndig=12
     eps=mpmath.power(mpmath.mpf(10),mpmath.mpf(-prec))
-    if(verbose>0):
-        print "eps=",eps
-        print "Yin=",Yin
+    if verbose > 0:
+        print("eps={0}".format(eps))
+        print("Yin={0}".format(Yin))
     betai=dict();mbeta=dict(); mbetai=dict(); mm=dict(); mmm=dict()
     mptwo=mpmath.mp.mpf(2); mpfour=mpmath.mp.mpf(4)
     twopi=mptwo*mpmath.pi(); twopii=mpmath.mp.mpc(0,twopi)
@@ -1568,15 +1576,15 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
     for (beta,m) in PP:
         #if( (not beta in D) or (not 1-beta in D)):
         if( (not beta in D) and (not 1-beta in D)):
-            raise Exception,"Need beta=%s in D=%s" %(beta,D)
+            raise Exception("Need beta={0} in D={1}".format(beta,D))
         betai[beta]=D.index(beta)
         mbeta[beta]=1-beta
         mbetai[beta]=D.index(1-beta)
         mm[(beta,m)]=(m+WR.Qv[betai[beta]])
         mmm[(beta,m)]=mpmath.mp.mpf(mm[(beta,m)])
-        if(verbose>0):
-            print "beta,m=",beta,m
-            print "mm=",mm[(beta,m)]
+        if verbose > 0:
+            print("beta,m={0}, {1}".format(beta,m))
+            print("mm={0}".format(mm[(beta,m)]))
             #print "-beta=",minus_beta
             #print "mm=",mm[(beta,m)]
         if mm[(beta,m)]>t:
@@ -1588,10 +1596,10 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
         # One way to specify the principal part
         # is to only specify half and let the rest be decided
         # by the symmetry. If we specify the rest it must match
-        if PP.has_key((mbeta[beta],m)) and PP.has_key((beta,m)):
+        if (mbeta[beta],m) in PP and (beta,m) in PP:
             test=abs(PP[(beta,m)]-sym_type*PP[(mbeta[beta],m)])
             if test>0: # and not test.ae(mp0):
-                raise ValueError,"The principal part has not correct symmetry: type=%s, PP=%s" %(sym_type,PP)
+                raise ValueError("The principal part has not correct symmetry: type={0}, PP={1}".format(sym_type,PP))
         else:
             pass
     abD=len(WR.D)
@@ -1610,15 +1618,15 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
     IA=int(max(Is[0],Dstart)); IB=int(min(Is[1],Dfinish))
     Ms=int(min(C[Dstart].keys())); Mf=int(max(C[Dstart].keys())); Ml=int(Mf-Ms+1)
     #Ms=int(min(C[D[Dstart]].keys())); Mf=int(max(C[D[Dstart]].keys())); Ml=int(Mf-Ms+1)
-    if(verbose>0):
-        print "Ms,Mf,Ml=",Ms,Mf,Ml
+    if verbose > 0:
+        print("Ms,Mf,Ml={0}, {1}, {2}".format(Ms,Mf,Ml))
     K1=K1*2*N
     NAA=NA; IAA=IA
     numys=2
     # have    Y=mpmath.mp.mpf(Y_in)
     # have to find suitable Q for the given Y
-    if(verbose>0):
-        print "dps=",mpmath.mp.dps
+    if verbose>0:
+        print("dps={0}".format(mpmath.mp.dps))
     ctmp=dict(); ctmp_neg=dict()
     Cout=dict()
     for bi in range(IA,IB+1):
@@ -1632,17 +1640,17 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
         for i in range(2):
             Q[i]=M.get_M(Yv[i],K0,K1,prec)+Qadd
             Qs[i]=1-Q[i]; Qf[i]=Q[i]; QQ[i]=mpmath.mp.mpf(1)/mpmath.mp.mpf(2*Q[i])
-            if(verbose>0):
-                print "Yv[",i,"]=[",mppr(Yv[0]),",",mppr(Yv[1]),"]"
-                print "Q(Y)[",i,"]=",Q[i]
+            if verbose>0:
+                print("Yv[{0}]={1},{2}".format(i,mppr(Yv[0]),mppr(Yv[1])))
+                print("Q(Y)[{0}]={1}".format(i,Q[i]))
                 #print "1/2Q[",i,"]=",mppr(QQ[i])
         # Recall that the first Y-value is always the larger
-        if(verbose>1):
-            print "Yvold=",mppr(Yvold[0]),",",mppr(Yvold[1]),"]"
-        if(Yv[0].ae(Yvold[1])):
-            if(verbose>1):
-                print "do not evaluate for Yv=",Yv[0]
-            
+        if verbose > 1:
+            print("Yvold={0},{1}".format(mppr(Yvold[0]),mppr(Yvold[1])))
+        if Yv[0].ae(Yvold[1]):
+            if verbose > 1:
+                print("do not evaluate for Yv={0}".format(Yv[0]))
+
             [Xm[0],Xpb[0],Ypb[0],Cv[0]]=[Xm[1],Xpb[1],Ypb[1],Cv[1]]
             [Xm[1],Xpb[1],Ypb[1],Cv[1]]=pullback_pts_weil_rep(WR,Q[1],Yv[1],weight,Dstart,Dfinish)
         else:
@@ -1653,10 +1661,10 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
             Zipb[yj]=dict()
             for j in range(Qs[yj],Qf[yj]+1):
                 Zipb[yj][j]=mpmath.mp.mpc(-Ypb[yj][j],Xpb[yj][j])
-                
+
         gamma_fak=dict()
         for yj in range(0,numys):
-            for bi in range(IA,IB+1):                       
+            for bi in range(IA,IB+1):
                 for l in range(Ms,Mf+1):
                     lr=mpmath.mp.mpf(l+WR.Qv[bi])
                     if(lr<0):
@@ -1666,19 +1674,19 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
                     else:
                         for j in range(Qs[yj],Qf[yj]+1):
                             gamma_fak[yj,bi,l,j]=mpmath.mp.exp(-lr*Ypb[yj][j])
-        if(verbose>0):
-            print "Got pullback points!"
-            print "dps=",mpmath.mp.dps
-            print "NAA=",NAA
+        if verbose > 0:
+            print("Got pullback points!")
+            print("dps={0}".format(mpmath.mp.dps))
+            print("NAA={0}".format(NAA))
         # If we want to do negative coefficients too we save time by computing simultaneously
         do_neg=True
         try:
             for n in range(NAA,NB+1):
-                if(verbose>0):
-                    print "n=",n
+                if verbose > 0:
+                    print("n=",n)
                 for ai in range(IAA,IB+1):
-                    if(verbose>0):
-                        print "ai=",ai
+                    if verbose > 0:
+                        print("ai={0}".format(ai))
                     mai=-ai % abD
                     nr=mpmath.mp.mpf(n+WR.Qv[ai])
                     nrtwo=mp2*nr
@@ -1703,20 +1711,20 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
                             mbi=-bi % abD
                             #print "mbi=",mbi
                             for l in range(Ms,Mf+1):
-                                if(C[bi][l]==0 or abs(C[bi][l]).ae(mp0)):
-                                    if(verbose>0):
-                                        print "Skip coeff ",bi,l
+                                if C[bi][l]==0 or abs(C[bi][l]).ae(mp0):
+                                    if verbose > 0:
+                                        print("Skip coeff {0}, {1}".format(bi,l))
                                     #continue
                                 lr=mpmath.mp.mpf(l+WR.Qv[bi])
                                 ilr=mpmath.mp.mpc(0,lr)
                                 Vtmp=mp0;
                                 Vtmp_neg=mp0
                                 for j in range(Qs[yj],Qf[yj]+1):
-                                    if(mbi<>bi):
+                                    if mbi != bi:
                                         ch=Cv[yj][j][ai,bi]+sym_type*Cv[yj][j][ai,mbi]
                                     else:
                                         ch=Cv[yj][j][ai,bi]
-                                    if(ch==0 or ch.ae(mp0)):
+                                    if ch==0 or ch.ae(mp0):
                                         continue
                                     tmp=(ch*mpmath.exp(ilr*Xpb[yj][j]))*gamma_fak[yj,bi,l,j]
                                     Vtmp=Vtmp+tmp*fak[j]
@@ -1725,10 +1733,10 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
                                 summa=summa+Vtmp*C[bi][l]
                                 if(do_neg):
                                     summa_neg=summa_neg+Vtmp_neg*C[bi][l]
-                        if(verbose>1):
-                            print "summa(",yj,")=",summa
+                        if verbose > 1:
+                            print("summa({0})={1}".format(yj,summa))
                             if(do_neg):
-                                print "summa_neg(",yj,")=",summa_neg
+                                print("summa_neg({0})={1}".format(yj,summa_neg))
                         wsumma=mp0;
                         wsumma_neg=mp0
                         for (beta,m) in PP:
@@ -1737,68 +1745,68 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
                             tmpsumma=mp0;
                             tmpsumma_neg=mp0
                             for j in range(Qs[yj],Qf[yj]+1):
-                                if(betai[beta] <> mbetai[beta]):
+                                if betai[beta] != mbetai[beta]:
                                     ch=Cv[yj][j][ai,betai[beta]]+sym_type*Cv[yj][j][ai,mbetai[beta]]
                                 else:
                                     ch=Cv[yj][j][ai,betai[beta]]
-                                if(ch==0 or ch.ae(mp0)):
-                                    continue                        
+                                if ch==0 or ch.ae(mp0):
+                                    continue
                                 tmp=ch*mpmath.exp(lr*Zipb[yj][j])
                                 tmpsumma=tmpsumma+tmp*fak[j]
-                                if(do_neg):
+                                if do_neg:
                                     tmpsumma_neg=tmpsumma_neg+tmp*fak_neg[j]
                             wsumma=wsumma+app*tmpsumma
-                            if(do_neg):
+                            if do_neg:
                                 wsumma_neg=wsumma_neg+app*tmpsumma_neg
-                        if(verbose>1):
-                            print "wsumma(",yj,")=",wsumma
+                        if verbose > 1:
+                            print("wsumma({0})={1}".format(yj,wsumma))
                             if(do_neg):
-                                print "wsumma_neg(",yj,")=",wsumma_neg
+                                print("wsumma_neg({0})={1}".format(yj,wsumma_neg))
                         sumtmp=(summa+wsumma)*QQ[yj]
-                        if(PP.has_key((D[ai],n))>0):
+                        if ((D[ai],n) in PP)>0:
                             sum_tmp=sum_tmp-PP[(D[ai],n)]*mpmath.mp.exp(-nr*Y)
                         lhs=mpmath.mp.exp(nr*Y)
-                        if(verbose>0):
-                            print "exp(2pinY)=",mppr(lhs)
+                        if verbose > 0:
+                            print("exp(2pinY)={0}".format(mppr(lhs)))
                         ctmp[yj]=sumtmp*lhs
                         if(do_neg):
                             sumtmp_neg=(summa_neg+wsumma_neg)*QQ[yj]
-                            if(PP.has_key((D[ai],-n))>0):
+                            if (D[ai],-n) in PP:
                                 sumtmp_neg=sumtmp_neg-PP[(D[ai],-n)]*mpmath.mp.exp(-nrm*Y)
                             lhs=mpmath.gammainc(kint,abs(nrmtwo)*Y)*mpmath.mp.exp(-nrm*Y)
-                            if(verbose>0):
-                                print "Gamma(1-k,4pinY)=",mppr(lhs)
+                            if verbose > 0:
+                                print("Gamma(1-k,4pinY)={0}".format(mppr(lhs)))
                             ctmp_neg[yj]=sumtmp_neg/lhs
                     # end for yj
                     if(verbose>-1):
-                        print "C1[",n,ai,"]=",ctmp[0].real
-                        print "C2[",n,ai,"]=",ctmp[1].real
+                        print("C1[{0},{1}]={2}".format(n,ai,ctmp[0].real))
+                        print("C2[{0},{1}]={2}".format(n,ai,ctmp[1].real))
                         if(do_neg):
-                            print "C1[",-n,ai,"]=",ctmp_neg[0].real
-                            print "C2[",-n,ai,"]=",ctmp_neg[1].real
+                            print("C1[{0},{1}]={2}".format(-n,ai,ctmp_neg[0].real))
+                            print("C2[{0},{1}]={2}".format(-n,ai,ctmp_neg[1].real))
                     if(do_neg):
                         err_pos=abs(ctmp[1]-ctmp[0])
                         err_neg=abs(ctmp_neg[1]-ctmp_neg[0])
                         err=err_pos # max(err_pos,err_neg)
                         if(verbose>-1):
-                            print "err_pos=",mppr(err_pos)
-                            print "err_neg=",mppr(err_neg)
+                            print("err_pos={0}".format(mppr(err_pos)))
+                            print("err_neg={0}".format(mppr(err_neg)))
                     else:
                         err=abs(ctmp[1]-ctmp[0])
                         if(verbose>-1):
-                            print "err=",mppr(err)
-                    if(verbose>0):                        
-                        if(C.keys().count(ai)>0):
-                            if(C[ai].keys().count(n)>0):
-                                print "Cin(",ai,n,")=",C[ai][n].real
-                                if(C[ai].keys().count(-n)>0):
-                                    print "Cin(",ai,-n,")=",C[ai][-n].real
+                            print("err={0}".format(mppr(err)))
+                    if verbose > 0:
+                        if list(C.keys()).count(ai)>0:
+                            if n in C[ai]:
+                                print("Cin({0},{1})={2}".format(ai,n,C[ai][n].real))
+                                if -n in C[ai]:
+                                    print("Cin({0},{1})={2}".format(ai,-n,C[ai][-n].real))
                     sys.stdout.flush()
                     if(err>eps):
 
                         # Have to modify
-                        if(verbose>0):                        
-                            print " Need to decrease Y!"
+                        if verbose>0:
+                            print(" Need to decrease Y!")
                         Y0=Yv[0]*Yfak
                         #Qadd=Qadd+10
                         #Yv[0]=Y0; Yv[1]=Y0*mpmath.mp.mpf(0.95)
@@ -1808,22 +1816,22 @@ def vv_harmonic_wmwf_phase2_1(M,PP,C,Ns,Is=None,prec=20,Yin=None):
                         Cout[ai][n]=ctmp[1]
                         if(do_neg):
                             Cout[ai][-n]=ctmp_neg[1]
-                        if(verbose>0):                        
-                            print "OK! av=",(ctmp[1]+ctmp[0])/mpmath.mpf(2)
+                        if verbose > 0:
+                            print("OK! av={0}".format((ctmp[1]+ctmp[0])/mpmath.mpf(2)))
                         # If we are in the range of the used C's we update
                         #if(C.keys().count(ai)>0):
                         #    if(C[ai].keys().count(n)>0):
-                        #        C[ai][n]=ctmp[1]                                
+                        #        C[ai][n]=ctmp[1]
                         #    if(do_neg and C[ai].keys().count(-n)>0):
-                        #        C[ai][-n]=ctmp_neg[1]                                
+                        #        C[ai][-n]=ctmp_neg[1]
                         #continue
                 # end for ai
             #print "n at end=",n
             # end for n
             return Cout
         except StopIteration:
-            if(verbose>0):
-                print "Iteration stopped!"
+            if verbose > 0:
+                print("Iteration stopped!")
             continue
     raise StopIteration()
 
@@ -1865,17 +1873,17 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         if(isinstance(M,type(Newforms(1,12)[0]))):
             self._init_from_newform_(M,principal_part,C,prec)
             return
-        if(C <> None):
-            if(M.dim <> len(C.keys())):
-                raise ValueError,"Coefficient vector of wrong format! Got length=%s" % len(C)
-    	## We inherit symmetry from the space
-	    self._sym_type = M._sym_type
+        if C != None:
+            if M.dim != len(C.keys()):
+                raise ValueError("Coefficient vector of wrong format! Got length={0}".format(len(C)))
+        ## We inherit symmetry from the space
+        self._sym_type = M._sym_type
         self._class_name = "VVHarmonicWeakMaassFormElement"
         AutomorphicFormElement.__init__(self,M,C=C,prec=prec,principal_part=principal_part)
 
         self._verbose = self._space._verbose
         self.maxdigs=prec # the number of digits needed to be displayed to print all digits of the coefficients
-        if(Lv<>None):
+        if Lv != None:
             self._Lv=Lv
         else:
             self._Lv=dict()
@@ -1885,7 +1893,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         if(is_int(t)):
             k=QQ(3)-QQ(2)*QQ(RR(M.weight))
             if self._verbose > 0:
-                print "k=",k
+                print("k={0}".format(k))
             self.shim_corr=Newforms(self._space.WR.N,k,names='a')  #.new_subspace()
         else:
             self.shim_corr=None
@@ -1919,9 +1927,9 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         sp=""
         for (b,m) in self._principal_part:
             a=self._principal_part[(b,m)]
-            if(a<>0):
+            if(a!=0):
                 x=QQ(m+WR.Qv[WR.D.index(b)])
-                if(a<>1):
+                if(a!=1):
                     if(a>0 and len(sp)>0):
                         ast="+"+str(a)
                     else:
@@ -1957,10 +1965,10 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         sp=""
         for (b,m) in self._principal_part:
             a=self._principal_part[(b,m)]
-            if(a<>0):
+            if a!=0:
                 x=QQ(m+WR.Qv[WR.D.index(b)])            
-                if(a<>1):
-                    if(a>0 and len(sp)>0):
+                if a!=1:
+                    if a>0 and len(sp)>0:
                         ast="+"+str(a)
                     else:
                         ast=str(a)
@@ -1984,10 +1992,10 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         kappa=mpmath.mpf(3-k)/mp2
         if(ep==-1):
             WR=WeilRepDiscriminantForm(N,False)
-        elif(ep==1):
+        elif ep==1:
             WR=WeilRepDiscriminantForm(N,True)
         else:
-            raise ValueError," Sign of functional equation must be 1 or -1! Got:%s"%ep
+            raise ValueError(" Sign of functional equation must be 1 or -1! Got:{0}".format(ep))
         #print "kappa=",kappa
         #print "WR=",WR
         M=VVHarmonicWeakMaassForms(WR,kappa,prec)
@@ -2010,7 +2018,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 for n in nset:
                     for r in WR.D(): #)_as_integers:
                         D=M.D_from_rn((r,n))
-                        if(not is_square(D)):
+                        if not is_square(D):
                             PP={(WR.D[r],n):1}
                             self._principal_part=PP
                             #print "PP=",PP,"is ok!"
@@ -2066,7 +2074,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 Dmax=D
         sig=sign(Dmax)
         Dmax=10 # abs(Dmax)
-        print "Dmax=",sig*Dmax
+        print("Dmax={0}".format(sig*Dmax))
         #t=1 # if this doesn't work we have to choose another t
         # I also assume that g and G have trivial characters
         syst=matrix(ZZ,Dmax,Dmax)
@@ -2075,7 +2083,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         for n in range(1,Dmax+1):            
             rhs[n-1,0]=g[n]
             for d in range(1,Dmax+1):
-                if(n % d <>0):
+                if(n % d !=0):
                     continue
                 ## I use the character d -> (4N / d) 
                 #chi=(kronecker(-1,d)**k)*kronecker(t,d)*kronecker(d,F.space.WR.level())
@@ -2087,7 +2095,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         C=dict()
         for j in range(1,Dmax+1):
             C[t*j**2]=X[j-1,0]
-            print "C[",t*j**2,"]=",X[j-1,0]
+            print("C[{0}={1}".format(t*j**2,X[j-1,0]))
         return C
 
 
@@ -2124,43 +2132,45 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             pass
         else:
             # Need initial set first
-            print "Computing initial set of coefficients!"
+            print("Computing initial set of coefficients!")
             self.prec=prec
             [Y,M0]=self._space.get_Y_and_M(P,weight,prec)
             Q=M0+10
             W=vv_harmonic_wmwf_setupV(WR,P,Y,M0,Q,weight,self._space._sym_type,verbose=self._space._verbose)
-            if(P.has_key((0,0))):
-                N=set_norm_vv_harmonic_weak_maass_forms(WR,cusp_form=True,holomorphic=self._holomorphic)
+            if (0,0) in P:
+                N = self._space.set_norm()
+                # N=set_norm_vv_harmonic_weak_maass_forms(WR,cusp_form=True,holomorphic=self._holomorphic)
             else:
-                N=set_norm_vv_harmonic_weak_maass_forms(WR,cusp_form=False,holomorphic=self._holomorphic)
+                N = self._space.set_norm()
+                # N=set_norm_vv_harmonic_weak_maass_forms(WR,cusp_form=False,holomorphic=self._holomorphic)
             C=solve_system_for_vv_harmonic_weak_Maass_waveforms(W,N,verbose=self._verbose)
             
         # endif
         # check if we  have all coefficients we wanted
-        maxc=max(C[C.keys()[0]].keys())
-        if maxc>=max(nrange):
-            print "Have all we need!"
+        maxc=max(C[list(C.keys())[0]].keys())
+        if maxc >= max(nrange):
+            print("Have all we need!")
             pass
         else:
             # we do not have all coefficients we need
-            print "Need to compute more!!"
+            print("Need to compute more!!")
             Ns=nrange # [maxc,max(nrange)]
-            if irange<>None:
+            if irange!=None:
                 Is=irange
             else:
                 Is=[min(M.D()),max(M.D())]
 
             # Try to find good Y
             # Recall that the error in the negative part is usually smaller than in the positive part
-            M_minus=abs(min(self._coeffs[self._coeffs.keys()[0]]))
-            M_plus=abs(max(self._coeffs[self._coeffs.keys()[0]]))
+            M_minus=abs(min(self._coeffs[list(self._coeffs.keys())[0]]))
+            M_plus=abs(max(self._coeffs[list(self._coeffs.keys())[0]]))
             # Assume we computed these coefficients at (almost) the highest horocycle
             Y0=mpmath.sqrt(3)/mpmath.mpf(2)*mpmath.mpf(0.995)
             [err_minus,err_plus]=self.get_error_estimates(Y0,M_minus,M_plus)
             kint=mpmath.mp.mpf(1-self._space.weight)
-            print "original:"
-            print "err-=",err_minus
-            print "err+=",err_plus
+            print("original:")
+            print("err-={0}".format(err_minus))
+            print("err+={0}".format(err_plus))
             Y0=mpmath.mpf(0.5)
             Yin=Y0
             for j in range(5000):
@@ -2178,8 +2188,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 #t=max(1.0,abs(mpmath.log10(prec)-mpmath.log10(self.prec)))
                 #Yin=t/mpmath.mpf(Ns[0]+Ns[1])*mpmath.mpf(2.0) ## This should be good on average
             #Yin=Yin*mpmath.mpf(0.2)
-            print "err=",max(err1,err2)
-            print "Yin=",Yin
+            print("err={0}".format(max(err1,err2)))
+            print("Yin={0}".format(Yin))
             sys.stdout.flush()
             #Qadd=40
             try:
@@ -2190,7 +2200,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 for x in CC.keys():
                     C[x]=CC[x]
             except KeyboardInterrupt:
-                print "Manually stopping..."
+                print("Manually stopping...")
 
 
     def get_error_estimates(self,Y,M1,M2=None):
@@ -2198,11 +2208,11 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         """
         # First K0 and K1
         Mminus=M1
-        if(M2==None):
+        if M2==None:
             Mplus=M1
         else:
             Mplus=M2
-        if(self.Cp0<>0 and self.Cp1<>0 and self.Cm<>0):
+        if self.Cp0 != 0 and self.Cp1 != 0 and self.Cm != 0:
             Cp0=self.Cp0; Cp1=self.Cp1; Cm=self.Cm
         else:
             PP=self.principal_part()
@@ -2213,13 +2223,13 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 elif isinstance(t,(int,Integer)):
                     (c,l)=rn_from_D(self._space.multiplier(),t)
                 else:
-                    raise ValueError,"Incorrect principal part: t={0}".format(t)
+                    raise ValueError("Incorrect principal part: t={0}".format(t))
                 if c in self._space.multiplier().D():
                     tmp=l+self._space.multiplier().Qv[self._space.index_set().index(c)]
                 elif c in range(len(self._space.multiplier().Qv)):
                     tmp=l+self._space.multiplier().Qv[c]
                 else:
-                    raise ValueError,"Incorrect principal part: c,l={0},{1}".format(c,l)
+                    raise ValueError("Incorrect principal part: c,l={0},{1}".format(c,l))
                 if(abs(tmp)>Kmax):
                     Kmax=abs(tmp)
             [Cp0,Cp1]=self._space.get_Cp(Cmax)
@@ -2247,22 +2257,22 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         if(isinstance(L,list)):
             l=list()
             for t in L:
-                if(isinstance(t,tuple)):
+                if isinstance(t,tuple):
                     tt=t
-                elif(is_int(t)):
+                elif is_int(t):
                     tt=rn_from_D(self._space.multiplier(),t)
-                if(tt<>None):
+                if tt != None:
                     c=self.get_one_coefficient(tt[0],tt[1])
                     l.append(c)
             return l
-        elif(is_int(n)):
+        elif is_int(n):
             return self.get_one_coefficient(L,n)
-        elif(is_int(L)):
+        elif is_int(L):
             tt=rn_from_D(self._space.multiplier(),L)
-            if(tt<>None):
+            if tt != None:
                 return self.get_one_coefficient(tt[0],tt[1])
         else:
-            raise ValueError,"Incorrect keys for coefficents: L,n=%s, %s" %(L,n)
+            raise ValueError("Incorrect keys for coefficents: L,n={0}, {1}".format(L,n))
 
     def C(self,r,n=None):
         r"""
@@ -2275,7 +2285,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         """
         c=None
         if not r in self._space.multiplier().D(): # and not r in self._space.WR.D_as_integers:
-            raise ValueError,"Component r=%s is not valid!" % r
+            raise ValueError("Component r={0} is not valid!".format(r))
         # We also see if the coefficient can be provided via symmetry
         # If r is in D we swap it to its index
         if r in self._space.multiplier().D():
@@ -2288,11 +2298,11 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         if self._space._is_dual_rep:
             if rr == minus_rr:
                 return 0
-        if self._coeffs.has_key(rr):
-            if self._coeffs[rr].has_key(n):
+        if rr in self._coeffs:
+            if n in self._coeffs[rr]:
                 c=self._coeffs[rr][n]        
-        elif self._coeffs.has_key(minus_rr):
-            if self._coeffs[minus_rr].has_key(n):
+        elif minus_rr in self._coeffs:
+            if n in self._coeffs[minus_rr]:
                 c=self._coeffs[minus_rr][n]
         return c
 
@@ -2308,19 +2318,19 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         mpold=mpmath.mp.dps
         for line in f:
             i=i+1
-            if(nmax<>None and i>nmax):
+            if nmax != None and i > nmax:
                 break
             #return line
             l=line.strip().split()
-            if(len(l)<2):
+            if len(l) < 2:
                 continue
             #print "l=",l
             r=int(l[0])
             n=int(l[1])
             #print "r=",r,"n=",n,self._coeffs.keys(),self._coeffs.keys().count(r)
-            if(self._coeffs.keys().count(r)==0):
+            if(list(self._coeffs.keys()).count(r)==0):
                 continue
-            cs=join(l[2:len(l)])
+            cs="".join(l[2:len(l)])
             #print cs
             ## see if the string is given in arprec format: 10^a x b
             if(cs.count("^")==1 and cs.count("x")==1):
@@ -2350,8 +2360,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         -''overwrite'' -- logical, set to True if we want to overwrite present coefficients
         
         """
-        if(not isinstance(L,dict)):
-            raise ValueError,"Call with dictionary as argument!"
+        if not isinstance(L,dict):
+            raise ValueError("Call with dictionary as argument!")
 
         for p in L.keys():
             c=mpmath.mpmathify(L[p])
@@ -2364,8 +2374,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 (r,n)=rn_from_D(self._space.WR,p)
             elif(isinstance(p,tuple)):
                 (r,n)=p
-            if(self._coeffs.has_key(r)):
-                if(self._coeffs[r].has_key(n)):
+            if r in self._coeffs:
+                if n in self._coeffs[r]:
                     c_old=self._coeffs[r][n]
                     ## Try to determine (heuristically) if the new coefficient is really better
                     d1=dist_from_int(c)[0]
@@ -2376,32 +2386,31 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                     self._coeffs[r][n]=c
             else:
                 # see if it is a possible index at all
-                if not r <0 or r > self._space.multiplier().ambient_rank():
-                    raise ValueError,"Key %s corr to (r,n)=(%s,%s) is invalid for the current space!" %(p,r,n)
-                elif not r in self._space.multiplier().D():
+                if not r < 0 or r > self._space.multiplier().ambient_rank():
+                    raise ValueError("Key {0} corr to (r,n)=({1},{2}) is invalid for the current space!".format(p,r,n))
+                elif r not in self._space.multiplier().D():
                     if self._space._sym_type==-1 and (r==0 or r==self._space.multiplier().N):
                         # Should be 0 by symmetry
-                        if(abs(c)>10**(1-self.prec)):
-                            raise ValueError,"Coefficient should be zero by symmetry. Got c(%s,%s)=%s!" %(r,n,c)
+                        if abs(c) > 10**(1-self.prec):
+                            raise ValueError("Coefficient should be zero by symmetry. Got c({0},{1})={2}!".format(r,n,c))
                         else:
                             self._coeffs[r][n]=0
                     else:
                         # is equal to +- c(-r,n)
                         mr=2*self.multiplier().N-r
-                        if(self._coeffs.has_key(mr)):
-                            if(self._coeffs[mr].has_key(n)):
+                        if mr in self._coeffs:
+                            if n in self._coeffs[mr]:
                                 c_old=self._coeffs[mr][n]
-                                if( abs(c-self._space.multiplier()._sym_type*c_old)> 10**(1-self.prec)):
-                                    st="Might add an erronous coefficient! Got c(%s,%s)=%s. " % (r,n,c)
-                                    st+="From previous coefficients should have %s" % (self._space._sym_type*c_old)
-                                    raise ValueError,st
-                                if(overwrite):
+                                if abs(c-self._space.multiplier()._sym_type*c_old) > 10**(1-self.prec):
+                                    st="Might add an erronous coefficient! Got c({0},{1})={2}. ".format(r,n,c)
+                                    st+="From previous coefficients should have {0}".format(self._space._sym_type*c_old)
+                                    raise ValueError(st)
+                                if overwrite:
                                     self._coeffs[mr][n]=c
                 else:
-                    raise ValueError,"Coefficient should be zero by symmetry. Got c(%s,%s)=%s!" %(r,n,c)
+                    raise ValueError("Coefficient should be zero by symmetry. Got c({0},{1})={2}!" .format(r,n,c))
 
-            
-        
+
     def list_coefficients(self,format='components',fd=True,pos=True,neg=True,printimag=False,norm_neg=True,nmin=0,nmax=0,latex=False,nd=0,Lv=False,prime=False):
         r""" List all coefficients C^{+}(Delta} corresponding to fundamental discriminants up to Dmax.
 
@@ -2458,8 +2467,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             sig=-1
         maxi=max(self._coeffs.keys())
         w1=len(str(maxi))
-        w2=max(map(len,str(self._space.WR.D()).split()))
-        maxn=max(self._coeffs[self._coeffs.keys()[0]].keys())
+        w2=max(list(map(len,str(self._space.WR.D()).split())))
+        maxn=max(self._coeffs[list(self._coeffs.keys())[0]].keys())
         w3=len(str(maxn))+1
         C=self._coeffs
         mp0=mpmath.mpf(0)
@@ -2467,7 +2476,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         N=self._space.WR.N
         if(mpmath.mp.dps < self.maxdigs):
             mpmath.mp.dps=self.maxdigs
-        if(norm_neg):
+        if norm_neg:
             cnorm=0
             tnorm=(0,0)
             for j in range(1,100):
@@ -2482,28 +2491,28 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 if abs(c1)>self._prec:
                     cnorm=c1
                     tnorm=t
-                    print "c1=c(",tnorm,"),",cnorm
+                    print("c1=c({0})={1}".format(tnorm,cnorm))
                     break
         for r in C.keys():
             for n in range(min(C[r].keys()),max(C[r].keys())+1):
-                if(nmin>0 and abs(n)<nmin):
+                if nmin > 0 and abs(n) < nmin:
                     continue
-                if(nmax>0 and abs(n)>nmax):
+                if nmax > 0 and abs(n) > nmax:
                     continue
                 nn=n+self._space.WR.Qv[r]
-                if(not neg and nn<0):
+                if not neg and nn < 0:
                     continue
-                if(not pos and nn>=0):
+                if not pos and nn >= 0:
                     continue
                 D=self._space.D_from_rn((r,n))
                 if(fd):
-                    if(fd and not is_fundamental_discriminant(D) and D<>1):
+                    if fd and not is_fundamental_discriminant(D) and D != 1:
                         continue
-                if(prime and gcd(D,N)>1):
+                if prime and gcd(D,N)>1:
                     continue
                 c=self.get_coefficient(r,n)
                 cs=""
-                if(c<>0 and c<>None):
+                if c != 0 and c != None:
                     if(nn>=0): ss="+"
                     if(nn<0):
                         ss="-"
@@ -2512,25 +2521,25 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                             #print "cnorm=",cnorm
                             #print "tnorm=",tnorm
                             D=self._space.D_from_rn((r,n))
-                            if( ((r,n)<> tnorm) and cnorm<>0):
+                            if ((r,n)!= tnorm) and cnorm != 0:
                                 c=c/cnorm*mpmath.sqrt(mpmath.mpf(abs(D)))
-                    if(c.real()>=0): cs=" "
-                    if(printimag==False):
-                        if(nd>0):
+                    if c.real() >= 0: cs=" "
+                    if printimag == False:
+                        if nd > 0:
                             cs=str(c.real()).strip()
                             cs=sci_pretty_print(cs,nd,latex_pow=latex)
                         else:
                             cs=str(c.real())
                     else:
                         cs=cs+str(c)
-                    if(Lvals and self._Lv.keys().count(DD)==1):
-                        ls="\t"+str(self._Lv[DD])
+                    if Lvals and list(self._Lv.keys()).count(D) == 1:
+                        ls="\t"+str(self._Lv[D])
                     else:
-                        if(latex):
+                        if latex:
                             ls="\\\\ \n"
                         else:
                             ls=""
-                    if(latex):
+                    if latex:
                         D=self._space.WR.D()[r]
                         if(is_int(D)):
                             p=numerator(D); q=denominator(D)                        
@@ -2538,9 +2547,9 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         else:
                             sr=str(D)
                         ss=""
-                        print "$C"+ss+"("+sr.ljust(w1)+","+str(n).ljust(w3)+")$ & $"+cs+"$"+ls
+                        print("$C{0}({1},{2}) $ & $ {3} $ {4}".format(ss,sr.ljust(w1),str(n).ljust(w3),cs,ls))
                     else:
-                        print "C^"+ss+"["+str(r).ljust(w1)+"]["+str(n).ljust(w3)+"] = "+cs+ls                      
+                        print("C^{0}[{1}][{2}] = {3}".format(ss,str(r).ljust(w1),str(n).ljust(w3),cs+ls))
         mpmath.mp.dps=mpold
 
 
@@ -2573,14 +2582,14 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         S="$"
         if(self._space.WR.is_dual()):
             sig=-1
-        maxn=max(self._coeffs[self._coeffs.keys()[0]].keys())
+        maxn=max(self._coeffs[list(self._coeffs.keys())[0]].keys())
         maxD=self._space.WR.level()*(maxn+1)
         N=self._space.WR.N
         if(dmax>0):
             w1=len(str(dmax))+1
         else:
             w1=len(str(maxD))+1
-        w2=max(map(len,str(self._space.WR.D()).split()))
+        w2=max(list(map(len,str(self._space.WR.D()).split())))
         w3=len(str(maxn))+1
         mp0=mpmath.mpf(0)
         mpold=mpmath.mp.dps
@@ -2603,7 +2612,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 if(abs(c1)>mpmath.power(10,-self.prec)):
                     cnorm=c1*mpmath.sqrt(j)
                     tnorm=t
-                    print "c1=c(",tnorm,")=c(",-j*sig,")=",cnorm
+                    print("c1=c({0})=c({1})={2}".format(tnorm,-j*sig,cnorm))
                     break
                 
         for sn in [1,-1]:
@@ -2611,17 +2620,17 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 #print "D=",D
                 if(dmin>0 and abs(D)<dmin):
                     continue
-                if(dmax>0 and abs(D)>dmax):
+                if dmax > 0 and abs(D) > dmax:
                     continue
                 DD=sig*D*sn
                 # print "D=",D,is_fundamental_discriminant(D)
-                if(fd and not is_fundamental_discriminant(DD) and DD<>1):
+                if fd and not is_fundamental_discriminant(DD) and DD != 1:
                     # print "D=",D,is_fundamental_discriminant(D)
                     continue
-                if(prime and gcd(D,N)>1):
+                if prime and gcd(D,N) > 1:
                     continue
                 t=rn_from_D(self._space.WR,DD)
-                if(t == None):
+                if t == None:
                     continue
                 else:
                     (r,n)=t
@@ -2635,12 +2644,12 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 c=self.get_coefficient(r,n)
                 cs=""
                 erms="";erm=10
-                if(c<>0 and c<>None):
-                    if(nn>=0): ss="+"
-                    if(nn<0):
+                if c != 0 and c != None:
+                    if nn >= 0: ss="+"
+                    if nn < 0:
                         ss="-"
                         if(norm_neg):
-                            if( ((r,n)<> tnorm) and cnorm<>0):
+                            if ((r,n) != tnorm) and cnorm != 0:
                                 c=c/cnorm*mpmath.sqrt(mpmath.mpf(abs(D)))
                             x=c.real(); x1=floor(x); x2=ceil(x); er1=abs(x1-x); er2=abs(x2-x)                        
                             erm=min(er1,er2);erms=sci_pretty_print(erm,2,latex_pow=latex)
@@ -2667,7 +2676,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         cs=" "+cs 
                     if(latex):
                         O=" & "
-                        if(Lvals and self._Lv.keys().count(DD)==1):
+                        if(Lvals and list(self._Lv.keys()).count(DD)==1):
                             ls="&"+S+sci_pretty_print(self._Lv[DD],nd,latex_pow=latex)+S
                         else:
                             ls=""
@@ -2676,7 +2685,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         else:
                             s= S+str(DD).center(w1)+S+"&"+S+cs+S+ls+O+S+erms+S+"\\\\"
                     else:
-                        if(Lvals and self._Lv.keys().count(DD)==1):
+                        if(Lvals and list(self._Lv.keys()).count(DD)==1):
                             ls="\t"+sci_pretty_print(self._Lv[DD],nd)
                         else:
                             ls=""
@@ -2685,7 +2694,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         else:
                             s= "C^"+ss+"["+str(DD).center(w1)+"] = "+cs+ls+" "+erms+"\n"
                         #                s=s+str(self._space.WR.D[r]).ljust(w2)+","+str(n).ljust(w3)+"] = "+cs
-                    print s
+                    print(s)
         mpmath.mp.dps=mpold
 
         
@@ -2712,9 +2721,9 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             S=" $ "; O=" & "
         else:
             S=" "; O=" "
-        if(len(self._Lv.keys())==0):
+        if(len(list(self._Lv.keys()))==0):
             return res
-        L=self._Lv.keys(); L.sort(); L.reverse()
+        L=list(self._Lv.keys()); L.sort(); L.reverse()
         s=""; sc=""
         ## increase mpmath.mp.dps to print all relevant digits
         mpold=mpmath.mp.dps
@@ -2726,10 +2735,10 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                 res.append(DD)
                 s=s+S+str(DD)+S+O+S+sci_pretty_print(self._Lv[DD],nd,latex_pow=latex)+S+"\\\\ \n"
                 c=self.get_coefficient(DD)
-                if(c<>None):
+                if c != None:
                     x=c.real(); x1=floor(x); x2=ceil(x); er1=abs(x1-x); er2=abs(x2-x)
                     erm=min(er1,er2)
-                    print "erm(",DD,")=",erm
+                    print("erm({0})={1}".format(DD,erm))
                     erms=sci_pretty_print(erm,2,latex_pow=latex)
                     if(er1<er2):
                         xi=x1;
@@ -2739,8 +2748,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                     sc=sc+S+str(DD)+S+O+S+str(xi)+S+O+S+erms+S+"\\\\ \n"
                 else:
                     sc=sc+S+str(DD)+S+O+S+" "+S+O+S+" "+S+"\\\\ \n"
-        print s
-        print sc
+        print(s)
+        print(sc)
         mpmath.mp.dps=mpold
         return res
 
@@ -2766,7 +2775,7 @@ def rn_from_D(WR,D):
         lout=list()
         for DD in D: 
             t=one_rn_from_D(WR,DD)
-            if(t<>None):
+            if t != None:
                 lout.append(t)
         return lout
     else:
@@ -2783,7 +2792,7 @@ def one_rn_from_D(WR,D):
     for r in WR.D():
         x=WR.Qv[r]
         nn = Dv-sig*x
-        print "D/N -{0} Q({1})={2}".format(sig,r,x)
+        print("D/N -{0} Q({1})={2}".format(sig,r,x))
         if is_int(nn):
             rr=WR.D().index(r)
             n=int(Dv-sig*x)
@@ -2794,11 +2803,11 @@ def one_rn_from_D(WR,D):
 def D_from_rn(WR,t):
     r""" Find the D s.t. +-D/Level = n +- q(r)
     """
-    if(isinstance(t,list)):
+    if isinstance(t,list):
         lout=list()
         for (r,n) in t:
-            D=one_D_from_rn(WR,(r,n))
-            if(D<>None):
+            D=_one_D_from_rn(WR,(r,n))
+            if D!=None:
                 lout.append(D)
         return lout
     else:
@@ -2810,8 +2819,8 @@ def _one_D_from_rn(WR,t):
     r""" Find the D s.t. +-D/Level = n +- q(r)
     """
     #print "t=",t,type(t)
-    if(not isinstance(t,tuple)):
-        raise TypeError,"Need a tuple of integers! Got:%s" % t
+    if not isinstance(t,tuple):
+        raise TypeError("Need a tuple of integers! Got:{0}".format(t))
     (r,n)=t
     sig=1
     #print "r=",r
@@ -2820,7 +2829,7 @@ def _one_D_from_rn(WR,t):
     #elif r in WR.D_as_integers:
     #    x=WR.Q(WR.D[r])
     else:
-        raise TypeError,"Need (r,n) in proper format forcoefficients! I.e. n integer and r in D or integer!"
+        raise TypeError("Need (r,n) in proper format forcoefficients! I.e. n integer and r in D or integer!")
     #print "x=",x
     if WR.is_dual():
         sig=-1
@@ -2966,14 +2975,14 @@ def get_list_of_forms(Nmin,Nmax,compute=False):
     FL=dict()
     try:
         for N in range(Nmin,Nmax):
-            print "N=",N
+            print("N={0}".format(N))
             M=VVHarmonicWeakMaassForms(int(N),-0.5,75,dr=False,verbose=1)
             
-            print "minPP=",M.smallest_pp()
-            print "Compute form on ",M 
+            print("minPP={0}".format(M.smallest_pp()))
+            print("Compute form on {0}".format(M))
             #s="FN"+str(N)+"-DR-D"+str(F.get_principal_part(str=True))+".sobj"
-            s="FN"+str(N)+"-DR-D"+str(M.smallest_pp().keys()[0])+".sobj"
-            print "trying :",s
+            s="FN"+str(N)+"-DR-D"+str(list(M.smallest_pp().keys())[0])+".sobj"
+            print("trying :{0}".format(s))
             try:
                 F=load(s)
             except IOError:
@@ -3000,10 +3009,10 @@ def check_relevant_forms(L):
         #print "S=",S
         ok_ev=0
         for g in S:
-            if(g.atkin_lehner_eigenvalue()==-1):
+            if g.atkin_lehner_eigenvalue() == -1:
                 ok_ev=ok_ev+1
-        if(ok_ev>0):
-            print "Number of ok forms on ",F.space.WR.N," :",ok_ev
+        if ok_ev > 0:
+            print("Number of ok forms on ",F.space.WR.N," :",ok_ev)
             F.list_coefficents('D',fd=True,neg=False,nmin=0,nmax=1000,latex=False,nd=50,prime=True)
             L2.append(F)
     return L2

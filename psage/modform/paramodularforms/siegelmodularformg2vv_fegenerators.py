@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2010 - 05 - 12) Initial version
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,7 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import object
 from psage.modform.paramodularforms.siegelmodularformg2_fourierexpansion import SiegelModularFormG2VVFourierExpansionRing
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ambient import EquivariantMonoidPowerSeriesAmbient_abstract
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_lazyelement import EquivariantMonoidPowerSeries_lazy
@@ -85,7 +87,7 @@ def SiegelModularFormG2SatohBracket(f, g, f_weight = None, g_weight = None) :
 # DelayedFactory_SMFG2_satohbracket
 #===============================================================================
 
-class DelayedFactory_SMFG2_satohbracket :
+class DelayedFactory_SMFG2_satohbracket(object) :
     def __init__( self, f, g, f_weight, g_weight, coefficient_domain ) :
         self.__f = f
         self.__g = g
@@ -118,14 +120,14 @@ def _satoh_bracket(f, g, f_weight, g_weight) :
     - The return value is a Equivariant monoid power series.
     """
     if not f.parent() == g.parent() :
-        raise ValueError, "The fourier expansions of f and g must" + \
-                          " have the same parent"
+        raise ValueError("The fourier expansions of f and g must" + \
+                          " have the same parent")
 
     base_ring = f.parent().coefficient_domain()
     if len(f.non_zero_components()) != 1 :
-        raise ValueError, "f must have only one non-vanishing character"
+        raise ValueError("f must have only one non-vanishing character")
     if len(g.non_zero_components()) != 1 :
-        raise ValueError, "g must have only one non-vanishing character"
+        raise ValueError("g must have only one non-vanishing character")
     
     fe_ring = SiegelModularFormG2VVFourierExpansionRing(base_ring)
     R = fe_ring.coefficient_domain()

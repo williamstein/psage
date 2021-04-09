@@ -1,7 +1,3 @@
-include "sage/ext/stdsage.pxi"
-include "sage/ext/cdefs.pxi"
-#include "sage/rings/mpc.pxi"
-#from sage.libs.mpfr cimport *
 from mpfr_nogil cimport *
 
 

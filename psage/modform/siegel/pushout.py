@@ -1,3 +1,8 @@
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+import six
 from sage.categories.functor import Functor
 from sage.categories.basic import *
 
@@ -9,7 +14,7 @@ class ConstructionFunctor(Functor):
 
     def __mul__(self, other):
         if not isinstance(self, ConstructionFunctor) and not isinstance(other, ConstructionFunctor):
-            raise CoercionException, "Non-constructive product"
+            raise CoercionException("Non-constructive product")
         return CompositConstructionFunctor(other, self)
         
     def pushout(self, other):
@@ -19,7 +24,7 @@ class ConstructionFunctor(Functor):
             return other * self
             
     def __cmp__(self, other):
-        """
+        r"""
         Equality here means that they are mathematically equivalent, though they may have specific implementation data. 
         See the \code{merge} function. 
         """
@@ -267,9 +272,9 @@ class MultiPolynomialFunctor(ConstructionFunctor):
         """
         if isinstance(other, MultiPolynomialFunctor):
             if self.term_order != other.term_order:
-                raise CoercionException, "Incompatible term orders (%s,%s)." % (self.term_order, other.term_order)
+                raise CoercionException("Incompatible term orders ({0},{1}).".format(self.term_order, other.term_order))
             if set(self.vars).intersection(other.vars):
-                raise CoercionException, "Overlapping variables (%s,%s)" % (self.vars, other.vars)
+                raise CoercionException("Overlapping variables ({0},{1})".format(self.vars, other.vars))
             return MultiPolynomialFunctor(other.vars + self.vars, self.term_order)
         elif isinstance(other, CompositConstructionFunctor) \
               and isinstance(other.all[-1], MultiPolynomialFunctor):
@@ -334,7 +339,7 @@ class MultiPolynomialFunctor(ConstructionFunctor):
 
 class InfinitePolynomialFunctor(ConstructionFunctor):
     """
-    A Construction Functor for Infinite Polynomial Rings (see :mod:`~sage.rings.polynomial.infinite_polynomial_ring`)
+    A Construction Functor for Infinite Polynomial Rings (see:mod:`~sage.rings.polynomial.infinite_polynomial_ring`)
     
     AUTHOR: 
        -- Simon King
@@ -431,7 +436,7 @@ class InfinitePolynomialFunctor(ConstructionFunctor):
 
         """
         if len(gens)<1:
-            raise ValueError, "Infinite Polynomial Rings have at least one generator"
+            raise ValueError("Infinite Polynomial Rings have at least one generator")
         ConstructionFunctor.__init__(self, Rings(), Rings())
         self._gens = tuple(gens)
         self._order = order
@@ -502,7 +507,7 @@ class InfinitePolynomialFunctor(ConstructionFunctor):
                 # if there is overlap of generators, it must only be at the ends, so that
                 # the resulting order after the merging is unique
                 if other._gens[-len(INT):] != self._gens[:len(INT)]:
-                    raise CoercionException, "Overlapping variables (%s,%s) are incompatible" % (self._gens, other._gens)
+                    raise CoercionException("Overlapping variables ({0},{1}) are incompatible".format(self._gens, other._gens))
                 OUTGENS = list(other._gens) + list(self._gens[len(INT):])
             else:
                 OUTGENS = list(other._gens) + list(self._gens)
@@ -563,10 +568,10 @@ class InfinitePolynomialFunctor(ConstructionFunctor):
                         BadOverlap = True
                     
             if BadOverlap: # the overlapping variables appear in the wrong order
-                raise CoercionException, "Overlapping variables (%s,%s) are incompatible" % (self._gens, OverlappingVars)
+                raise CoercionException("Overlapping variables ({0},{1}) are incompatible".format(self._gens, OverlappingVars))
             if len(OverlappingVars)>1: # multivariate, hence, the term order matters
                 if other.term_order.name()!=self._order:
-                    raise CoercionException, "Incompatible term orders %s, %s" % (self._order, other.term_order.name())
+                    raise CoercionException("Incompatible term orders {0},{1}".format(self._order, other.term_order.name()))
             # ok, the overlap is fine, we will return something.
             if RemainingVars: # we can only partially merge other into self
                 if len(RemainingVars)>1:
@@ -973,7 +978,7 @@ class QuotientFunctor(ConstructionFunctor):
             # quotient by gcd would result in the trivial ring/group/...
             # Rather than create the zero ring, we claim they can't be merged
             # TODO: Perhaps this should be detected at a higher level...
-            raise TypeError, "Trivial quotient intersection."
+            raise TypeError("Trivial quotient intersection.")
         return QuotientFunctor(gcd)
 
 class AlgebraicExtensionFunctor(ConstructionFunctor):
@@ -1078,7 +1083,7 @@ def BlackBoxConstructionFunctor(ConstructionFunctor):
 
     def __init__(self, box):
         if not callable(box):
-            raise TypeError, "input must be callable"
+            raise TypeError("input must be callable")
         self.box = box
     def __call__(self, R):
         return box(R)
@@ -1087,7 +1092,7 @@ def BlackBoxConstructionFunctor(ConstructionFunctor):
         
         
 def pushout(R, S):
-    """
+    r"""
     Given a pair of Objects R and S, try and construct a 
     reasonable object $Y$ and return maps such that 
     canonically $R \leftarrow Y \rightarrow S$. 
@@ -1206,7 +1211,7 @@ def pushout(R, S):
         Z = Rs.pop()
         
     else:
-        raise CoercionException, "No common base"
+        raise CoercionException("No common base")
     
     # Rc is a list of functors from Z to R and Sc is a list of functors from Z to S
     Rc = [c[0] for c in R_tower[1:len(Rs)+1]]
@@ -1243,7 +1248,7 @@ def pushout(R, S):
                     if c:
                         all = c * all
                     else:
-                        raise CoercionException, "Incompatible Base Extension %r, %r (on %r, %r)" % (R, S, cR, cS)
+                        raise CoercionException("Incompatible Base Extension {0!r}, {1!r} (on {2!r}, {3!r})".format(R, S, cR, cS))
                 else:
                     # Now we look ahead to see if either top functor is 
                     # applied later on in the other tower. 
@@ -1251,7 +1256,7 @@ def pushout(R, S):
                     # postpone that operation, but if both then we abort. 
                     if Rc[-1] in Sc:
                         if Sc[-1] in Rc:
-                            raise CoercionException, ("Ambiguous Base Extension", R, S)
+                            raise CoercionException("Ambiguous Base Extension", R, S)
                         else:
                             all = Sc.pop() * all
                     elif Sc[-1] in Rc:
@@ -1268,13 +1273,13 @@ def pushout(R, S):
                             all = c * all
                         else:
                             # Otherwise, we cannot proceed.
-                            raise CoercionException, ("Ambiguous Base Extension", R, S)
+                            raise CoercionException("Ambiguous Base Extension", R, S)
     
         return all(Z)
         
     except CoercionException:
         raise
-    except (TypeError, ValueError, AttributeError, NotImplementedError), ex:
+    except (TypeError, ValueError, AttributeError, NotImplementedError) as ex:
         # We do this because we may be trying all kinds of things that don't 
         # make sense, and in this case simply want to return that a pushout 
         # couldn't be found. 
@@ -1396,9 +1401,9 @@ def pushout_lattice(R, S):
                         lattice[i+1,j+1] = Rc[i](lattice[i,j+1])
                         Sc[j] = None # force us to use pre-applied Sc[i]
             except (AttributeError, NameError):
-                print i, j
+                print(i, j)
                 pp(lattice)
-                raise CoercionException, "%s does not support %s" % (lattice[i,j], 'F')
+                raise CoercionException("{0} does not support {1}".format(lattice[i,j], 'F'))
             
     # If we are successful, we should have something that looks like this.
     #
@@ -1444,7 +1449,7 @@ def pp(lattice):
         for j in range(100):
             try:
                 R = lattice[i,j]
-                print i, j, R
+                print(i, j, R)
             except KeyError:
                 break
 
@@ -1463,11 +1468,11 @@ def construction_tower(R):
 
 def type_to_parent(P):
     import sage.rings.all
-    if P in [int, long]:
+    if P in six.integer_types:
         return sage.rings.all.ZZ
     elif P is float:
         return sage.rings.all.RDF
     elif P is complex:
         return sage.rings.all.CDF
     else:
-        raise TypeError, "Not a scalar type."
+        raise TypeError("Not a scalar type.")

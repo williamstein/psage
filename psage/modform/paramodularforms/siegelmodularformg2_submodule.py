@@ -25,6 +25,9 @@ AUTHORS:
 #
 #===============================================================================
 
+from builtins import map
+from builtins import range
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_submodule import GradedExpansionSubmoduleVector_generic
 from psage.modform.fourier_expansion_framework.modularforms.modularform_submodule import ModularFormsSubmodule_singleweight_ambient_pid, \
                                                ModularFormsSubmodule_heckeinvariant_submodule
@@ -34,58 +37,58 @@ from sage.misc.cachefunc import cached_method
 # DiscrimiantPrecisionSubmodule_abstract
 #===============================================================================
 
-class DiscrimiantPrecisionSubmodule_abstract :
-    def _minimal_discriminant_precision(self, minimal_precision = 0, lazy_rank_check = False) :
+class DiscrimiantPrecisionSubmodule_abstract(object):
+    def _minimal_discriminant_precision(self, minimal_precision = 0, lazy_rank_check = False):
         last_precision = None
-        for p in xrange(minimal_precision, self.graded_ambient().precision().discriminant() + 1) :
+        for p in range(minimal_precision, self.graded_ambient().precision().discriminant() + 1):
             precision = self.graded_ambient().fourier_ring().filter(p)
-            if not precision < last_precision : continue
+            if not precision < last_precision: continue
              
-            if self._check_precision(self, precision, lazy_rank_check) :
+            if self._check_precision(self, precision, lazy_rank_check):
                 return precision
-        else :
-            raise ValueError( "This basis is not determined completely by its Fourier expansions." )
+        else:
+            raise ValueError("This basis is not determined completely by its Fourier expansions.")
 
-class SiegelModularFormG2WeightSubmodule_class ( ModularFormsSubmodule_singleweight_ambient_pid,
-                                                 DiscrimiantPrecisionSubmodule_abstract ) :
+class SiegelModularFormG2WeightSubmodule_class (ModularFormsSubmodule_singleweight_ambient_pid,
+                                                 DiscrimiantPrecisionSubmodule_abstract):
     @cached_method
-    def maass_space(self) :
+    def maass_space(self):
         return SiegelModularFormG2Submodule_maassspace(
-            self, map(self, self.graded_ambient().type(). \
-                            _maass_generators( self.weight(),
-                                               self.graded_ambient().fourier_expansion_precision())) )    
+            self, list(map(self, self.graded_ambient().type(). \
+                            _maass_generators(self.weight(),
+                                               self.graded_ambient().fourier_expansion_precision()))))
     
 class SiegelModularFormG2Submodule_maassspace (
-        ModularFormsSubmodule_heckeinvariant_submodule, DiscrimiantPrecisionSubmodule_abstract ) :
+        ModularFormsSubmodule_heckeinvariant_submodule, DiscrimiantPrecisionSubmodule_abstract):
  
-    def __init__(self, ambient, basis, **kwds) :
+    def __init__(self, ambient, basis, **kwds):
         self.__provided_basis = basis
         ModularFormsSubmodule_heckeinvariant_submodule.__init__(self, ambient, basis, **kwds)
     
-    def weight(self) :
+    def weight(self):
         return self.ambient_module().weight()
 
-    def _provided_basis(self) :
+    def _provided_basis(self):
         return self.__provided_basis
 
-class SiegelModularFormG2SubmoduleVector_generic ( GradedExpansionSubmoduleVector_generic ) :
+class SiegelModularFormG2SubmoduleVector_generic (GradedExpansionSubmoduleVector_generic):
 
-    def is_cusp_form(self) :
+    def is_cusp_form(self):
         r"""
         Check wheater self is a cusp form or not.
         """
-        if self.parent().ring().type().group() != "Sp(2,ZZ)" :
+        if self.parent().ring().type().group() != "Sp(2,ZZ)":
             raise NotImplementedError
         
-        try :
+        try:
             weight = self.parent().weight() 
-        except AttributeError :
-            raise TypeError, "Can check cusps only for spaces of homogeneous weight"
+        except AttributeError:
+            raise TypeError("Can check cusps only for spaces of homogeneous weight")
         
         neccessary_precision = weight // 12 + 1 if weight % 12 != 2 \
                                                 else weight // 12
-        if self.parent().ring().fourier_expansion_precision()._indefinite_content_bound() < neccessary_precision :
-            raise ValueError, "the parents precision doesn't suffice"
+        if self.parent().ring().fourier_expansion_precision()._indefinite_content_bound() < neccessary_precision:
+            raise ValueError("the parents precision doesn't suffice")
         
         evc = self.fourier_expansion()
-        return all([evc[(0,0,l)] == 0 for l in xrange(neccessary_precision)])
+        return all([evc[(0,0,l)] == 0 for l in range(neccessary_precision)])

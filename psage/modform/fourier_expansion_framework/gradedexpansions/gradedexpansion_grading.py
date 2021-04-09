@@ -24,6 +24,10 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import str
+from builtins import map
+from builtins import range
 from operator import mul
 from operator import xor
 from sage.misc.latex import latex
@@ -33,8 +37,9 @@ from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
 from sage.structure.all import Sequence
 from sage.structure.sage_object import SageObject
+from functools import reduce
 
-class Grading_abstract ( SageObject ) :
+class Grading_abstract (SageObject) :
     r"""
     A common interface for monomial gradings of polynomial rings
     `R[x_1, .., x_n]`.
@@ -186,13 +191,13 @@ class Grading_abstract ( SageObject ) :
 # DegreeGrading
 #===============================================================================
 
-class DegreeGrading( Grading_abstract ) :
+class DegreeGrading(Grading_abstract):
     r"""
     This class implements a monomial grading for a polynomial ring
     `R[x_1, .., x_n]`.
     """
   
-    def __init__( self, degrees ) :
+    def __init__(self, degrees) :
         r"""
         INPUT:
             - ``degrees`` -- A list or tuple of `n` positive integers.
@@ -286,7 +291,7 @@ class DegreeGrading( Grading_abstract ) :
         if len(x) != len(self.__degrees) :
             raise ValueError( "Tuple must have length %s." % (len(self.__degrees),))
         
-        return sum( map(mul, x, self.__degrees) )
+        return sum(map(mul, x, self.__degrees))
         
     def basis(self, index, vars = None) :
         r"""
@@ -410,7 +415,7 @@ class DegreeGrading( Grading_abstract ) :
         """
         return r"\text{Degree grading }" + latex(self.__degrees)
 
-class TrivialGrading ( Grading_abstract ) :
+class TrivialGrading(Grading_abstract) :
     r"""
     A grading for a polynomial ring `R[x_1, .., x_n]` assigning to every
     element the same, arbitrary index.
@@ -528,7 +533,7 @@ class TrivialGrading ( Grading_abstract ) :
         """
         if index == self.__index :
             if vars is None :
-                vars = range(self.__ngens)
+                vars = list(range(self.__ngens))
             
             return [ tuple(i*[0] + [1] + (self.__ngens - i - 1)*[0])
                      for i in vars ]
@@ -598,7 +603,7 @@ class TrivialGrading ( Grading_abstract ) :
             1963142774     # 32-bit
             14848044662    # 64-bit
         """
-        return reduce(xor, map(hash, [self.__ngens, self.__index]))
+        return reduce(xor, list(map(hash, [self.__ngens, self.__index])))
     
     def _repr_(self) :
         r"""

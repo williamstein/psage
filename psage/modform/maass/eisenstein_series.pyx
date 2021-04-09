@@ -22,6 +22,8 @@ Used by routines in maass_forms.py
 """
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
+from sage.libs.gmp.all cimport *
+from sage.ext.stdsage cimport PY_NEW
 from psage.rings.mp_cimports cimport *
 from sage.libs.mpfr.types cimport MPFR_RNDZ
 from sage.all import save,load,bessel_K,vector

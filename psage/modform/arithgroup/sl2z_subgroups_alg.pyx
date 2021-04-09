@@ -140,7 +140,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
     ## e2+1, e2+3,...,e2+2*e3-1 
     cdef list rfx_list = []
     if mu>=3:
-        rfx_list=range(e2+1,e2+2*e3,2)
+        rfx_list = list(range(e2+1,e2+2*e3,2))
     elif mu==2:
         rfx_list = [1,2]
     else:
@@ -600,7 +600,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
                 print "R,S^(1 {0}) = {1},{2}".format(j,Rpp,Spc)
                 print "list_of_j=",list_of_j
             ## We try to normalize the fixed points of S:
-            pl = range(1,Rp.N()+1)
+            pl = list(range(1,Rp.N()+1))
             pl[0]=j; pl[j-1]=1
             p = MyPermutation(pl)
             if Spp(1)<>1 and Spp(1)<>2:
@@ -671,7 +671,7 @@ cpdef list_all_admissable_pairs(sig,int get_details=1,int verbose=0,int get_one_
 
 ## END CHECK
         
-    indicator_list=range(1,len(list_of_R)+1)
+    indicator_list = list(range(1,len(list_of_R)+1))
     list_of_R_tmp=[]
     cdef dict lc_psl,lc_pgl,lc_psl_maps,lc_pgl_maps
     lc_psl=dict()      # list of conjugates

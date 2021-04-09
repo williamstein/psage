@@ -34,8 +34,12 @@ turn instantiated by the NewformCollection object.
 The newform collection has documents that contain data about newforms.
 It also has a subcollection 'counts', which records the number of
 newforms with given level, weight, and character.  """
-
-from collection import Collection
+from __future__ import print_function
+from __future__ import absolute_import
+from .populate import Populate
+from past.builtins import cmp
+from builtins import str
+from .collection import Collection
 
 class NewformCollection(Collection):
     """
@@ -56,8 +60,8 @@ class NewformCollection(Collection):
         C = self.collection.counts
         # Query C for the 4-tuples, as described in the docstring above.
         Q = [(x['level'], x['weight'], x['character']['order'], x['count']) for x in
-               C.find({},['level','weight','character.order','count'])]
-        Q.sort(lambda x,y: cmp(x[key],y[key]))
+             C.find({},['level','weight','character.order','count'])]
+        Q.sort(key=lambda x: x[key])
         return Q
 
     def normalize(self, level, weight, character):
@@ -67,7 +71,7 @@ class NewformCollection(Collection):
         weight are Python ints, and the character is a Sage Dirichlet
         character (in particular, it is not None).
         """
-        from converter import to_db
+        from .converter import to_db
         level  = to_db(level)
         weight = to_db(weight)
         if character is None:
@@ -89,7 +93,6 @@ class NewformCollection(Collection):
 
 
 
-from populate import Populate
 
 class PopulateNewforms(Populate):
     def __repr__(self):
@@ -102,11 +105,11 @@ class PopulateNewforms(Populate):
     def populate(self, level, weight=2, character=None, verbose=True):
         nc = self.collection # newform collection
         level, weight, character, D = nc.normalize(level, weight, character)
-        if verbose: print D
+        if verbose: print(D)
         # Check the counts subcollection
         if nc.collection.counts.find(D).count() > 0:
             # Don't bother
-            if verbose: print "Skipping since counts subcollection already has an entry."
+            if verbose: print("Skipping since counts subcollection already has an entry.")
             return
         from psage.modform.rational.newforms import degrees
         degs = degrees(level, weight, character)
@@ -153,8 +156,8 @@ class PopulateNewformEigenvalueField(Populate):
         """
         A = self.collection.collection.find_one({'eigenvalue_field':{'$exists':False}})
         if A is None:
-            raise ValueError, "All Hecke eigenvalue fields are currently known."
-        from converter import db_converter
+            raise ValueError("All Hecke eigenvalue fields are currently known.")
+        from .converter import db_converter
         self.populate(A['level'], A['weight'],
                       db_converter.to_dirichlet_character(A['character']),
                       verbose=verbose)
@@ -162,15 +165,15 @@ class PopulateNewformEigenvalueField(Populate):
     def populate(self, level, weight, character=None, verbose=True):
         nc = self.collection
         level, weight, character, D = nc.normalize(level, weight, character)
-        if verbose: print D
+        if verbose: print(D)
         C = nc.collection.counts.find(D)
         if C.count() == 0:
-            if verbose: print "Skipping -- no newforms known yet (counts=0)"
+            if verbose: print("Skipping -- no newforms known yet (counts=0)")
             return
         cnt = C.next()['count']
         if cnt == 0:
             # There are no newforms, so don't do any further work.
-            if verbose: print "No newforms"
+            if verbose: print("No newforms")
             return
         # Now check to see if all of the eigenvalue fields are known
         # by doing a query for all forms of the given level, weight, and
@@ -178,7 +181,7 @@ class PopulateNewformEigenvalueField(Populate):
         E = dict(D)
         E['eigenvalue_field'] = {'$exists':True}
         if nc.collection.find(E).count() == cnt:
-            if verbose: print "All eigenvalue fields already known"
+            if verbose: print("All eigenvalue fields already known")
             return 
         
         from psage.modform.rational.newforms import eigenvalue_fields
@@ -196,5 +199,5 @@ class PopulateNewformEigenvalueField(Populate):
             else:
                 f = str(K.defining_polynomial()).replace(' ','')
             if verbose:
-                print f
+                print(f)
             nc.collection.update(query, {'$set':{'eigenvalue_field':f}}, safe=True)

@@ -1,12 +1,16 @@
+from __future__ import print_function
+from __future__ import absolute_import
 #import sqrt5_fast
-import sqrt5
+from builtins import str
+from builtins import range
+from . import sqrt5
 from sage.misc.all import cputime
 from sage.rings.all import Integer, ZZ
 
 F = sqrt5.F
 
 def ideals_of_bounded_norm(B):
-    return sum([v for n, v in F.ideals_of_bdd_norm(B).iteritems() if n != 1], [])
+    return sum([v for n, v in F.ideals_of_bdd_norm(B).items() if n != 1], [])
     
 def ideals_of_norm(v):
     try:
@@ -72,8 +76,8 @@ def dimensions(v, filename=None):
         t = cputime()
         H = sqrt5_fast.IcosiansModP1ModN(N)
         tm = cputime(t)
-        s = '%s %s %s %s'%(N.norm(), H.cardinality(), no_space(canonical_gen(N)), tm)
-        print s
+        s = '{0} {1} {2} {3}'.format(N.norm(), H.cardinality(), no_space(canonical_gen(N)), tm)
+        print(s)
         if F:
             F.write(s+'\n')
             F.flush()
@@ -91,8 +95,8 @@ def charpolys(v, B, filename=None):
         T = [(p.smallest_integer(),H.hecke_matrix(p).fcp()) for p in P if
              gcd(Integer(p.norm()), Integer(N.norm())) == 1]
         tm = cputime(t)
-        s = '%s %s %s %s'%(N.norm(), no_space(canonical_gen(N)), tm, no_space(T))
-        print s
+        s = '{0} {1} {2} {3}'.format(N.norm(), no_space(canonical_gen(N)), tm, no_space(T))
+        print(s)
         if F:
             F.write(s+'\n')
             F.flush()
@@ -119,30 +123,30 @@ def one_charpoly(v, filename=None):
         t = cputime()
         f = T.fcp()
         t2 = cputime(t)
-        s = '%s\t%s\t%s\t%s\t%s\t(%.1f,%.1f,%.1f)'%(N.norm(), no_space(canonical_gen(N)), 
+        s = '{0}\t{1}\t{2}\t{3}\t{4}\t({5:.1f},{6:.1f},{7:.1f})'.format(N.norm(), no_space(canonical_gen(N)),
                                                     p.smallest_integer(), no_space(canonical_gen(p)), no_space(f),
-                                                    t0, t1, t2,)
-        print s
+                                                    t0, t1, t2)
+        print(s)
         if F:
             F.write(s+'\n')
             F.flush()
 
 
 def elliptic_curves(v, B=100, filename=None):
-    from hmf import HilbertModularForms
+    from .hmf import HilbertModularForms
     F = open(filename,'a') if filename else None
     for N in ideals_of_norm(v):
         H = HilbertModularForms(N)
         for i, E in enumerate(H.elliptic_curve_factors()):
             v = E.aplist(B)
-            s = '%s\t%s\t%s\t%s'%(N.norm(), no_space(canonical_gen(N)), i, ' '.join([no_space(x) for x in v]))
-            print s
+            s = '{0}\t{1}\t{2}\t{3}'.format(N.norm(), no_space(canonical_gen(N)), i, ' '.join([no_space(x) for x in v]))
+            print(s)
             if F:
                 F.write(s+'\n')
                 F.flush()
                               
 def elliptic_curves_parallel(v, B, dir, ncpu=16):
-    from hmf import HilbertModularForms
+    from .hmf import HilbertModularForms
     from sage.all import parallel, set_random_seed
     import os
     @parallel(ncpu)
@@ -158,16 +162,16 @@ def elliptic_curves_parallel(v, B, dir, ncpu=16):
             F.flush()
             for i, E in enumerate(D):
                 v = E.aplist(B)
-                s = '%s\t%s\t%s\t%s'%(N.norm(), level, i, ' '.join([no_space(x) for x in v]))
-                print s
+                s = '{0}\t{1}\t{2}\t{3}'.format(N.norm(), level, i, ' '.join([no_space(x) for x in v]))
+                print(s)
                 F.write(s+'\n')
                 F.flush()
-        except Exception, msg:
-            F.write('exception %s %s "%s"\n'%(N.norm(), level, msg))
+        except Exception as msg:
+            F.write('exception {0} {1} "{2}"\n'.format(N.norm(), level, msg))
         F.close()
 
     for X in f(ideals_of_norm(v)):
-        print X
+        print(X)
         
 #################################################################
 

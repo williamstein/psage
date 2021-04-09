@@ -4,6 +4,7 @@ Queries
 This file contains code that carries out interesting queries
 regarding the database of elliptic curves.
 """
+from __future__ import print_function
 
 def counts_collection(address='localhost:29000'):
     from psage.lmfdb.auth import userpass
@@ -42,10 +43,10 @@ def create_counts_table(levels, address, verbose=0):
             db_counts.insert(doc, safe=True)
         except DuplicateKeyError:
             if verbose and i%verbose == 0:
-                print '[%s]'%N,
+                print('[{0}]'.format(N))
         else:
             if verbose and i%verbose == 0:
-                print N,
+                print(N)
         i += 1
         import sys; sys.stdout.flush()
 

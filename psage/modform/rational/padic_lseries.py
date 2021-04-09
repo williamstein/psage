@@ -16,6 +16,8 @@ AUTHORS:
   - William Stein and Jennifer Balakrishnan (2010-07-01): first version
 
 """
+from __future__ import print_function
+from __future__ import division
 
 ######################################################################
 #       Copyright (C) 2010 William Stein <wstein@gmail.com>
@@ -33,6 +35,8 @@ AUTHORS:
 ######################################################################
 
 	
+from past.builtins import cmp
+from builtins import range
 from sage.rings.integer_ring import   ZZ
 from sage.rings.rational_field import QQ
 from sage.rings.padics.factory import Qp, Zp
@@ -55,6 +59,7 @@ import sage.matrix.all as matrix
 from sage.misc.functional import log
 
 from sage.modular.modsym.modsym import ModularSymbols
+
 
 class pAdicLseries(SageObject):
     r"""
@@ -80,7 +85,7 @@ class pAdicLseries(SageObject):
         self._p = ZZ(p)
         self._normalize = normalize
         if not self._p.is_prime():
-            raise ValueError, "p (=%s) must be a prime"%p
+            raise ValueError("p (={0}) must be a prime".format(p))
         A = self._J.modular_symbols(sign=1)
         self._modular_symbols_subspace = A   
         v = A.dual_eigenvector()
@@ -94,14 +99,14 @@ class pAdicLseries(SageObject):
         TESTS::
 
             sage: lp1 = J0(23)[0].padic_lseries(5)
-	    sage: lp2 = J0(23)[0].padic_lseries(7)
-	    sage: lp3 = J0(29)[0].padic_lseries(5)
-	    sage: lp1 == lp1
-	    True
-	    sage: lp1 == lp2
-	    False
-	    sage: lp1 == lp3
-	    False
+            sage: lp2 = J0(23)[0].padic_lseries(7)
+            sage: lp3 = J0(29)[0].padic_lseries(5)
+            sage: lp1 == lp1
+            True
+            sage: lp1 == lp2
+            False
+            sage: lp1 == lp3
+            False
         """
         c = cmp(type(self), type(other))
         if c: 
@@ -110,19 +115,20 @@ class pAdicLseries(SageObject):
 
     def modular_symbols_subspace(self):
         """
-	"""
+        :return:
+        """
         return self._modular_symbols_subspace
     
     def hecke_eigenvalue_field(self):
         """
-	The field of definition of the dual eigenform.
-	"""
+        The field of definition of the dual eigenform.
+        """
         return self._hecke_eigenvalue_field
 
     def psi(self):
-    	"""
+        """
         The embedding $\Q(\alpha) \into \Q_p(a)$ sending $\alpha \mapsto a$.
-	"""
+        """
         K_f = self._hecke_eigenvalue_field
         p = self._p
 #        kbar = K_f.residue_field(p)
@@ -141,11 +147,11 @@ class pAdicLseries(SageObject):
             a = F.gen()
             psi = self._psis = [K_f.hom([a])]
             return psi
-	
+
     def modular_symbol(self,r):
         """
         Compute the modular symbol at the cusp $r$.
-	"""
+        """
         v = self._dual_eigenvector
 
         try:
@@ -285,14 +291,14 @@ class pAdicLseries(SageObject):
             return 3
 
     def sha(self):
-    	"""
-	"""
-        list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
+        """
+        """
+        this_list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
         A = self.abelian_variety()
         if A.dimension() != 2:
             raise NotImplementedError
         lev = self._level
-        if lev not in list:
+        if lev not in this_list:
             raise NotImplementedError
         elif lev == 23:
             return 1
@@ -306,40 +312,40 @@ class pAdicLseries(SageObject):
             return 1
         elif lev == 63:
             return 1
-	elif self.label() == '65a(1,65)':
+        elif self.label() == '65a(1,65)':
             return 2
-	elif self.label() == '65b(1,65)':
+        elif self.label() == '65b(1,65)':
             return 2
-	elif lev == 87:
+        elif lev == 87:
             return 1
-	elif self.label() == '117a(1,117)':
+        elif self.label() == '117a(1,117)':
             return 1
-	elif self.label() == '117b(1,117)':
-	    return 1
-	elif self.label() == '125b(1,125)':
+        elif self.label() == '117b(1,117)':
+            return 1
+        elif self.label() == '125b(1,125)':
             return 4
-	elif self.label() == '133a(1,133)':
+        elif self.label() == '133a(1,133)':
             return 4
-	elif lev == 135:
+        elif lev == 135:
             return 1
-	elif lev == 175:
+        elif lev == 175:
             return 1
-	elif lev == 189:
+        elif lev == 189:
             return 1
 
     def rhs(self):
         """
-	"""
-        list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
+        """
+        this_list = [23, 29, 31, 35,39, 63,65, 87, 117, 125, 133, 135, 175, 189]
         lev = self.abelian_variety().level()
-        if lev not in list:
+        if lev not in this_list:
             raise NotImplementedError
         else:
             try:
-   	        eps = (1-1/self.alpha()).norm()**2
+                eps = (1-1/self.alpha()).norm()**2
             except AttributeError:
                 eps = (1-1/self.alpha())**4
-	    return eps*(self.tamagawa_prod()*self.sha())/(self.torsion_order()**2)
+        return eps*(self.tamagawa_prod()*self.sha())/(self.torsion_order()**2)
 
         
 
@@ -383,34 +389,34 @@ class pAdicLseries(SageObject):
    	
     def ap(self):
         """
-	Return the Hecke eigenvalue $a_p$.
+        Return the Hecke eigenvalue $a_p$.
 
         EXAMPLES::
 
             sage: J = J0(23)[0]
             sage: [(p, J.padic_lseries(p)) for p in prime_range(5,30)]
-	    (5, 2*alpha)
-	    (7, 2*alpha + 2)
-	    (11, -2*alpha - 4)
-	    (13, 3)
-	    (17, -2*alpha + 2)
-	    (19, -2)
-	    (23, 1)
-	    (29, -3)
-	"""
+            (5, 2*alpha)
+            (7, 2*alpha + 2)
+            (11, -2*alpha - 4)
+            (13, 3)
+            (17, -2*alpha + 2)
+            (19, -2)
+            (23, 1)
+            (29, -3)
+            """
         try:
             A = self._modular_symbols_subspace
         except AttributeError:
             A = self._modular_symbols_subspace = self.modular_symbols_subspace()
         a_p = self._ap = A.eigenvalue(self._p)
-	return a_p 
+        return a_p
  
     def is_ordinary(self):
-    	"""
-	Check if $p$ is an ordinary prime.
-	"""
+        """
+        Check if $p$ is an ordinary prime.
+        """
         try:
-    	    K_f = self._hecke_eigenvalue_field
+            K_f = self._hecke_eigenvalue_field
         except AttributeError:
             K_f = self._hecke_eigenvalue_field = self.hecke_eigenvalue_field()
         try:
@@ -501,7 +507,7 @@ class pAdicLseries(SageObject):
 
         K_f = self.hecke_eigenvalue_field()
         if len(psis) == 1:
-   	    F = Q.extension(K_f.defining_polynomial(),names='a')
+            F = Q.extension(K_f.defining_polynomial(),names='a')
             a = F.gen()
             G = K_f.embeddings(K_f)
             if G[0](K_f.gen()) == K_f.gen():
@@ -513,9 +519,9 @@ class pAdicLseries(SageObject):
             a_p_conj = conj_map(a_p)
             R = F['x']
             x = R.gen()
-	    psi = psis[0]
+            psi = psis[0]
             a_p_padic = psi(a_p)
-	    a_p_conj_padic = psi(a_p_conj)
+            a_p_conj_padic = psi(a_p_conj)
             f = x**2 - (a_p_padic)*x + p
             fconj = x**2 - (a_p_conj_padic)*x + p
             norm_f = f*fconj
@@ -586,14 +592,15 @@ class pAdicLseries(SageObject):
             raise NotImplementedError
         E = self.elliptic_curve()
         if not E.is_good(self.prime()):
-            raise ValueError, "prime must be of good reduction"
+            raise ValueError("prime must be of good reduction")
         r = E.rank()
         n = 1
         while True:
             f = self.series(n)
             v = f.valuation()
             if v < r:
-                raise RuntimeError, "while computing p-adic order of vanishing, got a contradiction: the curve is %s, the curve has rank %s, but the p-adic L-series vanishes to order <= %s"%(E, r, v)
+                raise RuntimeError("while computing p-adic order of vanishing, got a contradiction: the curve is {0}".format(E)+ \
+                                   ", the curve has rank {0}, but the p-adic L-series vanishes to order <= {1}".format(r, v))
             if v == r:
                 self.__ord = v
                 return v
@@ -708,7 +715,7 @@ class pAdicLseriesOrdinary(pAdicLseries):
     """
     def measure_experimental(self,a,n,prec,quadratic_twist=+1,alpha=[]):
         """
-	"""
+        """
         if quadratic_twist > 0:
             s = +1
         else:
@@ -782,30 +789,30 @@ class pAdicLseriesOrdinary(pAdicLseries):
         """
         n = ZZ(n)
         if n < 1:
-            raise ValueError, "n (=%s) must be a positive integer"%n
+            raise ValueError("n (={0}) must be a positive integer".format(n))
         if not self.is_ordinary():
-            raise ValueError, "p (=%s) must be an ordinary prime"%p
+            raise ValueError("p (={0}) must be an ordinary prime".format(self._p))
         # check if the conditions on quadratic_twist are satisfied
         D = ZZ(quadratic_twist)
         if D != 1:
             if D % 4 == 0:
                 d = D//4
                 if not d.is_squarefree() or d % 4 == 1:
-                    raise ValueError, "quadratic_twist (=%s) must be a fundamental discriminant of a quadratic field"%D
+                    raise ValueError("quadratic_twist (={0}) must be a fundamental discriminant of a quadratic field".format(D))
             else:
                 if not D.is_squarefree() or D % 4 != 1:
-                    raise ValueError, "quadratic_twist (=%s) must be a fundamental discriminant of a quadratic field"%D
+                    raise ValueError("quadratic_twist (={0}) must be a fundamental discriminant of a quadratic field".format(D))
             if gcd(D,self._p) != 1:
-                raise ValueError, "quadratic twist (=%s) must be coprime to p (=%s) "%(D,self._p)
-            if gcd(D,self._E.conductor())!= 1:
+                raise ValueError("quadratic twist (={0}) must be coprime to p (={1}) ".format(D,self._p))
+            if gcd(D,self._E.conductor()) != 1:
                 for ell in prime_divisors(D):
                     if valuation(self._E.conductor(),ell) > valuation(D,ell) :
-                        raise ValueError, "can not twist a curve of conductor (=%s) by the quadratic twist (=%s)."%(self._E.conductor(),D)
+                        raise ValueError("can not twist a curve of conductor (={0}) by the quadratic twist (={1}).".format(self._E.conductor(),D))
                     
             
         p = self._p
         if p == 2 and self._normalize :
-            print 'Warning : For p=2 the normalization might not be correct !'
+            print('Warning : For p=2 the normalization might not be correct !')
         #verbose("computing L-series for p=%s, n=%s, and prec=%s"%(p,n,prec))
         
 #        bounds = self._prec_bounds(n,prec)
@@ -853,7 +860,6 @@ class pAdicLseriesOrdinary(pAdicLseries):
                     count_verb += 3
                 for a in range(1,p):
                     if split:
-#                        b = ((F.teichmuller(a)).lift() % ZZ(p**n))
                         b = (teich[a]) % ZZ(p**n)
                         b = b*gamma_power
                     else:

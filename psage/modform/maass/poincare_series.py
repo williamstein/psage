@@ -3,11 +3,15 @@ r"""
 Algorithms for holomorphic and non-holomorphic Poincare series.
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
-from sage.all import ComplexField,inverse_mod
-from multiplier_systems import *
+from builtins import range
+from sage.all import ComplexField,inverse_mod,CyclotomicField,SageObject,Integer,RealField,gcd,factorial
+from .multiplier_systems import *
 from psage.modform.arithgroup.mysubgroup import *
-from poincare_series_alg import *
+from .poincare_series_alg import *
 
 class PoincareSeries(SageObject):
     def __init__(self,G,k=0,prec=53,multiplier=None,verbose=0,holomorphic=True):
@@ -33,15 +37,15 @@ class PoincareSeries(SageObject):
         """
         summa=0
         z=CyclotomicField(c).gen()
-        print "z=",z
+        print("z={0}".format(z))
         for d in range(c):
             if gcd(d,c)>1:
                 continue
             try:
                 dbar = inverse_mod(d,c)
             except ZeroDivisionError:
-                print "c=",c
-                print "d=",d
+                print("c={0}".format(c))
+                print("d={0}".format(d))
                 raise ZeroDivisionError
             arg=m*dbar+n*d
             #print "arg=",arg
@@ -54,19 +58,19 @@ class PoincareSeries(SageObject):
         k = self._k
         if n>0:
             if self._holomorphic:
-                res=Aplus_triv(m,k,n,self._N,self._prec,Nmax,verbose=self._verbose)
+                res=self.Aplus_triv(m,k,n,self._N,self._prec,Nmax,verbose=self._verbose)
             else:
-                res=Bplus_triv(m,k,n,self._N,self._prec,Nmax,verbose)
+                res=self.Bplus_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
         elif n==0:
             if self._holomorphic:
-                res=Azero_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
+                res=self.Azero_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
             else:
-                res=Bzero_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
+                res=self.Bzero_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
         else:
             if self._holomorphic:
-                res=Aminus_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
+                res=self.Aminus_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
             else:
-                res=Bminus_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
+                res=self.Bminus_triv(m,k,n,self._N,self._prec,Nmax,self._verbose)
             
         return res
     

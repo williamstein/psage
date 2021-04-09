@@ -24,7 +24,6 @@ Fast Cython code needed to compute Hilbert modular forms over F = Q(sqrt(5)).
 
 All the code in this file is meant to be highly optimized. 
 """
-
 from cysignals.memory cimport sig_free,sig_malloc
 from sage.libs.gmp.all cimport mpz_init,mpz_mod_ui,mpz_set_si,mpz_si_kronecker,mpz_t
 from sage.ext.stdsage cimport PY_NEW
@@ -37,7 +36,7 @@ from sage.rings.ideal import is_Ideal
 from sage.rings.number_field.number_field_element_quadratic cimport NumberFieldElement_quadratic
 from sage.rings.ring cimport CommutativeRing
 from sage.matrix.all import MatrixSpace, zero_matrix
-
+from past.builtins import cmp
 from sage.rings.integer cimport Integer
 
 from sqrt5 import F

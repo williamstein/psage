@@ -23,6 +23,7 @@
 """
 Orders in Function Fields
 """
+from __future__ import absolute_import
 
 from sage.structure.parent_gens import ParentWithGens
 
@@ -124,7 +125,7 @@ class FunctionFieldOrder(IntegralDomain):
             [1 0]
             [0 1]
         """
-        from function_field_ideal import ideal_with_gens_over_base
+        from .function_field_ideal import ideal_with_gens_over_base
         return ideal_with_gens_over_base(self, [self(a) for a in gens])
 
     def ideal(self, *gens):
@@ -151,7 +152,7 @@ class FunctionFieldOrder(IntegralDomain):
             gens = gens[0]
             if not isinstance(gens, (list, tuple)):
                 gens = [gens]
-        from function_field_ideal import ideal_with_gens
+        from .function_field_ideal import ideal_with_gens
         return ideal_with_gens(self, gens)
 
 
@@ -174,11 +175,11 @@ class FunctionFieldOrder_basis(FunctionFieldOrder):
             <class 'sage.rings.function_field.function_field_order.FunctionFieldOrder_basis'>
         """
         if len(basis) == 0:
-            raise ValueError, "basis must have positive length"
+            raise ValueError("basis must have positive length")
         
         fraction_field = basis[0].parent()
         if len(basis) != fraction_field.degree():
-            raise ValueError, "length of basis must equal degree of field"
+            raise ValueError("length of basis must equal degree of field")
         
         FunctionFieldOrder.__init__(self, fraction_field)
         
@@ -190,7 +191,7 @@ class FunctionFieldOrder_basis(FunctionFieldOrder):
         self._populate_coercion_lists_(coerce_list=[self._ring])
         if check:
             if self._module.rank() != fraction_field.degree():
-                raise ValueError, "basis is not a basis"
+                raise ValueError("basis is not a basis")
         IntegralDomain.__init__(self, self, names = fraction_field.variable_names(), normalize = False)
 
     def _element_constructor_(self, f):
@@ -327,7 +328,7 @@ class FunctionFieldOrder_rational(PrincipalIdealDomain, FunctionFieldOrder):
                     gens = gens.gens()
                 else:
                     gens = [gens]
-        from function_field_ideal import ideal_with_gens
+        from .function_field_ideal import ideal_with_gens
         return ideal_with_gens(self, gens)
 
     def _repr_(self):
@@ -350,7 +351,7 @@ class FunctionFieldOrder_rational(PrincipalIdealDomain, FunctionFieldOrder):
             ...
             IndexError: Only one generator.
         """
-        if n != 0: raise IndexError, "Only one generator."
+        if n != 0: raise IndexError("Only one generator.")
         return self._gen
 
     def ngens(self):

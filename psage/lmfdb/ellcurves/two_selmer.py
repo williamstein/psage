@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -20,6 +21,7 @@
 #################################################################################
 
 
+from builtins import range
 from sage.all import mwrank_EllipticCurve
 from psage.lmfdb.auth import userpass
 
@@ -31,7 +33,7 @@ def selmer2(a_invariants, max_time=None):
         try:
             from sage.all import fork  # not in official sage.
         except ImportError:
-            raise ImportError, "You need to apply the patch from http://trac.sagemath.org/sage_trac/ticket/9631"
+            raise ImportError("You need to apply the patch from http://trac.sagemath.org/sage_trac/ticket/9631")
         @fork(timeout=max_time)
         def f():
             E = mwrank_EllipticCurve(a_invariants)
@@ -69,7 +71,7 @@ def populate_db(address, level_min, level_max,
             C.update({'_id':v['_id']}, {'$set':{'sel2':sel2}})
 
     for ans in f(blocks):
-        print ans
+        print(ans)
     
 """
 EXAMPLE QUERIES:

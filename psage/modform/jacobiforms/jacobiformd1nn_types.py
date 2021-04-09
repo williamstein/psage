@@ -4,6 +4,7 @@ Types of Jacobi forms of fixed index and weight.
 AUTHOR :
     - Martin Raum (2010 - 04 - 07) Initial version.
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -24,6 +25,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from operator import xor
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_grading import TrivialGrading
 from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import ModularFormsModule_generic
@@ -44,6 +48,7 @@ from sage.rings.number_field.number_field import CyclotomicField
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.rings.rational_field import QQ
 from sage.structure.sequence import Sequence
+from functools import reduce
 
 
 #===============================================================================
@@ -66,7 +71,7 @@ def JacobiFormsD1NN(A, type, precision, *args, **kwds) :
         if isinstance(type, JacobiFormD1NN_Gamma) :
             M = ModularFormsModule_generic(A, type, precision)
         else :
-            raise TypeError, "%s must be a Jacobi form type" % (type,)
+            raise TypeError("{0} must be a Jacobi form type".format(type))
         
         _jacobiforms_cache[k] = M
         return M
@@ -75,7 +80,8 @@ def JacobiFormsD1NN(A, type, precision, *args, **kwds) :
 # JacobiFormD1NN_Gamma
 #===============================================================================
 
-class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
+
+class JacobiFormD1NN_Gamma(ModularFormType_abstract):
     r"""
     Type of Jacobi forms of degree `1` and index in `\mathbb{N}` associated with
     the full modular group.
@@ -92,7 +98,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
     """
     def __init__(self, index, weight) :
         if weight % 2 != 0 :
-            raise NotImplementedError, "Only even weight forms are implemented."
+            raise NotImplementedError("Only even weight forms are implemented.")
   
         self.__index = index
         self.__weight = weight        
@@ -112,7 +118,7 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
     @cached_method
     def _rank(self, K) :
         
-        if K is QQ or K in NumberFields() :
+        if K is QQ or K in NumberFields():
             return len(_jacobi_forms_by_taylor_expansion_coords(self.__index, self.__weight, 0))
 
             ## This is the formula used by Poor and Yuen in Paramodular cusp forms
@@ -120,119 +126,119 @@ class JacobiFormD1NN_Gamma ( ModularFormType_abstract ) :
                 delta = len(self.__index.divisors()) // 2 - 1
             else :
                 delta = 0
-                
-            return sum( ModularForms(1, self.__weight + 2 * j).dimension() + j**2 // (4 * self.__index)
-                        for j in xrange(self.__index + 1) ) \
-                   + delta
-            
 
-            ## This is the formula given by Skoruppa in 
+            return sum(ModularForms(1, self.__weight + 2 * j).dimension() + j**2 // (4 * self.__index)
+                        for j in range(self.__index + 1)) \
+                   + delta
+
+
+            ## This is the formula given by Skoruppa in
             ## Jacobi forms of critical weight and Weil representations
             ##FIXME: There is some mistake here
             if self.__weight % 2 != 0 :
                 ## Otherwise the space X(i**(n - 2 k)) is different
                 ## See: Skoruppa, Jacobi forms of critical weight and Weil representations
                 raise NotImplementedError
-            
+
             m = self.__index
             K = CyclotomicField(24 * m, 'zeta')
             zeta = K.gen(0)
-            
+
             quadform = lambda x : 6 * x**2
             bilinform = lambda x,y : quadform(x + y) - quadform(x) - quadform(y)
-            
-            T = diagonal_matrix([zeta**quadform(i) for i in xrange(2*m)])
-            S =   sum(zeta**(-quadform(x)) for x in xrange(2 * m)) / (2 * m) \
-                * matrix([[zeta**(-bilinform(j,i)) for j in xrange(2*m)] for i in xrange(2*m)])
-            subspace_matrix_1 = matrix( [ [1 if j == i or j == 2*m - i else 0 for j in xrange(m + 1) ]
-                                        for i in xrange(2*m)] )
+
+            T = diagonal_matrix([zeta**quadform(i) for i in range(2*m)])
+            S =   sum(zeta**(-quadform(x)) for x in range(2 * m)) / (2 * m) \
+                * matrix([[zeta**(-bilinform(j,i)) for j in range(2*m)] for i in range(2*m)])
+            subspace_matrix_1 = matrix([[1 if j == i or j == 2*m - i else 0 for j in range(m + 1)]
+                                        for i in range(2*m)])
             subspace_matrix_2 = zero_matrix(ZZ, m + 1, 2*m)
             subspace_matrix_2.set_block(0,0,identity_matrix(m+1))
-            
+
             T = subspace_matrix_2 * T * subspace_matrix_1
             S = subspace_matrix_2 * S * subspace_matrix_1
-            
-            sqrt3 = (zeta**(4*m) - zeta**(-4*m)) * zeta**(-6*m) 
-            rank =   (self.__weight - 1/2 - 1) / 2 * (m + 1) \
-                   + 1/8 * (   zeta**(3*m * (2*self.__weight - 1)) * S.trace()
-                             + zeta**(3*m * (1 - 2*self.__weight)) * S.trace().conjugate() ) \
-                   + 2/(3*sqrt3) * (   zeta**(4 * m * self.__weight) * (S*T).trace()
-                                     + zeta**(-4 * m * self.__weight) * (S*T).trace().conjugate() ) \
-                   - sum((j**2 % (m+1))/(m+1) -1/2 for j in range(0,m+1))
-            
-            if self.__weight > 5 / 2 :
+
+            sqrt3 = (zeta**(4*m) - zeta**(-4*m)) * zeta**(-6*m)
+            rank =   (self.__weight - QQ(1)/QQ(2) - 1) / QQ(2) * (m + 1) \
+                   + 1/8 * (zeta**(3*m * (2*self.__weight - 1)) * S.trace()
+                             + zeta**(3*m * (1 - 2*self.__weight)) * S.trace().conjugate()) \
+                   + 2/(3*sqrt3) * (zeta**(4 * m * self.__weight) * (S*T).trace()
+                                     + zeta**(-4 * m * self.__weight) * (S*T).trace().conjugate()) \
+                   - sum((j**2 % (m+1))/QQ(m+1) -QQ(1)/QQ(2) for j in range(0,m+1))
+
+            if self.__weight > 5 / 2:
                 return rank
-            else :
+            else:
                 raise NotImplementedError
-            
+
         raise NotImplementedError
     
     @cached_method
-    def generators(self, K, precision) :
-        if K is QQ or K in NumberFields() :
-            return Sequence( [ jacobi_form_by_taylor_expansion(i, self.__index, self.__weight, precision)
-                               for i in xrange(self._rank(K)) ],
-                             universe = JacobiD1NNFourierExpansionModule(QQ, self.__index) )
+    def generators(self, K, precision):
+        if K is QQ or K in NumberFields():
+            return Sequence([jacobi_form_by_taylor_expansion(i, self.__index, self.__weight, precision)
+                               for i in range(self._rank(K))],
+                             universe = JacobiD1NNFourierExpansionModule(QQ, self.__index))
         
         raise NotImplementedError
     
-    def grading(self, K) :
-        if K is QQ or K in NumberFields() :
-            return TrivialGrading( self._rank(K),
-                                   (self.__index, self.__weight) )
+    def grading(self, K):
+        if K is QQ or K in NumberFields():
+            return TrivialGrading(self._rank(K),
+                                  (self.__index, self.__weight))
         
         raise NotImplementedError
 
-    def _generator_names(self, K) :
-        if K is QQ or K in NumberFields() :
-            return [ "TDE_%s" % (i,) for i in xrange(self._rank(K)) ]
+    def _generator_names(self, K):
+        if K is QQ or K in NumberFields():
+            return ["TDE_{0}".format(i) for i in range(self._rank(K))]
         
         raise NotImplementedError
 
-    def _generator_by_name(self, K, name) :
-        if K is QQ or K in NumberFields() :
+    def _generator_by_name(self, K, name):
+        if K is QQ or K in NumberFields():
             R = self.generator_relations(K).ring()
-            try :
+            try:
                 return R.gen(self._generator_names(K).index(name))
-            except ValueError :
-                raise ValueError, "name %s doesn't exist for %s" % (name, K)
+            except ValueError:
+                raise ValueError("name {0} doesn't exist for {1}".format(name, K))
         
         raise NotImplementedError
     
     @cached_method
-    def generator_relations(self, K) :
+    def generator_relations(self, K):
         r"""
         An ideal I in a polynomial ring R, such that the associated module
         is (R / I)_1. 
         """
-        if K is QQ or K in NumberFields() :
+        if K is QQ or K in NumberFields():
             R = PolynomialRing(K, self._generator_names(K))
             return R.ideal(0)
             
         raise NotImplementedError
 
-    def weights(self, K) :
+    def weights(self, K):
         r"""
         A list of integers corresponding to the weights.
         """
-        if K is QQ or K in NumberFields() :
+        if K is QQ or K in NumberFields():
             return len(self._theta_decomposition_indices()) \
                     * [(self.__index, self.__weight)]
             
         raise NotImplementedError
     
-    def graded_submodules_are_free(self) :
+    def graded_submodules_are_free(self):
         return True
 
-    def __cmp__(self, other) :
+    def __cmp__(self, other):
         c = cmp(type(self), type(other))
         
-        if c == 0 :
+        if c == 0:
             c = cmp(self.__index, other.__index)
-        if c == 0 :
+        if c == 0:
             c = cmp(self.__weight, other.__weight)
             
         return c
 
-    def __hash__(self) :
-        return reduce(xor, map(hash, [type(self), self.__index, self.__weight]))
+    def __hash__(self):
+        return reduce(xor, list(map(hash, [type(self), self.__index, self.__weight])))

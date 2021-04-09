@@ -1,5 +1,6 @@
+from builtins import input
 def userpass():
     import getpass
-    username = raw_input('Mongodb username: ')
+    username = input('Mongodb username: ')
     password = getpass.getpass()
     return username, password

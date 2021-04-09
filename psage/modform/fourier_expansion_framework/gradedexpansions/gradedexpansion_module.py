@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import zip
+from builtins import range
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient import GradedExpansionAmbient_abstract
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_element import GradedExpansionVector_class
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ring import GradedExpansionRing_class
@@ -35,6 +37,7 @@ from sage.rings.all import Integer
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.structure.element import Element
 import operator
+from functools import reduce
 
 #===============================================================================
 # GradedExpansionModule_class
@@ -97,14 +100,13 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
         elif base_ring_generators is None or len(base_ring_generators) == 0 :
             Module.__init__(self, relations.base_ring())
         else :
-            gb = filter( lambda p: all( all(a == 0 for a in list(e)[len(base_ring_generators):])
-                                        for e in p.exponents() ),
-                         relations.groebner_basis() )
+            gb = [p for p in relations.groebner_basis() if all( all(a == 0 for a in list(e)[len(base_ring_generators):])
+                                        for e in p.exponents() )]
             P = PolynomialRing( relations.base_ring(),
                                 list(relations.ring().variable_names())[:len(base_ring_generators)] )
             base_relations = P.ideal(gb)
             R = GradedExpansionRing_class(None, base_ring_generators, base_relations,
-                    grading.subgrading(xrange(len(base_ring_generators))), all_relations, reduce_before_evaluating)
+                    grading.subgrading(range(len(base_ring_generators))), all_relations, reduce_before_evaluating)
             Module.__init__(self, R)
 
         GradedExpansionAmbient_abstract.__init__(self, base_ring_generators, generators, relations, grading, all_relations, reduce_before_evaluating)
@@ -142,10 +144,9 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
             [Graded expansion vector (a, 0), Graded expansion vector (0, 1)]
         """
         module_gens = self.grading().basis(index)
-        module_gens = filter(lambda e: sum(e[self.nbasegens():]) == 1, module_gens)
-        module_gens = [ filter( lambda e: e != 1,
-                                [ mon**ex if ex > 1 else (mon if ex == 1 else 1) 
-                                  for mon,ex in zip(self.basegens(), g[:self.nbasegens()]) + zip(self.gens(), g[self.nbasegens():]) ] )
+        module_gens = [e for e in module_gens if sum(e[self.nbasegens():]) == 1]
+        module_gens = [ [e for e in [ mon**ex if ex > 1 else (mon if ex == 1 else 1) 
+                                  for mon,ex in list(zip(self.basegens(), g[:self.nbasegens()])) + list(zip(self.gens(), g[self.nbasegens():])) ] if e != 1]
                         for g in module_gens ]
         
         return [ reduce(operator.mul, g) if len(g) > 1 else g[0] for g in module_gens ]
@@ -225,7 +226,7 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
             Graded expansion module with generators b
         """
         return "Graded expansion module with generators " \
-                + ''.join(map(lambda e: repr(e.polynomial()) + ", ", self.gens()))[:-2]
+                + ''.join([repr(e.polynomial()) + ", " for e in self.gens()])[:-2]
                 
     def _latex_(self) :
         r"""
@@ -243,4 +244,4 @@ class GradedExpansionModule_class ( GradedExpansionAmbient_abstract, Module ) :
             \text{Graded expansion module with generators }b
         """
         return r"\text{Graded expansion module with generators }" \
-                + ''.join(map(lambda e: latex(e.polynomial()) + ", ", self.gens()))[:-2]
+                + ''.join([latex(e.polynomial()) + ", " for e in self.gens()])[:-2]

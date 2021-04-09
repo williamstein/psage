@@ -4,6 +4,7 @@ Functors for ring and modules of graded expansions.
 AUTHOR :
     -- Martin Raum (2009 - 07 - 27) Initial version
 """
+from __future__ import absolute_import
 
 #===============================================================================
 # 
@@ -24,6 +25,9 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import next
+from builtins import map
 from itertools import groupby, dropwhile
 from sage.algebras.algebra import Algebra
 from sage.categories.morphism import Morphism
@@ -145,8 +149,8 @@ class GradedExpansionFunctor ( ConstructionFunctor ) :
             sage: funct(K)
             Graded expansion module with generators a, b
         """
-        from gradedexpansion_ring import GradedExpansionRing_class
-        from gradedexpansion_module import GradedExpansionModule_class
+        from .gradedexpansion_ring import GradedExpansionRing_class
+        from .gradedexpansion_module import GradedExpansionModule_class
         
         R = pushout(self.__relations.ring(), R)
         rel = R.ideal(self.__relations.gens())
@@ -444,15 +448,15 @@ class GradedExpansionEvaluationHomomorphism ( Morphism ) :
         for imexps, exps in xexps :
             factor = self.__base_ring_images.universe().zero_element()
             for e in exps :
-                factor = factor + coeffs[e] * prod(map( operator.pow, self.__base_ring_images,
-                                                        ([e] if isinstance(e,int) else e)[:len(self.__base_ring_images)] ))
+                factor = factor + coeffs[e] * prod(list(map( operator.pow, self.__base_ring_images,
+                                                        ([e] if isinstance(e,int) else e)[:len(self.__base_ring_images)] )))
             
             imexps = tuple(imexps)
                 
             if imexps.count(0) == len(imexps) :
                 res = res + factor * expansion_ambient.one_element()
             elif imexps.count(0) == len(imexps) - 1 :
-                i,e = dropwhile(lambda (_,e) : e == 0, enumerate(imexps)).next()
+                i,e = next(dropwhile(lambda __e : __e[1] == 0, enumerate(imexps)))
                 # this is the typical module case with an action
                 # that does not respect the monoid structure
                 if e == 1 :
@@ -460,6 +464,6 @@ class GradedExpansionEvaluationHomomorphism ( Morphism ) :
                 else :
                     res = res + factor * self.__images[i]**e
             else :
-                res = res + factor * prod(map(operator.pow, self.__images, imexps))
+                res = res + factor * prod(list(map(operator.pow, self.__images, imexps)))
                             
         return res

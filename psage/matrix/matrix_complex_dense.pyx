@@ -33,7 +33,7 @@ EXAMPLES:
 
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
-
+from libc.string cimport strlen, strcpy, memset, memcpy, memcmp
 from psage.rings.mp_cimports cimport *
 
 
@@ -1935,7 +1935,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         #from linalg_complex_dense cimport Eigenvalues_of_M
         z = self._base_ring(1)
         evs = <mpc_t *> sig_malloc(sizeof(mpc_t) * self._nrows)
-        for i in xrange(self._nrows):
+        for i in range(self._nrows):
             mpc_init2(evs[i],self._prec)
         if self.is_immutable() or overwrite==0:
             A = <mpc_t **> sig_malloc(sizeof(mpc_t*) * self._nrows)
@@ -2294,7 +2294,7 @@ cdef class Matrix_complex_dense(Matrix_dense):
         #from linalg_complex_dense cimport Eigenvalues_of_M
         z = self._base_ring(1)
         evs = <mpc_t *> sig_malloc(sizeof(mpc_t) * self._nrows)
-        for i in xrange(self._nrows):
+        for i in range(self._nrows):
             mpc_init2(evs[i],self._prec)
         #_eigenvalues_(evs,self._matrix,self._nrows,self._prec,self._mpeps,self._rnd,self._rnd_re)
         for i from 0 <= i < self._nrows:
@@ -2357,7 +2357,7 @@ cpdef test_matrix_met(int n=20):
     F=MPComplexField(103)
     
     A=MatrixSpace(F,n).random_element()
-    for i in xrange(100):
+    for i in range(100):
         B=A.qr_decomp()
 
 cdef _my_sign(mpc_t alpha, mpc_t z, prec,mpc_rnd_t rnd_cplx,mpfr_rnd_t rnd_re):
@@ -2812,7 +2812,7 @@ def random_matrix_eigenvalues(F,n):
     M = MatrixSpace(F,n)
     #U = Matrix(ring=F,n)
     D = copy(M.zero())
-    for i in xrange(n):
+    for i in range(n):
         x = F.random_element()
         l.append(x)
         D[i,i]=x
@@ -2838,20 +2838,20 @@ def random_unitary_matrix(F,n):
     # make a random choice of vectors and use Gram-Schmidt to orthogonolize
     V = VectorSpace(F,n)
     v = dict(); u=dict()
-    for i in xrange(n):
+    for i in range(n):
         v[i] = V.random_element()
         nv= v[i].norm()
         v[i]=v[i]/nv
     # check that the v's are indeed linear independent
     VV= V.vector_space_span(v.values())
     assert VV.dimension()==V.dimension()
-    for i in xrange(n):
+    for i in range(n):
         u[i] = v[i]
-        for j in xrange(i):
+        for j in range(i):
             u[i]=u[i]-u[j]*u[i].scalar_product(u[j])
         u[i]=u[i]/u[i].norm()
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             U[i,j]=u[i][j]
     return U
 

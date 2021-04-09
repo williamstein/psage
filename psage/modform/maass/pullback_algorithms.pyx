@@ -81,30 +81,30 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
     if Xpb_t==NULL: raise MemoryError
     Ypb_t = <double***> sig_malloc( sizeof(double** ) * nc )
     if Ypb_t==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         Xpb_t[i] = <double**>sig_malloc(sizeof(double*) * nc )
         Ypb_t[i] = <double**>sig_malloc(sizeof(double*) * nc )
         if Ypb_t[i]==NULL or Xpb_t[i]==NULL:
             raise MemoryError
-        for j from 0<=j<nc:
+        for j in range(nc):
             Xpb_t[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
             Ypb_t[i][j] = <double*>sig_malloc(sizeof(double) * Ql )
             if Ypb_t[i][j]==NULL or Xpb_t[i][j]==NULL:
                 raise MemoryError
-            for n from 0<=n<Ql:
+            for n in range(Ql):
                 Xpb_t[i][j][n]=<double>0
                 Ypb_t[i][j][n]=<double>0
     Cvec_t = <double complex***>sig_malloc(sizeof(double complex**) * nc )
     if Cvec_t==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         Cvec_t[i] = <double complex**>sig_malloc(sizeof(double complex*) * nc )
         if Cvec_t[i]==NULL:
             raise MemoryError
-        for j from 0<=j<nc:
+        for j in range(nc):
             Cvec_t[i][j] = <double complex*>sig_malloc(sizeof(double complex) * Ql )
             if Cvec_t[i][j]==NULL:
                 raise MemoryError
-            for n from 0<=n<Ql:
+            for n in range(Ql):
                 Cvec_t[i][j][n]=0 
     cdef int res
     res = pullback_pts_cplx_dp(S,Qs,Qf,Y,Xm_t,Xpb_t,Ypb_t,Cvec_t)
@@ -113,38 +113,38 @@ cpdef pullback_pts_dp(S,int Qs,int Qf,double Y,double weight=0,holo=False):
     cdef dict Xm,Xpb,Ypb,Cvec,pb
     Xm=dict(); Xpb=dict() 
     Ypb=dict();Cvec=dict()
-    for n from 0<=n<Ql:
+    for n in range(Ql):
         Xm[n]=Xm_t[n]
-    for i from 0<=i<nc:
+    for i in range(nc):
         Cvec[i]=dict();Xpb[i]=dict();Ypb[i]=dict()
-        for j from 0<=j<nc:
+        for j  in range(nc):
             Cvec[i][j]=dict();Xpb[i][j]=dict();Ypb[i][j]=dict()
-            for n from 0<=n<Ql:
+            for n in range(Ql):
                 Cvec[i][j][n]=Cvec_t[i][j][n]
                 Xpb[i][j][n]=Xpb_t[i][j][n]
                 Ypb[i][j][n]=Ypb_t[i][j][n]
     pb=dict()
     pb['xm']=Xm; pb['xpb']=Xpb; pb['ypb']=Ypb; pb['cvec']=Cvec
     if Ypb_t<>NULL:
-        for i from 0<=i<nc:
+        for i in range(nc):
             if Ypb_t[i]<>NULL:
-                for j from 0<=j<nc:
+                for j  in range(nc):
                     if Ypb_t[i][j]<>NULL:
                         sig_free(Ypb_t[i][j])
                 sig_free(Ypb_t[i])
         sig_free(Ypb_t)
     if Xpb_t<>NULL:
-        for i from 0<=i<nc:
+        for i in range(nc):
             if Xpb_t[i]<>NULL:
-                for j from 0<=j<nc:
+                for j  in range(nc):
                     if Xpb_t[i][j]<>NULL:
                         sig_free(Xpb_t[i][j])
                 sig_free(Xpb_t[i])
         sig_free(Xpb_t)
     if Cvec_t<>NULL:
-        for i from 0<=i<nc:
+        for i in range(nc):
             if Cvec_t[i]<>NULL:
-                for j from 0<=j<nc:
+                for j  in range(nc):
                     if Cvec_t[i][j]<>NULL:
                         sig_free(Cvec_t[i][j])
                 sig_free(Cvec_t[i])
@@ -251,7 +251,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
         nreps=G._index
         N=G._level
         reps= <int ***> sig_malloc(sizeof(int**) * nreps)
-        for j from 0 <=j<nreps:
+        for j in range(nreps):
             reps[j]=NULL
             reps[j]=<int **> sig_malloc(sizeof(int*) * 2)
             if reps[j]==NULL:
@@ -279,7 +279,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
         use_int=0
     normalizers=<int**>sig_malloc(sizeof(int*)*nc)
     if normalizers==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         normalizers[i]=<int*>sig_malloc(sizeof(int)*4)
         a,b,c,d=G._cusp_data[i]['normalizer']
         normalizers[i][0]=a
@@ -296,7 +296,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
     if vertex_widths==NULL: raise MemoryError
     vertex_cusp=<int*>sig_malloc(sizeof(int)*nv)    
     if vertex_cusp==NULL: raise MemoryError
-    for i from 0<=i<nv:
+    for i in range(nv):
         cusp_maps[i]=<int*>sig_malloc(sizeof(int)*4)
         cusp_maps[i][0]=<int>G._cusp_maps[i][0]
         cusp_maps[i][1]=<int>G._cusp_maps[i][1]
@@ -311,7 +311,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
         vertex_cusp[i]=<int>G._vertex_data[i]['cusp']
     cdef double* widths
     widths=<double*>sig_malloc(sizeof(double)*nc)
-    for i from 0<=i<nc:
+    for i in range(nc):
         if verbose>3:
             print "width[",i,"]=",G._cusp_data[i]['width'],type(G._cusp_data[i]['width'])
         widths[i]=<double>G._cusp_data[i]['width']
@@ -324,7 +324,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
         dir_char=1
         modulus = multiplier._character.modulus()
         charvec=<double complex*>sig_malloc(sizeof(double complex)*modulus)
-        for i from 0<=i<modulus:
+        for i in range(modulus):
             mc = multiplier._character(i)
             if hasattr(mc,"complex_embedding"):
                 charvec[i]=<double complex> multiplier._character(i).complex_embedding()
@@ -551,17 +551,17 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
     if charvec<>NULL:
         sig_free(charvec)
     if normalizers<>NULL:
-        for i from 0<=i<nc:
+        for i in range(nc):
             if normalizers[i]<>NULL:
                 sig_free(normalizers[i])
         sig_free(normalizers)
     if cusp_maps<>NULL:
-        for i from 0<=i<nv:
+        for i in range(nv):
             if cusp_maps[i]<>NULL:
                 sig_free(cusp_maps[i])
         sig_free(cusp_maps)
     if vertex_maps<>NULL:
-        for i from 0<=i<nv:
+        for i in range(nv):
             if vertex_maps[i]<>NULL:
                 sig_free(vertex_maps[i])
         sig_free(vertex_maps)
@@ -573,7 +573,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
         sig_free(widths)
     if is_Gamma0==1:
         if reps<>NULL:
-            for j from 0 <=j<nreps:
+            for j in range(nreps):
                 if reps[j]<>NULL:
                     if reps[j][0]<>NULL:
                         sig_free(reps[j][0])
@@ -682,7 +682,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         nreps=G._index
         N=G._level
         reps= <int ***> sig_malloc(sizeof(int**) * nreps)
-        for j from 0 <=j<nreps:
+        for j in range(nreps):
             reps[j]=NULL
             reps[j]=<int **> sig_malloc(sizeof(int*) * 2)
             if reps[j]==NULL:
@@ -710,7 +710,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         use_int=0
     normalizers=<int**>sig_malloc(sizeof(int*)*nc)
     if normalizers==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         normalizers[i]=<int*>sig_malloc(sizeof(int)*4)
         a,b,c,d=G._cusp_data[i]['normalizer']
         normalizers[i][0]=a
@@ -727,7 +727,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
     if vertex_widths==NULL: raise MemoryError
     vertex_cusp=<int*>sig_malloc(sizeof(int)*nv)    
     if vertex_cusp==NULL: raise MemoryError
-    for i from 0<=i<nv:
+    for i in range(nv):
         cusp_maps[i]=<int*>sig_malloc(sizeof(int)*4)
         cusp_maps[i][0]=<int>G._cusp_maps[i][0]
         cusp_maps[i][1]=<int>G._cusp_maps[i][1]
@@ -742,7 +742,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         vertex_cusp[i]=<int>G._vertex_data[i]['cusp']
     cdef double* widths
     widths=<double*>sig_malloc(sizeof(double)*nc)
-    for i from 0<=i<nc:
+    for i in range(nc):
         if verbose>3:
             print "width[",i,"]=",G._cusp_data[i]['width'],type(G._cusp_data[i]['width'])
         widths[i]=<double>G._cusp_data[i]['width']
@@ -755,7 +755,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         dir_char=1
         modulus = multiplier._character.modulus()
         charvec=<double complex*>sig_malloc(sizeof(double complex)*modulus)
-        for i from 0<=i<modulus:
+        for i in range(modulus):
             mc = multiplier._character(i)
             if hasattr(mc,"complex_embedding"):
                 charvec[i]=<double complex> multiplier._character(i).complex_embedding()
@@ -770,7 +770,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         fourQ=<double>2*(Qf-Qs+1)
     else:
         fourQ=<double>(4*Qf)
-    for j from Qs<= j <= Qf: 
+    for j in range(Qs,Qf+1):
         Xm[j-Qs]=<double>(2*j-1)/fourQ        
     if verbose>0:
         print "use_int=",use_int
@@ -971,22 +971,22 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                 Cvec[ci][cj][j]=tmp # mp_ctx.mpc(0,tmp)
             else:
                 Cvec[ci][cj][j]=CMPLX(1.0,0.0) #<double complex>1.0   #mp_ctx.mpc(0,tmp)
-    for j from 0<=j<Ql:
+    for j in range(Ql):
         Xm[j]=Xm[j]*twopi
     if charvec<>NULL:
         sig_free(charvec)
     if normalizers<>NULL:
-        for i from 0<=i<nc:
+        for i in range(nc):
             if normalizers[i]<>NULL:
                 sig_free(normalizers[i])
         sig_free(normalizers)
     if cusp_maps<>NULL:
-        for i from 0<=i<nv:
+        for i in range(nv):
             if cusp_maps[i]<>NULL:
                 sig_free(cusp_maps[i])
         sig_free(cusp_maps)
     if vertex_maps<>NULL:
-        for i from 0<=i<nv:
+        for i in range(nv):
             if vertex_maps[i]<>NULL:
                 sig_free(vertex_maps[i])
         sig_free(vertex_maps)
@@ -998,7 +998,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         sig_free(widths)
     if is_Gamma0==1:
         if reps<>NULL:
-            for j from 0 <=j<nreps:
+            for j in range(nreps):
                 if reps[j]<>NULL:
                     if reps[j][0]<>NULL:
                         sig_free(reps[j][0])
@@ -1067,7 +1067,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         nreps=G._index
         N=G._level
         reps= <int ***> sig_malloc(sizeof(int**) * nreps)
-        for j from 0 <=j<nreps:
+        for j in range(nreps):
             reps[j]=NULL
             reps[j]=<int **> sig_malloc(sizeof(int*) * 2)
             if reps[j]==NULL:
@@ -1089,7 +1089,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         use_int=0
     normalizers=<int**>sig_malloc(sizeof(int*)*nc)
     if normalizers==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         normalizers[i]=<int*>sig_malloc(sizeof(int)*4)
         [a,b,c,d]=G._cusp_data[i]['normalizer']
         normalizers[i][0]=a
@@ -1100,7 +1100,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
     #if verbose>0:
     #    print "Here2 nc=",nc,type(nc)
     if cusp_maps==NULL: raise MemoryError
-    for i from 0<=i<nv:
+    for i in range(nv):
         cusp_maps[i]=<int*>sig_malloc(sizeof(int)*4)
         cusp_maps[i][0]=G._cusp_maps[i][0]
         cusp_maps[i][1]=G._cusp_maps[i][1]
@@ -1108,7 +1108,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         cusp_maps[i][3]=G._cusp_maps[i][3]
     cdef double* widths
     widths=<double*>sig_malloc(sizeof(double)*nc)
-    for i from 0<=i<nc:
+    for i in range(nc):
         if verbose>0:
             print "width[",i,"]=",G._cusp_data[i]['width'],type(G._cusp_data[i]['width'])
         widths[i]=<double>G._cusp_data[i]['width']
@@ -1120,7 +1120,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
     if non_trivial:
         modulus = multiplier._character.modulus()
         charvec=<double*>sig_malloc(sizeof(double)*modulus)
-        for i from 0<=i<modulus:
+        for i in range(modulus):
             charvec[i]=<double> RR(multiplier._character(i))
             if verbose>1:
                 print "chi(",i,")=",charvec[i]
@@ -1131,11 +1131,11 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         fourQ=<double>2*(Qf-Qs+1)
     else:
         fourQ=<double>(4*Qf)
-    for j from Qs<= j <= Qf: 
+    for j in range(Qs,Qf+1):
         Xm[j-Qs]=<double>(2*j-1)/fourQ        
     if verbose>2:
         print "use_int=",use_int
-    for ci from 0<=ci<nc: #in G._cusps:
+    for ci in range(nc): #in G._cusps:
         #ci = G._cusps[i]
         if verbose>2:
             print "ci=",ci
@@ -1146,7 +1146,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         else:
             wi_d=widths[ci] #<double>G._cusp_data[ci]['width'] #(ci)
             swi=sqrt(wi_d)
-        for j from 0 <= j < Ql: #1-Q,Q):
+        for j in range(Ql): #1-Q,Q):
             x=Xm[j]; y=Y
             a=normalizers[ci][0]
             b=normalizers[ci][1]
@@ -1241,7 +1241,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
                 Cvec[ci][cj][j]=Cvec[ci][cj][j]/v
                 
 
-    for j from 0<=j<Ql:
+    for j in range(Ql):
         Xm[j]=Xm[j]*twopi
     if non_trivial:
         if charvec<>NULL:
@@ -1254,7 +1254,7 @@ cdef int pullback_pts_real_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
         sig_free(widths)
     if is_Gamma0==1:
         if reps<>NULL:
-            for j from 0 <=j<nreps:
+            for j in range(nreps):
                 if reps[j]<>NULL:
                     if reps[j][0]<>NULL:
                         sig_free(reps[j][0])
@@ -1328,10 +1328,10 @@ def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
         raise Exception,"Must support a weight for holomorphic forms!"
     twoQl=<double>(2*(Qf+1-Qs))
     if(Qs<0):
-        for j from Qs<= j <= Qf: 
+        for j in range(Qs,Qf+1):
             Xm[j]=<double>(2*j-1)/twoQl        
     else:
-        for j from Qs<= j <=Qf: 
+        for j in range(Qs,Qf+1):
             Xm[j]=<double>(2*j-1)/twoQl        
 
     cdef int cii,wi
@@ -1343,7 +1343,7 @@ def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
         cii=G._cusps.index(ci)
         wi = G._cusp_data[ci]['width'] #(ci)
         swi=sqrt(<float>wi)
-        for j from Qs <= j <= Qf: #1-Q,Q):
+        for j in range(Qs,Qf+1):
             [x,y]   = normalize_point_to_cusp_dp(G,ci,Xm[j],Y)
             if verbose>1:
                 print "x,y=",x,y
@@ -1520,7 +1520,7 @@ cpdef pullback_pts_mpc(S,int Qs,int Qf,RealNumber Y,deb=False):
                 fp0.write(s)
     else:
         Qfak = RF(4*(Qf-Qs+1))
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             Xm[j]=RF(2*j-1)/Qfak
             if verbose>3:
                 s=str(Xm[j])+"\n"
@@ -1531,7 +1531,7 @@ cpdef pullback_pts_mpc(S,int Qs,int Qf,RealNumber Y,deb=False):
         if verbose>1:
             print "cusp =",ci
         swi=RF(G._cusp_data[ci]['width']).sqrt()
-        for j from Qs<= j <= Qf:
+        for j in range(Qs,Qf+1):
             #if verbose > 0:
             #    print "Y before=",Y
             if cii==0:
@@ -1630,7 +1630,7 @@ cpdef pullback_pts_mpc(S,int Qs,int Qf,RealNumber Y,deb=False):
                 fp3.write(str(tmp)+"\n")
 
         #        Xmi[j]=mp_ctx.mpc(0,Xm[j]*twopi)
-    for j from Qs <= j <= Qf: 
+    for j in range(Qs,Qf+1):
         Xm[j]=Xm[j]*twopi
     if verbose>3:
         fp1.close()
@@ -1735,12 +1735,12 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
     #twoQl=RF(2*(Qf+1-Qs))
     if Qs<0:
         Qfak = 2*(Qf-Qs+1)
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
             mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
     else:
         Qfak = 4*(Qf-Qs+1)
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
             mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
     cdef int ci,cj
@@ -1757,7 +1757,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
         nreps=G._index
         N=G._level
         reps= <int ***> sig_malloc(sizeof(int**) * nreps)
-        for j from 0 <=j<nreps:
+        for j in range(nreps):
             reps[j]=NULL
             reps[j]=<int **> sig_malloc(sizeof(int*) * 2)
             if reps[j]==NULL:
@@ -1782,7 +1782,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
     cdef int** cusp_maps=NULL
     normalizers=<int**>sig_malloc(sizeof(int*)*nc)
     if normalizers==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         normalizers[i]=<int*>sig_malloc(sizeof(int)*4)
         a,b,c,d=G._cusp_data[i]['normalizer']
         normalizers[i][0]=a
@@ -1800,7 +1800,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
     vertex_cusp=<int*>sig_malloc(sizeof(int)*nv)    
     if vertex_cusp==NULL: raise MemoryError
     if cusp_maps==NULL: raise MemoryError
-    for i from 0<=i<nv:
+    for i in range(nv):
         cusp_maps[i]=<int*>sig_malloc(sizeof(int)*4)
         cusp_maps[i][0]=G._cusp_maps[i][0]
         cusp_maps[i][1]=G._cusp_maps[i][1]
@@ -1815,14 +1815,14 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
         vertex_cusp[i]=<int>G._vertex_data[i]['cusp']
     cdef double* widths
     widths=<double*>sig_malloc(sizeof(double)*nc)
-    for i from 0<=i<nc:
+    for i in range(nc):
         if verbose>3:
             print "width[",i,"]=",G._cusp_data[i]['width'],type(G._cusp_data[i]['width'])
         widths[i]=<double>G._cusp_data[i]['width']
     cdef int wi,wj,vi,vj
     cdef SL2Z_elt A,Tj
     cdef double dp_x,dp_y
-    for ci from 0<=ci<nc:
+    for ci in range(nc):
         wi = <int>widths[ci] #G._cusp_data[ci]['width'] #(ci)
         if verbose>1:
             print "cusp =",ci
@@ -1831,7 +1831,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
             mpfr_sqrt(swi,swi,rnd_re)
         else:
             mpfr_set_ui(swi,1,rnd_re)
-        for j from Qs<= j <= Qf:
+        for j in range(Qs,Qf+1):
             #if ciindex==0:
             mpfr_set(x0,Xm._entries[j-Qs],rnd_re)
             mpfr_set(y0,Y.value,rnd_re)
@@ -1956,7 +1956,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
             #    fp3.write(str(tmp)+"\n")
 
         #        Xmi[j]=mp_ctx.mpc(0,Xm[j]*twopi)
-    for j from Qs <= j <= Qf: 
+    for j in range(Qs,Qf+1): 
         mpfr_mul(Xm._entries[j-Qs],Xm._entries[j-Qs],twopi.value,rnd_re)
     if verbose>3:
         fp1.close()
@@ -1964,7 +1964,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
         fp3.close()
     pb=dict()
     if normalizers<>NULL:
-        for i from 0 <= i < nc:
+        for i in range(nc):
             if  normalizers[i]<>NULL:
                 sig_free(normalizers[i])
     sig_free(normalizers)            
@@ -2029,41 +2029,41 @@ cpdef pullback_pts_mp(S,int Qs,int Qf,RealNumber Y,int holo=0):
     if Qs<0 or is_Hecke_triangle_group(G):
         Cvec_t = <mpc_t***>sig_malloc(sizeof(mpc_t**) * nc )
         if Cvec_t==NULL: raise MemoryError
-        for i from 0<=i<nc:
+        for i in range(nc):
             Cvec_t[i] = <mpc_t**>sig_malloc(sizeof(mpc_t*) * nc )
             if Cvec_t[i]==NULL:
                 raise MemoryError
-            for j from 0<=j<nc:
+            for j  in range(nc):
                 Cvec_t[i][j] = <mpc_t*>sig_malloc(sizeof(mpc_t) * Ql )
                 if Cvec_t[i][j]==NULL:
                     raise MemoryError
-                for n from 0<=n<Ql:
+                for n in range(Ql):
                     mpc_init2(Cvec_t[i][j][n],prec)
                     mpc_set_si(Cvec_t[i][j][n],0,rnd)
     else:
         print "HERE0"        
         CSvec_t = <int***>sig_malloc(sizeof(int**) * nc )
         if CSvec_t==NULL: raise MemoryError
-        for i from 0<=i<nc:
+        for i in range(nc):
             CSvec_t[i] = <int**>sig_malloc(sizeof(int*) * nc )
             if CSvec_t[i]==NULL:
                 raise MemoryError
-            for j from 0<=j<nc:
+            for j  in range(nc):
                 CSvec_t[i][j] = <int*>sig_malloc(sizeof(int) * Ql )
                 if CSvec_t[i][j]==NULL:
                     raise MemoryError
         print "HERE"
         RCvec_t = <mpfr_t****>sig_malloc(sizeof( Xpb_t) * nc )
         if RCvec_t==NULL: raise MemoryError
-        for i from 0<=i<nc:
+        for i in range(nc):
             RCvec_t[i] = <mpfr_t***>sig_malloc(sizeof(mpfr_t**) * nc )
             if RCvec_t[i]==NULL:
                 raise MemoryError
-            for j from 0<=j<nc:
+            for j  in range(nc):
                 RCvec_t[i][j] = <mpfr_t**>sig_malloc(sizeof(mpfr_t*) * Ql )
                 if RCvec_t[i][j]==NULL:
                     raise MemoryError
-                for n from 0<=n<Ql:
+                for n in range(Ql):
                     RCvec_t[i][j][n] = <mpfr_t*>sig_malloc(sizeof(mpfr_t) * 3 )
                     mpfr_init2(RCvec_t[i][j][n][0],prec)
                     mpfr_init2(RCvec_t[i][j][n][1],prec)
@@ -2296,12 +2296,12 @@ cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
     verbose = S._verbose
     if Qs<0:
         Qfak = 2*(Qf-Qs+1)
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
             mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     else:
         Qfak = 4*(Qf-Qs+1)
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
             mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     cdef int ci,cj
@@ -2318,7 +2318,7 @@ cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
         nreps=G._index
         N=G._level
         reps= <int ***> sig_malloc(sizeof(int**) * nreps)
-        for j from 0 <=j<nreps:
+        for j in range(nreps):
             reps[j]=NULL
             reps[j]=<int **> sig_malloc(sizeof(int*) * 2)
             if reps[j]==NULL:
@@ -2343,7 +2343,7 @@ cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
     cdef int** cusp_maps=NULL
     normalizers=<int**>sig_malloc(sizeof(int*)*nc)
     if normalizers==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         normalizers[i]=<int*>sig_malloc(sizeof(int)*4)
         a,b,c,d=G._cusp_data[i]['normalizer']
         normalizers[i][0]=a
@@ -2361,7 +2361,7 @@ cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
     vertex_cusp=<int*>sig_malloc(sizeof(int)*nv)    
     if vertex_cusp==NULL: raise MemoryError
     if cusp_maps==NULL: raise MemoryError
-    for i from 0<=i<nv:
+    for i in range(nv):
         cusp_maps[i]=<int*>sig_malloc(sizeof(int)*4)
         cusp_maps[i][0]=G._cusp_maps[i][0]
         cusp_maps[i][1]=G._cusp_maps[i][1]
@@ -2559,7 +2559,7 @@ cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
     for j in range(Ql):
         mpfr_mul(Xm[j],Xm[j],twopi.value,rnd_re)
     if normalizers<>NULL:
-        for i from 0 <= i < nc:
+        for i in range(nc):
             if  normalizers[i]<>NULL:
                 sig_free(normalizers[i])
         sig_free(normalizers)            
@@ -2681,12 +2681,12 @@ cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*
     verbose = S._verbose
     if Qs<0:
         Qfak = 2*(Qf-Qs+1)
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             mpfr_set_si(Xm[j-Qs],2*j-1,rnd_re)
             mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     else:
         Qfak = 4*(Qf-Qs+1)
-        for j from Qs <= j <= Qf:
+        for j in range(Qs,Qf+1):
             mpfr_set_si(Xm[j-Qs],2*(j-Qf)-1,rnd_re)
             mpfr_div_si(Xm[j-Qs],Xm[j-Qs],Qfak,rnd_re)
     cdef int ci,cj
@@ -2703,7 +2703,7 @@ cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*
         nreps=G._index
         N=G._level
         reps= <int ***> sig_malloc(sizeof(int**) * nreps)
-        for j from 0 <=j<nreps:
+        for j in range(nreps):
             reps[j]=NULL
             reps[j]=<int **> sig_malloc(sizeof(int*) * 2)
             if reps[j]==NULL:
@@ -2728,7 +2728,7 @@ cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*
     cdef int** cusp_maps=NULL
     normalizers=<int**>sig_malloc(sizeof(int*)*nc)
     if normalizers==NULL: raise MemoryError
-    for i from 0<=i<nc:
+    for i in range(nc):
         normalizers[i]=<int*>sig_malloc(sizeof(int)*4)
         a,b,c,d=G._cusp_data[i]['normalizer']
         normalizers[i][0]=a
@@ -2750,7 +2750,7 @@ cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*
     if cusp_maps==NULL: raise MemoryError
     cdef int delta
     delta = 0
-    for i from 0<=i<nv:
+    for i in range(nv):
         cusp_maps[i]=<int*>sig_malloc(sizeof(int)*4)
         cusp_maps[i][0]=G._cusp_maps[i][0]
         cusp_maps[i][1]=G._cusp_maps[i][1]
@@ -2981,7 +2981,7 @@ cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*
     for j in range(Ql):
         mpfr_mul(Xm[j],Xm[j],twopi.value,rnd_re)
     if normalizers<>NULL:
-        for i from 0 <= i < nc:
+        for i in range(nc):
             if  normalizers[i]<>NULL:
                 sig_free(normalizers[i])
         sig_free(normalizers)
@@ -3240,12 +3240,12 @@ cdef int pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpf
 #     #twoQl=RF(2*(Qf+1-Qs))
 #     if Qs<0:
 #         Qfak = 2*(Qf-Qs+1)
-#         for j from Qs <= j <= Qf:
+#         for j in range(Qs,Qf+1):
 #             mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
 #             mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
 #     else:
 #         Qfak = 4*(Qf-Qs+1)
-#         for j from Qs <= j <= Qf:
+#         for j in range(Qs,Qf+1):
 #             mpfr_set_si(Xm._entries[j-Qs],2*j-1,rnd_re)
 #             mpfr_div_si(Xm._entries[j-Qs],Xm._entries[j-Qs],Qfak,rnd_re)
 #     cdef tuple ci,cj
@@ -3391,7 +3391,7 @@ cdef int pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpf
 #                 fp3.write(str(tmp)+"\n")
 
 #         #        Xmi[j]=mp_ctx.mpc(0,Xm[j]*twopi)
-#     for j from Qs <= j <= Qf: 
+#     for j in range(Qs,Qf+1): 
 #         mpfr_mul(Xm._entries[j-Qs],Xm._entries[j-Qs],twopi.value,rnd_re)
 #     if verbose>3:
 #         fp1.close()

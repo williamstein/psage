@@ -5,6 +5,7 @@ AUTHORS:
 
 - Martin Raum (2009 - 05 - 10) Initial version
 """
+from __future__ import division
 
 #===============================================================================
 # 
@@ -25,6 +26,9 @@ AUTHORS:
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import map
+from builtins import range
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids \
               import TrivialCharacterMonoid, TrivialRepresentation
 from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_ring \
@@ -42,6 +46,7 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
 from sage.structure.sage_object import SageObject
 import itertools
+from functools import reduce
 
 #===============================================================================
 # SiegelModularFormGnIndices_diagonal_lll
@@ -70,7 +75,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         elif i >= self.__n and i < (self.__n * (self.__n + 1)) // 2 :
             i = i - self.__n
             
-            for r in xrange(self.__n) :
+            for r in range(self.__n) :
                 if i >=  self.__n - r - 1 :
                     i = i - (self.__n - r - 1)
                     continue
@@ -88,7 +93,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
              and i < self.__n**2 :
             i = i - (self.__n * (self.__n + 1)) // 2
             
-            for r in xrange(self.__n) :
+            for r in range(self.__n) :
                 if i >=  self.__n - r - 1 :
                     i = i - (self.__n - r - 1)
                     continue
@@ -103,10 +108,10 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
             t.set_immutable()
             return t
             
-        raise ValueError, "Generator not defined"
+        raise ValueError("Generator not defined")
     
     def gens(self) :    
-        return [self.gen(i) for i in xrange(self.ngens())]
+        return [self.gen(i) for i in range(self.ngens())]
 
     def genus(self) :
         return self.__n
@@ -139,8 +144,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         if len(ls) == 0 or len(rs) == 0 :
             return SiegelModularFormGnFilter_diagonal_lll(self.__n, 0, self.__reduced)
 
-        maxd = flatten( map(lambda (ml, mr): [ml[i,i] + mr[i,i] for i in xrange(self.__n)],
-                                itertools.product(ls, rs) ) )
+        maxd = flatten( [[ml_mr[0][i,i] + ml_mr[1][i,i] for i in range(self.__n)] for ml_mr in itertools.product(ls, rs)] )
 
         return SiegelModularFormGnFilter_diagonal_lll(self.__n, maxd + 1, self.__reduced)
   
@@ -163,7 +167,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         if n == 1 :
             return u
         
-        for i in xrange(n) :
+        for i in range(n) :
             if v[i] < 0 :
                 v[i] = -v[i]
                 u[i,i] = -1
@@ -173,7 +177,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
             
             if e == 0 :
                 cur_last_entry = n - 1
-                for j in xrange(n - 1, -1, -1) :
+                for j in range(n - 1, -1, -1) :
                     if v[j] == 0 :
                         if cur_last_entry != j :
                             us = identity_matrix(n)
@@ -223,7 +227,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
                 v[i] = v[0]
                 v[0] = e
 
-            for j in xrange(1,n) :
+            for j in range(1,n) :
                 h = - (v[j] // e)
                 us = identity_matrix(n)
                 us[j,0] = h
@@ -248,16 +252,16 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         
         indefinite = False
         
-        for i in xrange(n) :
+        for i in range(n) :
             if t[i,i] < 0 :
                 return -1
             elif t[i,i] == 0 :
                 indefinite = True
-                for j in xrange(i + 1, n) :
+                for j in range(i + 1, n) :
                     if t[i,j] != 0 :
                         return -1
             else :
-                for j in xrange(i + 1, n) :
+                for j in range(i + 1, n) :
                     t.add_multiple_of_row(j, i, -t[j,i]/t[i,i])
                     t.add_multiple_of_column(j, i, -t[i,j]/t[i,i])
                 
@@ -277,7 +281,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         n = t.nrows()
         u = identity_matrix(QQ, n)
         
-        for i in xrange(n) :
+        for i in range(n) :
             if t[i,i] < 0 :
                 return None
             elif t[i,i] == 0 :
@@ -297,7 +301,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
                 
                 return (t,1)
             else :
-                for j in xrange(i + 1, n) :
+                for j in range(i + 1, n) :
                     us = identity_matrix(QQ, n, n)
                     us[i,j] = -t[i,j]/t[i,i]
                     u = u * us
@@ -312,17 +316,17 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         return (t, 1)
 
     def decompositions(self, t) :
-        for diag in itertools.product(*[xrange(t[i,i] + 1) for i in xrange(self.__n)]) :
-            for subents in  itertools.product( *[ xrange(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
-                                                  for i in xrange(self.__n - 1) 
-                                                  for j in xrange(i + 1, self.__n) ] ) :
+        for diag in itertools.product(*[range(t[i,i] + 1) for i in range(self.__n)]) :
+            for subents in  itertools.product( *[ range(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
+                                                  for i in range(self.__n - 1) 
+                                                  for j in range(i + 1, self.__n) ] ) :
                 t1 = matrix(ZZ, [[ 2 * diag[i]
                                    if i == j else
                                       (subents[self.__n * i - (i * (i + 1)) // 2 + j - i - 1]
                                        if i < j else
                                        subents[self.__n * j - (j * (j + 1)) // 2 + i - j - 1])
-                                  for i in xrange(self.__n) ]
-                                 for j in xrange(self.__n) ] )
+                                  for i in range(self.__n) ]
+                                 for j in range(self.__n) ] )
  
                 if self._check_definiteness(t1) == -1 :
                     continue
@@ -410,7 +414,7 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
         if self.__bound is infinity :
             return True
 
-        for i in xrange(self.__n) :
+        for i in range(self.__n) :
             if t[i,i] >= 2 * self.__bound :
                 return False
             
@@ -418,21 +422,21 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
     
     def __iter__(self) :
         if self.__bound is infinity :
-            raise ValueError, "infinity is not a true filter index"
+            raise ValueError("infinity is not a true filter index")
 
         if self.__reduced :
             ##TODO: This is really primitive. We barely reduce arbitrary forms.
-            for diag in itertools.product(*[xrange(self.__bound) for _ in xrange(self.__n)]) :
-                for subents in  itertools.product( *[ xrange(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
-                                                      for i in xrange(self.__n - 1) 
-                                                      for j in xrange(i + 1, self.__n) ] ) :
+            for diag in itertools.product(*[range(self.__bound) for _ in range(self.__n)]) :
+                for subents in  itertools.product( *[ range(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
+                                                      for i in range(self.__n - 1) 
+                                                      for j in range(i + 1, self.__n) ] ) :
                     t = matrix(ZZ, [[ 2 * diag[i]
                                       if i == j else
                                       (subents[self.__n * i - (i * (i + 1)) // 2 + j - i - 1]
                                        if i < j else
                                        subents[self.__n * j - (j * (j + 1)) // 2 + i - j - 1])
-                                     for i in xrange(self.__n) ]
-                                    for j in xrange(self.__n) ] )
+                                     for i in range(self.__n) ]
+                                    for j in range(self.__n) ] )
 
                     t = self.__ambient.reduce(t)
                     if t is None : continue
@@ -442,17 +446,17 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
                     
                     yield t
         else :
-            for diag in itertools.product(*[xrange(self.__bound) for _ in xrange(self.__n)]) :
-                for subents in  itertools.product( *[ xrange(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
-                                                      for i in xrange(self.__n - 1) 
-                                                      for j in xrange(i + 1, self.__n) ] ) :
+            for diag in itertools.product(*[range(self.__bound) for _ in range(self.__n)]) :
+                for subents in  itertools.product( *[ range(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
+                                                      for i in range(self.__n - 1) 
+                                                      for j in range(i + 1, self.__n) ] ) :
                     t = matrix(ZZ, [[ 2 * diag[i]
                                       if i == j else
                                       (subents[self.__n * i - (i * (i + 1)) // 2 + j - i - 1]
                                        if i < j else
                                        subents[self.__n * j - (j * (j + 1)) // 2 + i - j - 1])
-                                     for i in xrange(self.__n) ]
-                                    for j in xrange(self.__n) ] )
+                                     for i in range(self.__n) ]
+                                    for j in range(self.__n) ] )
                     if self._check_definiteness(t) == -1 :
                         continue
                     
@@ -465,17 +469,17 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
     def iter_positive_forms(self) :
         if self.__reduced :
             ##TODO: This is really primitive. We barely reduce arbitrary forms.
-            for diag in itertools.product(*[xrange(self.__bound) for _ in xrange(self.__n)]) :
-                for subents in  itertools.product( *[ xrange(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
-                                                      for i in xrange(self.__n - 1) 
-                                                      for j in xrange(i + 1, self.__n) ] ) :
+            for diag in itertools.product(*[range(self.__bound) for _ in range(self.__n)]) :
+                for subents in  itertools.product( *[ range(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
+                                                      for i in range(self.__n - 1) 
+                                                      for j in range(i + 1, self.__n) ] ) :
                     t = matrix(ZZ, [[ 2 * diag[i]
                                       if i == j else
                                       (subents[self.__n * i - (i * (i + 1)) // 2 + j - i - 1]
                                        if i < j else
                                        subents[self.__n * j - (j * (j + 1)) // 2 + i - j - 1])
-                                     for i in xrange(self.__n) ]
-                                    for j in xrange(self.__n) ] )
+                                     for i in range(self.__n) ]
+                                    for j in range(self.__n) ] )
     
                     t = self.__ambient.reduce(t)
                     if t is None : continue
@@ -486,17 +490,17 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
                     
                     yield t
         else :
-            for diag in itertools.product(*[xrange(self.__bound) for _ in xrange(self.__n)]) :
-                for subents in  itertools.product( *[ xrange(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
-                                                      for i in xrange(self.__n - 1) 
-                                                      for j in xrange(i + 1, self.__n) ] ) :
+            for diag in itertools.product(*[range(self.__bound) for _ in range(self.__n)]) :
+                for subents in  itertools.product( *[ range(-2 * isqrt(diag[i] * diag[j]), 2 * isqrt(diag[i] * diag[j]) + 1)
+                                                      for i in range(self.__n - 1) 
+                                                      for j in range(i + 1, self.__n) ] ) :
                     t = matrix(ZZ, [[ 2 * diag[i]
                                       if i == j else
                                       (subents[self.__n * i - (i * (i + 1)) // 2 + j - i - 1]
                                        if i < j else
                                        subents[self.__n * j - (j * (j + 1)) // 2 + i - j - 1])
-                                     for i in xrange(self.__n) ]
-                                    for j in xrange(self.__n) ] )
+                                     for i in range(self.__n) ]
+                                    for j in range(self.__n) ] )
     
                     if self.__ambient._check_definiteness(t) != 1 :
                         continue
@@ -517,7 +521,7 @@ class SiegelModularFormGnFilter_diagonal_lll ( SageObject ) :
         return c
 
     def __hash__(self) :
-        return reduce(xor, map(hash, [type(self), self.__reduced, self.__bound]))
+        return reduce(xor, list(map(hash, [type(self), self.__reduced, self.__bound])))
                    
     def _repr_(self) :
         return "Diagonal filter (%s)" % self.__bound

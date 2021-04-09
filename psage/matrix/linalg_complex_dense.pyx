@@ -467,8 +467,8 @@ cdef int _hessenberg_reduction(mpc_t** A, int nrows, QR_set  q,int prec, mpc_rnd
     cdef mpc_t t
     mpc_init2(t,prec)
     #print "FIX!!!!!"
-    for j from 0<= j < nrows - 2:
-        for i from j + 2 <=  i < nrows:
+    for j in range(nrows - 2):
+        for i in range(j + 2,nrows):
             if (mpc_zero_p(A[i][j])):
                 continue
             givens(&q.s, &q.skk, &q.c, &q.r,&A[j + 1][j], &A[i][j],q.t, rnd,rnd_re)
@@ -555,7 +555,7 @@ cdef int _eigenvalues(mpc_t* res, mpc_t** A,int nrows,int prec,mpc_rnd_t rnd,mpf
     #        print "A[{0}][{1}]=".format(i,ii),print_mpc(A[i][ii])
     #begin_pline("computing eigenvalues")
     end = 1
-    for i from 0 <= i < 1000*nrows*nrows:
+    for i in range(0,1000*nrows*nrows):
         # How many steps do we really need?
         set_zero(A, &nrows, delta, &q.r,rnd,rnd_re)
         get_submatrix(&start, &end, A, &nrows)
@@ -610,8 +610,8 @@ cdef int _reconstruct_matrix(mpc_t** Q, mpc_t** A, int m, int n, int k, int prec
                 mpc_set_ui(Q[i][j],0,rnd)
         mpc_set_ui(Q[i][i],1,rnd)
 
-    for j in xrange(n-k-1,-1,-1):
-        for i in xrange(m-1,j+k-1,-1):
+    for j in range(n-k-1,-1,-1):
+        for i in range(m-1,j+k-1,-1):
             mpc_set(t,A[i][j],rnd)
             mpc_set_ui(A[i][j],0,rnd)
             if mpfr_inf_p(t.re) or mpfr_inf_p(t.im):
@@ -656,7 +656,7 @@ cdef int solve_upper_triangular(mpc_t** R,mpc_t* b,int n, int prec, mpc_rnd_t rn
     #mpc_div(s[0],b[n-1],R[n-1][n-1], rnd)
     #mpc_set(b[n-1],s[0],rnd)
     #print "b/R=",print_mpc(b[n-1])
-    for i in xrange(n-2,-1,-1):
+    for i in range(n-2,-1,-1):
         mpc_set_si(s[0],0,rnd)
         v =<mpc_t *> sig_malloc(sizeof(mpc_t) * n)
         if v==NULL: return -1
@@ -705,8 +705,8 @@ cdef int _norm(mpfr_t norm,mpc_t** A, int nrows,int ncols, int prec,mpfr_rnd_t r
     mpfr_init2(x,prec)
     mpfr_set_ui(norm,0,rnd_re)
     if ntype==2:
-        for i from 0 <= i < nrows:
-            for j from 0 <= j < ncols:
+        for i in range(nrows):
+            for j in range(ncols):
                 mpc_abs(x,A[i][j],rnd_re)
                 mpfr_sqr(x,x,rnd_re)
                 mpfr_add(norm,norm,x,rnd_re)

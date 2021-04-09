@@ -19,6 +19,7 @@ r"""
 Parallel routines for computing Maass forms.
 
 """
+
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off  
 from sage.libs.gmp.all cimport *
@@ -177,7 +178,7 @@ cdef int compute_V_cplx_dp_sym_par(double complex **V,
             if icusp==0 or cusp_evs[icusp]==0:
                 cusp_offsets[jcusp]+=Mv[icusp][2]
         if verbose>0:
-            printf("cusp_offsets[%d]=%d \n",jcusp,cusp_offsets[jcusp])
+            printf("cusp_offsets[%d]=%f \n",jcusp,cusp_offsets[jcusp])
     cdef int nc_sym=0
     for jcusp  in range(nc):
         if verbose>0:
@@ -458,11 +459,11 @@ cdef int compute_V_cplx_dp_par(double complex **V,
             if icusp==0 or cusp_evs[icusp]==0:
                 cusp_offsets[jcusp]+=Mv[icusp][2]
         if verbose>0:
-            printf("cusp_offsets[%d]=%d \n",jcusp,cusp_offsets[jcusp])
+            printf("cusp_offsets[%d]=%f \n",jcusp,cusp_offsets[jcusp])
     cdef int nc_sym=0
     for jcusp  in range(nc):
         if verbose>0:
-            printf("cusp_evs[%d]=%d \n",jcusp,cusp_evs[jcusp])
+            printf("cusp_evs[%d]=%f \n",jcusp,cusp_evs[jcusp])
         if jcusp==0 or cusp_evs[jcusp]<>0:
             nc_sym+=1
     for jcusp in range(nc):

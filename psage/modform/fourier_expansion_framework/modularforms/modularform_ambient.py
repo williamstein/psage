@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from past.builtins import cmp
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_module import GradedExpansionModule_class
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ring import GradedExpansionRing_class
 from psage.modform.fourier_expansion_framework.modularforms.modularform_element import ModularForm_generic
@@ -69,7 +71,7 @@ def ModularFormsAmbient( A, type, precision, *args, **kwds) :
 # ModularFormsAmbient_abstract
 #===============================================================================
 
-class ModularFormsAmbient_abstract :
+class ModularFormsAmbient_abstract(object) :
     """
     An abstract implementation of a graded expansion ambient, that deduced its structure from
     data stored by a type of modular forms.
@@ -224,9 +226,9 @@ class ModularFormsAmbient_abstract :
         for pred, fcn in self._submodule_classes :
             if pred(basis, **kwds) : return fcn(basis, **kwds)
         
-        raise RuntimeError, "submodule classes do not match %s, %s" % (basis, kwds)
+        raise RuntimeError("submodule classes do not match {0}, {1}".format(basis, kwds))
 
-    def construction(self) :
+    def construction(self):
         """
         TESTS::
             sage: from psage.modform.fourier_expansion_framework.modularforms.modularform_ambient import *

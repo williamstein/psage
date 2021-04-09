@@ -42,6 +42,8 @@ REFERENCES:
 
 - [I-H] Tomoyoshi Ibukiyama and Shuichi Hayashida, ... 
 """
+from __future__ import absolute_import
+from __future__ import division
 
 #*****************************************************************************
 #  Copyright (C) 2008 Nils-Peter Skoruppa <nils.skoruppa@uni-siegen.de>
@@ -51,9 +53,16 @@ REFERENCES:
 #*****************************************************************************
 
 
-import cPickle
-import urllib
-from siegel_modular_form_prec import SiegelModularFormPrecision
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+try:
+    import cPickle as pickle
+except:
+    import _pickle as pickle
+import urllib.request, urllib.parse, urllib.error
+from .siegel_modular_form_prec import SiegelModularFormPrecision
 from sage.rings.all import ZZ
 from sage.structure.element import AlgebraElement
 
@@ -265,21 +274,21 @@ class SiegelModularForm_class(AlgebraElement):
             b = ZZ(b)
             c = ZZ(c)
         except TypeError:
-            raise TypeError, "the key %s must be an integral quadratic form" %str(key)
+            raise TypeError("the key {0} must be an integral quadratic form".format(str(key)))
 
         if b**2 - 4*a*c > 0  or a < 0 or c < 0:
             return self.base_ring()(0)
         ## otherwise we have a semi-positive definite form
-        if self.__coeffs.has_key((a, b, c)):
+        if (a, b, c) in self.__coeffs:
             return self.__coeffs[(a, b, c)]
         ## otherwise GL2(ZZ)-reduce (a,b,c) and try again
-        from fastmult import reduce_GL
+        from .fastmult import reduce_GL
         (a0, b0, c0) = reduce_GL(a, b, c)
         if self.precision().is_in_bound((a0, b0, c0)):
 ##            return get_coeff_with_action( a,b,c,self.coeffs(),self.base_ring())
             return self.__coeffs.get((a0, b0, c0), self.base_ring()(0))
         ## otherwise error - precision is too low 
-        raise ValueError, 'precision %s is not high enough to extract coefficient at %s' %(self.prec(), str(key))
+        raise ValueError('precision {0} is not high enough to extract coefficient at {1}'.format(self.prec(), str(key)))
 
     def coeffs(self, disc=None):
         r"""
@@ -323,7 +332,7 @@ class SiegelModularForm_class(AlgebraElement):
             else:
                 return {}
         else:
-            raise ValueError, 'precision is not high enough to extract coefficients of discriminant %s' %disc
+            raise ValueError('precision is not high enough to extract coefficients of discriminant {0}'.format(disc))
 
     def support(self):
         r"""
@@ -436,7 +445,7 @@ class SiegelModularForm_class(AlgebraElement):
             ValueError: truncated precision 30 cannot be larger than the current precision 20
         """
         if prec > self.prec():
-            raise ValueError, 'truncated precision %s cannot be larger than the current precision %s' %(prec, self.prec())
+            raise ValueError('truncated precision {0} cannot be larger than the current precision {1}'.format(prec, self.prec()))
         else:
             return _SiegelModularForm_from_dict(group=self.group(), weight=self.weight(), coeffs=self.coeffs(), prec=prec, parent=None, name=self.name())
 
@@ -536,14 +545,14 @@ class SiegelModularForm_class(AlgebraElement):
         elif rg is None or rg == 'Sp(4,Z)': 
             group = lg
         elif lg != rg:
-            raise NotImplementedError, "addition of forms on different groups not yet implemented"
+            raise NotImplementedError("addition of forms on different groups not yet implemented")
         else: 
             group = lg
         
         # the sum of two Siegel modular forms is another Siegel modular
         # form only if the weights are equal
         if left.weight() != right.weight():
-            raise ValueError, 'cannot add Siegel modular forms of different weights'
+            raise ValueError('cannot add Siegel modular forms of different weights')
         else:
             wt = left.weight()
 
@@ -637,7 +646,7 @@ class SiegelModularForm_class(AlgebraElement):
         elif right.group() is None: 
             group = left.group()
         elif left.group() != right.group():
-            raise NotImplementedError, "multiplication for differing groups not yet implemented"
+            raise NotImplementedError("multiplication for differing groups not yet implemented")
         else: 
             group = left.group()
 
@@ -645,17 +654,17 @@ class SiegelModularForm_class(AlgebraElement):
         d = dict()
         _prec = SiegelModularFormPrecision(prec)
         if ZZ == R:
-            from fastmult import mult_coeff_int
+            from .fastmult import mult_coeff_int
             for x in _prec:
                 v = mult_coeff_int(x[0], x[1], x[2], s1, s2)
                 if not v.is_zero(): d[x] = v
         elif left.parent().base_ring() == left.parent().coeff_ring():
-            from fastmult import mult_coeff_generic
+            from .fastmult import mult_coeff_generic
             for x in _prec:
                 v = mult_coeff_generic(x[0], x[1], x[2], s1, s2, R)
                 if not v.is_zero(): d[x] = v
         else:
-            from fastmult import mult_coeff_generic_with_action
+            from .fastmult import mult_coeff_generic_with_action
             for x in _prec:
                 v = mult_coeff_generic_with_action(x[0], x[1], x[2], s1, s2, R)
                 if not v.is_zero(): d[x] = v
@@ -757,9 +766,9 @@ class SiegelModularForm_class(AlgebraElement):
         rc = right.coeffs()
         # make coefficients that are implicitly zero be actually zero
         for k in new_smf_prec:
-            if not lc.has_key(k):
+            if k not in lc:
                 lc[k] = 0
-            if not rc.has_key(k):
+            if k not in rc:
                 rc[k] = 0
             
         return lc == rc
@@ -791,7 +800,7 @@ class SiegelModularForm_class(AlgebraElement):
             _name = self._repr_()
         f1 =  'format %d: [this string, wt, name, pol., prec., dict. of coefficients]' %1
         data = [f1, self.weight(), _name, pol, self.prec(), coeffs]
-        cPickle.dump(data, file)
+        pickle.dump(data, file)
         return
 
     def fourier_jacobi_coeff(self, N):
@@ -812,7 +821,7 @@ class SiegelModularForm_class(AlgebraElement):
         keys = [(disc, r) for disc in range(prec) for r in range(NN) if (r**2 - disc)%NN == 0]
         coeff = dict()
         for disc, r in keys:
-            (a, b, c) = (-(r**2 - disc)/NN, r, N) 
+            (a, b, c) = (-ZZ(r**2 - disc)/NN, r, N)
             coeff[(-disc, r)] = self[(a, b, c)]
         return coeff
 
@@ -884,7 +893,7 @@ class SiegelModularForm_class(AlgebraElement):
         par = SiegelModularFormsAlgebra(coeff_ring=par.coeff_ring(), group=par.group(), weights=par.weights(), degree=par.degree())
         return par.element_class(parent=par, weight=self.weight(), coeffs=d, prec=prec, name=name)
 
-    def hecke_coefficient(self, ell, (a, b, c)):
+    def hecke_coefficient(self, ell, a_b_c):
         r"""
         Return the `(a, b, c)`-indexed coefficient of the image of ``self``
         under the Hecke operator T(``ell``).
@@ -900,6 +909,7 @@ class SiegelModularForm_class(AlgebraElement):
             sage: Ups20.hecke_coefficient(5, (1, 0, 1)) / Ups20[(1, 0, 1)]
             -5232247240500
         """
+        (a, b, c) = a_b_c
         k = self.weight()
         coeff = 0
         from sage.rings.all import divisors
@@ -913,8 +923,8 @@ class SiegelModularForm_class(AlgebraElement):
                     if aprime % t1 == 0 and bprime % t2 == 0 and cprime % t2 == 0:
                         try:
                             coeff = coeff + t1**(k-2)*t2**(k-1)*self[(ell*aprime/t1**2, ell*bprime/t1/t2, ell*cprime/t2**2)]
-                        except KeyError, msg:
-                            raise ValueError, '%s' %(self,msg)
+                        except KeyError as msg:
+                            raise ValueError('{0},{1}'.format(self,msg))
         return coeff
 
     def _get_representatives(self, ell, t):
@@ -1075,7 +1085,7 @@ def SiegelModularForm(arg0, arg1=None, arg2=None, prec=None, name=None, hint=Non
     from sage.rings.all import Integer
     if isinstance(arg0, str) and isinstance(arg1, (int, Integer)) and isinstance(arg2, dict):
         return _SiegelModularForm_from_dict(group=arg0, weight=arg1, coeffs=arg2, prec=prec, name=name)
-    raise TypeError, "wrong arguments"
+    raise TypeError("wrong arguments")
 
 
 def _SiegelModularForm_as_Maass_spezial_form(f, g, prec=SMF_DEFAULT_PREC, name=None):
@@ -1277,17 +1287,17 @@ def _SiegelModularForm_from_file(loc):
         248256200704
     """
     if 'http://' == loc[:7]:
-        f = urllib.urlopen(loc)
+        f = urllib.request.urlopen(loc)
     else:
         f = open(loc, 'r')
-    data = cPickle.load(f)
+    data = pickle.load(f)
     f.close()
     fmt, wt, name, pol, prec, coeffs = data
     if len(pol) > 2:
         from sage.rings.all import PolynomialRing, NumberField
         R = PolynomialRing(ZZ, 'x')
         K = NumberField(R(pol), name='a')
-        for k in coeffs.iterkeys():
+        for k in coeffs.keys():
             coeffs[k] = K(coeffs[k])
     return _SiegelModularForm_from_dict(group='Sp(4,Z)', weight=wt, coeffs=coeffs, prec=prec, name=name)
 
@@ -1324,7 +1334,7 @@ def _SiegelModularForm_from_theta_characteristics(char_dict, prec=SMF_DEFAULT_PR
         if hint is 'cusp_form':
             a, b, c = f
             if 0 == a: continue
-        from theta_constant import _compute_theta_char_poly
+        from .theta_constant import _compute_theta_char_poly
         val = _compute_theta_char_poly(char_dict, f)
         if val != 0: coeffs[f] = val
     wt = 0
@@ -1350,7 +1360,7 @@ def _SiegelModularForm_from_QuadraticForm(Q, prec, name):
         Siegel modular form on Gamma0(11) of weight 2
     """
     N = Q.level()
-    k = Q.dim()/2
+    k = Q.dim()/ZZ(2)
     coeffs = Q.theta_series_degree_2(prec)
     return _SiegelModularForm_from_dict(group='Gamma0(%d)'%N, weight=k, coeffs=coeffs, prec=prec, name=name)
 
@@ -1367,7 +1377,7 @@ def _SiegelModularForm_borcherds_lift(f, prec=SMF_DEFAULT_PREC, name=None):
         ...
         NotImplementedError: Borcherds lift not yet implemented
     """
-    raise NotImplementedError, "Borcherds lift not yet implemented"
+    raise NotImplementedError("Borcherds lift not yet implemented")
 
 
 def _SiegelModularForm_yoshida_lift(f, g, prec=SMF_DEFAULT_PREC, name=None):
@@ -1382,7 +1392,7 @@ def _SiegelModularForm_yoshida_lift(f, g, prec=SMF_DEFAULT_PREC, name=None):
         ...
         NotImplementedError: Yoshida lift not yet implemented
     """
-    raise NotImplementedError, 'Yoshida lift not yet implemented'
+    raise NotImplementedError('Yoshida lift not yet implemented')
 
 
 def _SiegelModularForm_from_weil_representation(gram, prec=SMF_DEFAULT_PREC, name=None):
@@ -1397,7 +1407,7 @@ def _SiegelModularForm_from_weil_representation(gram, prec=SMF_DEFAULT_PREC, nam
         ...
         NotImplementedError: Weil representation argument not yet implemented    
     """
-    raise NotImplementedError, 'Weil representation argument not yet implemented'
+    raise NotImplementedError('Weil representation argument not yet implemented')
 
 
 def _SiegelModularForm_singular_weight(gram, prec=SMF_DEFAULT_PREC, name=None):
@@ -1412,7 +1422,7 @@ def _SiegelModularForm_singular_weight(gram, prec=SMF_DEFAULT_PREC, name=None):
         ...
         NotImplementedError: singular form argument not yet implemented
     """
-    raise NotImplementedError, 'singular form argument not yet implemented'
+    raise NotImplementedError('singular form argument not yet implemented')
 
 
 def _SiegelModularForm_from_dict(group, weight, coeffs, prec, degree=2, parent=None, name=None):
@@ -1447,8 +1457,8 @@ def _SiegelModularForm_from_dict(group, weight, coeffs, prec, degree=2, parent=N
             coeffs_up_to_prec[k] = coeffs[k]                        
     if parent is None:
         from sage.structure.all import Sequence
-        from siegel_modular_forms_algebra import SiegelModularFormsAlgebra
-        s = Sequence(coeffs_up_to_prec.values())
+        from .siegel_modular_forms_algebra import SiegelModularFormsAlgebra
+        s = Sequence(list(coeffs_up_to_prec.values()))
         if weight % 2:
             weights = 'all'
         else:
@@ -1498,7 +1508,7 @@ def _normalized_prec(prec):
     return D
 
 
-def _is_bounded((a, b, c), prec):
+def _is_bounded(a_b_c, prec):
     r"""
     Return True or False accordingly as (a, b, c) is in the
     region defined by prec (see. SiegelModularForm_class for what
@@ -1518,11 +1528,12 @@ def _is_bounded((a, b, c), prec):
         It is assumed that prec is normalized accordingly to the output
         of _normalized_prec().
     """
+    (a, b, c) = a_b_c
     if isinstance(prec, tuple):
         return (a, b, c) < prec        
     else:
         D = 4*a*c - b*b
-        return D < prec if D != 0 else c < (prec+1)/4 
+        return D < prec if D != 0 else c < (prec+1)/4
 
 
 
@@ -1543,7 +1554,7 @@ def _prec_min(prec1, prec2):
        of _normalized_prec().
     """
     if type(prec1) != type(prec2):
-        raise NotImplementedError, "addition for differing precs not yet implemented"
+        raise NotImplementedError("addition for differing precs not yet implemented")
     return prec1 if prec1 <= prec2 else prec2 
 
 

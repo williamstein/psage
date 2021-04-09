@@ -38,6 +38,9 @@ Gamma^3
    sage: G=MySubgroup(o2=pS,o3=pR)
    
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 #*****************************************************************************
 #  Copyright (C) 2010 Fredrik Strömberg <stroemberg@mathematik.tu-darmstadt.de>,
@@ -56,9 +59,17 @@ Gamma^3
 
 #from sage.all_cmdline import *   # import sage library
 
-from sage.arith.all    import xgcd,gcd
-from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational
+from builtins import str
+from builtins import range
+from sage.arith.all import xgcd,gcd,CRT_basis
+from sage.rings.all import Integer,CC,ZZ,QQ,RR,RealNumber,infinity,Rational,Infinity,RealField
 from sage.rings.real_mpfr import RealNumber as RealNumber_class
+from sage.all import matrix,verbose,Gamma,Gamma1,Gamma0,PermutationGroupElement
+from sage.all import hyperbolic_arc
+from sage.plot.colors import rainbow
+from sage.interfaces.gap import gap
+from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
+
 #from sage.combinat.permutation import (Permutations,PermutationOptions)
 from sage.modular.cusps import Cusp
 #from Cusp import is_gamma0_equiv
@@ -77,7 +88,7 @@ from sage.arith.all import lcm
 from copy import deepcopy
 from psage.modform.arithgroup.mysubgroups_alg import * 
 from psage.groups.permutation_alg import MyPermutation,are_transitive_permutations,num_fixed 
-from plot_dom import draw_funddom_d,draw_funddom,my_hyperbolic_triangle
+from .plot_dom import draw_funddom_d,draw_funddom,my_hyperbolic_triangle
 from psage.groups.permutation_alg import are_mod1_equivalent
 
 from sage.plot.all import Graphics
@@ -107,7 +118,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
     - A -- can be 
     """
     if A is None and B is None and kwds=={} and data == {}:
-        raise ValueError,"We do not have sufficient data to create a subgroup!"
+        raise ValueError("We do not have sufficient data to create a subgroup!")
     s2 = None; s3=None; is_Gamma0=None; level = None
     is_symmetric = kwds.get('is_symmetric')
     symmetry_map = kwds.get('symmetry_map')
@@ -128,7 +139,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
             is_Gamma0=True
         else:
             is_Gamma0=False            
-    elif A<>None and B<>None:
+    elif A!=None and B!=None:
         if isinstance(A,MyPermutation) and isinstance(B,MyPermutation):
             s2 = A; s3 = B
         else:
@@ -136,14 +147,14 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
                 s2 = MyPermutation(A.domain())
                 s3 = MyPermutation(B.domain())
             except ValueError as ve:
-                raise ValueError,"Can not construct permutations! {0}".format(ve)
+                raise ValueError("Can not construct permutations! {0}".format(ve))
             except AttributeError as ae:
                 try:
                     s2 = MyPermutation(A)
                     s3 = MyPermutation(B)
                 except Exception as e:
-                    raise ValueError,"Can not construct permutations! {0}".format(e)
-    elif A<>None:
+                    raise ValueError("Can not construct permutations! {0}".format(e))
+    elif A!=None:
         if hasattr(A,"p2") and hasattr(A,"p3"):
             s2 = MyPermutation(A.p2); s3 = MyPermutation(A.p3)
         elif hasattr(A,"s2") and hasattr(A,"s3"):
@@ -159,7 +170,7 @@ def MySubgroup(A=None,B=None,verbose=0,version=0,display_format='short',data={},
         s2 = kwds.get("s2",None)
         s3 = kwds.get("s3",None)
     if s2 is None or s3 is None:
-        raise ValueError,"Could not construct subgroup from input!"
+        raise ValueError("Could not construct subgroup from input!")
     reps_from_farey = kwds.get('farey',None)
     #print "s2,s3=",s2,s3
     if is_Gamma0:
@@ -245,7 +256,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._verbose = verbose
         self._display_format = display_format
         self._level=kwds.get('level',None)
-        if self._level<>None:
+        if self._level!=None:
             self._generalised_level=self._level;  self._is_congruence=True
         else:
             self._generalised_level=None;  self._is_congruence=None
@@ -281,17 +292,17 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._checked_symmetry_type_IIa = 0; self._checked_symmetry_type_IIb = 0        
         self._modular_correspondences = {}
         if self._verbose>1:
-            print "o2=",o2
-            print "o3=",o3
-            print "str=",str
-            print "is_Gamma0=",self._is_Gamma0
-            print "kwds=",kwds
-        if data<>{}:
+            print("o2={0}".format(o2))
+            print("o3={0}".format(o3))
+            print("str={0}".format(str))
+            print("is_Gamma0={0}".format(self._is_Gamma0))
+            print("kwds={0}".format(kwds))
+        if data!={}:
             self.init_group_from_dict(data,**kwds)
         elif not o2 is None and not o3 is None and o2 !=[] and o3 !=[]:
             self.init_group_from_permutations(o2,o3)
         else:
-            raise ValueError,"Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3)
+            raise ValueError("Incorrect input to subgroup! Got G={0}, o2={1} nad o3={2}".format(o2,o3))
         self._display_format = display_format                
         self._uid = self._get_uid()
         self.class_name='MySubgroup_class'            
@@ -400,7 +411,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         
         """
         if not isinstance(other,ArithmeticSubgroup):
-            raise NotImplementedError,"Can not compare subgroup with {0}!".format(other)
+            raise NotImplementedError("Can not compare subgroup with {0}!".format(other))
         
         return super(MySubgroup_class,self).__cmp__(super(MySubgroup_class,self))
 
@@ -449,10 +460,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         ## Perform some fast tests first
         if not isinstance(G,ArithmeticSubgroup):
             return False
-        if G.index() <> self.index():
+        if G.index() != self.index():
             return False
-        if G.generalised_level() <> self.generalised_level():
+        if G.generalised_level() != self.generalised_level():
             return False
+        if G.index() == 1 and self.index() == 1:
+            return True
         return self.as_permutation_group()==G.as_permutation_group()
 
     def relabel(self,inplace=True,label_on='R'):
@@ -492,23 +505,23 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 Pnew.append([x for x in range(j,i+j)])
                 j = i+j
             if self._verbose>0:
-                print "Pnew=",Pnew
+                print("Pnew={0}".format(Pnew))
             Pnew = MyPermutation(Pnew)
             if self._verbose>0:
-                print "Pnew=",Pnew
+                print("Pnew={0}".format(Pnew))
             t,p = Pold.is_conjugate_to(Pnew,ret_perm=1)
-            if t<>1:
-                raise ArithmeticError,"Could not conjugate {0} to {1}!".format(Pold,Pnew)
+            if t!=1:
+                raise ArithmeticError("Could not conjugate {0} to {1}!".format(Pold,Pnew))
             if self._verbose>0:
-                print "p=",p
+                print("p={0}".format(p))
             self.permS = self.permS.conjugate(p)
             self.permR = self.permR.conjugate(p)
             self.permT = self.permS*self.permR
             self.permP = self.permS*self.permT*self.permS
         if self._verbose>0:
-            print "Snew=",self.permS
-            print "Rnew=",self.permR
-            print "Tnew=",self.permT            
+            print("Snew={0}".format(self.permS))
+            print("Rnew={0}".format(self.permR))
+            print("Tnew={0}".format(self.permT))
         ## Finally we have to make sure that the coset representatives have the same order
         ## The simplest way to do this is simply to reset the lists.
         self._coset_reps_v0 = None
@@ -540,11 +553,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         o2.set_rep(3)
         o3.set_rep(3)
         if self._verbose>0:
-            print "in init_from_perm"
-            print "o2=",o2
-            print "o3=",o3
+            print("in init_from_perm")
+            print("o2={0}".format(o2))
+            print("o3={0}".format(o3))
             if self._verbose>1:
-                print "dict=",self.__dict__
+                print("dict={0}".format(self.__dict__))
         if isinstance(o2,MyPermutation):            
             self.permS=o2
         else:
@@ -587,18 +600,18 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Initalize self from a dictionary.
         """
         if self._verbose>0:
-            print "in init_from_dict"
+            print("in init_from_dict")
         for key in data:
-            if data[key]<>None:
+            if data[key] != None:
                 self.__dict__[key] = data[key]
         for key in kwds:
-            if kwds[key]<>None:
+            if kwds[key] != None:
                 self.__dict__[key] = kwds[key]            
 
     def get_data_from_group(self):
         if self._verbose>0:
-            print "in Get_data_from_Group"
-        if self._level <> None:
+            print("in Get_data_from_Group")
+        if self._level != None:
             self._generalised_level = self._level
         else:
             self._generalised_level = super(MySubgroup_class,self).generalised_level()
@@ -614,7 +627,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         ## Get information about cusps and vertices
         l=self._get_all_cusp_data(self.coset_reps())
         if self._verbose>0:
-            print "coset_reps=",self.coset_reps()
+            print("coset_reps={0}".format(self.coset_reps()))
         self._vertices,self._vertex_data,self._cusps,self._cusp_data=l        
         self._nvertices=len(self._vertices)
         #self._vertex_widths=list()
@@ -642,7 +655,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         for j in range(1,self.ncusps()):
             d=self.cusp_normalizer_is_normalizer(j,1)
         if self._verbose>1:
-            print "inited from group, dict=",self.__dict__
+            print("inited from group, dict={0}".format(self.__dict__))
 
     def index(self):
         if self._index == None:
@@ -732,13 +745,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 N = self.generalised_level() # Is the level in this case
                 ## TODO: See which is the quickest test
                 G = Gamma0(N)
-                if G.index() <> self.index(): # If self is a subgroup of Gamma0(N) and the index is equal...
+                if G.index() != self.index(): # If self is a subgroup of Gamma0(N) and the index is equal...
                     self._is_Gamma0=False
                 else:                    
                     self._is_Gamma0=True
                     if test==1:
                         for g in self.gens():
-                            if g.c() % N <> 0:
+                            if g.c() % N != 0:
                                 self._is_Gamma0 = False
                                 break
                     else:
@@ -756,8 +769,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         i.e. so that the pairs represent the same group.
         
         """
-        if self._is_symmetric <>None and recompute==False:
-            if ret_map==1:
+        if self._is_symmetric != None and recompute == False:
+            if ret_map == 1:
                 return self._is_symmetric,self._symmetry_map
             else:
                 return self._is_symmetric
@@ -783,7 +796,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     self._symmetry_map =  SL2Z_elt(-A.a(),A.b(),-A.c(),A.d())                
             if not self._sym_perm and force_check==True:
                 if verbose>0:
-                    print "Checking symmetry with conjugation of general maps!"
+                    print("Checking symmetry with conjugation of general maps!")
                 # Check if we are symmetric with some other map
                 # Since this might take long time we only do this if explicitly told to... 
                 pS = self.permS
@@ -797,7 +810,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 else:
                     self._is_symmetric = False
                     self._sym_perm = MyPermutation(length=self.index())
-            if self._sym_perm == None and self._symmetry_map<>None:
+            if self._sym_perm == None and self._symmetry_map != None:
                 self._sym_perm = self.permutation_action(self._symmetry_map)
             
         if ret_map==1:
@@ -821,7 +834,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         else:
             self._translational_symmetry = -1 
             if self._verbose>0:
-                print "Checking symmetry with conjugation of T^n!"
+                print("Checking symmetry with conjugation of T^n!")
             for n in range(0,self._cusp_data[0]['width']):
                 t = [ SL2Z_elt(-(x.a()-n*x.c()),x.b()-n*(x.d()-x.a())-n*n*x.c(),x.c(),-(x.d()+n*x.c())) in self for x in self.gens()].count(False)
                 if t == 0 and (not check_preserve_cusp or self._preserve_cusp_classes([-1,n,0,1])):
@@ -856,7 +869,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         
         """
         if self._checked_symmetry_type_Ia == 1:
-            return self._symmetry_type_Ia <> []
+            return self._symmetry_type_Ia != []
         for n in range(1,self._cusp_data[0]['width']+1):
             Tn = SL2Z_elt(1,n,0,1)
             Tni = SL2Z_elt(1,-n,0,1)
@@ -864,7 +877,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             if t==0 and Tn not in self:
                 self._symmetry_type_Ia.append(SL2Z_elt(1,n,0,1))
         self._checked_symmetry_type_Ia = 1
-        return self._symmetry_type_Ia <> []
+        return self._symmetry_type_Ia != []
 
     def _has_symmetry_type_Ib(self,verbose=0):
         r"""
@@ -876,7 +889,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         
         """
         if self._checked_symmetry_type_Ib == 1:
-            return self._symmetry_type_Ib <> []
+            return self._symmetry_type_Ib != []
         Gs = self.generators_as_slz_elts()
         for n in range(0,self._cusp_data[0]['width']):
             Tn = SL2Z_elt(1,n,0,1)
@@ -887,26 +900,26 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     B = Tn*AA
                     Bi = B.inverse()
                     if verbose>0:
-                        print "Check B=T^{0}A_{1} \t\t=\t {2}".format(n,j,B)
+                        print("Check B=T^{0}A_{1} \t\t=\t {2}".format(n,j,B))
                     t = [ B*x*Bi in self for x in Gs].count(False)
                     if verbose>0:
-                        print [ B*x*Bi in self for x in Gs]
+                        print([ B*x*Bi in self for x in Gs])
                     if t==0 and B not in self:
                         self._symmetry_type_IIb.append((j,n,SL2Z_elt(B.a(),B.b(),B.c(),B.d())))
                     # Checking after conjugation by J:
                     B = SL2Z_elt(-B.a(),B.b(),B.c(),-B.d())
                     Bi = B.inverse()
                     if verbose>0:
-                        print "Check B=T^{0}A^-1_{1}\t\t =\t {2}".format(n,j,B)                    
+                        print("Check B=T^{0}A^-1_{1}\t\t =\t {2}".format(n,j,B))                    
                     t = [ B*x*Bi in self for x in Gs].count(False)
                     if verbose>0:
-                        print "tests:",t
+                        print("tests{0}".format(t))
                     if t==0 and B not in self:
                         s = (j,-n,SL2Z_elt(B.a(),B.b(),B.c(),B.d()))
                         if s not in self._symmetry_type_IIb:
                             self._symmetry_type_IIb.append(s)
         self._checked_symmetry_type_Ib = 1
-        return self._symmetry_type_Ib <> []
+        return self._symmetry_type_Ib != []
     
     def _has_symmetry_type_IIa(self,verbose=0):
         r"""
@@ -918,7 +931,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         
         """
         if self._checked_symmetry_type_IIa == 1:
-            return self._symmetry_type_IIa <> []
+            return self._symmetry_type_IIa != []
         Gs = self.reflected_group().generators_as_slz_elts()
         for n in range(0,self._cusp_data[0]['width']):
             Tn = SL2Z_elt(1,n,0,1)
@@ -928,7 +941,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 A = GL2Z_elt(-1,n,0,1)
                 self._symmetry_type_IIa.append(A)
         self._checked_symmetry_type_IIa = 1
-        return self._symmetry_type_IIa <> []
+        return self._symmetry_type_IIa != []
             
     def _has_symmetry_type_IIb(self,verbose=0):
         r"""
@@ -940,7 +953,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         
         """
         if self._checked_symmetry_type_IIb == 1:
-            return self._symmetry_type_IIb <> []
+            return self._symmetry_type_IIb != []
         Gs = self.reflected_group().generators_as_slz_elts()
         for j in range(1,self.ncusps()):
             A = self.cusp_normalizer(j)
@@ -949,8 +962,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 B = Tn*A
                 Bi = B.inverse()
                 if verbose>0:
-                    print "Tn=",Tn
-                    print "Check n={0} and j={1} map ={2}".format(n,j,B)
+                    print("Tn={0}".format(Tn))
+                    print("Check n={0} and j={1} map ={2}".format(n,j,B))
                 t = [ B*x*Bi in self for x in Gs].count(False)
                 #  print "t0=",t
                 if t==0:
@@ -965,7 +978,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         self._symmetry_type_IIb.append(s)
 #t = [ SL2Z_elt(x.a()-n*x.c(),-x.b()+n*(x.d()-x.a())+n*n*x.c(),-x.c(),x.d()+n*x.c()) in self for x in self.gens()].count(False)
         self._checked_symmetry_type_IIb = 1
-        return self._symmetry_type_IIb <> []
+        return self._symmetry_type_IIb != []
 
 
     def has_modular_correspondence(self,ret_map=False,as_2by2=False):
@@ -982,19 +995,19 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             l1a = self._symmetry_type_Ia; l1a = self._symmetry_type_Ib
             l2a = self._symmetry_type_IIa; l2b = self._symmetry_type_IIb        
             ## Check which (if any) of these symmetries preserve cusps
-            l1a = filter(lambda x: self.is_modular_correspondence(x) and self.is_involution(x),  self._symmetry_type_Ia)
-            l1b = filter(lambda x: self.is_modular_correspondence(x[2]) and self.is_involution(x[2]) ,  self._symmetry_type_Ib)
-            l2a = filter(lambda x: self.is_modular_correspondence(x) and self.is_involution(x),  self._symmetry_type_IIa)
-            l2b = filter(lambda x: self.is_modular_correspondence(x[2]) and self.is_involution(x[2]),  self._symmetry_type_IIb)
+            l1a = [x for x in self._symmetry_type_Ia if self.is_modular_correspondence(x) and self.is_involution(x)]
+            l1b = [x for x in self._symmetry_type_Ib if self.is_modular_correspondence(x[2]) and self.is_involution(x[2])]
+            l2a = [x for x in self._symmetry_type_IIa if self.is_modular_correspondence(x) and self.is_involution(x)]
+            l2b = [x for x in self._symmetry_type_IIb if self.is_modular_correspondence(x[2]) and self.is_involution(x[2])]
             self._modular_correspondences = {'tIa':l1a,'tIb':l1b,'tIIa':l2a,'tIIb':l2b}
-        return sum(map(len,self._modular_correspondences.values()))
+        return sum([len(x) for x in self._modular_correspondences.values()])
 
     def modular_correspondence(self,t):
         r"""
         
         """
         if t not in ['tIa','tIIa','tIb','tIIb']:
-            raise ValueError,"Need t in 'tIa','tIIa','tIb','tIIb']"
+            raise ValueError("Need t in 'tIa','tIIa','tIb','tIIb']")
         self.has_modular_correspondence()
         return self._modular_correspondences.get(t)
 
@@ -1011,7 +1024,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 m = self.modular_correspondence_matrix(t)            
         for t in ['tIa','tIIa','tIb','tIIb']:            
             m = self.modular_correspondence_matrix(t)
-            if m<>[]:
+            if m!=[]:
                 return m[0]
         
     def modular_correspondence_string(self,t=None):
@@ -1027,14 +1040,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             s = "Reflection in Re(z)={0}".format(QQ(B.b())/QQ(2))
         else:
             l = self._modular_correspondences.get('tIb',[])
-            if len(l)>0:
+            if len(l) > 0:
                 ia,na,A = l[0]
-                if A<>None:    
+                if A != None:    
                     s = "Conjugation by T^{0}\sigma_{1}".format(na,ia)
             l = self._modular_correspondences.get('tIIb',[])                       
-            if len(l)>0:
+            if len(l) > 0:
                 ib,nb,B = l[0]       
-                if B<>None:    
+                if B != None:    
                     s = "Reflection with respect to cusp {0} / shifted by T^{1}".format(ib,nb)
         return s
     
@@ -1044,14 +1057,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Get description
         """
         if A.determinant() == 1:
-            if A.c()==0 and ia==None:
+            if A.c() == 0 and ia == None:
                 return "Conjugaction by T^{0}".format(QQ(A.b()))
-            elif ia<>0:
+            elif ia != 0:
                 return "Conjugation by T^{0}\sigma_{1}".format(na,ia)
         else:
-            if A.c()==0 and ia==None:
+            if A.c() == 0 and ia == None:
                 return "Reflection in Re(z)={0}".format(QQ(A.b())/QQ(2))
-            elif ia<>0:
+            elif ia != 0:
                 return "Reflection with respect to cusp {0} / shifted by T^{1}".format(ia,na)
         return ""
     
@@ -1072,12 +1085,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         #if A**2 not in self: ### This is for an involution not a correspondence
         #    return False
         if self._verbose>0 or verbose>0:
-            print A
+            print(A)
         for cusp in self.cusps():
             x = cusp.numerator(); y = cusp.denominator()
             Ac = Cusp(a*x+b*y,c*x+d*y)
             if self._verbose>1 or verbose>0:
-                print "A({0})={1}".format(cusp,Ac)
+                print("A({0})={1}".format(cusp,Ac))
             #print Ac,c
             if not self.are_equivalent(Ac,cusp):
                 return False
@@ -1098,9 +1111,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
          (should mostly be 1 if everything works as hoped)
         """
         if self._verbose>0:
-            print "Checking j:",j
-            print "have:",self._cusp_normalizer_is_normalizer
-        if self._cusp_normalizer_is_normalizer.has_key(j):
+            print("Checking j:{0}".format(j))
+            print("have:{0}".format(self._cusp_normalizer_is_normalizer))
+        if j in self._cusp_normalizer_is_normalizer:
             return self._cusp_normalizer_is_normalizer[j]
         if not self.is_Gamma0():
             self._cusp_normalizer_is_normalizer[j]=(0,0)
@@ -1109,11 +1122,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         self._cusp_normalizer_is_normalizer[j]=(0,0)
         N0=self._cusp_data[j]['normalizer']
         if self._verbose>0:
-            print "N={0}".format(N0)
+            print("N={0}".format(N0))
         a,b,c,d=N0
         w = self._cusp_data[j]['width']
         if self._verbose>0:
-            print "w=",w
+            print("w={0}".format(w))
         if self._cusps[j]==(0,1):
             if a==0 and b*c==-1 and d==0:
                 self._cusp_normalizer_is_normalizer[j]=(2,1)
@@ -1126,27 +1139,27 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             cc=c*w            
             if cc==l and (l % aa)==0:
                 if self._verbose>0:
-                    print "possible A-L invol: Q/N=",aa,"/",cc
+                    print("possible A-L invol: Q/N={0} / {1}".format(aa,cc))
                 if aa*d-b*cc==aa:
                     self._cusp_normalizer_is_normalizer[j]=(2,d)
                     return self._cusp_normalizer_is_normalizer[j]
             # The other Atkin-Lehner involutions are more tricky...
             if self._verbose>1:
-                print "cnc1=",self._cusp_normalizer_is_normalizer[j]                        
+                print("cnc1={0}".format(self._cusp_normalizer_is_normalizer[j]))
             p,q=self._cusps[j]
             if q.divides(l*p):
                 Q  = (l*p).divide_knowing_divisible_by(q)
                 if self._verbose>0:
-                    print "Q=",Q
+                    print("Q={0}".format(Q))
                 ## It is necessary that gcd(Q,N/Q)=1 for an A-L involution to exist
                 if Q.divides(l):
                     lQ=l.divide_knowing_divisible_by(Q)
                     if self._verbose>0:
-                        print "N/Q=",lQ
+                        print("N/Q={0}".format(lQ))
                         #print "cnc1=",self._cusp_normalizer_is_normalizer[j]                        
                     if gcd(Q,lQ)==1:
                         if self._verbose>0:
-                            print "gcd(Q,N/Q)=1 => possible Atkin-Lehner involution here."
+                            print("gcd(Q,N/Q)=1 => possible Atkin-Lehner involution here.")
                         fak=lcm(a,Q)  ## We try to see if we can writ e the map as an A-L inv.
                         aa=fak*a; bb=fak*b; cc=fak*c; dd=fak*d
                         if Q.divides(aa) and Q.divides(dd) and l.divides(cc) and (aa*dd-bb*cc)==Q:
@@ -1161,7 +1174,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             # We also have a brute force method:
             # print "doing brute force!"
             if self._verbose>1:
-                print "cnc2[",j,"]=",self._cusp_normalizer_is_normalizer[j]                        
+                print("cnc2[{0}]={1}".format(j,self._cusp_normalizer_is_normalizer[j]))
             if brute_force==1:
                 if self.is_normalizer(N0):
                     N = SL2Z_elt(N0[0],N0[1],N0[2],N0[3])
@@ -1185,8 +1198,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         """
         if j not in self._cusp_data:
-            raise ValueError,"{0} is not the index of a cusp! ".format(j)
-        if not self._symmetrizable_cusp.has_key(j):
+            raise ValueError("{0} is not the index of a cusp! ".format(j))
+        if j not in self._symmetrizable_cusp:
             a,b,c,d=self._cusp_data[j]['normalizer']
             self._symmetrizable_cusp[j]=0
             if self._is_Gamma0:
@@ -1243,10 +1256,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         v=list()
         vr=dict()
         for A in reps:
-            if(A[1 ,0 ]<>0  and v.count(Cusp(A[0 ,0 ],A[1 ,0 ]))==0 ):
+            if A[1 ,0 ] != 0  and v.count(Cusp(A[0 ,0 ],A[1 ,0 ])) == 0:
                 c=Cusp(A[0 ,0 ],A[1 ,0 ])
                 v.append(c)
-            elif(v.count(Cusp(infinity))==0 ):
+            elif v.count(Cusp(infinity)) == 0:
                 c=Cusp(infinity)
                 v.append(c)
             vr[c]=A
@@ -1262,13 +1275,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
 
 
-    def permutation_action(self,A,type=1):
+    def permutation_action(self,A,permutation_format=1):
         r""" The permutation corresponding to the matrix A
         INPUT:
          - ''A'' Matrix in SL2Z
+         - ''permutation_format'' integer : set to 0 for returning a PermutationGroup element and 1 (default) for MyPermutation
         OUPUT:
-         element in self._S given by the presentation of the group self
-         - type: 0 gives PermutationGroup element and 1 gives MyPermutation
+         - Permutation in the format determined by `permutation_format`
 
         EXAMPLES::
 
@@ -1294,36 +1307,31 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         [sg,t0,cf]=factor_matrix_in_sl2z(A) #_in_S_and_T(A)
         if self._verbose>1:
-            print "sg=",sg
-            print "t0=",t0
-            print "cf=",cf
-            print "S=",self.permS
-            print "T=",self.permT
-            print "index=",self._index
+            print("sg={0}".format(sg))
+            print("t0={0}".format(t0))
+            print("cf={0}".format(cf))
+            print("S={0}".format(self.permS))
+            print("T={0}".format(self.permT))
+            print("index={0}".format(self._index))
             # The sign doesn't matter since we are working in practice only with the projective group PSL(2,Z)
         # We now have A=T^a0*S*T^a1*...*S*T^an
         # Hence
         # h(A)=h(T^an)*h(S)*...*h(T^a1)*h(S)*h(T^a0)
-        #print "cf=",cf
         n=len(cf)
-        
-        if t0==0:
-            p=MyPermutation(length=self._index)
+        if t0 == 0:
+            p = MyPermutation(length=self._index)
         else:
-            p=self.permT**t0 #p=ppow(self.permT,cf[0 ])
-        # print "p(",0,")=",p.cycles()
-        #if self._verbose>1:
-        #    print "p=",p
+            p = self.permT**t0 #p=ppow(self.permT,cf[0 ])
         for j in range(n):
-            a=cf[j]
-            if a<>0:
+            a = cf[j]
+            if self._verbose > 1:
+                print("a={0}, {1}".format(a,type(a)))
+            if a != 0:
                 Ta = self.permT**a
-                #if self._verbose>1:
-                #    print "Ta=",Ta
-                p=p*self.permS*Ta
+                p = p*self.permS*Ta
             else:
-                p=p*self.permS
-        if type==0:
+                p = p*self.permS
+        if permutation_format == 0:
             return SymmetricGroup(self._index)(p.list())
         else:
             return p
@@ -1350,7 +1358,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     
         """
         if self._verbose>0:
-            print "In get_coset_reps from G"
+            print("In get_coset_reps from G")
         if self.is_Gamma0():
             return self._get_coset_reps_from_Gamma0N()
         cl=list()
@@ -1372,9 +1380,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             N=lvl #self._level #G.level()
             if (N % 2) == 0:
                 #reprange=range(-N/2+1,N/2+1)
-                reprange=range(0,N)
+                reprange=list(range(0,N))
             else:
-                reprange=range(0,N)
+                reprange=list(range(0,N))
                 #reprange=range(-(N-1)/2,(N-1)/2+1)
             for j in reprange:
                 if j==0:
@@ -1391,11 +1399,18 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     # just make sure they are inequivalent
                     try:
                         for V in cl:
-                            t1=A<>V
+                            t1= A != V
                             #A*V^-1=[a,b]*[ v11 -v01]
                             #       [c d] [-v10 v00]
+                            a = A[0, 0]
+                            b = A[0, 1]
+                            c = A[1, 0]
+                            d = A[1, 1]
+                            v11 = V[1,1]
+                            v10 = V.inverse()[0, 1]
+                            v00 = V[0,0]
                             if self.is_Gamma0():
-                                t2= (c*v11-d*v10) % lvl == 0 
+                                t2= (c*v11-d*v10) % lvl == 0
                             else:
                                 t2 = SL2Z_elt(a*v11-b*v10,-v01*a+v00*b,c*v11-d*v10,-c*v01+d*v00) in G
                             if t1 and t2:
@@ -1433,14 +1448,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 # we exit
                 break
         # If we missed something (which is unlikely)        
-        if len(cl)<>self._index:
-            print "cl=",cl
-            raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(cl))
+        if len(cl) != self._index:
+            print("cl={0}".format(cl))
+            raise ValueError("Problem getting coset reps! Need {0} and got {1}".format(self._index,len(cl)))
         return cl
 
     def _get_coset_reps_from_Gamma0N(self):
         if self._verbose>0:
-            print "In get_coset_reps from Gamma0(N)"
+            print("In get_coset_reps from Gamma0(N)")
         cl=list()
         S=SL2Z_elt(0,-1,1,0)
         T=SL2Z_elt(1,1,0,1)
@@ -1455,10 +1470,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         # -1/2 <=x <= 1/2 for Gamma0, Gamma1, Gamma
         N=lvl
         if (N % 2) == 0:
-            reprange=range(-N/2+1,N/2+1)
+            reprange = list(range(-N/2+1,N/2+1))
             #reprange=range(N)
         else:
-            reprange=range(-(N-1)/2,(N-1)/2+1)
+            reprange = list(range(-(N-1)/2,(N-1)/2+1))
         decomp_seq=[[0,0],[0]]
 
         for j in reprange:
@@ -1487,7 +1502,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 #for V in clold:
                 last=decomp_seq[i][-1]
                 if self._verbose>0:
-                    print "V=",V
+                    print("V={0}".format(V))
                 for j in range(2):
                     if last==0 and j==0:
                         continue
@@ -1501,9 +1516,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     ## We are getting new elements by multiplying the
                     ## old with S,T or T^-1
                     if self._verbose>0:
-                        print "V=",V
-                        print "A=",A
-                        print "B=",B
+                        print("V={0}".format(V))
+                        print("A={0}".format(A))
+                        print("B={0}".format(B))
                     #B=mul_list_maps(V,A)
                     try:
                         for W in cl:
@@ -1525,10 +1540,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 break
         # If we missed something (which is unlikely)        
         if self._verbose>0:
-            print "cosets=",cl
-        if len(cl)<>self._index:
-            print "cl=",cl
-            raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(cl))
+            print("cosets={0}".format(cl))
+        if len(cl)!=self._index:
+            print("cl={0}".format(cl))
+            raise ValueError("Problem getting coset reps! Need {0} and got {1}".format(self._index,len(cl)))
         return cl
         
     
@@ -1553,7 +1568,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     
         """
         if self._verbose>0:
-            print "In get_coset_reps from G_2"
+            print("In get_coset_reps from G_2")
         cl=list()
         lvl=G.generalised_level()
         # Start with identity rep.
@@ -1575,7 +1590,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 # just make sure they are inequivalent
                 try:
                     for V in cl:
-                        if((A<>V and A*V**-1  in G) or cl.count(A)>0 ):
+                        if (A != V and A*V**-1  in G) or cl.count(A) > 0:
                             raise StopIteration()
                     cl.append(A)
                 except StopIteration:
@@ -1600,9 +1615,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 # we exit
                 break
         # If we missed something (which is unlikely)        
-        if(len(cl)<>self._index):
-            print "cl=",cl
-            raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(cl))
+        if(len(cl)!=self._index):
+            print("cl={0}".format(cl))
+            raise ValueError("Problem getting coset reps! Need {0} and got {1}".format(self._index,len(cl)))
         return cl
 
 
@@ -1611,7 +1626,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r"""
         Return the permutation corresponding to coset-representative nr. j
         """
-        if not self._coset_rep_perms.has_key(j):
+        if j not in self._coset_rep_perms:
             perm = self.permutation_action(self.coset_reps()[j])
             self._coset_rep_perms[j]=perm
         return self._coset_rep_perms[j]
@@ -1621,7 +1636,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         r"""
         Return the permutation corresponding to coset-representative nr. j
         """
-        if not self._coset_rep_strings.has_key(j):
+        if j not in self._coset_rep_strings:
             s = self.element_as_string(self.coset_reps()[j])
             self._coset_rep_strings[j]=s
         return self._coset_rep_strings[j]
@@ -1637,7 +1652,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             s='-'
         else:
             s=''
-        if t0<>0:
+        if t0 != 0:
             s=s+"T^%" %t0
         for n in range(len(cf)):
             s=s+"ST^{%}" % cf[n]
@@ -1700,10 +1715,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         coset_reps=dict()
         coset_reps[1]=Id
         if self._verbose>0:
-            print "coset_reps=",coset_reps,len(coset_reps)
-            print "T=",T,pT.cycle_tuples()
-            print "S=",S,pS.cycle_tuples()
-            print "R=",R,pR.cycle_tuples()
+            print("coset_reps={0}".format(coset_reps,len(coset_reps)))
+            print("T={0},{1}".format(T,pT.cycle_tuples()))
+            print("S={0},{1}".format(S,pS.cycle_tuples()))
+            print("R={0},{1}".format(R,pR.cycle_tuples()))
         cycT=pT.cycle_tuples()
         next_cycle = cycT[0]
         new_index = 0
@@ -1714,44 +1729,44 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             r = len(cy)
             i=pT(cy[new_index])
             if self._verbose>0:
-                print "cy=",cy
-                print "new_index=",new_index
-                print "i=pT(cy[0])=",i
-                print "cy[new_index]=",cy[new_index]
+                print("cy={0}".format(cy))
+                print("new_index={0}".format(new_index))
+                print("i=pT(cy[0])={0}".format(i))
+                print("cy[new_index]={0}".format(cy[new_index]))
             # adding the rest of the cusp
-            if i<>cy[new_index]:
+            if i != cy[new_index]:
                 for j in range(r):
                     if self._verbose>0:
-                        print "i=",i
-                        print "j=",j
-                    if j==new_index:
+                        print("i={0}".format(i))
+                        print("j={0}".format(j))
+                    if j == new_index:
                         continue
                     k = (j - new_index)
-                    if k<=r/2:
+                    if k <= r/2.0:
                         #_add_unique(coset_reps,cy[j],old_map*T**k)
                         coset_reps[cy[j]]=old_map*T**k
                     else:
                         #_add_unique(coset_reps,cy[j],old_map*T**(k-r))
                         coset_reps[cy[j]]=old_map*T**(k-r)                    
                     if self._verbose>0:
-                        print "k=",k
-                        print "coset_reps[",cy[j],"]=",coset_reps[cy[j]]
+                        print("k={0}".format(k))
+                        print("coset_reps[{0}]={1}".format(cy[j],coset_reps[cy[j]]))
             got_cycles.append(cycT.index(cy))
             # we have now added all translate inside the same cusp 
             # and we should see if we can connect to anther cusp
             # if there is any left
             if self._verbose>0:
-                print "cyi=",cyi
-                print "len(cycT)-1=",len(cycT)-1
+                print("cyi={0}".format(cyi))
+                print("len(cycT)-1={0}".format(len(cycT)-1))
             if cyi>= len(cycT)-1:
                 if self._verbose>0:
-                    print "break!"
+                    print("break!")
                 break
             # otherwise we use the order two element to connect the next cycle to one of the previous ones
             # since (S,T) are transitive this must be the case.
             old_map = Id
             if self._verbose>0:
-                print "got_cycles=",got_cycles
+                print("got_cycles={0}".format(got_cycles))
             try:
                 for cyii in range(len(cycT)):
                     if cyii in got_cycles:
@@ -1759,16 +1774,16 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         continue
                     next_cycle = cycT[cyii]
                     if self._verbose>0:
-                        print "next_cycle=",next_cycle
+                        print("next_cycle={0}".format(next_cycle))
                     for cyj in range(len(cycT)):
                         if self._verbose>0:
-                            print "cyj=",cyj
+                            print("cyj={0}".format(cyj))
                         if cyj not in got_cycles:
                             # We can only use cycles which are in the list
                             continue
                         cy=cycT[cyj]
                         if self._verbose>0:
-                            print "check with cy=",cy
+                            print("check with cy={0}".format(cy))
                         for i in cy:
                             j = pS(i)
                             if j in next_cycle:
@@ -1778,27 +1793,27 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                 coset_reps[j]=old_map
                                 new_index = next_cycle.index(j)
                                 if self._verbose>0:
-                                    print "connecting: S(",i,")=",j," in new cycle!"
-                                    print "ix=",new_index
-                                    print "old_map = ",old_map
-                                    print "next_cycle=",next_cycle
+                                    print("connecting: S({0})={1} in new cycle!".format(i,j))
+                                    print("ix={0}".format(new_index))
+                                    print("old_map = {0}".format(old_map))
+                                    print("next_cycle={0}".format(next_cycle))
                                 raise StopIteration()
             except StopIteration:
                 pass
             if old_map == Id:
-                raise ValueError,"Problem getting coset reps! Could not connect %s using  %s" %(cycT,pS)
+                raise ValueError("Problem getting coset reps! Could not connect {0} using  {1}".format(cycT,pS))
             if self._verbose>0:
-                print "in this step:"
+                print("in this step:")
                 for j in coset_reps.keys():
-                    if(coset_reps[j]<>Id):
-                        print "V(",j,")=",coset_reps[j] 
+                    if(coset_reps[j]!=Id):
+                        print("V({0})={1}".format(j,coset_reps[j]))
                     else:
-                        print "V(",j,")=Id"
+                        print("V({0})=Id".format(j))
         # By construction none of the coset-reps are in self and h(V_j)=j so they are all independent
         # But to make sure we got all we count the keys
-        if coset_reps.keys() != list(range(1,self._index+1)):
-            raise ValueError,"Problem getting coset reps! Need %s and got %s" %(self._index,len(coset_reps))
-        res  = list()
+        if len(coset_reps.keys()) != self._index:
+            raise ValueError("Problem getting coset reps! Need {0} and got {1}".format(self._index,len(coset_reps)))
+        res = list()
         for i in range(ix):
             res.append(coset_reps[i+1])
         return res
@@ -1903,7 +1918,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             #print AA[1,0]
             if AA not in self:
                 if verbose>0:
-                    print "A*{0}A^-1={1}".format(gg,AA)
+                    print("A*{0}A^-1={1}".format(gg,AA))
                 if verbose>1:
                     return False,AA
                 else:
@@ -1938,7 +1953,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
         """
         if self._verbose>0:
-            print "in coset_reps: farey = ",self._reps_from_farey
+            print("in coset_reps: farey = {0}".format(self._reps_from_farey))
         if self._reps_from_farey:
             version = 2
         if version==0:
@@ -1961,7 +1976,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         elif version == 3: # these should have been set manually.
             return self._coset_reps_v3
         else:
-            raise NotImplementedError,"Only versions 0,1 and 2,3 are implemented!"
+            raise NotImplementedError("Only versions 0,1 and 2,3 are implemented!")
 
 
     def set_coset_reps_manually(self,reps,check=True):
@@ -1996,8 +2011,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         l=self.coset_reps()
         li=list()
         n=len(l)
-        ps=range(1 ,self._index+1 )
-        pr=range(1 ,self._index+1 )
+        ps=list(range(1 ,self._index+1))
+        pr=list(range(1 ,self._index+1))
         S=SL2Z_elt(0,-1,1,0); T=SL2Z_elt(1,1,0,1)
         R=SL2Z_elt(0,-1,1,1)
         #S,T=SL2Z.gens()
@@ -2008,12 +2023,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 li.append(l[i].inverse())
                 #li.append([l[i][3],-l[i][1],-l[i][2],l[i][0]])
                 #li.append( SL2Z(l[i])**-1 )
-            ixr=range(n)
+            ixr=list(range(n))
         else:
             for i in range(n):
                 li.append( l[i].inverse() )
-            ixr=range(n)
-        ixs=range(n)
+            ixr=list(range(n))
+        ixs=list(range(n))
         for i in range(n):
             [a,b,c,d]=l[i]
             VS=SL2Z_elt(b,-a,d,-c) # Vi*S
@@ -2025,7 +2040,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if self.is_Gamma0():
                     t = tmp[2] % level == 0 
                 else:
-                    t = list(tmp) in G
+                    t = list(tmp) in self
                 if t:
                     pr[i]=j+1 
                     ixr.remove(j)
@@ -2037,7 +2052,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if self.is_Gamma0():
                     t = tmp[2] % level == 0 
                 else:
-                    t = list(tmp) in G
+                    t = list(tmp) in self
                 if t: #(VS*Vji in G):
                     ps[i]=j+1 
                     ixs.remove(j)
@@ -2086,7 +2101,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             for V in (self.coset_reps()):
                 if  V*A**-1  in self:
                     return V
-        raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
+        raise ArithmeticError("Did not find coset rep. for A={0}".format(A))
 
     # def pullback(self,x_in,y_in,ret_mat=1,prec=201,**kwds):
     #     r""" Find the pullback of a point in H to the fundamental domain of self
@@ -2336,7 +2351,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             # e>1, m>1
             onehalf = ZZ(2).inverse_mod(m) # i.e. 2^(-1) mod m
             onefifth = ZZ(5).inverse_mod(e) # i.e. 5^(-1) mod e
-            c,d = arith.CRT_basis([m, e])
+            c,d = CRT_basis([m, e])
             # c=0 mod e, c=1 mod m; d=1 mod e, d=0 mod m
             a = L**c
             b = R**c
@@ -2410,7 +2425,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self._generalised_level==None:
             # compute the generalized level
-            self._generalised_level= lcm(map(len,self.permT.cycle_tuples()))
+            self._generalised_level= lcm([len(x) for x in self.permT.cycle_tuples()])
         return self._generalised_level
     #raise ArithmeticError, "Could not compute generalised level of %s" %(self)
 
@@ -2575,12 +2590,12 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         #kk=ZZ(k)
         ki = ZZ(k)
         if is_odd(ki):
-            raise ValueError, "Use only for even weight k! not k=" %(kk)
-        if ki<2:
+            raise ValueError("Use only for even weight k! not k={0}".format(k))
+        if ki < 2:
             dim=0 
-        elif ki==2:
+        elif ki == 2:
             dim=self._genus
-        elif ki>=4:
+        elif ki >= 4:
             kk = RR(k)
             dim=ZZ(kk-1)*(self._genus-1)+self._nu2*floor(kk/4.0)+self._nu3*floor(kk/3.0)
             dim+= ZZ(kk/2.0 - 1)*self._ncusps
@@ -2603,7 +2618,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         kk=Integer(k)
         if is_odd(kk):
-            raise ValueError, "Use only for even weight k! not k=" %(kk)
+            raise ValueError("Use only for even weight k! not k={0}".format(kk))
         if k==0 :
             dim=1  # the constant functionz 
         elif k<2:
@@ -2642,31 +2657,31 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             
         """
         if hasattr(A,"det"):
-            if A.det()<>1:
+            if A.det()!=1:
                 if self._verbose>3:
-                    print "det(A)=",A.det()
+                    print("det(A)={0}".format(A.det()))
                 return False
             if not is_integer(A[0,0]):
                 if self._verbose>3:
-                    print "A[0,0]=",A[0,0],type(A[0,0])
+                    print("A[0,0]={0},{1}".format(A[0,0],type(A[0,0])))
                 return False
             if not is_integer(A[0,1]):
                 if self._verbose>3:
-                    print "A[0,1]=",A[0,1],type(A[0,1])
+                    print("A[0,1]={0},{1}".format(A[0,1],type(A[0,1])))
 
                 return False
             if not is_integer(A[1,0]):
                 if self._verbose>3:
-                    print "A[1,0]=",A[1,0],type(A[1,0])
+                    print("A[1,0]={0},{1}".format(A[1,0],type(A[1,0])))
                 return False
             if not is_integer(A[1,1]):
                 if self._verbose>3:
-                    print "A[1,1]=",A[1,1],type(A[1,1])
+                    print("A[1,1]={0},{1}".format(A[1,1],type(A[1,1])))
                 return False
         elif isinstance(A,list):
             if len(A)>4:
                 return False
-            if A[0]*A[3]-A[1]*A[2]<>1:
+            if A[0]*A[3]-A[1]*A[2] != 1:
                 return False
             # # See if A has integer entries
             if not is_integer(A[0]):
@@ -2681,8 +2696,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return False
         p=self.permutation_action(A)
         if self._verbose>1:
-            print "perm(A)=",p
-        if p(1)==1:
+            print("perm(A)={0}".format(p))
+        if p(1) == 1:
             return True
         else:
             return False
@@ -2701,7 +2716,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if len(self._cusps_as_cusps)==0:
             for c in self._cusps:
-                if c[1]<>0:
+                if c[1] != 0:
                     self._cusps_as_cusps.append(Cusp(QQ(c[0])/QQ(c[1])))
                 else:
                     self._cusps_as_cusps.append(Cusp(1,0))
@@ -2713,7 +2728,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if len(self._vertices_as_cusps)==0:
             for c in self._vertices:
-                if c[1]<>0:
+                if c[1] != 0:
                     self._vertices_as_cusps.append(Cusp(QQ(c[0])/QQ(c[1])))
                 else:
                     self._vertices_as_cusps.append(Cusp(1,0))
@@ -2752,14 +2767,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             if cusp == None:
                 cusp = Cusp(p,q)
             if self._verbose>1:
-                print "cusp=",cusp
+                print("cusp={0}".format(cusp))
             # if we are here we did not find the cusp in the list so we have to find an equivalent in the list
             c=self.cusp_representative(cusp)
             p = c.numerator(); q = c.denominator()
             j = self._cusps.index((p,q))
             return self._cusp_data[j]['width']
         
-        raise ArithmeticError,"Could not find the width of %s" %cusp
+        raise ArithmeticError("Could not find the width of {0}".format(cusp))
 
     def cusp_data(self,c):
         r""":
@@ -2795,7 +2810,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 g = SL2Z_elt([w[3], w[1], w[2],w[0]])
                 for d in range(1,1+self.index()):
                     t = g * SL2Z_elt(1,d,0,1) * g.inverse()
-                    print t
+                    print(t)
                     if t in self:
                         self._cusp_data_sage_format[c] = t, d, 1
                         break
@@ -2810,7 +2825,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 d = self._cusp_data[i]['width']
                 self._cusp_data_sage_format[c] = t, d, 1
             if self._cusp_data_sage_format.get(c)==None:
-                raise ArithmeticError,"Could not find stabiliser of {0}".format(c)
+                raise ArithmeticError("Could not find stabiliser of {0}".format(c))
         return self._cusp_data_sage_format.get(c)
 
 
@@ -2861,7 +2876,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 return x
             if trans and t:
                 return x,t
-        raise ArithmeticError,"Cusp {0} is not equivalent to any representative!".format(cusp)
+        raise ArithmeticError("Cusp {0} is not equivalent to any representative!".format(cusp))
     
     # def cusp_equivalent_to(self,cusp):
     #     r"""
@@ -2931,7 +2946,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         elif isinstance(cusp,tuple):
             p=cusp[0];q=cusp[1]
         else:
-            raise ValueError,"Could not construct a cusp from {0}".format(cusp)
+            raise ValueError("Could not construct a cusp from {0}".format(cusp))
         if (p,q) in self._cusps:
             j = self._cusps.index((p,q))
             return self._cusp_data[j]['normalizer']
@@ -2952,17 +2967,17 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         xx=x.parent()(x); yy=y.parent()(y)
         [d,b,c,a]=self.cusp_normalizer(c)
-        wi = G.cusp_widt(c)
+        wi = self.cusp_widt(c)
         if inv==1:
             b=-b; c=-c; atmp=a;
             a=d; d=a
-            if wi<>1:
+            if wi != 1:
                 wmul=self.cusp_widt(c)**-1
-        elif wi<>1:
+        elif wi != 1:
             wmul=x.parent()(self.cusp_widt(c))
             xx=wmul*xx; yy=wmul*yy
         xx,yy=apply_sl2z_map(xx,yy)
-        if wi<>1 and inv==1:
+        if wi != 1 and inv == 1:
             xx=xx/wmul; yy=yy/wmul
         return xx,yy
 
@@ -3025,11 +3040,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             sage: G.draw_fundamental_domain()
 
         """
-        from plot_dom import HyperbolicTriangle
-        from sage.all import hyperbolic_arc
+        from .plot_dom import HyperbolicTriangle
         verbose = options.get('verbose',0)
         if verbose>0:
-            print "options=",options
+            print("options={0}".format(options))
         draw_axes=options.pop('draw_axes',1)
         ymax = options.get('ymax',2.0)
             
@@ -3038,9 +3052,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             options.pop('model'); options.pop('method');
             return self.farey_symbol().fundamental_domain(**options)
         if options['show_pairing'] and not options['method']=='Farey':
-            raise NotImplementedError,"Pairings are only implemented for Farey symbols."
+            raise NotImplementedError("Pairings are only implemented for Farey symbols.")
         draw_circle = options.pop('draw_circle',True)
-        from sage.plot.colors import rainbow
         L = 10000
         #if options['method']=='Farey':
         #    version = 2
@@ -3051,7 +3064,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         contour_only= options.pop('contour',False)
         as_arcs= options.pop('as_arcs',False)
         if verbose>0:
-            print "as_arcs=",as_arcs
+            print("as_arcs={0}".format(as_arcs))
         version = options.pop('version',0)
         circle_color = options.pop('circle_color','black')
         conjugate_A = options.pop('conjugate_by',SL2Z_elt(1,0,0,1)) ## We draw a conjugated fundamental domain
@@ -3062,19 +3075,19 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             coset_reps = self.coset_reps(version=version)
         else:
             if verbose>0:
-                print "Conjugating by A=",conjugate_A
+                print("Conjugating by A={0}".format(conjugate_A))
             coset_reps = []
             for x in self.coset_reps(version=version):
                 coset_reps.append(conjugate_A*x)
         if verbose>0:
-            print "options=",options
+            print("options={0}".format(options))
         if model=="D2":
             g=draw_funddom_d(coset_reps,format,I)
         else:
             g = Graphics()
             cntr = Graphics()
-            A0 = CC(-0.5,sqrt(3.)/2)
-            B0 = CC(0.5,sqrt(3.)/2)
+            A0 = CC(-0.5,sqrt(3.)/2.)
+            B0 = CC(0.5,sqrt(3.)/2.)
             if model == 'D':
                 C0 = CC(infinity)
             else:
@@ -3082,7 +3095,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             for x in coset_reps:
                 #a, b, c, d = x[3], -x[1], -x[2], x[0]
                 A,B = [x.acton(z) for z in [A0,B0]]
-                if x.c()<>0:
+                if x.c()!=0:
                     C = CC(RR(x.a())/RR(x.c()),0)
                 else:
                     if model == 'D':
@@ -3090,8 +3103,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     else:
                         C = CC( (A.real()+B.real())*0.5,L)
                 if verbose>0:                    
-                    print "coset rep=",x
-                    print "Triangle: ({0},{1},{2})".format(A,B,C)
+                    print("coset rep={0}".format(x))
+                    print("Triangle: ({0},{1},{2})".format(A,B,C))
                 sides = [1,2,3]                    
                 if contour_only: # and model=='H':
                     ## See which sides we keep...
@@ -3111,20 +3124,20 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         Nj = self.cusp_normalizer(p)
                     V = Nj.inverse()*x
                     if verbose>0:
-                        print "x=",x
-                        print "V=",V
+                        print("x={0}".format(x))
+                        print("V={0}".format(V))
                     if Nj*V*T**-1 not in coset_reps:  
                         sides.append(3)
                     if Nj*V*T not in coset_reps:
                         sides.append(2)
                     if Nj*V*S not in coset_reps and Z*Nj*V*S not in coset_reps:
                         if verbose>1:
-                            print "NjVS=",Nj*V*S
+                            print("NjVS={0}".format(Nj*V*S))
                         sides.append(1)
                     if verbose>0:
-                            print "sides = ",sides
+                            print("sides = {0}".format(sides))
 
-                if sides<>[] and not as_arcs:
+                if sides!=[] and not as_arcs:
                     t = my_hyperbolic_triangle(A, B, C, \
                                                color=options['rgbcolor'], \
                                                fill=False, \
@@ -3132,7 +3145,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                                                thickness=options['thickness'], \
                                                model=model, verbose=verbose,npts=npts,sides=sides)
                     cntr += t
-                if as_arcs and sides<>[]:
+                if as_arcs and sides!=[]:
                     if 3 in sides:
                         cntr += hyperbolic_arc(C,A)
                     if 2 in sides:
@@ -3158,7 +3171,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     path1 = []
                     path_has_interior_pts = False
                     if verbose>0:
-                        print "Checking path=",path0
+                        print("Checking path={0}".format(path0))
                     for p in path0:
                         p0 = copy(p)
                         for i in range(len(p)):
@@ -3172,7 +3185,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                             if self.is_interior_point(x,version=version,verbose=verbose-1):
                                 path_has_interior_pts = True
                                 if verbose>0:
-                                    print "point {0} is interior!".format(x)
+                                    print("point {0} is interior!".format(x))
                                 break
                                 #del(p0[i])
                         #path1.append(p0)
@@ -3188,14 +3201,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if model=='H':
             g.set_axes_range(d['xmin'], d['xmax'], 0, min(d['ymax'],ymax))
             if options.get('ticks'):
-                g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]
+                g.SHOW_OPTIONS['ticks']=[list(range(int(d['xmin']),int(d['xmax'])+1)),[1,2]]
             else:
                 g.SHOW_OPTIONS['ticks']=[[],[]]
         else:
             if not ret_domain and draw_circle:
                 g+=circle((0,0),1,edgecolor=circle_color)
             g.set_axes_range(-1, 1, -1, 1)    
-            g.SHOW_OPTIONS['ticks']=[range(int(d['xmin']),int(d['xmax'])+1),[1,2]]        
+            g.SHOW_OPTIONS['ticks']=[list(range(int(d['xmin']),int(d['xmax'])+1)),[1,2]]        
         if draw_axes == 0:
             g.axes(False)
         return g
@@ -3212,33 +3225,33 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if isinstance(z0,tuple):
             z0 = CC(z0[0],z0[1])
         if verbose>0:
-            print "Pb of {0} is {1}; diff={2}".format(x0,z0,abs(x0-z0))
-        if z0 <> x0:
+            print("Pb of {0} is {1}; diff={2}".format(x0,z0,abs(x0-z0)))
+        if z0 != x0:
             return False           
         z1 = self.pullback(x1.real(),x1.imag(),version=version)
         if isinstance(z1,tuple):
             z1 = CC(z1[0],z1[1])
         if verbose>0:
-            print "Pb of {0} is {1}; diff={2}".format(x1,z1,abs(x1-z1))
-        if z1 <> x1:
+            print("Pb of {0} is {1}; diff={2}".format(x1,z1,abs(x1-z1)))
+        if z1 != x1:
             return False
         try:
             z2 = self.pullback(x2.real(),x2.imag(),version=version)
         except OverflowError as e:
-            print "Could not pull back {0}".format(x2)
+            print("Could not pull back {0}".format(x2))
             return False
         if isinstance(z2,tuple):
             z2 = CC(z2[0],z2[1])
         if verbose>0:
-            print "Pb of {0} is {1}; diff={2}".format(x2,z2,abs(x2-z2))
-        if z2 <> x2:
+            print("Pb of {0} is {1}; diff={2}".format(x2,z2,abs(x2-z2)))
+        if z2 != x2:
             return False
         z3 = self.pullback(x3.real(),x3.imag(),version=version)
         if isinstance(z3,tuple):
             z3 = CC(z3[0],z3[1])
         if verbose>0:
-            print "Pb of {0} is {1}; diff={2}".format(x3,z3,abs(x3-z3))
-        if z3 <> x3:
+            print("Pb of {0} is {1}; diff={2}".format(x3,z3,abs(x3-z3)))
+        if z3 != x3:
             return False
         return True
         
@@ -3247,9 +3260,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Display the symmetry properties of self.
         """
         for i in range(self._ncusps):
-            print "Cusp Nr. {0} = {1}:{2}".format(i,self._cusps[i][0],self._cusps[i][1])
-            print "Normalizer is normalizer : {0}".format(self.cusp_normalizer_is_normalizer(i))
-            print "Can be symmetrized even/odd: {0}".format(self.is_symmetrizable_even_odd(i))
+            print("Cusp Nr. {0} = {1}:{2}".format(i,self._cusps[i][0],self._cusps[i][1]))
+            print("Normalizer is normalizer : {0}".format(self.cusp_normalizer_is_normalizer(i)))
+            print("Can be symmetrized even/odd: {0}".format(self.is_symmetrizable_even_odd(i)))
 
 
 
@@ -3257,17 +3270,17 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def test_normalize_pt_to_cusp(self,z,ci):
         N=self._cusp_data[ci]['normalizer']
         l=self._cusp_data[ci]['width']
-        print "N,l=",N,l
+        print("N,l={0},{1}".format(N,l))
         z1=N.acton(z*RR(l))
-        print "z1=",z1
+        print("z1={0}".format(z1))
         x,y,A= self.pullback(RR(z1.real()),RR(z1.imag()))
         z2=x+I*y
-        print "z2=",z2
+        print("z2={0}".format(z2))
         cj,vj=self.closest_cusp(x,y,1)
-        print "cj,vj=",cj,vj
+        print("cj,vj={0},{1}".format(cj,vj))
         U = self._cusp_maps[vj]
         z3=U.acton(z2)
-        print "z3=",z3
+        print("z3={0}".format(z3))
         N2=self._cusp_data[cj]['normalizer']
         l2=self._cusp_data[cj]['width']
         z4 = (N2**-1).acton(z3)/RR(l2)
@@ -3316,14 +3329,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         vertex_data=dict()
         permT=self.permT
         if self._verbose>0:
-            print "permT=",self.permT
+            print("permT={0}".format(self.permT))
         lws=self.permT.cycles() #.cycle_tuples()
         if self._verbose>0:
-            print "permT.cycles=",lws
+            print("permT.cycles={0}".format(lws))
         ## This is a set of all cusp widths which can occur
-        all_cusp_widths=map(len,lws)
+        all_cusp_widths=list([len(x) for x in lws])
         if self._verbose>0:
-            print "all cusp widths=",all_cusp_widths
+            print("all cusp widths={0}".format(all_cusp_widths))
         cusp_widths={} #
         ## We get the width from the cycles:
         for j in range(len(coset_reps)):
@@ -3338,16 +3351,16 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         for j in range(1,len(coset_reps)):
             V = coset_reps[j]
             if self._verbose>0:
-                print "V[",j,"]=",V
+                print("V[",j,"]=",V)
             perm=self.permutation_action(V,1)
             if self._verbose>0:
-                print "perm(",j,")(1)=",perm(1)
+                print("perm({0})(1)={1}".format(j,perm(1)))
             coset_perms.append(perm)
         # Recall that we have permutations for all groups here
         # and that the widths can be read from self.permT
         if self._verbose>0:
-             print "widths=",cusp_widths
-             print "reps=",coset_reps
+             print("widths={0}".format(cusp_widths))
+             print("reps={0}".format(coset_reps))
         Id=SL2Z_elt(1,0,0,1)
         vi=0
         ## First populate the vertices of the fundamental domain we have choosen
@@ -3373,8 +3386,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     vj = vertices.index(v)
                     vertex_data[vj]['coset'].append(j)
         if self._verbose>0:
-            print "vi=",vi
-            print "vertex_data=",vertex_data
+            print("vi={0}".format(vi))
+            print("vertex_data={0}".format(vertex_data))
         # Then the cusps
         if test==1:
             return
@@ -3389,26 +3402,26 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         for j in range(len(vertices)):
             v = vertices[j]
             if self._verbose>0:
-                print "Test:",v
+                print("Test:{0}".format(v))
             if v in cusps:
                 cii=cusps.index(v)
                 vertex_data[j]['cusp']=cii
                 #cusps.index(v)
-                if cusp_data[cii].has_key('vertices'):
+                if 'vertices' in cusp_data[cii]:
                     cusp_data[cii]['vertices'].append(j)
                 else:
                     cusp_data[cii]['vertices']=[j]
                 if self._verbose>0:
-                    print "set cusp_data[{0}]={1}".format(cii,cusp_data[cii])
+                    print("set cusp_data[{0}]={1}".format(cii,cusp_data[cii]))
                 continue
             # Check which "canonical cusp" v is equivalent to.
             W,U,p,q,l=self.get_equivalent_cusp(v[0],v[1])
             if self._verbose>0:
-                if W<>0:
-                    print "W,U,p,q,l=",list(W),list(U),p,q,l
+                if W!=0:
+                    print("W,U,p,q,l={0},{1},{2},{3},{4}".format(list(W),list(U),p,q,l))
                 else:
-                    print "W,U,p,q,l=",W,U,p,q,l
-                    print "cusps=",cusps
+                    print("W,U,p,q,l={0},{1},{2},{3},{4}".format(W,U,p,q,l))
+                    print("cusps={0}".format(cusps))
             if (p,q) in cusps:
                 cii=cusps.index((p,q))
                 vertex_data[j]['cusp']=cii
@@ -3421,8 +3434,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 for pp,qq in cusps:
                     t,A=Cusp(pp,qq).is_gamma0_equiv(Cusp(v),1,transformation='matrix')
                     if self._verbose>0:
-                        print "are eq:",Cusp(pp,qq),Cusp(v)
-                        print "A=",A,type(A)
+                        print("are eq:{0},{1}".format(Cusp(pp,qq),Cusp(v)))
+                        print("A={0},{1}".format(A,type(A)))
                         
                     if t==1 and A in self:
                         try: 
@@ -3430,7 +3443,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         except ValueError as e:
                             a=A[0,0]; b=A[0,1]; c=A[1,0]; d=A[1,1]
                             if self._verbose:
-                                print "We called with a sage matrix A!"
+                                print("We called with a sage matrix A!")
                         cii=cusps.index((pp,qq))
                         vertex_data[j]['cusp']=cii
                         vertex_data[j]['cusp_map']=SL2Z_elt(d,-b,-c,a)
@@ -3447,13 +3460,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             vertex_data[j]['cusp']=ci
             if p==0 and q==0:
                 if self._verbose>0:
-                    print "1 setting cusp ",v
+                    print("1 setting cusp {0}".format(v))
                 cusps.append(v)
                 vertex_data[j]['cusp_map']=Id
                 cusp_data[ci]['vertices'].append(j)
             else:
                 if self._verbose>0:
-                    print "2 setting cusp ",p,q
+                    print("2 setting cusp {0},{1}".format(p,q))
                 cusps.append((p,q))
                 vertex_data[j]['cusp_map']=U
                 cusp_data[ci]['vertices'].append(j)
@@ -3462,18 +3475,18 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         Vtmp = coset_reps[vj]
                         coset_reps[vj] = U*Vtmp
                         if self._verbose>0:
-                            print "Changing rep from {0} to {1}".format(Vtmp,coset_reps[j])
+                            print("Changing rep from {0} to {1}".format(Vtmp,coset_reps[j]))
                     vertices[j]=(p,q)
                     vertex_data[j]['cusp_map']=Id
             # Setting the normalizer    
-            if W<>0:
+            if W!=0:
                 #if l==0:
                 l = vertex_data[j]['width']
                 #elif l<>vertex_data[j]['width']:
                 #    raise ArithmeticError,"Could not calculate width"
                 if self._verbose>0:
-                    print "3 setting cusp ",p,q
-                    print "width=",l
+                    print("3 setting cusp {0},{1}".format(p,q))
+                    print("width={0}".format(l))
                 #S=W*SL2Z([1,l,0,1])*W**-1
                 if Cusp(p,q)==Cusp(-1,2):
                     #cusp_data[ci]['normalizer']=
@@ -3578,11 +3591,11 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 #    all_cusp_widths.remove(abs(width))
                 #ci+=1
         if self._verbose>0:
-            print "vertices",vertices
-            print "vertex_data=",vertex_data
-            print "cusps=",cusps
-            print "cusp_data=",cusp_data
-            print "coset+reps=",coset_reps
+            print("vertices={0}".format(vertices))
+            print("vertex_data={0}".format(vertex_data))
+            print("cusps={0}".format(cusps))
+            print("cusp_data={0}".format(cusp_data))
+            print("coset+reps={0}".format(coset_reps))
             #continue
             # Small test:
         #if len(cusps)<>len(cusp_widths):
@@ -3627,7 +3640,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         for V in (self.coset_reps()):
             if  V*A**-1 in self:
                 return V
-        raise ArithmeticError,"Did not find coset rep. for A=%s" %(A)
+        raise ArithmeticError("Did not find coset rep. for A={0}".format(A))
 
     def pullback(self,x_in,y_in=None,ret_mat=0,prec=201,version = 0,**kwds):
         r""" Find the pullback of a point in H to the fundamental domain of self
@@ -3681,14 +3694,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 if y_in is None or isinstance(y_in,Expression) or (isinstance(y_in,Integer) and isinstance(x_in,Integer)):
                     use_mat = True
                 if y_in < 0.1:
-                    prec = max(53,3*log_b(1.0/y,2))
+                    prec = max(53,3*log_b(y**-1,2))
                     RF = RealField(prec)
                     use_mpfr = True
                 else:
                     RF = RR
                     use_dp = True
             except TypeError as er:
-                raise TypeError,"Could not get point in upper half-plane from {0}! {1}!".format(x_in,er)
+                raise TypeError("Could not get point in upper half-plane from {0}! {1}!".format(x_in,er))
 
         if self._is_Gamma0 and version == 0:
             if use_dp:
@@ -3696,7 +3709,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             elif use_mpfr:
                 xpb,ypb,a,b,c,d=pullback_to_Gamma0N_mpfr(self,x,y)
             else:
-                raise ValueError," Need to use either dp or mpfr!"
+                raise ValueError(" Need to use either dp or mpfr!")
         else:
             a,b,c,d=pullback_to_psl2z_mat(RR(x_in),RR(y_in))
             A=SL2Z_elt(a,b,c,d) #.matrix()
@@ -3708,10 +3721,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         raise StopIteration
             except StopIteration:
                 if self._verbose > 1:
-                    print "Representative of A={0} is V={1} and VA={2}".format(A,V,B) 
+                    print("Representative of A={0} is V={1} and VA={2}".format(A,V,B)) 
                 pass
             else:
-                raise ArithmeticError,"Did not find coset rep. for A=%s" % A
+                raise ArithmeticError("Did not find coset rep. for A={0}".format(A))
             if use_dp:
                 xpb,ypb=apply_sl2z_map_dp(x_in,y_in,B[0],B[1],B[2],B[3])
             else:
@@ -3755,7 +3768,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         """
         if self._generalised_level==None:
             # compute the generalized level
-            self._generalised_level= lcm(map(len,self.permT.cycle_tuples()))
+            self._generalised_level= lcm([len(x) for x in self.permT.cycle_tuples()])
         return self._generalised_level
     #raise ArithmeticError, "Could not compute generalised level of %s" %(self)
 
@@ -3772,9 +3785,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         N = self.generalised_level()
         # do a preliminary test to see if ST^NS or T^N is in the group
         name,g = self.find_name(get_named_group=True)
-        if name<>'':
+        if name != '':
             self._name = name
-        if g<>None:
+        if g != None:
             return g
         
     def  find_name(self,get_named_group=False):
@@ -3809,9 +3822,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     latex_name = '\Gamma_1({0})'.format(N)
             if name == '': # Try some other alternatives
                 # Try to find if we have a Gamma_0(N,M)
-                bs = map( lambda x:x.b(), self.generators_as_slz_elts())
+                bs = [x.b() for x in self.generators_as_slz_elts()]
                 if self._verbose>0:
-                    print "bs=",bs
+                    print("bs={0}".format(bs))
                 M = gcd(bs)
                 # We know that Gamma_0^0(N,M) ~= B_n Gamma_0(NM) B_n^-1
                 for m in M.divisors():
@@ -3886,9 +3899,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return (WQ,A,p,q,l)
         N = self.generalised_level()
         if self._verbose>0:
-            print "p=",p
-            print "q=",q
-            print "N=",N
+            print("p={0}".format(p))
+            print("q={0}".format(q))
+            print("N={0}".format(N))
         if N % q==0:
             Q = N.divide_knowing_divisible_by(q)*p
             if Q<0:
@@ -3897,13 +3910,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 #p=abs(p)
             if Q.divides(N):
                 if self._verbose>0:
-                    print "Q0=",Q
+                    print("Q0={0}".format(Q))
                 N1 = N.divide_knowing_divisible_by(Q)
                 g,s,t=xgcd(Q,N1)
                 if g==1:
                     A=[1,0,0,1]
                     if self._verbose>0:
-                        print "s,t=",s,t
+                        print("s,t={0},{1}".format(s,t))
                     # a = Q; b =-t; c=N; d=s*Q                
                     if Q>0:
                         WQ=SL2Z_elt(1,-t,N1,Q*s)
@@ -3921,24 +3934,24 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         res=[]
         for Q in divs:
             if self._verbose>0:
-                print "Q=",Q
+                print("Q={0}".format(Q))
             c1 = Cusp(QQ(Q)/QQ(N)) #Cusp(QQ(Q)/QQ(N))
             c2 = Cusp(QQ(p)/QQ(q))
             t,A=Cusp.is_gamma0_equiv(c1, c2, N, transformation='matrix')
             if self._verbose>0:
                 #print "c1=",c1
                 #print "c2=",c2
-                print "t=",t,A
+                print("t=",t,A)
             if t:
                 U=SL2Z_elt(A[1,1],-A[0,1],-A[1,0],A[0,0])
                 #U=A**-1
                 if self._verbose>0:
-                    print "c1=",c1
-                    print "c2=",c2
+                    print("c1={0}".format(c1))
+                    print("c2={0}".format(c2))
                 pp=c1.numerator()
                 qq=c1.denominator()
                 g,s,t=xgcd( Q,ZZ(QQ(N)/QQ(Q)))
-                if g<>1:
+                if g!=1:
                     # We can not get Atkin-Lehner but at least we get
                     # a canonical representative of the form Q/N
                     # and if we have a cusp of the form p/q, q|N
@@ -3951,8 +3964,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                             l = N.divide_knowing_divisible_by(gcd(N,qq**2))
                         else:
                             if self._verbose>0:
-                                print "q%N=",(q%N)
-                                print "qq%N=",(qq%N)
+                                print("q%N={0}".format(q%N))
+                                print("qq%N={0}".format(qq%N))
                             l=0 # self._G.cusp_width(c2)
                     else:
                         l=self.cusp_width(c2)
@@ -3965,7 +3978,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     return W,U,pp,qq,l
                 a = Q; b =-t; c=N; d=s*Q
                 if self._verbose>0:
-                    print "a,b,c,d=",a,b,c,d
+                    print("a,b,c,d={0},{1},{2},{3}".format(a,b,c,d))
                 ## We should see if (a b ; c d) = A rho with A in SL2Z
                 for l in gcd(a,c).divisors():
                     aa = a.divide_knowing_divisible_by(l)
@@ -3983,8 +3996,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         if len(res)>1:
             # Pick the best one
             if self._verbose>0:
-                print "res>1=",res
-            lista= map(lambda x:sum(map(abs,x[1].matrix().list())),res)
+                print("res>1={0}".format(res))
+            lista= [sum([abs(y) for y in x[1].matrix().list()]) for x in res]
             mina=min(lista)
             i=lista.index(mina)
             return res[i]
@@ -3996,9 +4009,9 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         Display the symmetry properties of self.
         """
         for i in range(self._ncusps):
-            print "Cusp Nr. {0} = {1}:{2}".format(i,self._cusps[i][0],self._cusps[i][1])
-            print "Normalizer is normalizer : {0}".format(self.cusp_normalizer_is_normalizer(i))
-            print "Can be symmetrized even/odd: {0}".format(self.is_symmetrizable_even_odd(i))
+            print("Cusp Nr. {0} = {1}:{2}".format(i,self._cusps[i][0],self._cusps[i][1]))
+            print("Normalizer is normalizer : {0}".format(self.cusp_normalizer_is_normalizer(i)))
+            print("Can be symmetrized even/odd: {0}".format(self.is_symmetrizable_even_odd(i)))
 
 
 
@@ -4011,7 +4024,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     continue
                 x=Cusp(self._cusps[j])
                 if self.are_equivalent(Cusp(p,q),x):
-                    raise ArithmeticError, "Cusps {0} and {1} are equivalent!".format(Cusp(p,q),x)
+                    raise ArithmeticError("Cusps {0} and {1} are equivalent!".format(Cusp(p,q),x))
                 
             if q==0:
                 c = Infinity
@@ -4020,22 +4033,22 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 c=QQ(p)/QQ(q)
                 t1 = c==QQ(N[0])/QQ(N[2])
             if not t1:
-                raise ArithmeticError, "{0} is not normalizer of cusp nr.{1}: {2}".format(N,i,c)
+                raise ArithmeticError("{0} is not normalizer of cusp nr.{1}: {2}".format(N,i,c))
             A = self._cusp_data[i]['stabilizer']
             if q==0:
-                t2 = A[0]<>0 and A[2]==0
+                t2 = A[0]!=0 and A[2]==0
             else:
                 t2 = c== acton_list_maps(A,c) 
             if not t2:
-                raise ArithmeticError, "{0} is does not stabilize cusp nr. {1}: {2}".format(A,i,c)
+                raise ArithmeticError("{0} is does not stabilize cusp nr. {1}: {2}".format(A,i,c))
             TT = mul_list_maps(N,A,1)
             TT = mul_list_maps(TT,N)
             #TT = N**-1*A*N
             S = [0,-1,1,0]; T=[1,1,0,1]
             #S,T=SL2Z.gens()
             l = self._cusp_data[i]['width']
-            if TT<>[1,l,0,1]:
-                raise ArithmeticError, "Width {0} is not correct width for cusp nr. {1}: {2}".format(l,i,c)
+            if TT!=[1,l,0,1]:
+                raise ArithmeticError("Width {0} is not correct width for cusp nr. {1}: {2}".format(l,i,c))
         for i in range(self._nvertices):
             vp,vq = self._vertices[i] 
             if vq==0:
@@ -4052,29 +4065,29 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             A = self._vertex_data[i]['cusp_map']
             if vq==0:
                 if q==0:
-                    t3 = A[0]<>0 and A[2]==0
+                    t3 = A[0]!=0 and A[2]==0
                 else:
                     t3 = QQ(A[0])/QQ(A[2])==c
             else:
                 if q==0:
-                    t3 = (A[0]*v+A[2])<>0 and  (A[2]*v+A[3])==0
+                    t3 = (A[0]*v+A[2])!=0 and  (A[2]*v+A[3])==0
                 else:
                     #print "Av=",A.acton(v)
                     #print "c=",c
                     t3 = acton_list_maps(A,v)==c
             if not t3:
-                raise ArithmeticError,"The map {0} does not map the vertex nr. {1}: {2} to the cusp nr. {3}: {4}".format(A,i,v,j,c)
+                raise ArithmeticError("The map {0} does not map the vertex nr. {1}: {2} to the cusp nr. {3}: {4}".format(A,i,v,j,c))
             # Also check that the correct number of coset reps maps to this vertex
             cnt=0
             for vj in self._vertex_data[i]['coset']:
                 V = self.coset_reps()[vj]
                 a = V.a(); c=V.c()
-                if Cusp(a,c)<>Cusp(vp,vq):
-                    raise ArithmeticError,"Coset rep {0} do not map to the vertex {1}!".format(V,v)
+                if Cusp(a,c)!=Cusp(vp,vq):
+                    raise ArithmeticError("Coset rep {0} do not map to the vertex {1}!".format(V,v))
                 else:
                     cnt+=1
             if cnt>self._vertex_data[i]['width']:
-                raise ArithmeticError,"Too many coset reps. maps to the vertex {0}! ".format(v)
+                raise ArithmeticError("Too many coset reps. maps to the vertex {0}! ".format(v))
 
     def test_coset_reps(self,version=0):
         r"""
@@ -4095,14 +4108,14 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 else:
                     t = BB in self
                 if t:
-                    print "A[",j,"]=",A
-                    print "B[",k,"]=",B
-                    print "AB^-1=",BB
-                    raise ArithmeticError,"Coset representatives are not correct!"
+                    print("A[{0]={1}".format(j,A))
+                    print("B[{0}]={1}".format(k,B))
+                    print("AB^-1={0}".format(BB))
+                    raise ArithmeticError("Coset representatives are not correct!")
             ## We also want sigma(A)(1)=j if we have our own coset reps. (i.e. version 0 or 1)
             k = self.permutation_action(A)(1)
-            if k<>j+1:
-                raise ArithmeticError,"sigma(V_{0})(1)={1}".format(j,k)
+            if k != j+1:
+                raise ArithmeticError("sigma(V_{0})(1)={1}".format(j,k))
         return True
 
     def test_normalize_pt_to_cusp(self,z,ci):
@@ -4110,17 +4123,17 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         assert z.imag()>0
         N=self._cusp_data[ci]['normalizer']
         l=self._cusp_data[ci]['width']
-        print "N,l=",N,l
+        print("N,l={0},{1}".format(N,l))
         z1=N.acton(z*RR(l))
-        print "z1=",z1
+        print("z1={0}".format(z1))
         x,y,A= self.pullback(RR(z1.real()),RR(z1.imag()))
         z2=x+I*y
-        print "z2=",z2
+        print("z2={0}".format(z2))
         cj,vj=self.closest_cusp(x,y,1)
-        print "cj,vj=",cj,vj
+        print("cj,vj={0},{1}".format(cj,vj))
         U = self._cusp_maps[vj]
         z3=U.acton(z2)
-        print "z3=",z3
+        print("z3=",z3)
         N2=self._cusp_data[cj]['normalizer']
         l2=self._cusp_data[cj]['width']
         z4 = (N2**-1).acton(z3)/RR(l2)
@@ -4156,16 +4169,16 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             return True
 
         if o2.order() not in [1,2] or o3.order() not in [1,3]:
-            print "o2=",o2,o2.order()
-            print "o3=",o3,o3.order()
+            print("o2={0},{1}".format(o2,o2.order()))
+            print("o3={0},{1}".format(o3,o3.order()))
             s="Input permutations are not of order 2 and 3: \n perm(S)^2={0} \n perm(R)^3={1} " 
-            raise ValueError, s.format(o2*o2,o3*o3*o3)
+            raise ValueError(s.format(o2*o2,o3*o3*o3))
         if not are_transitive_permutations(o2,o3):
             S = SymmetricGroup(self._index)
             G = S.subgroup([S(self.permS.list()),S(self.permR.list())])
             #GS=self._S.subgroup([self.permS,self.permR])
             s="Error in construction of permutation group! Permutations not transitive: <S,R>={0},{1}. Generated group={2}".format(o2,o3,G)
-            raise ValueError, s
+            raise ValueError(s)
         return True
 
 
@@ -4176,8 +4189,6 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         sages source in sage/modular/arithgroup/arithgroup_perm.py 
 
         """
-        from sage.interfaces.gap import gap
-        from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
         P = self.perm_group()._gap_()
         for b in P.AllBlocks():
             orbit = P.Orbit(b, gap.OnSets)
@@ -4199,7 +4210,7 @@ class MySubgroup_congruence_class (MySubgroup_class):
     def __init__(self,o2=None,o3=None,verbose=0,display_format='short',data={},**kwds):
         super(MySubgroup_congruence_class,self).__init__(o2,o3,verbose,display_format,data,**kwds)
         if not self.is_congruence():
-            raise ValueError,"Self is not a congruence subgroup!"
+            raise ValueError("Self is not a congruence subgroup!")
         self.class_name='MySubgroup_congruence_class'            
 
     def level(self):
@@ -4214,7 +4225,7 @@ class HeckeTriangleGroup(SageObject):
          NOTE: For now we don't have subgroups.
         """
         if not isinstance(q,(int,Integer)):
-            raise ValueError,"Need an integer q!"
+            raise ValueError("Need an integer q!")
         self._q=q
         self._prec=prec
         self._verbose=verbose
@@ -4264,7 +4275,7 @@ class HeckeTriangleGroup(SageObject):
         return 1
 
     def nu3(self):
-        if self._q<>3:
+        if self._q != 3:
             return 0
         else:
             return 1
@@ -4560,9 +4571,9 @@ def _get_perms_from_str(st):
     [(2,3)(4,5)(6,7), (1,3,4)(5,6,7)]
         
     """
-    (s1,sep,s2)=s.partition("-")
+    (s1,sep,s2)=st.partition("-")
     if(len(sep)==0 ):
-        raise ValueError,"Need to supply string of correct format!"
+        raise ValueError("Need to supply string of correct format!")
     if(s2.count("-")>0 ):
         # split again
         (s21,sep,s22)=s2.partition("-")
@@ -4590,15 +4601,15 @@ def get_perms_from_cycle_str(s,N,sep=' ',deb=False):
     """
     # First get the cycles (and remove the beginning and end of the string)
     cycles = s[1:-1].split(")(")
-    perm = range(1,N+1)
+    perm = list(range(1,N+1))
     if deb:
-        print "N=",N
+        print("N={0}".format(N))
     for c in cycles:
         if deb:
-            print "c=",c
-        l=map(int,c.split(sep)) # elements of the cycle are separated by "sep"
+            print("c={0}".format(c))
+        l = [int(x) for x in c.split(sep)] # elements of the cycle are separated by "sep"
         nn = len(l)-1
-        if nn>0:
+        if nn > 0:
             for i in range(nn):
                 perm[l[i]-1]=l[i+1]
                 perm[l[nn]-1]=l[0]        
@@ -4648,21 +4659,21 @@ def list_valid_signatures(index,nc=None,ne2=None,ne3=None,ng=None):
 
     """
     if(index not in ZZ or index <=0):
-        raise TypeError, "index must be a positive integer! Got: %s"%index
+        raise TypeError("index must be a positive integer! Got: {0}".format(index))
     res=list()
     for h in range(1,index+1):
-        if(nc<>None and h<>nc):
+        if nc != None and h != nc:
             continue
         for e2 in range(0,index+1):
-            if(ne2<>None and ne2<>e2):
+            if ne2 != None and ne2 != e2:
                 continue
             for e3 in range(0,index+1):
-                if(ne3<>None and ne3<>e3):
+                if ne3 != None and ne3 != e3:
                     continue
                 g=12+index-6*h-3*e2-4*e3
-                if(ng<>None and g<>ng):
+                if ng != None and g != ng:
                     continue
-                if( (g>=0) and ((g % 12)==0)): # we have a valid type
+                if (g >= 0) and ((g % 12) == 0): # we have a valid type
                     g=g/12
                     res.append([index,h,e2,e3,g])
     return res
@@ -4712,7 +4723,7 @@ def acton_list_maps(A,c):
 
 def test_gamma0N(N1,N2):
     for N in range(N1,N2):
-        print "N=",N
+        print("N={0}".format(N))
         G=MySubgroup(Gamma0(N))
         G.test_cusp_data()
     return 1

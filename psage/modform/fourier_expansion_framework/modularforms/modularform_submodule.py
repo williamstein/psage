@@ -24,6 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
+from builtins import map
+from builtins import object
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_ambient import GradedExpansionAmbient_abstract
 from psage.modform.fourier_expansion_framework.gradedexpansions.gradedexpansion_submodule import GradedExpansionSubmodule_ambient_pid, \
                                                        GradedExpansionSubmodule_submodule_pid, \
@@ -37,7 +39,7 @@ import operator
 # HeckeInvariantSubmodule_abstract
 #===============================================================================
 
-class HeckeInvariantSubmodule_abstract :       
+class HeckeInvariantSubmodule_abstract(object) :       
     @cached_method
     def _hecke_action(self, n) :
         """

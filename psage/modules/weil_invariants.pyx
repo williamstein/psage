@@ -81,7 +81,7 @@ cdef long _el_index(long * c, long *ed, int r) nogil:
     cdef long m = 0
     ii=0
     md=1
-    for jj in xrange(0,r):
+    for jj in range(0,r):
         m=ed[jj]
         #print jj,n,c[jj]
         ii = ii + (c[jj]%m)*md
@@ -98,7 +98,7 @@ cdef long* _elt(long ii, long *ed, int r) nogil:
     cdef long md = 1
     cdef long jj = 0
     cdef long c = 0
-    for jj in xrange(0,r):
+    for jj in range(0,r):
         md = ed[jj]
         c = ii%md
         eltl[jj] = c
@@ -113,7 +113,7 @@ cdef long _neg_index(long ii, long *ed, int r) nogil:
     """
     cdef long jj=0
     cdef long* eltl = _elt(ii, ed, r)
-    for jj in xrange(0,r):
+    for jj in range(0,r):
         eltl[jj]=-eltl[jj]
     return _el_index(eltl, ed, r)
 
@@ -133,8 +133,8 @@ cdef long B(long i, long j, long **JJ, long *ed, int r) nogil:
     cdef long* kk = _elt(i, ed, r)
     cdef long ii, jj = 0
     cdef long res = 0
-    for ii in xrange(r):
-        for jj in xrange(r):
+    for ii in range(r):
+        for jj in range(r):
             res = res + ll[ii]*kk[jj]*JJ[ii][jj]
     #sig_off()
     return res
@@ -144,16 +144,16 @@ cdef long* Bl(long i, long **JJ, long *ed, int r) nogil:
     cdef long ii, jj = 0
     cdef long* kk = NULL
     kk = <long*> sig_malloc(sizeof(long)*r)
-    for ii in xrange(r):
+    for ii in range(r):
         kk[ii] = 0
-        for jj in xrange(r):
+        for jj in range(r):
             kk[ii] = kk[ii] + ll[jj]*JJ[jj][ii]
     return kk
 
 cdef long BBl(long j, long *Bi, long *ed, int r) nogil:
     cdef long ii, res = 0
     cdef long* ll = _elt(j, ed, r)
-    for ii in xrange(r):
+    for ii in range(r):
         res = res + Bi[ii]*ll[ii]
     return res
 
@@ -166,7 +166,7 @@ cpdef cython_invariants_dim(FQM, use_reduction = True, proof = True, debug=1):
     if not is_prime_power(FQM.level()):
         for p,n in FQM.level().factor():
             N = None
-            for j in xrange(1,n+1):
+            for j in range(1,n+1):
                 J = FQM.jordan_decomposition()
                 C = J.constituent(p**j)[0]
                 if N == None and C.level() != 1:
@@ -233,7 +233,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
             if P > 2:
                 PP = kronecker(-1,P)*P
                 zz = z**(l/P)
-                w = sum([kronecker(PP,ii)*zz**ii for ii in xrange(P)])
+                w = sum([kronecker(PP,ii)*zz**ii for ii in range(P)])
                 eps = 1 if PP > 0 else -I
                 w = eps*w
                 w = w*AA
@@ -243,7 +243,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
                 w = w*AA
         if debug > 0:
             print "w = {}".format(w)
-        for ii in xrange(l):
+        for ii in range(l):
             zt = z**ii
             if debug > 0:
                 print "zt = {}**{} = {}".format(z, ii, zt)
@@ -323,12 +323,12 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     JJ = <long**> sig_malloc(sizeof(long*) * r)
     if JJ is NULL:
         raise MemoryError('Cannot allocate memory.')
-    for i in xrange(r):
+    for i in range(r):
         JJ[i] = NULL
         JJ[i] = <long*> sig_malloc(sizeof(long)*r)
         if JJ[i] == NULL:
             raise MemoryError('Cannot allocate memory.')
-        for j in xrange(r):
+        for j in range(r):
             JJ[i][j] =  long((2*l*J[i,j]))
     #sig_off()
     if debug > 0: print 'Gram matrix conversion: {0}'.format(walltime(t))
@@ -340,7 +340,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     cdef list skip_list = list()
     if debug > 0: t = walltime()
     
-    for i in xrange(n):
+    for i in range(n):
         #x = cython_elt(i,ed)
         if debug > 1: print "B=", B(i,i,JJ,ed,r)
         j = int(B(i,i,JJ,ed,r)/2) % l
@@ -393,7 +393,7 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         #if debug > 1:
         #    print [Bli[ii] for ii in range(r)]
         #sig_off()
-        for j in xrange(n-i):
+        for j in range(n-i):
             #BB[i][j] = B(Ml[i+j][0],Ml[i][0],JJ,ed,r) % l
             BB[i][j] = (l-BBl(Mli[i+j],Bli,ed,r)) % l
 
@@ -411,9 +411,9 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
     #A = np.ndarray((n,ni), dtype=long)
     #cdef long[:,:] HH = A
     cdef H = Matrix(K,n,ni)
-    for j in xrange(ni):
+    for j in range(ni):
         #print j, f
-        for i in xrange(j, n):
+        for i in range(j, n):
             p = BB[j][i-j]
             H[i,j] = table[p]*Mlf[j]
             if i==j:
@@ -439,8 +439,8 @@ cpdef cython_invariants_matrices(FQM, K = QQbar, proof = True, debug=0, return_H
         M = Matrix(L,n,ni)
         eps = 1 if s2 == 1 else -1
         i = j = 0
-        for j in xrange(ni):
-            for i in xrange(j,n):
+        for j in range(ni):
+            for i in range(j,n):
                 p = BB[j][i-j]
                 if debug > 1:
                     print "i={}, j={}, p={}".format(i, j, p)

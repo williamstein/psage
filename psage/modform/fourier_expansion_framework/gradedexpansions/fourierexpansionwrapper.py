@@ -24,7 +24,8 @@ AUTHOR :
 #
 #===============================================================================
 
-class FourierExpansionWrapper :
+from builtins import object
+class FourierExpansionWrapper(object) :
     r"""
     Abstract class for elements, which do not represent Fourier
     expansions on their own, but encapsulate one.

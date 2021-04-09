@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #import rings
 #import functions
 #import modules
@@ -13,5 +14,5 @@
 from psage.groups.all import *
 from psage.modules.all import *
 from psage.modform.all import *
-from zfunctions import SelbergZeta,TransferOperator
+from .zfunctions import SelbergZeta,TransferOperator
 #from function_fields import FunctionField

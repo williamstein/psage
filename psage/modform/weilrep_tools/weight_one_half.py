@@ -1,3 +1,6 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import range
 from sage.all import SageObject, Integer, RR, is_odd, next_prime, floor, RealField, ZZ, ceil, log, ComplexField, real, sqrt, exp, is_squarefree, lcm, Matrix, cached_function
 from psage.modules.finite_quadratic_module import FiniteQuadraticModule
 from psage.modules.weil_invariants import invariants
@@ -35,12 +38,12 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
         eps = False
     debug2 = 0
     if debug > 1:
-        print "FQM = {0}, TM = {1}, TMM = {2}".format(FQM, TM, TMM)
+        print("FQM = {0}, TM = {1}, TMM = {2}".format(FQM, TM, TMM))
         debug2 = 1
     if debug > 2:
         debug2=debug
     inv = invariants(TMM, use_reduction, proof=proof, debug=debug2)
-    if debug > 1: print inv
+    if debug > 1: print(inv)
     if type(inv) in [list,tuple]:
         V = inv[1]
     else:
@@ -71,19 +74,19 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
             for i in range(len(el)):
                 M[el[i][0],i] = el[i][1]
             #import pdb; pdb.set_trace()
-            if debug > 1: print "M={0}, V={1}".format(M, V)
+            if debug > 1: print("M={0}, V={1}".format(M, V))
             try:
                 KM = (M-M.parent().one()).kernel_on(V)
-                if debug > 1: print "KM for ev 1 = {0}".format(KM)
+                if debug > 1: print("KM for ev 1 = {0}".format(KM))
                 d[0] = KM.dimension()
                 KM = (M+M.parent().one()).kernel_on(V)
-                if debug > 1: print "KM for ev -1 = {0}".format(KM)
+                if debug > 1: print("KM for ev -1 = {0}".format(KM))
                 d[1] = KM.dimension()
             except Exception as e:
                 raise RuntimeError("Error occured for {0}, {1}".format(FQM.jordan_decomposition().genus_symbol(), e), M, V)
         else:
             d = [V.dimension(), 0]
-    if debug > 1: print d
+    if debug > 1: print(d)
     return d
 
 @cached_function
@@ -95,7 +98,7 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
     d = 0
     for l in m.divisors():
         if is_squarefree(m/l):
-            if debug > 1: print "l = {0}".format(l)
+            if debug > 1: print("l = {0}".format(l))
             TM = FiniteQuadraticModule([2*l],[-1/Integer(4*l)])
             if local:
                 dd = [0,0] # eigenvalue 1, -1 multiplicity
@@ -104,10 +107,10 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
                     TN = None
                     J = FQM.jordan_decomposition()
                     L = TM.jordan_decomposition()
-                    for j in xrange(1,n+1):
+                    for j in range(1,n+1):
                         C = J.constituent(p**j)[0]
                         D = L.constituent(p**j)[0]
-                        if debug > 1: print "C = {0}, D = {1}".format(C,D)
+                        if debug > 1: print("C = {0}, D = {1}".format(C,D))
                         if N == None and C.level() != 1:
                             N = C
                         elif C.level() != 1:
@@ -117,7 +120,7 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
                         elif D.level() != 1:
                             TN = TN + D
                     dd1 = invariants_eps(N, TN, use_reduction, proof, debug)
-                    if debug > 1: print "dd1 = {}".format(dd1)
+                    if debug > 1: print("dd1 = {}".format(dd1))
                     if dd1 == [0,0]:
                         # the result is multiplicative
                         # a single [0,0] as a local result
@@ -136,7 +139,7 @@ def weight_one_half_dim(FQM, use_reduction = True, proof = False, debug = 0, loc
                         ddtmp[0] = dd[0]*dd1[0] + dd[1]*dd1[1]
                         ddtmp[1] = dd[0]*dd1[1] + dd[1]*dd1[0]
                         dd = ddtmp
-                    if debug > 1: print "dd = {0}".format(dd)
+                    if debug > 1: print("dd = {0}".format(dd))
                 d += dd[0]
             else:
                 d += invariants_eps(FQM, TM, use_reduction, proof, debug)[0]

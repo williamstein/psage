@@ -1,5 +1,3 @@
-include 'sage/ext/stdsage.pxi'
-include 'sage/ext/cdefs.pxi'
 
 from sage.rings.ring cimport Ring
 

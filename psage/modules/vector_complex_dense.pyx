@@ -70,6 +70,7 @@ TESTS:
 from cysignals.memory cimport sig_free,sig_malloc
 from cysignals.signals cimport sig_on,sig_off
 from psage.rings.mp_cimports cimport *
+from sage.ext.stdsage cimport PY_NEW
 
 from sage.all import FreeModule #,FreeModuleElement,ModuleElement
 from sage.structure.element cimport Element,ModuleElement,RingElement

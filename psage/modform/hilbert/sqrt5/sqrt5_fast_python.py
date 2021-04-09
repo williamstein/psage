@@ -42,10 +42,13 @@ TODO: This implementation is slow.  This is since matrix arithmetic is
 generic, and generic matrix arithmetic is double dog slow (100 times
 too slow).  I think the algorithm itself is solid.
 """
+from __future__ import absolute_import
+from __future__ import division
 
-from sqrt5_fast import ResidueRing
+from past.utils import old_div
+from .sqrt5_fast import ResidueRing
 from sage.matrix.all import MatrixSpace, matrix
-from sqrt5 import F, B, icosian_ring_gens
+from .sqrt5 import F, B, icosian_ring_gens
 from sage.misc.all import cached_function
 
 @cached_function
@@ -97,7 +100,7 @@ def find_mod2pow_splitting(i):
 
     L = []
     for j in [1,2]:
-        C = Mk(matrix_lift(wbar[j]**2 + M(1)) / t)
+        C = Mk(old_div(matrix_lift(wbar[j]**2 + M(1)), t))
         A = Mk(matrix_lift(wbar[j]))
         # Find all matrices B in Mk such that AB+BA=C.
         L.append([wbar[j]+s*M(matrix_lift(B)) for B in Mk if A*B + B*A == C])

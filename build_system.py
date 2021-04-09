@@ -1,3 +1,4 @@
+from __future__ import print_function
 #################################################################################
 #
 # (c) Copyright 2010 William Stein
@@ -31,8 +32,8 @@ from sage.misc.cython import cython
 def time_stamp(filename):
     try:
         return os.path.getmtime(filename)
-    except OSError, msg:
-        print msg
+    except OSError as msg:
+        print(msg)
         return 0
 
 # def cython(f_pyx, language, include_dirs, force):
@@ -90,13 +91,13 @@ def execute_list_of_commands_in_parallel(command_list, nthreads):
     WARNING: commands are run roughly in order, but of course successive
     commands may be run at the same time.
     """
-    print "Execute %s commands (using %s threads)"%(len(command_list), min(len(command_list),nthreads))
+    print("Execute {0} commands (using {1} threads)".format(len(command_list), min(len(command_list),nthreads)))
     from multiprocessing import Pool
     p = Pool(nthreads)
-    print command_list
+    print(command_list)
     for r in p.imap(apply_pair, command_list):
         if r:
-            print "Parallel build failed with status %s."%r
+            print("Parallel build failed with status {0}.".format(r))
             sys.exit(1)
 
 def number_of_threads():
@@ -108,7 +109,7 @@ def number_of_threads():
     OUTPUT:
         int
     """
-    if hasattr(os, "sysconf") and os.sysconf_names.has_key("SC_NPROCESSORS_ONLN"): # Linux and Unix
+    if hasattr(os, "sysconf") and "SC_NPROCESSORS_ONLN" in os.sysconf_names: # Linux and Unix
         n = os.sysconf("SC_NPROCESSORS_ONLN") 
         if isinstance(n, int) and n > 0:
             return n
@@ -129,7 +130,7 @@ def execute_list_of_commands_in_serial(command_list):
     for f,v in command_list:
         r = f(v)
         if r != 0:
-            print "Error running command, failed with status %s."%r
+            print("Error running command, failed with status {0}.".format(r))
             sys.exit(1)
 
 def cythonize(ext_modules):

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 #################################################################################
 #
 # (c) Copyright 2011 William Stein
@@ -33,7 +35,7 @@ def import_table(address, table_filename, max_level=None):
     """
     from psage.modform.hilbert.sqrt5.sqrt5 import F
     from sage.databases.cremona import cremona_letter_code
-    from aplists import labeled_primes_of_bounded_norm, str_to_apdict
+    from .aplists import labeled_primes_of_bounded_norm, str_to_apdict
     labels, primes = labeled_primes_of_bounded_norm(F, 100)
 
     from psage.lmfdb.auth import userpass
@@ -42,7 +44,7 @@ def import_table(address, table_filename, max_level=None):
     from pymongo import Connection
     C = Connection(address).research
     if not C.authenticate(user, password):
-        raise RuntimeError, "failed to authenticate"
+        raise RuntimeError("failed to authenticate")
     e = C.ellcurves_sqrt5
 
 
@@ -59,7 +61,7 @@ def import_table(address, table_filename, max_level=None):
              'number':1, 'Nlevel':Nlevel, 'ap':ap,
              'weq':weq}
         if max_level and Nlevel > max_level: break
-        print v
+        print(v)
         spec = dict(v)
         del spec['weq']
         e.update(spec, v, upsert=True, safe=True)

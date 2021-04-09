@@ -162,7 +162,7 @@ class MultiplierSystem(SageObject):
         return self._level
     def weight(self):
         r"""
-        Return (modulo 2) whish weight self is a multiplier system consistent with
+        Return (modulo 2) which weight self is a multiplier system consistent with
         """
         if self._is_trivial:
             self._weight = 0

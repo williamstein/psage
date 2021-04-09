@@ -112,7 +112,7 @@ def _satoh_bracket(f, g, f_weight, g_weight) :
     We suppose that `f` and `g` are either contained in a ring of a scalar
     valued Siegel modular forms or that they are equivariant monoid
     power series.
-    `f` and `g` must have the same parent after conversion to fourier
+    `f` and `g` must have the same parent after conversion to Fourier
     expansions.
     
     OUTPUT:
@@ -120,7 +120,7 @@ def _satoh_bracket(f, g, f_weight, g_weight) :
     - The return value is a Equivariant monoid power series.
     """
     if not f.parent() == g.parent() :
-        raise ValueError("The fourier expansions of f and g must" + \
+        raise ValueError("The Fourier expansions of f and g must" + \
                           " have the same parent")
 
     base_ring = f.parent().coefficient_domain()

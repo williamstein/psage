@@ -43,7 +43,7 @@ class VectorValuedModularFormsSpace_generic_class(FreeModule_generic):
         r"""
           Returns the ambient module of self.
         """
-        return NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        return NotImplementedError("This method is currently not implemented. It should be overridden by the specific subclasses.")
 
     def weight(self):
         return self._k

@@ -139,7 +139,7 @@ def SiegelModularFormG2Factory(precision):
 
 class SiegelModularFormG2Factory_class(SageObject):
     r"""
-    A class producing dictionarys saving fourier expansions of Siegel
+    A class producing dictionaries saving Fourier expansions of Siegel
     modular forms of genus `2`.
     """
     
@@ -152,7 +152,7 @@ class SiegelModularFormG2Factory_class(SageObject):
         """
         self.__precision = precision
         
-        ## Conversion of power series is not expensive but powers of interger
+        ## Conversion of power series is not expansive but powers of integer
         ## series are much cheaper then powers of rational series
         self._power_series_ring_ZZ = PowerSeriesRing(ZZ, 'q')
         self._power_series_ring = PowerSeriesRing(QQ, 'q')
@@ -219,7 +219,7 @@ class SiegelModularFormG2Factory_class(SageObject):
         INPUT:
         - `f`              -- modular form of level `1`
         - `g`              -- cusp form of level `1` and weight = ``weight of f + 2``
-        - ``is_integral``  -- ``True`` if the result is garanteed to have integer
+        - ``is_integral``  -- ``True`` if the result is guaranteed to have integer
                               coefficients
         """
         
@@ -323,7 +323,7 @@ class SiegelModularFormG2Factory_class(SageObject):
         a0 = PS(a0dict); b0 = PS(b0dict)
 
         ## Finally: I(f,g) is given by the formula below:
-        ## We multiply by etapow explecitely and save two multiplications
+        ## We multiply by etapow explicitly and save two multiplications
         # Ifg0 = k/2*f*A0 - fderiv*B0 + g*B0 + O(q^precision)
         # Ifg1 = k/2*f*A1 - fderiv*B1 + g*B1 + O(q^precision)
         Ifg0 = (self._eta_power() * (f*a0 + gfderiv*b0)).list()
@@ -357,7 +357,7 @@ class SiegelModularFormG2Factory_class(SageObject):
         ## by the formula  \sum_{ a | gcd(n,r,m) } Cphi[D/a^2] where 
         ## D = r^2-4*n*m is the discriminant.  
         ## Hence in either case the coefficient 
-        ## is fully deterimined by the pair (D,gcd(n,r,m)).
+        ## is fully determined by the pair (D,gcd(n,r,m)).
         ## Put (D,t) -> \sum_{ a | t } Cphi[D/a^2]
         ## in a dictionary (hash table) maassc.
 

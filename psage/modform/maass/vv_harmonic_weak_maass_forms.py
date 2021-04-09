@@ -981,7 +981,7 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
     #ssdigs=sint[1:len(sint)]+sdigs
     # cut away to nd digits
     if(nd>0):
-        #ssdigs=sdigs[0:nd-1] # We acount the leading digit too
+        #ssdigs=sdigs[0:nd-1] # We count the leading digit too
         # Try to do correct rounding        
         rest=sdigs[nd-len(sint):len(sdigs)]
         #print "sdigs=",sdigs," nd=",nd
@@ -1960,7 +1960,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         s+="Element of "+self._space._latex_().replace(old,new)+" With principal part "
         WR=self._space.multiplier()
         # If we have more than one non-zero element in the principal part we have to
-        # addd a + between terms
+        # add a + between terms
         sp=""
         for (b,m) in self._principal_part:
             a=self._principal_part[(b,m)]
@@ -2106,7 +2106,9 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         return summa
     
     def compute_coefficients(self,nrange,irange=None,prec=10,ef=True,Qadd=0):
-        r""" Compute a list of coeficients.
+        r"""
+        Compute a list of coefficients.
+
         INPUT:
 
         - nrange -- range of integers
@@ -2244,8 +2246,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         return [er1,er2]
         
     def get_coefficient(self,L,n=None):
-        r""" Return a coefficient or a list of coeficients.
-
+        r"""
+        Return a coefficient or a list of coefficients.
 
         EXAMPLES:
 
@@ -2271,7 +2273,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             if tt != None:
                 return self.get_one_coefficient(tt[0],tt[1])
         else:
-            raise ValueError("Incorrect keys for coefficents: L,n={0}, {1}".format(L,n))
+            raise ValueError("Incorrect keys for coefficients: L,n={0}, {1}".format(L,n))
 
     def C(self,r,n=None):
         r"""
@@ -2401,7 +2403,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                             if n in self._coeffs[mr]:
                                 c_old=self._coeffs[mr][n]
                                 if abs(c-self._space.multiplier()._sym_type*c_old) > 10**(1-self.prec):
-                                    st="Might add an erronous coefficient! Got c({0},{1})={2}. ".format(r,n,c)
+                                    st="Might add an erroneous coefficient! Got c({0},{1})={2}. ".format(r,n,c)
                                     st+="From previous coefficients should have {0}".format(self._space._sym_type*c_old)
                                     raise ValueError(st)
                                 if overwrite:
@@ -2418,7 +2420,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
         
             -``format`` -- string.
                         == components (default) means that we list coefficients component-wise
-                        == disc menas that we list according to discriminant
+                        == disc means that we list according to discriminant
             -``fd`` -- logical (default True) if set to True only prints coefficients given by fundamental discriminants                    
             -``max`` -- integer (default 0) the largest coefficient (either max n or max D). If 0 we list all coefficients we got
 

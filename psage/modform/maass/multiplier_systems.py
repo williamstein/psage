@@ -37,10 +37,11 @@ from __future__ import division
 
 from builtins import str
 from builtins import range
-from sage.all import SageObject,CyclotomicField,Integer,is_even,ZZ,QQ,Rational,kronecker,is_odd,SL2Z,Gamma0,matrix,floor,ceil,lcm,copy,trivial_character,qexp_eta,var,DirichletGroup
+from sage.all import SageObject,CyclotomicField,Integer,is_even,ZZ,QQ,Rational,kronecker,is_odd,SL2Z,Gamma0,matrix,floor,ceil,lcm,copy,trivial_character,var,DirichletGroup
 from sage.all import kronecker_character,kronecker_character_upside_down,I
 from sage.misc.cachefunc import cached_function,cached_method
 from sage.modular.arithgroup.arithgroup_element import ArithmeticSubgroupElement
+from sage.modular.etaproducts import eta_qexp
 from psage.modform.arithgroup.mysubgroups_alg import factor_matrix_in_sl2z,SL2Z_elt
 from psage.modform.arithgroup.mysubgroup import MySubgroup
 from psage.modules.weil_module import WeilModule

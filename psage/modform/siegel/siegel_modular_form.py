@@ -1331,7 +1331,7 @@ def _SiegelModularForm_from_theta_characteristics(char_dict, prec=SMF_DEFAULT_PR
     coeffs = dict()
     smf_prec = SiegelModularFormPrecision(prec)
     for f in smf_prec:
-        if hint is 'cusp_form':
+        if hint == 'cusp_form':
             a, b, c = f
             if 0 == a: continue
         from .theta_constant import _compute_theta_char_poly

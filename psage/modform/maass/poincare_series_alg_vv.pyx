@@ -1,9 +1,9 @@
 #-*- coding: utf-8 -*-
 r"""
 Cython algorithms for computing holomorphic vector-valued Poincaré series.
-In particular to find a basis and compute aq gram matrix consisting of the Fouriercoefficients p_{D_i,r_i}(D_j,r_j)
+In particular to find a basis and compute a gram matrix consisting of the Fouriercoefficients p_{D_i,r_i}(D_j,r_j)
 
-NOTE: At the moment this is only implemented for the simple Weil representation asociated to D=Z/NZ
+NOTE: At the moment this is only implemented for the simple Weil representation associated to D=Z/NZ
 
 NOTE: The current implementation doesn't really use Cython...
 

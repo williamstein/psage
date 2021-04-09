@@ -71,7 +71,7 @@ class jCurveDatabase(sage.databases.db.Database):
 
     def _update_(self, q, n, table, force=False, verbose=False):
         r"""
-        Upate the database for self over $\mathbb{F}_{q^n}$, forcing
+        Update the database for self over $\mathbb{F}_{q^n}$, forcing
         overwrite if so desired. If the table already exists and is
         forced to be overwritten, the two tables are compared for
         equality. If they are not equal, the old table is replaced
@@ -143,7 +143,7 @@ class LocalEulerDatabase(sage.databases.db.Database):
 
     def _update_(self, ainvs, q, n, table, force=False, verbose=False):
         r"""
-        Upate the database for self over $\mathbb{F}_{q^n}$, forcing
+        Update the database for self over $\mathbb{F}_{q^n}$, forcing
         overwrite if so desired. If the table already exists and is
         forced to be overwritten, the two tables are compared for
         equality. If they are not equal, the old table is replaced

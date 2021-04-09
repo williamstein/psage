@@ -168,7 +168,7 @@ cdef int pullback_pts_cplx_dp_sym(S,int **Qv,double Y,double *Xm,double *** Xpb,
     OUTPUT:
 
     
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -600,7 +600,7 @@ cdef int pullback_pts_cplx_dp(S,int Qs,int Qf,double Y,double *Xm,double *** Xpb
     OUTPUT:
 
     
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -1281,7 +1281,7 @@ def pullback_pts_fp(S,Qs,Qf,Y,weight=0,holo=False):
     
     OUTPUT:
 
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -1442,7 +1442,7 @@ cpdef pullback_pts_mpc(S,int Qs,int Qf,RealNumber Y,deb=False):
     
     OUTPUT:
 
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -1655,7 +1655,7 @@ cpdef pullback_pts_mpc_new(S,int Qs,int Qf,RealNumber Y,deb=False):
     
     OUTPUT:
 
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -2217,7 +2217,7 @@ cdef int pullback_pts_mpc_new_c(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*** X
     
     OUTPUT:
 
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -2584,7 +2584,7 @@ cdef int pullback_pts_mpc_new_c_sym(S,int Qs,int Qf,mpfr_t Y, mpfr_t* Xm,mpfr_t*
     
     OUTPUT:
 
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -3013,7 +3013,7 @@ cdef int pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpf
     
     OUTPUT:
 
-    - ``pb`` -- dictonary with entries:
+    - ``pb`` -- dictionary with entries:
        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY
@@ -3164,7 +3164,7 @@ cdef int pullback_pts_hecke_triangle_mpc_new_c(S,int Qs,int Qf,RealNumber Y, mpf
     
 #     OUTPUT:
 
-#     - ``pb`` -- dictonary with entries:
+#     - ``pb`` -- dictionary with entries:
 #        - 'xm'   -- real[Qf-Qs+1]  : x_m=2*pi*(1-2*m)/2(Qf-Qs+1)
 #        - 'xpb'  -- real[0:nc,0:nc,Qf-Qs+1]  : real part of pullback of x_m+iY
 #        - 'ypb'  -- real[0:nc,0:nc,Qf-Qs+1]  : imag. part of pullback of x_m+iY

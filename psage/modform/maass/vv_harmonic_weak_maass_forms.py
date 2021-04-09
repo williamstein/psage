@@ -512,7 +512,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
     def get_Y_and_M(self,PP,weight,prec,Yin=None):
         r"""
-        Find a good Y and M for computing coefficents with precison 10^-prec
+        Find a good Y and M for computing coefficients with precision 10^-prec
         
         """
         # generalized_level

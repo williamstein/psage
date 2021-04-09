@@ -820,7 +820,7 @@ def nice_coset_reps(G):
                     cl.append(A)
                 except StopIteration:
                     pass
-        # We now addd the rest of the "flips" of these reps.
+        # We now add the rest of the "flips" of these reps.
         # So that we end up with a connected domain
         i=1 
         while(True):
@@ -836,7 +836,7 @@ def nice_coset_reps(G):
                     except StopIteration:
                         pass
             if(len(cl)>=G.index() or lold>=len(cl)):
-                # If we either did not addd anything or if we addded enough
+                # If we either did not add anything or if we added enough
                 # we exit
                 break
         # If we missed something (which is unlikely)        

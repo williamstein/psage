@@ -113,7 +113,7 @@ class JacobiFormD1NN_Gamma(ModularFormType_abstract):
         return JacobiFormsD1NN
     
     def group(self) :
-        return "Sp(2, ZZ)_\infty"
+        return r"Sp(2, ZZ)_\infty"
     
     @cached_method
     def _rank(self, K) :

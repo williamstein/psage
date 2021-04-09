@@ -357,17 +357,17 @@ class ThetaMultiplier(MultiplierSystem):
         return s
     def __latex__(self):
         if self._is_dual:
-            s=" \bar{v_{\theta}} "
+            s=r" \bar{v_{\theta}} "
         else:
-            s=" v_{\theta} "
+            s=r" v_{\theta} "
         if self._character != None and not self._character.is_trivial():
-            s+=" \cdot "
+            s+=r" \cdot "
             if self._character == kronecker_character(self._conductor):
-                s+=" \left( \frac\{\cdot\}\{ {0} \}\right)".format(self._conductor)
+                s+=r" \left( \frac\{\cdot\}\{ {0} \}\right)".format(self._conductor)
             elif self._character == kronecker_character_upside_down(self._conductor):
-                s+=" \left( \frac\{ {0} \}\{ \cdot \}\right)".format(self._conductor)
+                s+=r" \left( \frac\{ {0} \}\{ \cdot \}\right)".format(self._conductor)
             else:
-                s+=" \chi_\{ {0}, {1} \}".format(self._conductor,self._char_nr)
+                s+=r" \chi_\{ {0}, {1} \}".format(self._conductor,self._char_nr)
         return s
 
     def __getinitargs__(self):

@@ -2367,7 +2367,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
                 s += "%s"%x[i]
             else:
                 if len(s) > 0: s += " + "
-                s += "%s \cdot %s"%(latex(v[i]),x[i])
+                s += r"%s \cdot %s"%(latex(v[i]),x[i])
         if len(s) == 0: s = "0"
         return s
 

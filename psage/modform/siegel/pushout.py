@@ -1288,7 +1288,7 @@ def pushout(R, S):
 
     
 def pushout_lattice(R, S):
-    """
+    r"""
     Given a pair of Objects R and S, try and construct a 
     reasonable object $Y$ and return maps such that 
     canonically $R \leftarrow Y \rightarrow S$. 

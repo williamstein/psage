@@ -478,7 +478,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
 #@options(alpha=1,fill=False,  thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
 @options(alpha=1,  thickness=1, rgbcolor="black", zorder=2, linestyle='solid', model='H',fill=False)
 def my_hyperbolic_triangle(a, b, c, **options):
-    """
+    r"""
     Return a hyperbolic triangle in the complex hyperbolic plane with points
     (a, b, c). Type ``?hyperbolic_triangle`` to see all options.
 

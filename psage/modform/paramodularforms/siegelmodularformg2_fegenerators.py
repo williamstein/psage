@@ -284,7 +284,7 @@ class SiegelModularFormG2Factory_class(SageObject):
         # to do it in small parts; This is only implemented for integral
         # coefficients.
 
-        """
+        r"""
         Create the Jacobi form I(f,g) as in [Sko].
     
         It suffices to construct for all Jacobi forms phi only the part

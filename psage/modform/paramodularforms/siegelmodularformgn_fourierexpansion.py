@@ -271,7 +271,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         return self.reduce
     
     def reduce(self, t) :
-        ## We compute the rational diagonal form of t. Whenever a zero entry occures we
+        ## We compute the rational diagonal form of t. Whenever a zero entry occurs we
         ## find a primitive isotropic vector and apply a base change, such that t finally
         ## has the form diag(0,0,...,P) where P is positive definite. P will then be a
         ## LLL reduced.

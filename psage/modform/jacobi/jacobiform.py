@@ -46,7 +46,7 @@ class JacobiForm_class(SageObject):
         """
         if prec == None:
             prec = self._prec
-        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overridden by the specific subclasses.")
 
     def weight(self):
         return self._k

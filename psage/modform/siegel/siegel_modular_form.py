@@ -1223,7 +1223,7 @@ def _SiegelModularForm_as_Maass_spezial_form(f, g, prec=SMF_DEFAULT_PREC, name=N
     ## by the formula  \sum_{ a | gcd(n,r,m) } Cphi[D/a^2] where 
     ## D = r^2-4*n*m is the discriminant.  
     ## Hence in either case the coefficient 
-    ## is fully deterimined by the pair (D,gcd(n,r,m)).
+    ## is fully determined by the pair (D,gcd(n,r,m)).
     ## Put (D,t) -> \sum_{ a | t } Cphi[D/a^2]
     ## in a dictionary (hash table) maassc.
     maassc = dict();
@@ -1488,7 +1488,7 @@ def _normalized_prec(prec):
         +Infinity
 
     NOTE:
-        $(a,b,c)$ is within the precison defined
+        $(a,b,c)$ is within the precision defined
         by prec, if $a,b,c < floor(a),floor(b),floor(c)%
         respectively $4ac-b^2 < floor(prec)$.
     """

@@ -35,10 +35,10 @@ from __future__ import division
 
 def modular_symbols_from_curve(C, N, num_factors=3):
     """
-    Find the modular symbols spaces that shoudl correspond to the
+    Find the modular symbols spaces that should correspond to the
     Jacobian of the given hyperelliptic curve, up to the number of
     factors we consider.
-    
+
     INPUT:
         - C -- a hyperelliptic curve over QQ
         - N -- a positive integer

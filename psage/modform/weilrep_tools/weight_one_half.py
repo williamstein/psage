@@ -83,7 +83,7 @@ def invariants_eps(FQM, TM, use_reduction = True, proof = False, debug = 0):
                 if debug > 1: print("KM for ev -1 = {0}".format(KM))
                 d[1] = KM.dimension()
             except Exception as e:
-                raise RuntimeError("Error occured for {0}, {1}".format(FQM.jordan_decomposition().genus_symbol(), e), M, V)
+                raise RuntimeError("Error occurred for {0}, {1}".format(FQM.jordan_decomposition().genus_symbol(), e), M, V)
         else:
             d = [V.dimension(), 0]
     if debug > 1: print(d)

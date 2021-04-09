@@ -126,7 +126,7 @@ class pAdicLseries(SageObject):
         return self._hecke_eigenvalue_field
 
     def psi(self):
-        """
+        r"""
         The embedding $\Q(\alpha) \into \Q_p(a)$ sending $\alpha \mapsto a$.
         """
         K_f = self._hecke_eigenvalue_field

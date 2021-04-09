@@ -1018,8 +1018,7 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
         ssdigs=sint[1:len(sint)]+sdigs    
 
     if latex_pow:
-        res=sint[0]+"."+ssdigs+" \cdot 10^{"+ex+"}"
-        return res 
+        return sint[0]+"."+ssdigs+r" \cdot 10^{"+ex+"}"
     else:
         return sint[0]+"."+ssdigs+es+ex
 
@@ -2671,7 +2670,7 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
                         else:
                             cs=str(c)                        
                     if(c.real()>=0 and latex):
-                        cs="\hphantom{-}"+cs
+                        cs=r"\hphantom{-}"+cs
                     elif(c.real()>=0):
                         cs=" "+cs 
                     if(latex):

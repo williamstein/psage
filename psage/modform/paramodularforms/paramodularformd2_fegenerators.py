@@ -65,7 +65,7 @@ def _minimal_paramodular_precision(level, weight):
         raise NotImplementedError("Minimal bound can only be provided for prime level")
 
 def symmetrise_siegel_modular_form(f, level, weight):
-    """
+    r"""
     ALGORITHM:
         We use the Hecke operators \delta_p and [1,level,1,1/level], where the last one
         can be chosen, since we assume that f is invariant with respect to the full

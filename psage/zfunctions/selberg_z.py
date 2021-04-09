@@ -1357,7 +1357,7 @@ class TransferOperator(Parent):
             print("mina={0}".format(mina))
             print("maxb={0}".format(maxb))
             for j in range(d):            
-                print("Phi(I_{j}) \subset [{a},{b}]".format(j=j,a=mina[j],b=maxb[j]))
+                print(r"Phi(I_{j}) \subset [{a},{b}]".format(j=j,a=mina[j],b=maxb[j]))
         # We now need to find disks with the same center as before
         radii={};rho={}
         for j in range(d):

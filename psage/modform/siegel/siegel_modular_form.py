@@ -1139,7 +1139,7 @@ def _SiegelModularForm_as_Maass_spezial_form(f, g, prec=SMF_DEFAULT_PREC, name=N
     if 1 == precision:
         precision = 2
     
-    """
+    r"""
     Create the Jacobi form I(f,g) as in [Sko].
 
     It suffices to construct for all Jacobi forms phi only the part

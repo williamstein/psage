@@ -103,7 +103,7 @@ class ParamodularFormD2_Gamma ( ModularFormType_abstract ) :
         return ParamodularFormD2_classical
     
     def group(self) :
-        return "\Gamma_2 ^para"
+        return r"\Gamma_2 ^para"
     
     def _rank(self, K) :
         """

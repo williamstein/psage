@@ -149,7 +149,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         return SiegelModularFormGnFilter_diagonal_lll(self.__n, maxd + 1, self.__reduced)
   
     def _gln_lift(self, v, position = 0) :
-        """
+        r"""
         Create a unimodular matrix which contains v as a row or column.
         
         INPUT:

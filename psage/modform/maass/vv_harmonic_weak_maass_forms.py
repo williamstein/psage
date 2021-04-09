@@ -418,7 +418,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
         CC=dict()
         # we need to shift the indices of C to the (semi-)correct indices
         # i.e. for effficiency we use integers instead of rationals
-	#return C
+        #return C
         F=list()
         for j in C.keys():
             CC[j]=dict()

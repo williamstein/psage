@@ -3,6 +3,8 @@ List of extension modules
 """
 #from distutils.extension import Extension
 import os
+import platform
+
 import pkgconfig
 
 # CBLAS can be one of multiple implementations
@@ -19,12 +21,30 @@ gsl_pc = pkgconfig.parse('gsl')
 gsl_libs = list(set(gsl_pc['libraries']).difference(set(['gslcblas'])).union(set(cblas_libs)))
 gsl_library_dirs = list(gsl_pc['library_dirs'])
 gsl_include_dirs = list(gsl_pc['include_dirs'])
-
-openmp_libs = pkgconfig.parse('openmp')
-openmp_libs = list(openmp_libs['libraries'])
+# Find platform
+if 'Darwin' in platform.platform() or 'macOS' in platform.platform():
+    this_platform = 'macOS'
+else:
+    this_platform = ''
+# Check if we have OpenMP libraries
+openmp_libs = []
+openmp_link_args = []
+try:
+    openmp_libs = pkgconfig.parse('openmp')
+    openmp_libs = list(openmp_libs['libraries'])
+except pkgconfig.pkgconfig.PackageNotFoundError:
+    pass
+##
+# Try to set openmp libraries for different options...
+# TODO: This stilll needs lot of work to be automatic on Mac...
 if not openmp_libs and os.path.exists('/usr/local/lib/libomp.a'):
     openmp_libs = ['/usr/local/lib/']
+if this_platform == 'macOS' and os.path.exists('/usr/local/opt/llvm/bin/clang'):
+    openmp_libs = ['/usr/local/opt/llvm/lib/']
+    openmp_include_dirs = ['/usr/local/opt/llvm/include']
 
+if openmp_libs:
+    openmp_link_args = ['-fopenmp']
 cpp_compile_args = ['-std=gnu++11']
 
 aliases = dict(
@@ -41,7 +61,7 @@ class Extension(setuptools.extension.Extension):
         setuptools.Extension.__init__(self, name, sources, language=language,
                                        include_dirs=include_dirs, **kwds)         
 
-# Hide deprecatiopn warning for numpy API since we don't use it here
+# Hide deprecation warning for numpy API since we don't use it here
 extra_compile_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION']
 
 
@@ -210,7 +230,8 @@ my_extensions = [
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
               library_dirs=openmp_libs,
-              extra_link_args=['-fopenmp']),
+              include_dirs=openmp_include_dirs,
+              extra_link_args=openmp_link_args),
 
     Extension('psage.modform.maass.pullback_algorithms',
               ['psage/modform/maass/pullback_algorithms.pyx'],
@@ -228,7 +249,7 @@ my_extensions = [
               include_dirs = numpy_include_dirs,
               library_dirs = openmp_libs,
               extra_compile_args=extra_compile_args,
-              extra_link_args=['-fopenmp']),
+              extra_link_args=openmp_link_args),
 
     Extension('psage.modform.hilbert.hn_class',
               ['psage/modform/hilbert/hn_class.pyx'],
@@ -296,7 +317,7 @@ my_extensions = [
               libraries = ['m','gmp','mpfr','mpc'],
               extra_compile_args=extra_compile_args,
               library_dirs=openmp_libs,
-              extra_link_args=['-fopenmp']),
+              extra_link_args=openmp_link_args),
 
 
     Extension("psage.groups.dirichlet_conrey",

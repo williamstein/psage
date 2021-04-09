@@ -25,7 +25,7 @@ from __future__ import print_function
 
 import os, sys, platform
 from sage.env import sage_include_directories,SAGE_INC,SAGE_LIB,SAGE_LOCAL
-import subprocess 
+import subprocess
 if 'Darwin' in platform.platform() or 'macOS' in platform.platform():
     this_platform = 'darwin'
 elif 'Linux' in platform.platform():
@@ -203,6 +203,9 @@ code = setup(
                 ],
     platforms=['any'],
     download_url='N/A',
-    ext_modules=ext_modules
+    ext_modules=ext_modules,
+    install_requires=[
+          'past' # Temporary add to be able to use old_div without checking everything...
+      ],
 )
 

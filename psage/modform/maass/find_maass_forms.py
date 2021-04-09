@@ -290,7 +290,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     - ''hecke_ef'' -- logical (default False) if set to True we check that for Hecke eigenforms.
                              (Note: this increases the necessary precision)
 
-    OUPUT:
+    OUTPUT:
 
     - ''R'' --
 

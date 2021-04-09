@@ -80,7 +80,7 @@ openmp.omp_set_dynamic(1)#openmp.omp_set_num_threads(2)
 
 def get_Y_and_M_for_hwmf(G,PP,weight,ndig):
     r"""
-    Find a good Y and M for computing coefficents with precison 10^-ndig
+    Find a good Y and M for computing coefficients with precision 10^-ndig
 
     """
      # generalized_level
@@ -476,7 +476,7 @@ cpdef err_est_hwmf_neg_int(RealNumber Y,int M,int km1,int K0,RealNumber K1):
     cdef int prec = Y.parent().prec()
     RF = RealField(prec)
     res = RF(1)
-    #c=mpmath.mp.mpf(1) ## Should be some "true" boun
+    #c=mpmath.mp.mpf(1) ## Should be some "true" bound
     mpfr_init2(pi,prec);    mpfr_init2(X,prec)
     mpfr_init2(f1,prec);    mpfr_init2(ig,prec)
     mpfr_const_pi(pi,rnd_re)
@@ -544,7 +544,7 @@ cpdef err_est_hwmf_neg_hint(RealNumber Y,int M,int kmh,int K0,RealNumber K1):
     cdef mpfr_t pi,f1,X,ig
     cdef int prec = Y.parent().prec()
     cdef RealNumber res
-    #c=mpmath.mp.mpf(1) ## Should be some "true" boun
+    #c=mpmath.mp.mpf(1) ## Should be some "true" bound
     RF = RealField(prec)
     res = RF(1)
     mpfr_init2(pi,prec);    mpfr_init2(X,prec)
@@ -3603,7 +3603,7 @@ def solve_for_sl2z(W):
 ##     for pp in principal_parts:
 ##         PPplus.append(pp['+'])
 ##         PPminus.append(pp['-'])
-##     # cehcking correctness of porincipal parts
+##     # checking correctness of porincipal parts
 ##     for pp in PPplus:
 ##         for icusp,n in pp:
 ##             if((icusp not in range(nc)) or n>0):
@@ -4350,7 +4350,7 @@ cpdef solve_system_for_harmonic_weak_Maass_waveforms_mp(dict N, Matrix_complex_d
         raise ValueError," Inconsistent normalization SetCs:%s" % SetCs
     num_set=0
     for j in range(0,comp_dim):
-        # # First we treat set values of coefficients not corresponsing to the principal part
+        # # First we treat set values of coefficients not corresponding to the principal part
         for (r,n) in SetCs[j].keys():
             for j in range(comp_dim):
                 nr = r*Ml+n

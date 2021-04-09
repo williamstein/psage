@@ -26,7 +26,7 @@ class PeriodPolynomialSpace(SageObject):
 
     def basis(self):
         r"""
-        Compute a basis fof self.
+        Compute a basis of self.
         """
 
 
@@ -566,7 +566,7 @@ class PeriodPolynomial(SageObject):
                     self._base_coeffs_embedding.append(a.complex_embedding(precn))
                     n+=1
             else:
-                ## Here we have a rational number so we can ue the default number of bits
+                ## Here we have a rational number so we can use the default number of bits
                 n=1
                 for a in self._base_coeffs:
                     precn = prec1 + kf*ceil(log_b(n,2))

@@ -40,7 +40,7 @@ from __future__ import absolute_import
 from builtins import object
 class MFDB(object):
     def __init__(self, host='localhost', port=29000):
-        # Open conection to the MongoDB
+        # Open connection to the MongoDB
         from pymongo import Connection
         self.connection = Connection(host, port)
         self.db = self.connection.mfdb

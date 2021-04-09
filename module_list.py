@@ -29,6 +29,7 @@ else:
 # Check if we have OpenMP libraries
 openmp_libs = []
 openmp_link_args = []
+openmp_include_dirs = []
 try:
     openmp_libs = pkgconfig.parse('openmp')
     openmp_libs = list(openmp_libs['libraries'])

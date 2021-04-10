@@ -17,11 +17,8 @@ NOTE: If used with the implicit error bounds (i.e. iterate until the desired pre
 
 EXAMPLES::
 
-
-sage: Z=SelbergZeta(3,verbose=0,working_prec=249,delta=1e-7)
-sage: st8=Z.make_table_phi(prec=249,M0=150,N=2,outprec=66)
-
-
+    sage: Z=SelbergZeta(3,verbose=0,working_prec=249,delta=1e-7)
+    sage: st8=Z.make_table_phi(prec=249,M0=150,N=2,outprec=66)
 
 
 """
@@ -69,11 +66,11 @@ class SelbergZeta(Parent):
     The Selberg zeta function of a Fuchsian group.
     So far, only implemented for Hecke triangle groups.
 
-    EXAMPLE::
+    EXAMPLES::
 
-      sage: F=MPComplexNumbers(103)
-      sage: R=F(9.5336952613535575543442352359287703238212563951072519823757904641353489912983477817692555099754353664930447678582858545070606)
-      sage: s=R+F(0.5)
+        sage: F=MPComplexNumbers(103)
+        sage: R=F(9.5336952613535575543442352359287703238212563951072519823757904641353489912983477817692555099754353664930447678582858545070606)
+        sage: s=R+F(0.5)
 
     """
     
@@ -865,7 +862,7 @@ class SelbergZeta(Parent):
         """
         CF = ComplexField(self._working_prec)
         RF = RealField(self._working_prec)
-        if filename==None:
+        if filename is None:
             filename='selberg_zeta-q{0}-{1}--{2}.txt'.format(self._q,t1,t2)
         if M0==0:
             M0=20

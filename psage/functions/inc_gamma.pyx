@@ -75,8 +75,8 @@ cpdef RealNumber incgamma_int(int n,RealNumber x,int verbose=0):
     if ok == 0:
         return res
     else:
-        raise ArithmeticError,"Incomplete Gamma failed with code:{0}".format(ok)
-    
+        raise ArithmeticError("Incomplete Gamma failed with code:{0}".format(ok))
+
 ####  The incomplete gamma function of half-integral parameter
 cpdef RealNumber incgamma_hint(int n,RealNumber x,int verbose=0):
     r"""
@@ -95,8 +95,8 @@ cpdef RealNumber incgamma_hint(int n,RealNumber x,int verbose=0):
     if ok == 0:        
         return res
     else:
-        raise ArithmeticError,"Incomplete Gamma failed with code:{0}".format(ok)
-    
+        raise ArithmeticError("Incomplete Gamma failed with code:{0}".format(ok))
+
 ## The exponential integral
 cpdef RealNumber Ei_ml(RealNumber x):
     r"""
@@ -109,7 +109,7 @@ cpdef RealNumber Ei_ml(RealNumber x):
     if ok == 0:        
         return res
     else:
-        raise ArithmeticError,"Exponential integral failed with code:{0}".format(ok)
+        raise ArithmeticError("Exponential integral failed with code:{0}".format(ok))
 
 cpdef RealNumber ei(RealNumber x, int verbose=0):
     cdef int wp = x.prec() + 20
@@ -140,7 +140,7 @@ cpdef RealNumber ei_taylor(RealNumber x, int verbose=0):
     if ok == 0:
         return res
     else:
-        raise ArithmeticError,"Taylor expansion method for exponential integral failed with code:{0}".format(ok)
+        raise ArithmeticError("Taylor expansion method for exponential integral failed with code:{0}".format(ok))
 
 
 cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
@@ -154,7 +154,7 @@ cpdef RealNumber ei_asymp(RealNumber x, int verbose=0):
     if ok == 0:
         return res
     else:
-        raise ArithmeticError,"Asymptotic method for the exponential integral failed with code:{0}".format(ok)
+        raise ArithmeticError("Asymptotic method for the exponential integral failed with code:{0}".format(ok))
     
 ###
 ###  cdef'd functions

@@ -70,6 +70,7 @@ def ExpansionModule(forms) :
         An instance of :class:~`.ExpansionModule_abstract`.
 
     EXAMPLES::
+
         sage: from psage.modform.fourier_expansion_framework.gradedexpansions import *
         sage: from psage.modform.fourier_expansion_framework.monoidpowerseries import *
         sage: from psage.modform.fourier_expansion_framework.monoidpowerseries.monoidpowerseries_basicmonoids import *
@@ -282,7 +283,7 @@ class ExpansionModule_abstract(object) :
             True
         """
         if lazy_rank_check and not( self.base_ring() is ZZ or self.base_ring() is QQ) :
-            raise NotImplemented("lazy rank checks only implemented for ZZ and QQ") 
+            raise NotImplementedError("lazy rank checks only implemented for ZZ and QQ")
 
         if precision is None :
             precision = self.precision()

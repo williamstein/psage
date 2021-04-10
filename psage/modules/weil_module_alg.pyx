@@ -396,7 +396,7 @@ cpdef action_of_Gamma0_mpc(W,a,b,c,d,filter=None,prec=53,verbose=0):
     zl = CF(z.real(),z.imag())
     CI = CF(0,1)
     if c % W._level <>0:
-        raise ValueError, "Must be called with Gamma0(l) matrix! not A=" %([a,b,c,d])
+        raise ValueError("Must be called with Gamma0(l) matrix! not A=" %([a,b,c,d]))
     #r = matrix(W._K,W._n)
     for ii in range(n):
         for jj in range(n):
@@ -446,8 +446,8 @@ cpdef action_of_SL2Z_formula_mpc(W,int a,int b,int c,int d,filter=None,int prec=
     cdef ComplexNumber z
     cdef RealNumber fac
     sign=1
-    if a*d-b*c<>1:
-        raise ValueError,"Need matrix in SL(2,Z)!"
+    if a*d-b*c != 1:
+        raise ValueError("Need matrix in SL(2,Z)!")
     if c==0:
         if b==0:
             if a<0:

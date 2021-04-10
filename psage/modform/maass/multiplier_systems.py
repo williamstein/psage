@@ -194,12 +194,12 @@ class MultiplierSystem(SageObject):
         else:
             raise NotImplementedError("Do not know how the multiplier should act on {0}".format(A))
 
-        
-        
     def _action(self):
-        raise NotImplemented(" Needs to be overridden by subclasses!")
+        raise NotImplementedError(" Needs to be overridden by subclasses!")
+
     def is_trivial(self):
         return self._is_trivial
+
     def is_real(self):
         return self._is_real
 
@@ -267,7 +267,7 @@ class MultiplierSystem(SageObject):
             else:
                 raise ValueError("Only integral and half-integral weight is currently supported! Got weight:{0} of type:{1}".format(k,type(k)))
         else:
-            raise NotImplemented("Override this function for vector-valued multipliers!")
+            raise NotImplementedError("Override this function for vector-valued multipliers!")
         return v1==v
     
         

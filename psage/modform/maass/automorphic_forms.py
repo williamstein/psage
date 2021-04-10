@@ -4621,7 +4621,7 @@ def _set_character(character):
     """
     if isinstance(character,str):
         if ["","trivial"].count(character)==0:
-            raise NotImplemented("Incorrect character! Got: {0}".format(character))
+            raise NotImplementedError("Incorrect character! Got: {0}".format(character))
         character = None
     elif isinstance(character,sage.modular.dirichlet.DirichletCharacter) or isinstance(character,function):
         pass
@@ -4680,5 +4680,3 @@ def error_bound_minus(k,M,Y):
     f2 = M**(0.5*k+0.75)
     f3 = exp(-RR.pi()*2*Y0*M)
     return c1*c2*f1*f2*f3
-    
-        

@@ -580,7 +580,7 @@ cdef int _eigenvalues(mpc_t* res, mpc_t** A,int nrows,int prec,mpc_rnd_t rnd,mpf
     if end<>0:
         clear_QR(&q)
         mpfr_clear(delta)
-        raise ArithmeticError,"QR-algorithm did not cinverge in {0} steps!".format(i)
+        raise ArithmeticError("QR-algorithm did not cinverge in {0} steps!".format(i))
     e = get_eigenvalues(res, A,nrows,prec,q.t,rnd,rnd_re)
     clear_QR(&q)
     mpfr_clear(delta)

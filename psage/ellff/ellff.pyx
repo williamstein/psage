@@ -460,13 +460,13 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         _ellff_EllipticCurve_c.__init__(self)
 
         if not is_Field(field):
-            raise TypeError, "field must be a field."
+            raise TypeError("field must be a field.")
 
         if not is_FunctionField(field):
-            raise TypeError, "field must be of type FunctionField"
+            raise TypeError("field must be of type FunctionField")
 
         if not isinstance(field, RationalFunctionField):
-            raise NotImplementedError, "K must be the function field of P^1."
+            raise NotImplementedError("K must be the function field of P^1.")
 
         # TODO: make this into a check for K=F_q(t)
         # true/false: the following words *only if* K =F_q(C)
@@ -483,7 +483,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
         self.relative_L_function_calculated = False;
 
         if not isinstance(ainvs, list) and len(ainvs) == 5:
-            raise TypeError, "ainvs must be a list of length 5."
+            raise TypeError("ainvs must be a list of length 5.")
 
         cdef int sign, deg_L, constant_f
         sign, deg_L, constant_f, phi = self._surface_init(1)
@@ -951,7 +951,7 @@ class ellff_EllipticCurve(_ellff_EllipticCurve_c,SageObject):
             return self._L_function
 
         if self.constant_f == True:
-            raise ValueError, "Elliptic curve must be non-constant or have at least one place of bad reduction"
+            raise ValueError("Elliptic curve must be non-constant or have at least one place of bad reduction")
 
         # retrieve useful constants
         p = self.p

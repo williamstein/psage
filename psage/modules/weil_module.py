@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 #*****************************************************************************
 #       Copyright (C) 2009 Nils-Peter Skoruppa <nils.skoruppa@uni-siegen.de>
 #                          Fredrik Stroemberg <stroemberg@mathematik.tu-darmstadt.de>
@@ -20,12 +20,12 @@ $\rho(A)\rho(B)=\sigma(A,B)\rho(AB)$ where the cocycle $\sigma(A,B)$ is implemen
 
 
 REFERENCES:
- - [St] Fredrik Strömberg, "Weil representations associated to finite quadratic modules", arXiv:1108.0202
+ - [St] Fredrik StrÃ¶mberg, "Weil representations associated to finite quadratic modules", arXiv:1108.0202
  
 
 
  AUTHORS:
-   - Fredrik Strömberg
+   - Fredrik StrÃ¶mberg
    - Nils-Peter Skoruppa
    - Stephan Ehlen
 
@@ -2111,6 +2111,6 @@ def compare_formula_for_one_module(W,nmats=10,verbose=0):
     for i in range(nmats):
         A = SL2Z.random_element()
         t = compare_formula_for_one_matrix(W,A,verbose)
-        if t==False:
+        if not t:
             return False
     return True

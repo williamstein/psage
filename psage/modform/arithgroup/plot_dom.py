@@ -209,7 +209,7 @@ class HyperbolicTriangle(HyperbolicPolygon):
     Note that constructions should use ``hyperbolic_``::
 
          sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
-         sage: print HyperbolicTriangle(0, 1/2, I, {})
+         sage: print(HyperbolicTriangle(0, 1/2, I, {}))
          Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
 
     Note: The main reason for this extension is that we sometimes want to draw only certain sides of the triangle.
@@ -222,7 +222,7 @@ class HyperbolicTriangle(HyperbolicPolygon):
         Examples::
 
             sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
-            sage: print HyperbolicTriangle(0, 1/2, I, {})
+            sage: print(HyperbolicTriangle(0, 1/2, I, {}))
             Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
 
         """
@@ -281,7 +281,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         Examples::
         
             sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
-            sage: print HyperbolicTriangle(0, 1/2, I, {})
+            sage: print(HyperbolicTriangle(0, 1/2, I, {}))
             Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
         """
         A, B, C = (CC(A), CC(B), CC(C))

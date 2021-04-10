@@ -169,7 +169,7 @@ code = setup(
                 'psage.lmfdb',
                 'psage.lmfdb.ellcurves',
                 'psage.lmfdb.ellcurves.sqrt5',
-         		'psage.matrix',
+                 'psage.matrix',
                 'psage.modform',
                 'psage.modform.arithgroup',
 
@@ -191,7 +191,7 @@ code = setup(
                 'psage.modform.maass',
                 'psage.modform.periods',
 
-        		'psage.modules',
+                'psage.modules',
 
                 'psage.number_fields',
                 'psage.number_fields.sqrt5',
@@ -208,4 +208,3 @@ code = setup(
           'past' # Temporary add to be able to use old_div without checking everything...
       ],
 )
-

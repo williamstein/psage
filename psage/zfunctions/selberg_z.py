@@ -991,7 +991,7 @@ class TransferOperator(Parent):
             h=ZZ(QQ(q-3)/QQ(2))
             self._kapps = 2*h+1
             dim=ZZ(4*h+2)
-            NIJ=matrix(ZZ,dim)	
+            NIJ=matrix(ZZ,dim)
             NIJ[0,2*h-1]=2
             NIJ[0,2*h]=3
             NIJ[1,2*h]=2

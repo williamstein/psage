@@ -1468,8 +1468,8 @@ def solve_system_for_vv_harmonic_weak_Maass_waveforms_new(H,W,N=None,gr=False,cn
                     LHS[r-roffs,k-coffs]=V[r,k]
         #print "LHS[",r,k,"]=",LHS[r-roffs,k-coffs]
     #else:
-    #	LHS = V
-    #	RHS = -W['RHS']
+    #   LHS = V
+    #   RHS = -W['RHS']
     if get_reduced_matrix:
         return [LHS,RHS]
     maxit=100;i=0

@@ -3603,7 +3603,7 @@ def solve_for_sl2z(W):
 ##     for pp in principal_parts:
 ##         PPplus.append(pp['+'])
 ##         PPminus.append(pp['-'])
-##     # checking correctness of porincipal parts
+##     # checking correctness of principal parts
 ##     for pp in PPplus:
 ##         for icusp,n in pp:
 ##             if((icusp not in range(nc)) or n>0):

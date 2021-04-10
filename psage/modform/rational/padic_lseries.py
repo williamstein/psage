@@ -358,9 +358,9 @@ class pAdicLseries(SageObject):
 
         EXAMPLES::
 
-        sage: L = J0(23)[0].padic_lseries(5)
+            sage: L = J0(23)[0].padic_lseries(5)
             sage: L.abelian_variety()
-        Simple abelian variety J0(23) of dimension 2
+            Simple abelian variety J0(23) of dimension 2
         """
         return self._J
 

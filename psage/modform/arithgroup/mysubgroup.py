@@ -28,15 +28,17 @@ EXAMPLES::
    sage: TestSuite.run()
 
 
-Commutator subgroup
-   sage: pR=MyPermutation('(1 3 5)(2 4 6)')
-   sage: pS=MyPermutation('(1 2)(3 4)(5 6)')
-   sage: G=MySubgroup(o2=pS,o3=pR)
-Gamma^3
-   sage: pR=MyPermutation('(1 2 3)')
-   sage: pS=MyPermutation('(1)(2)(3)')
-   sage: G=MySubgroup(o2=pS,o3=pR)
-   
+Commutator subgroup::
+
+    sage: pR=MyPermutation('(1 3 5)(2 4 6)')
+    sage: pS=MyPermutation('(1 2)(3 4)(5 6)')
+    sage: G=MySubgroup(o2=pS,o3=pR)
+
+Gamma^3::
+
+    sage: pR=MyPermutation('(1 2 3)')
+    sage: pS=MyPermutation('(1)(2)(3)')
+    sage: G=MySubgroup(o2=pS,o3=pR)
 """
 from __future__ import print_function
 from __future__ import absolute_import
@@ -2175,12 +2177,13 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     #         else:
     #             return xpb,ypb,B[0,0],B[0,1],B[1,0],B[1,1]
     def is_congruence(self):
-        r""" Is self a congruence subgroup or not?
-          For convenience this is copied from Sage 'arithgroup_perm.py'
-          since that implementation has problems with caching... 
+        r"""
+        Is self a congruence subgroup or not?
+
+        For convenience this is copied from Sage 'arithgroup_perm.py'
+        since that implementation has problems with caching... 
 
         EXAMPLES::
-
 
             sage: S=SymmetricGroup(6)
             sage: pS=S([2,1,4,3,6,5])
@@ -2195,7 +2198,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             (1,3,4)(5,6,7)
             sage: G=MySubgroup(o2=pS,o3=pR)
             sage: G.is_congruence()
-        False
+            False
         
         Return ``True`` if this is a congruence subgroup, and ``False``
         otherwise.
@@ -2406,7 +2409,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def generalised_level(self):
         r""" Generalized level of self
 
-        EXAMPLES::y
+        EXAMPLES::
 
             sage: S=SymmetricGroup(6)
             sage: pS=S([2,1,4,3,6,5])

@@ -1,5 +1,5 @@
 r"""
-Helper subroutines for linear algebra for dense multi-preision complex 
+Helper subroutines for linear algebra for dense multi-precision complex 
 matrices (using mpc and mpfr).
 Part of the original C-code is due to Markus Fraczek (2010).
 
@@ -249,7 +249,7 @@ cdef int _qr_step(mpc_t** A, int *nrows, int *start, int *end, QR_set * q, mpc_t
             _mpc_set(&A[j][j], q.r,rnd_re)
             RotateLeft_(q.s, q.skk, q.c, A, j, j + 1, j + 1, end[0], q.t,rnd,rnd_re)
         if j > start[0]:
-            RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)	
+            RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)    
         _mpc_set(&q.s_t, q.s,rnd_re)
         _mpc_set(&q.skk_t, q.skk,rnd_re)
         mpfr_set(q.c_t, q.c, rnd_re)
@@ -409,8 +409,8 @@ cdef void set_zero(mpc_t** A, int *nrows, mpfr_t delta, mpc_t * t,mpc_rnd_t rnd,
         mpc_abs(t[0].re, A[j][j],rnd_re)
         mpc_abs(t[0].im, A[j - 1][j - 1],rnd_re)
         mpfr_add(t[0].re, t[0].re, t[0].im, rnd_re)
-        #		/*if(mpfr_cmp_si(t[0].re,1) < 0)
-        #		   mpfr_set_si(t[0].re,1,rnd_re) */
+        #        /*if(mpfr_cmp_si(t[0].re,1) < 0)
+        #           mpfr_set_si(t[0].re,1,rnd_re) */
         ### One can do a more accurate estimate
         ### but it doesn't seem to help much... 
         #mpfr_mul(t[0].re, t[0].re, delta, rnd_re)
@@ -961,7 +961,7 @@ cdef void mm_get_delta(mpfr_t *delta,mpfr_rnd_t rnd_re):
 #             _mpc_set(&A[j][j], q.r,rnd_re)
 #             RotateLeft_(q.s, q.skk, q.c, A, j, j + 1, j + 1, end[0], q.t,rnd,rnd_re)
 #         if j > start[0]:
-#             RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)	
+#             RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)
 #         _mpc_set(&q.s_t, q.s,rnd_re)
 #         _mpc_set(&q.skk_t, q.skk,rnd_re)
 #         mpfr_set(q.c_t, q.c, rnd_re)
@@ -993,7 +993,7 @@ cdef void mm_get_delta(mpfr_t *delta,mpfr_rnd_t rnd_re):
 #             _mpc_set(&A[j][j], q.r,rnd_re)
 #             RotateLeft_(q.s, q.skk, q.c, A, j, j + 1, j + 1, end[0], q.t,rnd,rnd_re)
 #         if j > start[0]:
-#             RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)	
+#             RotateRight_(q.s_t, q.skk_t, q.c_t, A, j - 1, j, start[0], j + 1, q.t,rnd,rnd_re)
 #         _mpc_set(&q.s_t, q.s,rnd_re)
 #         _mpc_set(&q.skk_t, q.skk,rnd_re)
 #         mpfr_set(q.c_t, q.c, rnd_re)

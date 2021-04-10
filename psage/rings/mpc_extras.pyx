@@ -72,7 +72,7 @@ cdef inline int _mpc_mul(mpc_t* z, mpc_t a, mpc_t b, mpc_t *t, mpc_rnd_t rnd, mp
 
     mpfr_mul(t[0].im, a.im, b[0].re, rnd_re)
 #/* z->im = a.im*b[0].re */
-    mpfr_fma(z[0].im, a.re, b[0].im, t[0].im, rnd_re)	#/* z->im = a.re*b[0].im + a.im*b[0].re */
+    mpfr_fma(z[0].im, a.re, b[0].im, t[0].im, rnd_re)    #/* z->im = a.re*b[0].im + a.im*b[0].re */
     mpfr_set(z[0].re,t[0].re,rnd_re)
     return 0
 
@@ -94,10 +94,10 @@ cdef inline int _mpc_div(mpc_t * z, mpc_t a, mpc_t b, mpc_t t[2], mpfr_rnd_t rnd
     This works if z is a pointer to a but not b.
     """
     #   # t is a temporary variable
-    #	assert_nsame(z->re, a.re);
-    #	assert_nsame(z->re, b.re);
+    #    assert_nsame(z->re, a.re);
+    #    assert_nsame(z->re, b.re);
     # if 1
-    #	m_assert(!mpfr_zero_p(b.re) || !mpfr_zero_p(b.im))
+    #    m_assert(!mpfr_zero_p(b.re) || !mpfr_zero_p(b.im))
     if mpfr_zero_p(a.re):
         if mpfr_zero_p(a[0].im):
             mpfr_set_si(z[0].re, 0, rnd_re)

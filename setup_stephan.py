@@ -361,7 +361,7 @@ build_system.setup(
 #                 'psage.lmfdb.ellcurves',
 #                 'psage.lmfdb.ellcurves.sqrt5',
 
-#          		'psage.matrix',
+#                  'psage.matrix',
 
                 'psage.modform',
 
@@ -379,7 +379,7 @@ build_system.setup(
                 # 'psage.modform.jacobiforms',
                 # 'psage.modform.maass',
 
-        		'psage.modules',
+                'psage.modules',
                 'psage.modform.weilrep_tools',
 
                 'psage.number_fields',

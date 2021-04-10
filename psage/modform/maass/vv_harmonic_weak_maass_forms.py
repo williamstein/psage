@@ -110,6 +110,7 @@ class VVHarmonicWeakMaassForms(AutomorphicFormSpace):
 
             sage: WM=WeilRepDiscriminantForm(1,dual=True)
             sage: M=VVHarmonicWeakMaassForms(WM,0.5,20)
+            Traceback (most recent call last):
             ....
             ValueError: Space only contains the zero function! Change weight (1/2) or representation (dual rep.)
 
@@ -2040,7 +2041,8 @@ class VVHarmonicWeakMaassFormElement(AutomorphicFormElement):
             sage: PP={(7/22,0):1}
             sage: F=M.get_element(PP,12);F
             Element of Space of Vector-Valued harmonic weak Maass forms on Modular Group SL(2,Z) of weight 1/2  and dimension 10.
-            Representation is Dual of Weil representation of the discriminant form given by ZZ/22ZZ with quadratic form Q(x)=11*x**2 mod 1. with principal part: q^-5/44       """
+            Representation is Dual of Weil representation of the discriminant form given by ZZ/22ZZ with quadratic form Q(x)=11*x**2 mod 1. with principal part: q^-5/44
+        """
         if(not disc and not str):
             return self._principal_part
         

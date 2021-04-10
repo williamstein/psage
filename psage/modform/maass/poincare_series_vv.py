@@ -353,14 +353,14 @@ def gram_matrix(N,weight,prec=501,tol=1E-40,sv_min=1E-1,sv_max=1E15,bl=None,set_
         Cold=load(filename3)
         for key in Cold.keys():
             #                print"key:",key
-            if key not in C: # then we addd it
+            if key not in C: # then we add it
                 print("key:",key," does not exist in the new version!")
                 C[key]=Cold[key]
                 save(C,filename3)
     ## Save the whole thing
     filename="PS_all_gram"+stN+"-"+wt+".sobj"
     save(res,filename) 
-    ## our work is comleted and we can remove the file
+    ## our work is completed and we can remove the file
     try:
         os.remove(filename_work)
     except os.error:

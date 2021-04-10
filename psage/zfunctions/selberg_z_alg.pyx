@@ -704,7 +704,7 @@ cdef setup_approximation_sym(mpc_t** A, int M,  fmpz_mat_t Nij, int dim, int q, 
 #         g1 = lambda t: mpmath.mp.exp(twopi*km*t)  / (mp1+mpmath.mp.exp(twopi*t ))+mpmath.mp.exp(-twopi*km*t)/(mp1+mpmath.mp.exp(-twopi*t))
 #         IE11 = mpmath.mp.quad(g1,[0,T])
 #         #IE11:=I*int( exp(-2*PI*I*k/m*(  I*t))/(1+exp(-2*PI*I*(  I*t )))+
-# 	    #     exp(2*PI*I*k/m*(  I*t))/(1+exp(2*PI*I*(  I*t))),t=0..T):
+#         #     exp(2*PI*I*k/m*(  I*t))/(1+exp(2*PI*I*(  I*t))),t=0..T):
 #         g2 = lambda x: mpmath.mp.exp(-twopii*km*mpmath.mp.mpc(x,T))  / (mp1+mpmath.mp.exp(-twopii*mpmath.mp.mpc(x,T) ))+mpmath.mp.exp(twopii*km*mpmath.mp.mpc(x,T))/(mp1+mpmath.mp.exp(twopii*mpmath.mp.mpc(x,T)))
 
 #         IE12 = mpmath.mp.quad(g2,[0,sigma])

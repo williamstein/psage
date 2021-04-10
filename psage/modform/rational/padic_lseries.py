@@ -3,14 +3,14 @@ r"""
 p-adic L-series of modular Jacobians with ordinary reduction at p.
 
 REFERENCES:
-        
+
 - [MTT] B. Mazur, J. Tate, and J. Teitelbaum,
-  On `p`-adic analogues of the conjectures of Birch and 
+  On `p`-adic analogues of the conjectures of Birch and
   Swinnerton-Dyer, Inventiones mathematicae 84, (1986), 1-48.
-   
+
 - [SW] William Stein and Christian Wuthrich, Computations About
   Tate-Shafarevich Groups using Iwasawa theory, preprint 2009.
-      
+
 AUTHORS:
 
   - William Stein and Jennifer Balakrishnan (2010-07-01): first version
@@ -34,7 +34,7 @@ from __future__ import division
 #                  http://www.gnu.org/licenses/
 ######################################################################
 
-	
+
 from past.builtins import cmp
 from builtins import range
 from sage.rings.integer_ring import   ZZ
@@ -68,8 +68,8 @@ class pAdicLseries(SageObject):
     EXAMPLES:
 
     An ordinary example::
-    
-    
+
+
     """
     def __init__(self, J, p, normalize='L_ratio'):
         r"""
@@ -87,15 +87,15 @@ class pAdicLseries(SageObject):
         if not self._p.is_prime():
             raise ValueError("p (={0}) must be a prime".format(p))
         A = self._J.modular_symbols(sign=1)
-        self._modular_symbols_subspace = A   
+        self._modular_symbols_subspace = A
         v = A.dual_eigenvector()
         self._dual_eigenvector = v
         self._hecke_eigenvalue_field = v[0].parent()
-        
+
     def __cmp__(self,other):
         r"""
-        Compare self and other. 
-        
+        Compare self and other.
+
         TESTS::
 
             sage: lp1 = J0(23)[0].padic_lseries(5)
@@ -109,16 +109,16 @@ class pAdicLseries(SageObject):
             False
         """
         c = cmp(type(self), type(other))
-        if c: 
+        if c:
             return c
-        return cmp((self._J, self._p), (other._J, other._p))               
+        return cmp((self._J, self._p), (other._J, other._p))
 
     def modular_symbols_subspace(self):
         """
         :return:
         """
         return self._modular_symbols_subspace
-    
+
     def hecke_eigenvalue_field(self):
         """
         The field of definition of the dual eigenform.
@@ -126,7 +126,7 @@ class pAdicLseries(SageObject):
         return self._hecke_eigenvalue_field
 
     def psi(self):
-        """
+        r"""
         The embedding $\Q(\alpha) \into \Q_p(a)$ sending $\alpha \mapsto a$.
         """
         K_f = self._hecke_eigenvalue_field
@@ -158,7 +158,7 @@ class pAdicLseries(SageObject):
             psis = self._psis
         except AttributeError:
             psis = self._psis = self.psi()
-                                        
+
         # TODO: rewrite this function to be a separate Cython class
         # that just does reducing [r,infinity] to a rational using
         # exactly the data that ones needs to do this (not going
@@ -178,11 +178,11 @@ class pAdicLseries(SageObject):
 #            psi = psis[0]
 #        else:
 #            psi = psis[1]
-    
+
         M = self.modular_symbols_subspace().ambient()
         s = M([r,infinity])
         return psi(v.dot_product(s.element()))
-        
+
 
 #############stuff for p-adic BSD, should be moved######
 
@@ -347,7 +347,7 @@ class pAdicLseries(SageObject):
                 eps = (1-1/self.alpha())**4
         return eps*(self.tamagawa_prod()*self.sha())/(self.torsion_order()**2)
 
-        
+
 
 #######################################################
 
@@ -355,27 +355,27 @@ class pAdicLseries(SageObject):
         r"""
         Return the abelian variety to which this `p`-adic L-series is
         associated.
-        
+
         EXAMPLES::
-        
-	    sage: L = J0(23)[0].padic_lseries(5)
+
+        sage: L = J0(23)[0].padic_lseries(5)
             sage: L.abelian_variety()
-	    Simple abelian variety J0(23) of dimension 2
+        Simple abelian variety J0(23) of dimension 2
         """
         return self._J
 
     def prime(self):
         r"""
-        Returns the prime `p` as in 'p-adic L-function'.        
-        
+        Returns the prime `p` as in 'p-adic L-function'.
+
         EXAMPLES::
-        
-	    sage: L = J0(23)[0].padic_lseries(5)
-	    sage: L.prime()
-	    5
+
+        sage: L = J0(23)[0].padic_lseries(5)
+        sage: L.prime()
+        5
         """
         return self._p
-		
+
     def _repr_(self):
         r"""
         Return print representation.
@@ -386,7 +386,7 @@ class pAdicLseries(SageObject):
         if not self._normalize == 'L_ratio':
             s += ' (not normalized)'
         return s
-   	
+
     def ap(self):
         """
         Return the Hecke eigenvalue $a_p$.
@@ -410,7 +410,7 @@ class pAdicLseries(SageObject):
             A = self._modular_symbols_subspace = self.modular_symbols_subspace()
         a_p = self._ap = A.eigenvalue(self._p)
         return a_p
- 
+
     def is_ordinary(self):
         """
         Check if $p$ is an ordinary prime.
@@ -427,13 +427,13 @@ class pAdicLseries(SageObject):
         not_in_p = [x for x in frak_p if a_p not in frak_p]
         if len(not_in_p) == 0:
             return False
-        else: 
+        else:
             return True
-        
+
     def measure(self,a,n,prec,quadratic_twist=+1,user_alpha=[],outside_call=False):
         """
         outside_call: if using this from outside the series computation
-	"""
+    """
         if quadratic_twist > 0:
             s = +1
         else:
@@ -459,7 +459,7 @@ class pAdicLseries(SageObject):
             z = 1/(alpha**n)
             f = self.modular_symbol
             self.__measure_data[(n,prec,s)] = (p,alpha,z,w,f)
-            
+
         if quadratic_twist == 1:
             return z * f(a/(p*w)) - (z/alpha) * f(a/w)
 
@@ -471,8 +471,8 @@ class pAdicLseries(SageObject):
             else:
                 mu = chip**n * sum([kronecker_symbol(D,u) *(z * f(a/(p*w)+ZZ(u)/D) - chip *(z/alpha)* f(a/w+ZZ(u)/D)) for u in range(1,abs(D))])
             return s*mu
-            
-        
+
+
     def alpha(self, prec=20):
         r"""
         Return a `p`-adic root `\alpha` of the polynomial `x^2 - a_p x
@@ -491,14 +491,14 @@ class pAdicLseries(SageObject):
             self._alpha = {}
         except KeyError:
             pass
-       
+
         J = self._J
         p = self._p
         Q = Qp(p)
         try:
             a_p = self._ap
         except AttributeError:
-            a_p = self._ap = self.ap() 
+            a_p = self._ap = self.ap()
 
         try:
             psis = self._psis
@@ -512,7 +512,7 @@ class pAdicLseries(SageObject):
             G = K_f.embeddings(K_f)
             if G[0](K_f.gen()) == K_f.gen():
                 conj_map = G[1]
-            else: 
+            else:
                 conj_map = G[0]
             v = self._dual_eigenvector
             v_conj = vector(conj_map(a) for a in v)
@@ -552,8 +552,8 @@ class pAdicLseries(SageObject):
                     padic_lseries_alpha = padic_lseries_alpha + [root0]
                 else:
                     padic_lseries_alpha = padic_lseries_alpha + [root1]
-                
-        return padic_lseries_alpha  
+
+        return padic_lseries_alpha
 
     def order_of_vanishing(self):
         r"""
@@ -569,25 +569,25 @@ class pAdicLseries(SageObject):
         true and that the `p`-part of Sha is finite.
 
         NOTE: currently `p` must be a prime of good ordinary reduction.
-        
+
         REFERENCES:
-        
+
         - [MTT] B. Mazur, J. Tate, and J. Teitelbaum,
-          On `p`-adic analogues of the conjectures of Birch and 
+          On `p`-adic analogues of the conjectures of Birch and
           Swinnerton-Dyer, Inventiones mathematicae 84, (1986), 1-48.
 
         - [Ka] Kayuza Kato, `p`-adic Hodge theory and values of zeta functions of modular
           forms, Cohomologies `p`-adiques et applications arithmetiques III,
           Asterisque vol 295, SMF, Paris, 2004.
-        
+
         EXAMPLES::
-        
+
         """
         try:
             return self.__ord
         except AttributeError:
             pass
-        
+
         if not self.is_ordinary():
             raise NotImplementedError
         E = self.elliptic_curve()
@@ -615,15 +615,15 @@ class pAdicLseries(SageObject):
     def teichmuller(self, prec):
         r"""
         Return Teichmuller lifts to the given precision.
-        
+
         INPUT:
             - ``prec`` - a positive integer.
-            
+
         OUTPUT:
-            - a list of `p`-adic numbers, the cached Teichmuller lifts 
+            - a list of `p`-adic numbers, the cached Teichmuller lifts
 
         EXAMPLES::
-        
+
             sage: L = EllipticCurve('11a').padic_lseries(7)
             sage: L.teichmuller(1)
             [0, 1, 2, 3, 4, 5, 6]
@@ -631,7 +631,7 @@ class pAdicLseries(SageObject):
             [0, 1, 30, 31, 18, 19, 48]
         """
         p = self._p
-        K = Qp(p, prec, print_mode='series')        
+        K = Qp(p, prec, print_mode='series')
         return [Integer(0)] + \
                [a.residue(prec).lift() for a in K.teichmuller_system()]
 
@@ -642,7 +642,7 @@ class pAdicLseries(SageObject):
         T = R(R.gen(),prec +1)
         w = (1+T)**(p**n) - 1
         return [infinity] + [valuation(w[j],p) for j in range(1,min(w.degree()+1,prec))]
-        
+
     def _get_series_from_cache(self, n, prec, D):
         try:
             return self.__series[(n,prec,D)]
@@ -650,13 +650,13 @@ class pAdicLseries(SageObject):
             self.__series = {}
         except KeyError:
             for _n, _prec, _D in self.__series.keys():
-                if _n == n and _D == D and _prec >= prec:  
+                if _n == n and _D == D and _prec >= prec:
                     return self.__series[(_n,_prec,_D)].add_bigoh(prec)
         return None
 
     def _set_series_in_cache(self, n, prec, D, f):
         self.__series[(n,prec,D)] = f
-  
+
 
     def _quotient_of_periods_to_twist(self,D):
         r"""
@@ -666,21 +666,21 @@ class pAdicLseries(SageObject):
         \Omega_E^{sign(D)}`. As in [MTT]_ page 40.  This is either 1
         or 2 unless the condition on the twist is not satisfied,
         e.g. if we are 'twisting back' to a semi-stable curve.
-        
+
         REFERENCES:
-        
+
         - [MTT] B. Mazur, J. Tate, and J. Teitelbaum,
-          On `p`-adic analogues of the conjectures of Birch and 
-          Swinnerton-Dyer, Invertiones mathematicae 84, (1986), 1-48.        
-        
+          On `p`-adic analogues of the conjectures of Birch and
+          Swinnerton-Dyer, Invertiones mathematicae 84, (1986), 1-48.
+
         .. note: No check on precision is made, so this may fail for huge `D`.
-        
+
         EXAMPLES::
-        
+
         """
         from sage.functions.all import sqrt
-        # This funciton does not depend on p and could be moved out of this file but it is needed only here
-        
+        # This function does not depend on p and could be moved out of this file but it is needed only here
+
         # Note that the number of real components does not change by twisting.
         if D == 1:
             return 1
@@ -695,7 +695,7 @@ class pAdicLseries(SageObject):
         verbose('the real approximation is %s'%qt)
         # we know from MTT that the result has a denominator 1
         return QQ(int(round(8*qt)))/8
-    
+
 
 class pAdicLseriesOrdinary(pAdicLseries):
     """
@@ -711,7 +711,7 @@ class pAdicLseriesOrdinary(pAdicLseries):
         sage: f = L.series(n=3)
         sage: f[2]
         8 + 13*19 + 11*19^2 + 12*19^3 + 16*19^4 + 16*19^5 + 4*19^6 + 19^7 + 3*19^8 + 6*19^9 + 3*19^10 + 15*19^11 + 9*19^12 + 15*19^13 + 5*19^14 + 8*19^15 + 16*19^16 + 6*19^17 + 11*19^18 + 6*19^19 + O(19^20)
-        
+
     """
     def measure_experimental(self,a,n,prec,quadratic_twist=+1,alpha=[]):
         """
@@ -738,7 +738,7 @@ class pAdicLseriesOrdinary(pAdicLseries):
 
         if quadratic_twist == 1:
             return z * f(a*p_inv*w_inv) - (z*alpha_inv) * f(a*w_inv)
-        
+
         else:
             D = quadratic_twist
             chip = kronecker_symbol(D,p)
@@ -747,7 +747,7 @@ class pAdicLseriesOrdinary(pAdicLseries):
             else:
                 mu = chip**n * sum([kronecker_symbol(D,u) *(z * f(a/(p*w)+ZZ(u)/D) - chip *(z/alpha)* f(a/w+ZZ(u)/D)) for u in range(1,abs(D))])
             return s*mu
-            
+
 
     def series(self, n=2, quadratic_twist=+1, prec=5):
         r"""
@@ -755,13 +755,13 @@ class pAdicLseriesOrdinary(pAdicLseries):
         power series in `T` (corresponding to `\gamma-1` with
         `\gamma=1+p` as a generator of `1+p\ZZ_p`).  Each coefficient
         is a `p`-adic number whose precision is provably correct.
-        
+
         Here the normalization of the `p`-adic L-series is chosen such
         that `L_p(J,1) = (1-1/\alpha)^2 L(J,1)/\Omega_J` where
         `\alpha` is the unit root
 
         INPUT:
-        
+
             - ``n`` - (default: 2) a positive integer
             - ``quadratic_twist`` - (default: +1) a fundamental
               discriminant of a quadratic field, coprime to the
@@ -773,18 +773,18 @@ class pAdicLseriesOrdinary(pAdicLseries):
 
         ALIAS: power_series is identical to series.
 
-        EXAMPLES:
+        EXAMPLES::
 
-	    sage: J = J0(188)[0]
-	    sage: p = 7
-	    sage: L = J.padic_lseries(p)
-	    sage: L.is_ordinary()
-	    True
-	    sage: f = L.series(2)
-	    sage: f[0]
-	    O(7^20)
-	    sage: f[1].norm()
-	    3 + 4*7 + 3*7^2 + 6*7^3 + 5*7^4 + 5*7^5 + 6*7^6 + 4*7^7 + 5*7^8 + 7^10 + 5*7^11 + 4*7^13 + 4*7^14 + 5*7^15 + 2*7^16 + 5*7^17 + 7^18 + 7^19 + O(7^20)
+        sage: J = J0(188)[0]
+        sage: p = 7
+        sage: L = J.padic_lseries(p)
+        sage: L.is_ordinary()
+        True
+        sage: f = L.series(2)
+        sage: f[0]
+        O(7^20)
+        sage: f[1].norm()
+        3 + 4*7 + 3*7^2 + 6*7^3 + 5*7^4 + 5*7^5 + 6*7^6 + 4*7^7 + 5*7^8 + 7^10 + 5*7^11 + 4*7^13 + 4*7^14 + 5*7^15 + 2*7^16 + 5*7^17 + 7^18 + 7^19 + O(7^20)
 
         """
         n = ZZ(n)
@@ -808,32 +808,32 @@ class pAdicLseriesOrdinary(pAdicLseries):
                 for ell in prime_divisors(D):
                     if valuation(self._E.conductor(),ell) > valuation(D,ell) :
                         raise ValueError("can not twist a curve of conductor (={0}) by the quadratic twist (={1}).".format(self._E.conductor(),D))
-                    
-            
+
+
         p = self._p
         if p == 2 and self._normalize :
             print('Warning : For p=2 the normalization might not be correct !')
         #verbose("computing L-series for p=%s, n=%s, and prec=%s"%(p,n,prec))
-        
+
 #        bounds = self._prec_bounds(n,prec)
 #        padic_prec = max(bounds[1:]) + 5
         padic_prec = 10
 #        verbose("using p-adic precision of %s"%padic_prec)
-        
+
         res_series_prec = min(p**(n-1), prec)
         verbose("using series precision of %s"%res_series_prec)
-        
+
         ans = self._get_series_from_cache(n, res_series_prec,D)
         if not ans is None:
             verbose("found series in cache")
             return ans
- 
+
         K = QQ
         gamma = K(1 + p)
         R = PowerSeriesRing(K,'T',res_series_prec)
         T = R(R.gen(),res_series_prec )
-        #L = R(0) 
-        one_plus_T_factor = R(1) 
+        #L = R(0)
+        one_plus_T_factor = R(1)
         gamma_power = K(1)
         teich = self.teichmuller(padic_prec)
         p_power = p**(n-1)
@@ -868,7 +868,7 @@ class pAdicLseriesOrdinary(pAdicLseries):
                 L += s * one_plus_T_factor
                 one_plus_T_factor *= 1+T
                 gamma_power *= gamma
-            
+
             Lprod = Lprod + [L]
         if len(Lprod)==1:
             return Lprod[0]
@@ -876,4 +876,3 @@ class pAdicLseriesOrdinary(pAdicLseries):
             return Lprod[0]*Lprod[1]
 
     power_series = series
-

@@ -179,9 +179,9 @@ class SiegelModularFormG4Indices_diagonal_lll ( SiegelModularFormGnIndices_diago
             
     def _latex_(self):
         if self.is_reduced():
-            return "Reduced quadratic forms of rank $4$ over $\mathbb{Z}$"
+            return r"Reduced quadratic forms of rank $4$ over $\mathbb{Z}$"
         else:
-            return "Quadratic forms over of rank $4$ over $\mathbb{Z}$"
+            return r"Quadratic forms over of rank $4$ over $\mathbb{Z}$"
 
 #===============================================================================
 # SiegelModularFormG4Filter_diagonal_lll

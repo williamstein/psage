@@ -540,8 +540,8 @@ class InfinitePolynomialFunctor(ConstructionFunctor):
                 if x.count('_') == 1:
                     g,n = x.split('_')
                     if n.isdigit():
-                        if g.isalnum(): # we can interprete x in any InfinitePolynomialRing
-                            if g in self._gens: # we can interprete x in self, hence, we will not use it as a variable anymore.
+                        if g.isalnum(): # we can interpret x in any InfinitePolynomialRing
+                            if g in self._gens: # we can interpret x in self, hence, we will not use it as a variable anymore.
                                 RemainingVars.pop(RemainingVars.index(x))
                                 IsOverlap = True # some variables of other can be interpreted in self. 
                                 if OverlappingVars:
@@ -1288,7 +1288,7 @@ def pushout(R, S):
 
     
 def pushout_lattice(R, S):
-    """
+    r"""
     Given a pair of Objects R and S, try and construct a 
     reasonable object $Y$ and return maps such that 
     canonically $R \leftarrow Y \rightarrow S$. 

@@ -37,19 +37,19 @@ class VectorValuedModularForm_generic_class(SageObject):
         r"""
           Returns the Fourier expansion of self.
         """
-        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overridden by the specific subclasses.")
 
     def ambient_space(self):
         r"""
           Returns the ambient space of vector valued modular forms.
         """
-        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overridden by the specific subclasses.")
 
     def ambient_module(self):
         r"""
           Returns the ambient module of vector valued modular forms.
         """
-        raise NotImplementedError("This method is currently not implemented. It should be overriden by the specific subclasses.")
+        raise NotImplementedError("This method is currently not implemented. It should be overridden by the specific subclasses.")
 
     def weight(self):
         return self._k

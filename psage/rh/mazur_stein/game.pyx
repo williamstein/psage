@@ -62,7 +62,7 @@ cdef class J:
         cdef double ans = 0
         cdef int i = 0
         if N > self.N_max:
-            raise ValueError, "J not defined for N > %s"%self.N_max
+            raise ValueError("J not defined for N > %s"%self.N_max)
         while 1:
             if self.pv._values[i] >= N:
                 return ans
@@ -77,7 +77,7 @@ cdef class J:
         cdef double ans = 0, F = 0
         cdef int i = 0, n
         if N > self.N_max:
-            raise ValueError, "J not defined for N > %s"%self.N_max
+            raise ValueError("J not defined for N > %s"%self.N_max)
         n = 1
         sig_on()
         while 1:
@@ -125,7 +125,7 @@ cdef class J:
         cdef double ans = 0, F = 0, ans2 = 0
         cdef int i = 0, n
         if N > self.N_max:
-            raise ValueError, "J not defined for N > %s"%self.N_max
+            raise ValueError("J not defined for N > %s"%self.N_max)
         n = 1
         sig_on()
         while 1:

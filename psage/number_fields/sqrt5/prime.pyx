@@ -328,13 +328,13 @@ def primes_above(long p, bint check=True):
         [2]
     """
     if check and not Integer(p).is_pseudoprime():
-        raise ValueError, "p must be a prime"
+        raise ValueError("p must be a prime")
     cdef long t = p%5
     if t == 1 or t == 4 or t == 0:
         return prime_range(p, p+1)
     else: # inert
         return [Prime(p, 0, True)]
-        
+
 def primes_of_bounded_norm(bound):
     """
     Return ordered list of all prime ideals of the ring of integers of
@@ -445,7 +445,7 @@ def prime_range(long start, stop=None):
         [5a, 3, 11a, 11b]
     """
     if start >= 2**31 or (stop and stop >= 2**31):
-        raise ValueError, "bound must be less than 2^31"
+        raise ValueError("bound must be less than 2^31")
 
     cdef long p, p2, sr, r0, r1, t, bound
     cdef Prime P

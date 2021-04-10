@@ -162,7 +162,7 @@ class MultiplierSystem(SageObject):
         return self._level
     def weight(self):
         r"""
-        Return (modulo 2) whish weight self is a multiplier system consistent with
+        Return (modulo 2) which weight self is a multiplier system consistent with
         """
         if self._is_trivial:
             self._weight = 0
@@ -194,12 +194,12 @@ class MultiplierSystem(SageObject):
         else:
             raise NotImplementedError("Do not know how the multiplier should act on {0}".format(A))
 
-        
-        
     def _action(self):
-        raise NotImplemented(" Needs to be overridden by subclasses!")
+        raise NotImplementedError(" Needs to be overridden by subclasses!")
+
     def is_trivial(self):
         return self._is_trivial
+
     def is_real(self):
         return self._is_real
 
@@ -267,7 +267,7 @@ class MultiplierSystem(SageObject):
             else:
                 raise ValueError("Only integral and half-integral weight is currently supported! Got weight:{0} of type:{1}".format(k,type(k)))
         else:
-            raise NotImplemented("Override this function for vector-valued multipliers!")
+            raise NotImplementedError("Override this function for vector-valued multipliers!")
         return v1==v
     
         
@@ -357,17 +357,17 @@ class ThetaMultiplier(MultiplierSystem):
         return s
     def __latex__(self):
         if self._is_dual:
-            s=" \bar{v_{\theta}} "
+            s=r" \bar{v_{\theta}} "
         else:
-            s=" v_{\theta} "
+            s=r" v_{\theta} "
         if self._character != None and not self._character.is_trivial():
-            s+=" \cdot "
+            s+=r" \cdot "
             if self._character == kronecker_character(self._conductor):
-                s+=" \left( \frac\{\cdot\}\{ {0} \}\right)".format(self._conductor)
+                s+=r" \left( \frac\{\cdot\}\{ {0} \}\right)".format(self._conductor)
             elif self._character == kronecker_character_upside_down(self._conductor):
-                s+=" \left( \frac\{ {0} \}\{ \cdot \}\right)".format(self._conductor)
+                s+=r" \left( \frac\{ {0} \}\{ \cdot \}\right)".format(self._conductor)
             else:
-                s+=" \chi_\{ {0}, {1} \}".format(self._conductor,self._char_nr)
+                s+=r" \chi_\{ {0}, {1} \}".format(self._conductor,self._char_nr)
         return s
 
     def __getinitargs__(self):

@@ -1,9 +1,9 @@
 #-*- coding: utf-8 -*-
 r"""
 Cython algorithms for computing holomorphic vector-valued Poincaré series.
-In particular to find a basis and compute aq gram matrix consisting of the Fouriercoefficients p_{D_i,r_i}(D_j,r_j)
+In particular to find a basis and compute a gram matrix consisting of the Fouriercoefficients p_{D_i,r_i}(D_j,r_j)
 
-NOTE: At the moment this is only implemented for the simple Weil representation asociated to D=Z/NZ
+NOTE: At the moment this is only implemented for the simple Weil representation associated to D=Z/NZ
 
 NOTE: The current implementation doesn't really use Cython...
 
@@ -499,9 +499,10 @@ def holom_poincare_c_vec(l,kappa, N,NN, maxit,b_m,b_p, prec,tol=1E-40,verbose=0)
             print("D' % 4N={0}, {1}".format(b,type(b)))
             print("sqrta={0}".format(a.sqrt()))
             print("sqrtb={0}".format(b.sqrt()))
-        if( ZN4(rs[j]**2) <> ZN4(Deltas[j]) ):
+        if( ZN4(rs[j]**2) != ZN4(Deltas[j]) ):
             raise ValueError, "D=%s <> r^2, r=%s " % (Deltas[j],rs[j])
-        if( ZN4(rps[j]**2) <> ZN4(Deltaps[j]) ):				       raise ValueError, "D'=%s <> r'^2, r=%s " % (Deltas[j],rs[j])
+        if( ZN4(rps[j]**2) != ZN4(Deltaps[j]) ):
+            raise ValueError("D'=%s <> r'^2, r=%s " % (Deltas[j],rs[j]))
         rsq=(rs[j]**2 % N4)
         rpsq=(rps[j]**2 % N4)
         ms[j]=(rsq-Deltas[j])/N4

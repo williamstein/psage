@@ -68,7 +68,7 @@ class JacobiFormD1NNModularFactory_class (SageObject) :
             raise RuntimeError( "Eta factor have to be set first" )
  
     def by_taylor_expansion(self, fs, k) :
-        """
+        r"""
         We combine the theta decomposition and the heat operator as in [Sko].
         This yields a bijections of Jacobi forms of weight `k` and
         `M_k \times S_{k+2} \times .. \times S_{k+2m}`.

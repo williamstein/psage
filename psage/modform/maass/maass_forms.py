@@ -865,7 +865,7 @@ class MaassWaveForms (AutomorphicFormSpace):
         - ''R1'' -- real
         - ''R2'' -- real
 
-        OUPUT:
+        OUTPUT:
 
         - list of triplets (r1,r2,y) where [r1,r2] does not contain a zero of K_ir(y)
 
@@ -2054,7 +2054,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
     def plot_pullback(self,xlim=(-0.5,0.5),ylim=(0,2),Q=0,**kwds):
         r"""
-        Mke a plot of the horocycle and pullback points used to compute self
+        Make a plot of the horocycle and pullback points used to compute self
         or if a Q is specified of that many points.
 
         """
@@ -2089,7 +2089,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
 
         OPTIONAL KEYWORDS:
 
-        - ''version'' --  decide which coset representatives to use. '1' for the default, '2' for hte one given form the farey symbol and '3' for a user supplied set.
+        - ''version'' --  decide which coset representatives to use. '1' for the default, '2' for the one given form the Farey symbol and '3' for a user supplied set.
         - ''clip'' -- clip to fundamental domain, set ot False to draw outside the domain (i.e. the entire square)
         - ''model' -- 'H' or 'D' for upper half plane or disc model
         - ''add_contour'' -- set to False if you do not want to include the contour of the domain
@@ -2298,7 +2298,7 @@ class MaassWaveformElement_class(AutomorphicFormElement): #(Parent):
                         except TypeError as te:
                             raise TypeError("Could not coerce coefficient {0} to CC: {1}".format(X[i][j],te))
         else:
-            raise NotImplementedError("High precision is currently not (efficiently) inplemented!")
+            raise NotImplementedError("High precision is currently not (efficiently) implemented!")
         # If we compute more than one Maass form at one time we simply put the coefficients in the first component
         # And rearrange them later in the "get_element" routine.
         self._M0 = M
@@ -2708,14 +2708,14 @@ def coefficients_for_Maass_waveforms(S,R,Y,M,Q,ndigs,cuspidal=True,sym_type=None
 #     - ''Yset'' -- real (use this value of Y to compute coefficients)
 #     - ''neps'' -- number of desired digits
 
-#     OUPUT:
+#     OUTPUT:
 
 #     - ''R'' --
 
 
 #     """
 #     G=S.group()
-#     jmax=1000  # maximal number of interation
+#     jmax=1000  # maximal number of iteration
 #     if(neps>=15):
 #         R1=mpmath.mp.mpf(R1in);R3=mpmath.mp.mpf(R2in)
 #         print "mpmath.mp.dps=",mpmath.mp.dps
@@ -2865,7 +2865,7 @@ def is_zero_in(h):
         zi[1]=1; i=1
     if list(zi.values()).count(1) >1: # need to split
         return -2
-    #s="Neeed to split! Not implemented!"
+    #s="Need to split! Not implemented!"
     #raise ValueError,s
     return i
 
@@ -3503,7 +3503,7 @@ def solve_system_for_Maass_waveforms_mpc(W,N=None,gr=False,cn=False):
             if setc_list.count(k)>0:
                 coffs=coffs+1
                 if verbose>1:
-                    print("skipping colum:{0}".format(k))
+                    print("skipping column:{0}".format(k))
                 continue
             if verbose>1 and r-roffs==1:
                 print("Setting LHS[1,{0}".format(k-coffs))
@@ -3727,7 +3727,7 @@ def mat_conv_to_mpc(A):
         n=A.ncols()
         prec=A[0,0].parent().prec()
     else:
-        raise TypeError("Cann not convert matrix of type:{0}".format(type(A)))
+        raise TypeError("Can not convert matrix of type:{0}".format(type(A)))
     CF=MPComplexField(prec)
     MS=MatrixSpace(CF,m,n)
     V=Matrix_complex_dense(MS,0)

@@ -291,7 +291,7 @@ class SiegelModularFormPrecision (SageObject):
     def __lt__(self, other):
         r"""
         Return True if the set of GL(2,Z)-reduced forms within the precision self
-        is contained in but not equal to the coresponding set of forms within the
+        is contained in but not equal to the corresponding set of forms within the
         precision other.
 
         EXAMPLES::

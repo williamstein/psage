@@ -53,7 +53,7 @@ REMARK
 Many of the mathematically more meaningful methods of the class FiniteQuadraticModule_ambient assume that the
 represented finite quadratic module is nondegenerate (i.e. $B(x,y)=0$
 for all $y$ in $M$ is only possible for $x=0$). Applying such a method
-to a degenerate module will raise an exeption (TODO: what exception?).
+to a degenerate module will raise an exception (TODO: what exception?).
 
 
 REFERENCES
@@ -418,7 +418,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
 
     def __call__(self, x, can_coords = False):
         r"""
-        Coerce object into an appopriate child object
+        Coerce object into an appropriate child object
         of self if possible.
 
         We ccoerce
@@ -725,7 +725,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             if (self.__R == other.__R) and (self.gram() == other.gram()):
                 return 0
         return -1
-        #Why is 0 returned? in the explanation ist says return 1
+        #Why is 0 returned? in the explanation it says return 1
 
     def twist(self, s):
         r"""
@@ -889,7 +889,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         r"""
         Return the quotient of $A/U$.
 
-        EAMPLES NONE
+        EXAMPLES NONE
         """
         return self.quotient(U)
 
@@ -1004,7 +1004,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             as $K\ZZ^r/E\ZZ^n$ then the
             columns of $K$ form a basis for the integral solutions  of
             $2H^tJx \in \ZZ^n$. We solve this  by the trick of augmenting
-            $2H^tJx$ by the unit matrix and solving the  corresonding
+            $2H^tJx$ by the unit matrix and solving the corresponding
             system of linear equations over $\ZZ$
         """
         H = U._matrix_() #matrix(U)
@@ -1092,7 +1092,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
     def  _compute_all_xcs(self):
         r"""
         Computes all non-zero values of the element x_c in the group D
-        OUPUT: dictionary k => x_c  where 2^k || c
+        OUTPUT: dictionary k => x_c  where 2^k || c
         """
         J=self.jordan_decomposition()
         res=dict()
@@ -1357,7 +1357,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
             Find a more effective implementation.
 
             Introduce optional arguments which allow to iterate in addition effectively
-            over all subgroups contained in or containig a certain subgroup, being isotropic etc.
+            over all subgroups contained in or containing a certain subgroup, being isotropic etc.
 
             One can use short cuts using e.g. that $N$ defines
             an isotropic subgroups if and only if $N^tJN$ is half integral (where $J$ is the Gram matrix
@@ -1639,7 +1639,7 @@ class FiniteQuadraticModule_ambient (AbelianGroup):
         NOTE
             If $A = \ZZ^n/R$ and $B = \ZZ^m/S$, then \code{im_gens}
             defines a valid homomorphism if $S^-1MS$ is an integral
-            matrix, where $M$ is the matrix whose colums are the coordinates
+            matrix, where $M$ is the matrix whose columns are the coordinates
             of the elements of \code{im_gens} w.r.t. the can. system.
         """
         if not isinstance(im_gens, (tuple, list)):
@@ -1769,7 +1769,7 @@ class FiniteQuadraticModuleHomomorphism_im_gens (Morphism):
             if not t:
                 raise ValueError("relations do not all (canonically) map to 0 under map determined by images of generators.")
         self.__im_gens = im_gens
-        # For effeciency, we compute the images of the fundamental generators of the domain
+        # For efficiency, we compute the images of the fundamental generators of the domain
         n = len(im_gens)
         self.__c_im_gens = []
         for x in homset.domain().fgens():
@@ -1906,7 +1906,7 @@ def _FiniteQuadraticModule_from_string(S, **args ):
         'a^{\pm k}.b^{\pm l}.c^{\pm m}. \dots',
         $$
         where $a$, $b$, $c$, \dots are prime powers, and where $k$, $l$, etc.
-        are positive integers (if an exponent $\pm k$ equals 1 it can be ommitted).
+        are positive integers (if an exponent $\pm k$ equals 1 it can be omitted).
         If the $a$, $b$, \dots are powers of $2$ we admit also subscripts $t$, i.e. symbols
         of the form $a_t^{\pm k}$, where $0\le t < 8$ is an integer.
 
@@ -1925,14 +1925,15 @@ def _FiniteQuadraticModule_from_string(S, **args ):
         the sign $\pm$, and where $c_1 + \cdots + c_k \equiv t \bmod 8$. Here, for even $a$, we
         use $A_a = (\ZZ/a\ZZ, x^2/2a)$.
 
-        Note that, for a symol $2^{\pm k}$, the $k$ must be even.
+        Note that, for a symbol $2^{\pm k}$, the $k$ must be even.
         Furthermore, a solution $(c_1,\dots,c_k)$ of the equations $\sum c_i \equiv t \bmod 8$ and 
         legendre symbol of 8 over $\prod c_i$ equal to $\pm 1$ exists if and only if
         $t \equiv k \bmod 2$, legendre symbol of $8$ over $t$ equal to $\pm 1$ for $k=1$,
         if $t\equiv 0 \bmod 8$ then $\pm 1 = +1$ and if $t\equiv 4 \bmod 8$ then \pm 1 = -1$
-        for $k=2$. If any of these conditions is not fullfilled an error is raised.
+        for $k=2$. If any of these conditions is not fulfilled an error is raised.
 
-    EXAMPLES
+    EXAMPLES::
+
         sage: A.<a,b,c,d> =_FiniteQuadraticModule_from_string ('3^-1.3.5^2'); A
         Finite quadratic module in 4 generators:
          gens: a, b, c, d
@@ -1977,7 +1978,7 @@ def _FiniteQuadraticModule_from_string(S, **args ):
         \end{verbatim}
 
         Of course, we impose  the additional requirements that
-        number is a positive integer, and number and type satisfy the above requierements.
+        number is a positive integer, and number and type satisfy the above requirements.
     """
                            
     S= S.replace(' ','') # filter out spaces 
@@ -2000,7 +2001,7 @@ def _FiniteQuadraticModule_from_string(S, **args ):
             if Integer(L1[1]) in range(8):
                 t = Integer(L1[1])
             else:
-                raise ValueError("Type given, which ist not in 0..7: {0}".format(L1[1]))
+                raise ValueError("Type given, which is not in 0..7: {0}".format(L1[1]))
         else:
             t = None
         if not (k != 0 and a != 1 and a.is_prime_power()
@@ -2091,7 +2092,7 @@ def FiniteQuadraticModule(arg0=None, arg1=None, **args):
     
         LL. FiniteQuadraticModule(list_of_orders, list_of_coeffs):
                 for a list of orders $[e_i]$  of size $n$ and a list of
-                coeficients $[a_{ij}]$, the quadratic module
+                coefficients $[a_{ij}]$, the quadratic module
                 $(\ZZ/e_1\times\cdots\times\ZZ/e_n,class(x)\mapsto\sum_{i\le j} a_{ij} x_i x_j)$.
         
         LM. FiniteQuadraticModule(list_of_orders, Gram_matrix):
@@ -2367,7 +2368,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
                 s += "%s"%x[i]
             else:
                 if len(s) > 0: s += " + "
-                s += "%s \cdot %s"%(latex(v[i]),x[i])
+                s += r"%s \cdot %s"%(latex(v[i]),x[i])
         if len(s) == 0: s = "0"
         return s
 
@@ -2401,7 +2402,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
 
     def list(self):
         r"""
-        Return the cordinates of self w.r.t. the fundamental
+        Return the coordinates of self w.r.t. the fundamental
         generators of self.parent() as a list.
 
         EXAMPLES NONE
@@ -2410,7 +2411,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
 
     def c_list(self):
         r"""
-        Return the cordinates of self w.r.t. the fundamental
+        Return the coordinates of self w.r.t. the fundamental
         generators of self.parent() as a list.
 
         EXAMPLES NONE
@@ -2419,7 +2420,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
 
     def _vector_(self):
         r"""
-        Return the cordinates of self w.r.t. the fundamental
+        Return the coordinates of self w.r.t. the fundamental
         generators of self.parent() as a vector.
 
         EXAMPLES NONE
@@ -2582,7 +2583,7 @@ class FiniteQuadraticModuleElement(AdditiveGroupElement):
 
 class FiniteQuadraticModule_subgroup(AbelianGroup):
     r"""
-    Descibes a subgroup of the underlying group of a finite quadratic module.
+    Describes a subgroup of the underlying group of a finite quadratic module.
 
     EXAMPLES NONE
 ##         sage: p=FiniteQuadraticModule([2,3,10])
@@ -2963,7 +2964,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
         NOTE
             An orthonormal system for a subgroup is a system of pairwise
             orthogonal generators $a_i$ of $p$-order, possibly extended by pairs
-            of genertors $b_j,c_j$ which are orthogonal to the $a_i$ and such that
+            of generators $b_j,c_j$ which are orthogonal to the $a_i$ and such that
             the subgroups $\langle b_j,c_j \rangle$ are pairwise orthogonal and do no possess
             orthogonal generators.
             
@@ -3025,7 +3026,7 @@ class FiniteQuadraticModule_subgroup(AbelianGroup):
             i.e. the subgroup generated by the values $B(x,y)$ ($x,y$
             in $U$), is (as every subgroup of $\QQQ/\ZZ$) cyclic,
             hence generated by a fixed value $B(x,y)$. We may assume
-            that $x$ and $y$ are in $U.gens()$ (since $B(x,y)$ beeing
+            that $x$ and $y$ are in $U.gens()$ (since $B(x,y)$ being
             a generator is equivalent to the statement that $B(x,y)$
             has the largest denominator among all values).  If $x=y$
             then $U = \langle x \rangle + V$, where $V$ is the dual of
@@ -3999,7 +4000,7 @@ class JordanDecomposition(SageObject):
     
     
 r"""
-o: For elements return tuples instad of lists. Are their immutable matrices?
+o: For elements return tuples instead of lists. Are their immutable matrices?
 
 o A.quotient(U) should return B, f, g where  B is V/U (V = dual of U), f:V-->A and g:V-->B are
   the natural mophims.
@@ -4309,7 +4310,7 @@ def testing_routine(p):
                                 print(str, True)
                             else:
                                 return str, False
-    return True, "All tests successfull"
+    return True, "All tests successful"
                                 
 def testing_routine_odd2adic():
 

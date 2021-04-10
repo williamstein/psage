@@ -221,10 +221,10 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
           
           ATTRIBUTES:
 
-            permS = permutation representating S
-            permT = permutation representating T  
-            permR = permutation representating R=ST  
-            permP = permutation representating P=STS 
+            permS = permutation representing S
+            permT = permutation representing T  
+            permR = permutation representing R=ST  
+            permP = permutation representing P=STS 
             (permR,permT) gives the group as permutation group
             Note:
               The usual permutation group has two parabolic permutations L,R
@@ -354,8 +354,8 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
             A unique identifier as string.
             The only truly unique identifier is the set of permutations
             so we return those as strings.
-            Because of the extra stucture given by e.g. Gamma0(N) we also return
-            this information if available.
+            Because of the extra structure given by e.g. Gamma0(N)
+            we also return this information if available.
 
 
         EXAMPLES::
@@ -390,7 +390,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
             sage: G=MySubgroup(Gamma0(5))
 
-            Not implmented!
+            Not implemented!
         """
         data = self.__dict__
         return (self.__class__, (self.permS,self.permR,self._verbose,data))            
@@ -597,7 +597,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
 
     def init_group_from_dict(self,data,**kwds):
         r"""
-        Initalize self from a dictionary.
+        Initialize self from a dictionary.
         """
         if self._verbose>0:
             print("in init_from_dict")
@@ -647,7 +647,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         # symmetrizable with respect to reflection in the imaginary axis 
         #self._symmetrizable_cusp=dict()
 
-        ## Then we chek if the cusps are symmetrizable in the sense that the normalizing maps
+        ## Then we check if the cusps are symmetrizable in the sense that the normalizing maps
         ## are normalizers of the group.
         ## The entries of this dict are pairs: (o,d) where
         ## N^o is in self and has [1,1] element d.
@@ -1193,7 +1193,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def is_symmetrizable_even_odd(self,j):
         r"""
         Returns 1 if this cusp is symmetrizable in the sense that the normalizing map N=A*rho
-        satisfies: JNJ^-1=AN where A is a memeber of  self.
+        satisfies: JNJ^-1=AN where A is a member of  self.
         Note: If self is a G amma_0(l) then A[1,1]==1 mod l
 
         """
@@ -1214,7 +1214,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
     def normalizer_order(self,j):
         r"""
         If cusp number j has normalizer N
-        satisfies: JNJ^-1=AN where A is a memeber of  self.
+        satisfies: JNJ^-1=AN where A is a member of  self.
         Note: If self is a G amma_0(l) then A[1,1]==1 mod l
 
         """
@@ -1280,7 +1280,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
         INPUT:
          - ''A'' Matrix in SL2Z
          - ''permutation_format'' integer : set to 0 for returning a PermutationGroup element and 1 (default) for MyPermutation
-        OUPUT:
+        OUTPUT:
          - Permutation in the format determined by `permutation_format`
 
         EXAMPLES::
@@ -1419,7 +1419,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                         cl.append(A)
                     except StopIteration:
                         pass
-        # We now addd the rest of the "flips" of these reps.
+        # We now add the rest of the "flips" of these reps.
         # So that we end up with a connected domain
         i=1 
         Ti = [1,-1,0,1]
@@ -1444,7 +1444,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     except StopIteration:
                         pass
             if(len(cl)>=self._index or lold>=len(cl)):
-                # If we either did not addd anything or if we addded enough
+                # If we either did not add anything or if we added enough
                 # we exit
                 break
         # If we missed something (which is unlikely)        
@@ -1488,7 +1488,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                 for i in range(-j):
                     tmp.append(-1)
             decomp_seq.append(tmp)
-        # We now addd the rest of the "flips" of these reps.
+        # We now add the rest of the "flips" of these reps.
         # So that we end up with a connected domain
         i=1 
         Ti = SL2Z_elt(1,-1,0,1)
@@ -1535,7 +1535,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     except StopIteration:
                         pass
             if len(cl)>=self._index or lold>=len(cl):
-                # If we either did not addd anything or if we addded enough
+                # If we either did not add anything or if we added enough
                 # we exit
                 break
         # If we missed something (which is unlikely)        
@@ -1595,7 +1595,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     cl.append(A)
                 except StopIteration:
                     pass
-        # We now addd the rest of the "flips" of these reps.
+        # We now add the rest of the "flips" of these reps.
         # So that we end up with a connected domain
         i=1 
         while(True):
@@ -1611,7 +1611,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
                     except StopIteration:
                         pass
             if(len(cl)>=self._index or lold>=len(cl)):
-                # If we either did not addd anything or if we addded enough
+                # If we either did not add anything or if we added enough
                 # we exit
                 break
         # If we missed something (which is unlikely)        
@@ -3032,7 +3032,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
          - ''**kwds''-- additional arguments to matplotlib 
          - ''axes''  -- set geometry of output
              =[x0,x1,y0,y1] -- restrict figure to [x0,x1]x[y0,y1]
-        - ''version'' -- decide which coset representatives to use. '1' for the default, '2' for hte one given form the farey symbol and '3' for a user supplied set.
+        - ''version'' -- decide which coset representatives to use. '1' for the default, '2' for the one given form the Farey symbol and '3' for a user supplied set.
         
         EXAMPLES::
 
@@ -3363,7 +3363,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
              print("reps={0}".format(coset_reps))
         Id=SL2Z_elt(1,0,0,1)
         vi=0
-        ## First populate the vertices of the fundamental domain we have choosen
+        ## First populate the vertices of the fundamental domain we have chosen
         for j in range(len(coset_reps)):
             if coset_reps[j][2]==0:
                 v=1,0
@@ -3649,7 +3649,7 @@ class MySubgroup_class (EvenArithmeticSubgroup_Permutation):
          - ''x_in,y_in'' -- x_in+I*y_in is in the upper half-plane
          - ''prec''      -- (default 201) precision in bits
          - ret_mat  -- set to 0 if you want to return a list instead of a matrix.
-         - 'version' -- Integer, 0, 1, or 2. Determine which verson of the fundamental domain to use.
+         - 'version' -- Integer, 0, 1, or 2. Determine which version of the fundamental domain to use.
         OUTPUT:
         
          - [xpb,ypb,B]  --  xpb+I*ypb=B(x_in+I*y_in) with B in self

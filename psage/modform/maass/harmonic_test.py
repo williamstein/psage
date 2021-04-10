@@ -335,7 +335,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N):
         raise ValueError(" Inconsistent normalization SetCs:%s" % SetCs)
     num_set=0
     for j in range(0,comp_dim):
-        # # First we treat set values of coefficients not corresponsing to the principal part
+        # # First we treat set values of coefficients not corresponding to the principal part
         for (r,n) in SetCs[j].keys():
             nr = r*Ml+n
             if nr>=0 or not H.is_holomorphic():
@@ -493,8 +493,9 @@ def get_parameters(N,k,m,eps):
     INPUT:  (used in later functions as well)
     - N -- level
     - k - weight
-    - m -- the largest index (in absoulute value) of the principal part
+    - m -- the largest index (in absolute value) of the principal part
     - -- eps -- desired precision
+
     OUTPUT:
      -- M -- truncation point
      -- Y -- Y-value to use

@@ -290,7 +290,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     - ''hecke_ef'' -- logical (default False) if set to True we check that for Hecke eigenforms.
                              (Note: this increases the necessary precision)
 
-    OUPUT:
+    OUTPUT:
 
     - ''R'' --
 
@@ -315,7 +315,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
     flogger.debug("Yset={0}".format(Yset))
     flogger.debug("R1={0} of type {1}".format(R1in,type(R1in)))
     flogger.debug("R3={0} of type {1}".format(R3in,type(R3in)))
-    flogger.debug("Finding funciton nr. {0}".format(fnr))
+    flogger.debug("Finding function nr. {0}".format(fnr))
     half=RF(0.5)
     if tol_in is None:
         tol=RF(2)**RF(10-prec)
@@ -350,7 +350,7 @@ def find_single_ev_1(S,R1in,R3in,Yset=None,Mset=None,neps=10,method='TwoY',verbo
         mod=x.modulus()
     else:
         mod=S.group().generalised_level()
-    flogger.debug("Computing Maass form witth these paramters: R={0}, dim={1} and set_C={2}".format(R1in,dim,set_c))
+    flogger.debug("Computing Maass form witt these parameters: R={0}, dim={1} and set_C={2}".format(R1in,dim,set_c))
     F=S.get_element(R1in,Yset=Y,Mset=M,dim=dim,set_c=set_c,phase2=False)
     if isinstance(F,list):
         F = F[fnr]
@@ -1095,7 +1095,7 @@ def check_if_out_of_range(R1v,R3v,Rnew,diffs,h,errest_x,errest_x_old,errest_h,er
 #            flogger.debug("Got larger error estimate: {0} > {1}".format(errest_h,errest_h_old))
         return True
     # Check if the R doesn't move but we have too large functional values.
-    # Normally the funciton is much smaller.
+    # Normally the function is much smaller.
     if errest_x < tol and errest_h > 10*tol:
         return True
     return False
@@ -1119,7 +1119,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     - ''hecke_ef'' -- logical (default False) if set to True we check that for Hecke eigenforms.
                              (Note: this increases the necessary precision)
 
-    OUPUT:
+    OUTPUT:
 
     - ''R'' --
 
@@ -1143,7 +1143,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     flogger.debug("Yset={0}".format(Yset))
     flogger.debug("R1={0} of type {1}".format(R1in,type(R1in)))
     flogger.debug("R3={0} of type {1}".format(R3in,type(R3in)))
-    flogger.debug("Finding funciton nr. {0}".format(fnr))
+    flogger.debug("Finding function nr. {0}".format(fnr))
     half=RF(0.5)
     tol = RF(tol)
     tol_z=tol.sqrt()  ## When we check for zeros we are more relaxed
@@ -1162,7 +1162,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
     signs=dict();diffs=dict()
     c=dict(); h=dict()
     mod=S.group().generalised_level()
-    flogger.debug("Computing Maass form wirth these paramters: R={0}, dim={1} and set_C={2}".format(R1in,dim,set_c))
+    flogger.debug("Computing Maass form with these parameters: R={0}, dim={1} and set_C={2}".format(R1in,dim,set_c))
     F=S.get_element(R1in,Yset=Y,Mset=M,dim=dim,set_c=set_c,phase2=False)
     if isinstance(F,list):
         F = F[fnr]
@@ -1423,7 +1423,7 @@ def find_single_ev_noncong(S,R1in,R3in,Yset=None,Mset=None,dim=1,tol=1e-7,neps=1
                 flogger.debug("Got larger error estimate: {0} > {1}".format(errest_h,errest_h_old))
             return -1,R1v[1],R3v[1],Y,M
         # Check if the R doesn't move but we have too large functional values. 
-        # Normally the funciton is much smaller.
+        # Normally the function is much smaller.
         if errest_x < tol and errest_h > 10*tol:
             return -1,R1v[1],R3v[1],Y,M
 
@@ -1618,7 +1618,7 @@ def functional_noncong(S,r,M,Y1,Y2,signs,c,first_time=False,method='TwoY',dim=1,
         logger2.debug("diffsx[1]={0}".format(diffsx[1]))
     logger2.debug("c={0}".format(c))
     logger2.debug("signs={0}".format(signs))
-    ## Now we add up all contributions using tht esame alignment of signs as previous point..
+    ## Now we add up all contributions using the same alignment of signs as previous point..
     abh=0
     for j in diffsx.keys():
         if not first_time and list(signs.keys()).count(j)>0:
@@ -1829,7 +1829,7 @@ def is_zero_in(st,h,diffs,tol=1E-12,verbose=0):
     #if zi.values().count(1) >1: # need to split
     #    return -2
     #print "i1=",i
-    #s="Neeed to split! Not implemented!"
+    #s="Need to split! Not implemented!"
     #raise ValueError,s
     if verbose>2:
         logger2.setLevel(lvl0)

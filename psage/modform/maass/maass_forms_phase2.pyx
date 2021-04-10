@@ -3252,7 +3252,7 @@ cdef phase2_coefficient_sum_real_dp_sym(double **Cnew, double ***V,
 #                         print "diffmax=",diff
 #                     if diffmax<eps:
 #                         if verbose>0:
-#                             print "Setting coeficient ",n
+#                             print "Setting coefficient ",n
 #                         for fi in range(fstop-fstart):
 #                             for jcusp in range(cuspa,cuspbb):
 #                                 Cnew[fi][jcusp][n]=Ctmp[fi][jcusp]

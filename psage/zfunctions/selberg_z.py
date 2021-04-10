@@ -78,7 +78,7 @@ class SelbergZeta(Parent):
     """
     
     def __init__(self,q,verbose=0,working_prec=103,digits=5,delta=1e-5,**kwds):
-        r""" Initalize the Selberg zeta function for the Hecke triangle  group G_q. 
+        r""" Initialize the Selberg zeta function for the Hecke triangle  group G_q. 
 
         INPUT::
 
@@ -106,7 +106,7 @@ class SelbergZeta(Parent):
         
     def __repr__(self):
         r"""  Return string representation of self. """
-        s="Selberg Zeta function of the Hecke triange group G_%s."%(self._q)
+        s="Selberg Zeta function of the Hecke triangle group G_%s."%(self._q)
         return s
 
 
@@ -118,7 +118,7 @@ class SelbergZeta(Parent):
           - `s`  -- complex number
 
           - `M0` -- integer : the starting value of the rank of the approximation.
-          - `Nh` -- integer: the starting value of the differens in ranks of the approximations used.
+          - `Nh` -- integer: the starting value of the difference in ranks of the approximations used.
           - `get_digits` -- integer: set to 0 if you just want to run the algorithm once and se which precision you get.
                                     Otherwise set to D if you want to keep iterating until D digits of precision is estimated.
           - `get_err` -- integer : set to 0 if you just want to return the value and no error estimates in the case of get_digits>0
@@ -133,11 +133,11 @@ class SelbergZeta(Parent):
         
         - `s`  -- complex number
         - `N` -- integer (default: computed). The starting value of the rank of the approximation.
-        - `Nh` -- integer (default 3). The starting value of the differens in ranks of the approximations used.
+        - `Nh` -- integer (default 3). The starting value of the difference in ranks of the approximations used.
         - `get_digits` -- integer (default 1). Possible values
             0 -- if you just want to run the algorithm once and se which precision you get.
             D -- integer >0. If you want to keep iterating until D digits of precision is estimated.
-        - get_eps -- real. Alternative to get_digits. Specifiy the precsion you want.
+        - get_eps -- real. Alternative to get_digits. Specify the precision you want.
         - `get_err` -- integer : set to 0 if you just want to return the value and no error estimates in the case of get_digits>0
         - `checks` -- integer. Possible values:       
             - 1. Return the tuple:
@@ -267,7 +267,7 @@ class SelbergZeta(Parent):
                     print("exit loop: Error={0} less than eps={1}".format(err,eps))
                 break
             ## We now have to decide if we need to raise precision
-            ## To choose a precision and appriximation size is the most difficult part of the algorithm
+            ## To choose a precision and approximation size is the most difficult part of the algorithm
             inc_prec=0; inc_appr=0
             ## The first time we always increase the approximation
             ## so we can get a better estimate of the error
@@ -696,7 +696,7 @@ class SelbergZeta(Parent):
                 ll = self.scattering_determinant(s1,N=N,checks=3,outprec=outprec)
                 z,K,er,delta,er1,er2=list(map(latex,ll))
                 if time==1:
-                    ## Do a timeit for the proces without checks
+                    ## Do a timeit for the process without checks
                     globals_dict = globals()
                     globals_dict['self']=self
                     globals_dict['s1']=s1
@@ -991,7 +991,7 @@ class TransferOperator(Parent):
             h=ZZ(QQ(q-3)/QQ(2))
             self._kapps = 2*h+1
             dim=ZZ(4*h+2)
-            NIJ=matrix(ZZ,dim)	
+            NIJ=matrix(ZZ,dim)
             NIJ[0,2*h-1]=2
             NIJ[0,2*h]=3
             NIJ[1,2*h]=2
@@ -1357,7 +1357,7 @@ class TransferOperator(Parent):
             print("mina={0}".format(mina))
             print("maxb={0}".format(maxb))
             for j in range(d):            
-                print("Phi(I_{j}) \subset [{a},{b}]".format(j=j,a=mina[j],b=maxb[j]))
+                print(r"Phi(I_{j}) \subset [{a},{b}]".format(j=j,a=mina[j],b=maxb[j]))
         # We now need to find disks with the same center as before
         radii={};rho={}
         for j in range(d):
@@ -1567,7 +1567,7 @@ class TransferOperator(Parent):
         INPUT:
 
         - `s` -- complex number.
-        - `M` -- integer. The size of the the finite rank approximation. (The point of truncation of the Power series representating functions in B).
+        - `M` -- integer. The size of the the finite rank approximation. (The point of truncation of the Power series representing functions in B).
         
         """
         if hasattr(s,"prec"):

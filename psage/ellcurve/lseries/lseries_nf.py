@@ -360,7 +360,7 @@ def lseries_dokchitser(E, prec=53):
         sage: E0.rank()
         0
     """
-    # The code asssumes in various places that we have a global minimal model,
+    # The code assumes in various places that we have a global minimal model,
     # for example, in anlist_sqrt5 above.
     E = E.global_minimal_model() 
 

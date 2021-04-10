@@ -149,7 +149,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         return SiegelModularFormGnFilter_diagonal_lll(self.__n, maxd + 1, self.__reduced)
   
     def _gln_lift(self, v, position = 0) :
-        """
+        r"""
         Create a unimodular matrix which contains v as a row or column.
         
         INPUT:
@@ -271,7 +271,7 @@ class SiegelModularFormGnIndices_diagonal_lll ( SageObject ) :
         return self.reduce
     
     def reduce(self, t) :
-        ## We compute the rational diagonal form of t. Whenever a zero entry occures we
+        ## We compute the rational diagonal form of t. Whenever a zero entry occurs we
         ## find a primitive isotropic vector and apply a base change, such that t finally
         ## has the form diag(0,0,...,P) where P is positive definite. P will then be a
         ## LLL reduced.

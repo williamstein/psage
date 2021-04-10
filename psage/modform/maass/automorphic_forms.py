@@ -260,7 +260,7 @@ class AutomorphicFormSpace(Parent):
         self._dimension_cusp_forms = -1
         self._dimension_modular_forms = -1
         self._basis_numerical = None
-        # A properly working typing would make this unecessary
+        # A properly working typing would make this unnecessary
         self._is_automorphic_form_space=True
         self._scaled=False
         if(self._multiplier.is_trivial()):
@@ -1410,7 +1410,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
                             for i in range(self.level()):
                                 if(x(i)!=character(i)):
                                     raise StopIteration()
-                                # if we are here we have found the correct characte
+                                # if we are here we have found the correct character
                             # print "found match!"
                             magma_index_char=j
                             break
@@ -1697,7 +1697,7 @@ class HalfIntegralWeightForms(AutomorphicFormSpace):
         -`digs` -- number of correct digits wanted
         -`numc` -- number of coefficients requested for each basis element
         -`SetM` -- compute only this number of coefficients
-        -`SetY` -- compute using this hieght of the horocycle
+        -`SetY` -- compute using this height of the horocycle
 
         """
         if SetM==None:
@@ -3444,7 +3444,7 @@ def extract_princial_part(M,principal_part):
     y = YP.gens()[0]
     ppdict={'-':{},'+':{}}
     ## We start by setting the constant terms to zero
-    ## (unless they are explicitly overriden in the given principal part)
+    ## (unless they are explicitly overridden in the given principal part)
     for j in range(M.group().ncusps()):
         if M.alpha(j)[0]<=0:
             ppdict['+'][(j,0)]=0
@@ -3710,7 +3710,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms(W,N,gr=0):
         raise ValueError(" Inconsistent normalization SetCs:{0}".format(SetCs))
     num_set=0
     for j in range(0,comp_dim):
-        # # First we treat set values of coefficients not corresponsing to the principal part
+        # # First we treat set values of coefficients not corresponding to the principal part
         for (r,n) in list(SetCs[j].keys()):
             nr = r*Ml+n
             if nr>=0 or not H.is_holomorphic():
@@ -4037,7 +4037,7 @@ def solve_system_for_harmonic_weak_Maass_waveforms_mpmath(W,N):
         raise ValueError(" Inconsistent normalization SetCs:{0}".format(SetCs))
     num_set=0
     for j in range(0,comp_dim):
-        # # First we treat set values of coefficients not corresponsing to the principal part
+        # # First we treat set values of coefficients not corresponding to the principal part
         for (r,n) in list(SetCs[j].keys()):
             for j in range(comp_dim):
                 #if(two_terms and n>=0):
@@ -4569,7 +4569,7 @@ def sci_pretty_print(s,nd=0,es='e',latex_pow=False):
     #ssdigs=sint[1:len(sint)]+sdigs
     # cut away to nd digits
     if nd>0:
-        #ssdigs=sdigs[0:nd-1] # We acount the leading digit too
+        #ssdigs=sdigs[0:nd-1] # We count the leading digit too
         # Try to do correct rounding        
         rest=sdigs[nd-len(sint):len(sdigs)]
         #print "sdigs=",sdigs," nd=",nd
@@ -4621,7 +4621,7 @@ def _set_character(character):
     """
     if isinstance(character,str):
         if ["","trivial"].count(character)==0:
-            raise NotImplemented("Incorrect character! Got: {0}".format(character))
+            raise NotImplementedError("Incorrect character! Got: {0}".format(character))
         character = None
     elif isinstance(character,sage.modular.dirichlet.DirichletCharacter) or isinstance(character,function):
         pass
@@ -4680,5 +4680,3 @@ def error_bound_minus(k,M,Y):
     f2 = M**(0.5*k+0.75)
     f3 = exp(-RR.pi()*2*Y0*M)
     return c1*c2*f1*f2*f3
-    
-        

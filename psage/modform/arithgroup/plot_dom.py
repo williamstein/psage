@@ -209,7 +209,7 @@ class HyperbolicTriangle(HyperbolicPolygon):
     Note that constructions should use ``hyperbolic_``::
 
          sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
-         sage: print HyperbolicTriangle(0, 1/2, I, {})
+         sage: print(HyperbolicTriangle(0, 1/2, I, {}))
          Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
 
     Note: The main reason for this extension is that we sometimes want to draw only certain sides of the triangle.
@@ -222,7 +222,7 @@ class HyperbolicTriangle(HyperbolicPolygon):
         Examples::
 
             sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
-            sage: print HyperbolicTriangle(0, 1/2, I, {})
+            sage: print(HyperbolicTriangle(0, 1/2, I, {}))
             Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
 
         """
@@ -281,7 +281,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
         Examples::
         
             sage: from sage.plot.hyperbolic_triangle import HyperbolicTriangle
-            sage: print HyperbolicTriangle(0, 1/2, I, {})
+            sage: print(HyperbolicTriangle(0, 1/2, I, {}))
             Hyperbolic triangle (0.000000000000000, 0.500000000000000, 1.00000000000000*I)
         """
         A, B, C = (CC(A), CC(B), CC(C))
@@ -478,7 +478,7 @@ class HyperbolicTriangleDisc(object): #]GraphicPrimitive):
 #@options(alpha=1,fill=False,  thickness=1, rgbcolor="blue", zorder=2, linestyle='solid', model='H')
 @options(alpha=1,  thickness=1, rgbcolor="black", zorder=2, linestyle='solid', model='H',fill=False)
 def my_hyperbolic_triangle(a, b, c, **options):
-    """
+    r"""
     Return a hyperbolic triangle in the complex hyperbolic plane with points
     (a, b, c). Type ``?hyperbolic_triangle`` to see all options.
 
@@ -820,7 +820,7 @@ def nice_coset_reps(G):
                     cl.append(A)
                 except StopIteration:
                     pass
-        # We now addd the rest of the "flips" of these reps.
+        # We now add the rest of the "flips" of these reps.
         # So that we end up with a connected domain
         i=1 
         while(True):
@@ -836,7 +836,7 @@ def nice_coset_reps(G):
                     except StopIteration:
                         pass
             if(len(cl)>=G.index() or lold>=len(cl)):
-                # If we either did not addd anything or if we addded enough
+                # If we either did not add anything or if we added enough
                 # we exit
                 break
         # If we missed something (which is unlikely)        

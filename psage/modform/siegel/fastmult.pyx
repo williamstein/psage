@@ -206,7 +206,7 @@ cpdef mult_coeff_generic(int a, int b, int c, coeffs_dict1, coeffs_dict2, Ring R
 
                 nl = get_coeff(a1, b1, c1, coeffs_dict1)
                 if nl is None or nl.is_zero() : continue
-                	
+
                 nr = get_coeff(a2, b2, c2, coeffs_dict2)
                 if nr is None or nr.is_zero() : continue
                 
@@ -289,7 +289,7 @@ cpdef mult_coeff_generic_with_action(int a, int b, int c, coeffs_dict1, coeffs_d
 
                 nl = get_coeff_with_action(a1, b1, c1, coeffs_dict1, R)
                 if nl is None or nl.is_zero() : continue
-                	
+
                 nr = get_coeff_with_action(a2, b2, c2, coeffs_dict2, R)
                 if nr is None or nr.is_zero() : continue
                 
@@ -300,7 +300,6 @@ cpdef mult_coeff_generic_with_action(int a, int b, int c, coeffs_dict1, coeffs_d
     mpz_clear(tmp)
 
     return nmc
-
 
 
 cdef get_coeff_with_action(int a0, int b0, int c0, coeffs_dict, R):

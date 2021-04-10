@@ -41,9 +41,11 @@ from past.builtins import cmp
 from builtins import str
 from builtins import range
 from builtins import object
-import copy, math, types
+import copy
+import math
+import types
 
-from sage.all import prime_range, cached_method, sqrt, SR, vector
+from sage.all import prime_range, cached_method, sqrt, SR, vector, divisors
 from sage.rings.all import is_RationalField, ZZ, Integer, QQ, O, ComplexField, CDF, primes, infinity as oo
 from sage.schemes.elliptic_curves.ell_generic import is_EllipticCurve
 from psage.ellcurve.lseries.helper import extend_multiplicatively_generic
@@ -52,7 +54,6 @@ from sage.modular.abvar.abvar import is_ModularAbelianVariety
 from sage.modular.dirichlet import is_DirichletCharacter
 from sage.lfunctions.dokchitser import Dokchitser
 from sage.modular.modsym.space import is_ModularSymbolsSpace
-from sage.modular.abvar.abvar import is_ModularAbelianVariety
 from sage.rings.number_field.number_field_base import is_NumberField
 import sage.modular.modform.element
 from sage.modular.all import Newform
@@ -307,6 +308,8 @@ class LSeriesParentClass(object):
     def __repr__(self):
         """
         Return string representation of this parent object.
+
+        EXAMPLES::
 
             sage: from psage.lseries.eulerprod import LSeriesParent
             sage: LSeriesParent.__repr__()
@@ -1366,7 +1369,7 @@ class LSeriesAbstract(object):
             - ``variable`` -- string or symbolic variable
             - ``prec`` -- positive integer (floating point bits of precision)
 
-        EXAMPLES:::
+        EXAMPLES::
 
             sage: from psage.lseries.eulerprod import LSeries; L = LSeries('zeta')
             sage: L.taylor_series()
